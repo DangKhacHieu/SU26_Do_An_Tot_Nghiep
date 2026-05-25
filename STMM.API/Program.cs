@@ -1,17 +1,37 @@
 using Microsoft.EntityFrameworkCore;
+using FluentValidation;
+using AutoMapper;
 using STMM.DataAccess.Data;
+using STMM.DataAccess.UnitOfWork;
+using STMM.Business.Mappers;
+using STMM.API.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Đăng ký AppDbContext
+// Register AppDbContext
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// Register Unit of Work
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+// Register AutoMapper
+builder.Services.AddAutoMapper(cfg =>
+{
+    cfg.AddProfile<MappingProfile>();
+});
+
+// Register FluentValidation (Scan all validators in the Business project)
+builder.Services.AddValidatorsFromAssembly(typeof(MappingProfile).Assembly);
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+
+// Register Exception Middleware at the beginning of the pipeline to catch all exceptions
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 if (app.Environment.IsDevelopment())
 {
