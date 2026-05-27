@@ -4,6 +4,8 @@ using AutoMapper;
 using STMM.DataAccess.Data;
 using STMM.DataAccess.UnitOfWork;
 using STMM.Business.Mappers;
+using STMM.Business.Interfaces;
+using STMM.Business.Services;
 using STMM.API.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -23,6 +25,9 @@ builder.Services.AddAutoMapper(cfg =>
 
 // Register FluentValidation (Scan all validators in the Business project)
 builder.Services.AddValidatorsFromAssembly(typeof(MappingProfile).Assembly);
+
+// Register Business Services
+builder.Services.AddScoped<IViolationService, ViolationService>();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();

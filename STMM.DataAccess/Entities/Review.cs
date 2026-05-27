@@ -5,14 +5,29 @@ namespace STMM.DataAccess.Entities;
 
 public partial class Review
 {
-    public int Id { get; set; }
+    /// <summary>
+    /// Mã đánh giá
+    /// </summary>
+    public int ReviewId { get; set; }
 
+    /// <summary>
+    /// Đánh giá sạp nào
+    /// </summary>
     public int StallId { get; set; }
 
+    /// <summary>
+    /// Customer đánh giá
+    /// </summary>
     public int UserId { get; set; }
 
+    /// <summary>
+    /// Điểm (1-5 sao)
+    /// </summary>
     public int Rating { get; set; }
 
+    /// <summary>
+    /// Nhận xét
+    /// </summary>
     public string? Comment { get; set; }
 
     public DateTime? CreatedAt { get; set; }

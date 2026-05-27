@@ -5,20 +5,44 @@ namespace STMM.DataAccess.Entities;
 
 public partial class Invoice
 {
+    /// <summary>
+    /// Mã định danh hóa đơn
+    /// </summary>
     public int InvoiceId { get; set; }
 
+    /// <summary>
+    /// Hóa đơn tính cho hợp đồng nào
+    /// </summary>
     public int ContractId { get; set; }
 
+    /// <summary>
+    /// Tháng tính hóa đơn
+    /// </summary>
     public int Month { get; set; }
 
+    /// <summary>
+    /// Năm tính hóa đơn
+    /// </summary>
     public int Year { get; set; }
 
+    /// <summary>
+    /// Tổng số tiền phải nộp (VNĐ)
+    /// </summary>
     public decimal TotalAmount { get; set; }
 
+    /// <summary>
+    /// Trạng thái (Unpaid, Paid, Adjusted)
+    /// </summary>
     public string? Status { get; set; }
 
+    /// <summary>
+    /// Hạn chót thanh toán
+    /// </summary>
     public DateOnly? DueDate { get; set; }
 
+    /// <summary>
+    /// Trỏ về ID hóa đơn gốc bị lỗi (nếu có)
+    /// </summary>
     public int? AdjustedFromId { get; set; }
 
     public DateTime? CreatedAt { get; set; }
