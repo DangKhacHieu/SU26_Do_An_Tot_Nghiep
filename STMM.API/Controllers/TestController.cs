@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Npgsql;
 using STMM.DataAccess.Data;
+using Microsoft.AspNetCore.Authorization;
 
 namespace STMM.API.Controllers
 {

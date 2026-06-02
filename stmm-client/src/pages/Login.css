@@ -1,0 +1,257 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  min-height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  background: #f6f0d7;
+}
+
+.login-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f6f0d7 0%, #eef2d1 100%);
+  display: flex;
+  flex-direction: column;
+  color: #2f3627;
+}
+
+/* Header bỏ trống */
+.login-header {
+  height: 72px;
+  width: 100%;
+}
+
+/* Main */
+.login-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.system-title {
+  text-align: center;
+  font-size: 32px;
+  line-height: 1.15;
+  font-weight: 800;
+  margin: 0 0 72px;
+  color: #3f4a34;
+  letter-spacing: -0.5px;
+}
+
+/* Login card */
+.login-card {
+  width: 380px;
+  background: rgba(246, 240, 215, 0.92);
+  padding: 38px 36px 44px;
+  border: 1px solid rgba(137, 152, 109, 0.35);
+  border-radius: 18px;
+  box-shadow: 0 24px 45px rgba(67, 78, 52, 0.18);
+  backdrop-filter: blur(8px);
+}
+
+.login-card h2 {
+  margin: 0 0 44px;
+  font-size: 22px;
+  font-weight: 800;
+  color: #3f4a34;
+  text-align: left;
+}
+
+/* Form */
+.login-card,
+.login-card form,
+.form-group,
+.input-box {
+  text-align: left;
+}
+
+.form-group {
+  margin-bottom: 24px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 10px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: #89986d;
+  text-align: left;
+}
+
+.input-box {
+  height: 36px;
+  display: flex;
+  align-items: center;
+  border-bottom: 1.5px solid #c5d89d;
+  transition: border-color 0.2s ease;
+}
+
+.input-box:focus-within {
+  border-bottom-color: #89986d;
+}
+
+.input-icon {
+  width: 26px;
+  color: #9cab84;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.input-box input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: #2f3627;
+  font-size: 13px;
+  padding: 0;
+}
+
+.input-box input::placeholder {
+  color: #9cab84;
+}
+
+/* Show / Hide password */
+.eye-button {
+  border: none;
+  background: transparent;
+  color: #89986d;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+}
+
+.eye-button:hover {
+  color: #3f4a34;
+}
+
+/* Remember + forgot */
+.login-options {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 8px 0 34px;
+  font-size: 11px;
+}
+
+.remember {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #5f6d4d;
+  font-weight: 600;
+}
+
+.remember input {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  accent-color: #89986d;
+}
+
+.login-options a {
+  color: #3f4a34;
+  text-decoration: none;
+  font-weight: 800;
+}
+
+.login-options a:hover {
+  color: #89986d;
+  text-decoration: underline;
+}
+
+/* Button */
+.login-button {
+  width: 100%;
+  height: 42px;
+  border: none;
+  border-radius: 999px;
+  background: #89986d;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 4px;
+  cursor: pointer;
+  box-shadow: 0 10px 20px rgba(137, 152, 109, 0.35);
+  transition: all 0.2s ease;
+}
+
+.login-button span {
+  letter-spacing: 0;
+  margin-left: 7px;
+  font-size: 14px;
+}
+
+.login-button:hover {
+  background: #74835c;
+  transform: translateY(-1px);
+  box-shadow: 0 14px 24px rgba(137, 152, 109, 0.42);
+}
+
+.login-button:active {
+  transform: translateY(0);
+}
+
+.line {
+  width: 100%;
+  height: 1px;
+  background: #c5d89d;
+  margin-top: 34px;
+}
+
+/* Text dưới form */
+.login-note {
+  display: flex;
+  justify-content: center;
+  gap: 34px;
+  margin-top: 34px;
+  color: #89986d;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* Footer bỏ trống */
+.login-footer {
+  height: 76px;
+  width: 100%;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .login-header {
+    height: 48px;
+  }
+
+  .system-title {
+    font-size: 26px;
+    margin-bottom: 46px;
+  }
+
+  .login-card {
+    width: calc(100% - 40px);
+    padding: 32px 26px 40px;
+  }
+
+  .login-note {
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    text-align: center;
+  }
+
+  .login-footer {
+    height: 50px;
+  }
+}
