@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace STMM.DataAccess.Entities;
@@ -45,5 +45,5 @@ public partial class TaskMaterial
 
     public virtual RepairPrice RepairPrice { get; set; } = null!;
 
-    public virtual Task Task { get; set; } = null!;
+    public virtual StaffTask StaffTask { get; set; } = null!;
 }

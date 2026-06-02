@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace STMM.DataAccess.Entities;
@@ -6,7 +6,7 @@ namespace STMM.DataAccess.Entities;
 /// <summary>
 /// Tác vụ giao cho nhân viên thực hiện
 /// </summary>
-public partial class Task
+public partial class StaffTask
 {
     /// <summary>
     /// Mã tác vụ

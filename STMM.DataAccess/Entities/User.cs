@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace STMM.DataAccess.Entities;
@@ -103,7 +103,7 @@ public partial class User
 
     public virtual ICollection<SystemConfig> SystemConfigs { get; set; } = new List<SystemConfig>();
 
-    public virtual ICollection<Task> Tasks { get; set; } = new List<Task>();
+    public virtual ICollection<StaffTask> StaffTasks { get; set; } = new List<StaffTask>();
 
     public virtual Vendor? Vendor { get; set; }
 

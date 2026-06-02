@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace STMM.DataAccess.Entities;
@@ -51,5 +51,5 @@ public partial class Issue
 
     public virtual Stall Stall { get; set; } = null!;
 
-    public virtual ICollection<Task> Tasks { get; set; } = new List<Task>();
+    public virtual ICollection<StaffTask> StaffTasks { get; set; } = new List<StaffTask>();
 }

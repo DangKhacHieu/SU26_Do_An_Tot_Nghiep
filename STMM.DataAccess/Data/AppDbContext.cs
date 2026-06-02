@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using STMM.DataAccess.Entities;
-using TaskEntity = STMM.DataAccess.Entities.Task;
 
 namespace STMM.DataAccess.Data;
 
@@ -59,7 +58,7 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<SystemConfig> SystemConfigs { get; set; }
 
-    public virtual DbSet<TaskEntity> Tasks { get; set; }
+    public virtual DbSet<StaffTask> StaffTasks { get; set; }
 
     public virtual DbSet<TaskMaterial> TaskMaterials { get; set; }
 
@@ -1107,17 +1106,17 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("fk_system_configs_users");
         });
 
-        modelBuilder.Entity<TaskEntity>(entity =>
+        modelBuilder.Entity<StaffTask>(entity =>
         {
             entity.HasKey(e => e.TaskId).HasName("tasks_pkey");
 
-            entity.ToTable("tasks", tb => tb.HasComment("Tác vụ giao cho nhân viên thực hiện"));
+            entity.ToTable("staff_tasks", tb => tb.HasComment("Tác vụ giao cho nhân viên thực hiện"));
 
-            entity.HasIndex(e => e.AssignedToUserId, "idx_tasks_assigned_to_user_id");
+            entity.HasIndex(e => e.AssignedToUserId, "idx_staff_tasks_assigned_to_user_id");
 
-            entity.HasIndex(e => e.IssueId, "idx_tasks_issue_id");
+            entity.HasIndex(e => e.IssueId, "idx_staff_tasks_issue_id");
 
-            entity.HasIndex(e => e.RequestId, "idx_tasks_request_id");
+            entity.HasIndex(e => e.RequestId, "idx_staff_tasks_request_id");
 
             entity.Property(e => e.TaskId)
                 .HasComment("Mã tác vụ")
@@ -1162,18 +1161,18 @@ public partial class AppDbContext : DbContext
                 .HasComment("Tiêu đề tác vụ")
                 .HasColumnName("title");
 
-            entity.HasOne(d => d.AssignedToUser).WithMany(p => p.Tasks)
+            entity.HasOne(d => d.AssignedToUser).WithMany(p => p.StaffTasks)
                 .HasForeignKey(d => d.AssignedToUserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("fk_tasks_users");
+                .HasConstraintName("fk_staff_tasks_users");
 
-            entity.HasOne(d => d.Issue).WithMany(p => p.Tasks)
+            entity.HasOne(d => d.Issue).WithMany(p => p.StaffTasks)
                 .HasForeignKey(d => d.IssueId)
-                .HasConstraintName("fk_tasks_issues");
+                .HasConstraintName("fk_staff_tasks_issues");
 
-            entity.HasOne(d => d.Request).WithMany(p => p.Tasks)
+            entity.HasOne(d => d.Request).WithMany(p => p.StaffTasks)
                 .HasForeignKey(d => d.RequestId)
-                .HasConstraintName("fk_tasks_requests");
+                .HasConstraintName("fk_staff_tasks_requests");
         });
 
         modelBuilder.Entity<TaskMaterial>(entity =>
@@ -1216,9 +1215,9 @@ public partial class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("fk_task_materials_prices");
 
-            entity.HasOne(d => d.Task).WithMany(p => p.TaskMaterials)
+            entity.HasOne(d => d.StaffTask).WithMany(p => p.TaskMaterials)
                 .HasForeignKey(d => d.TaskId)
-                .HasConstraintName("fk_task_materials_tasks");
+                .HasConstraintName("fk_task_materials_staff_tasks");
         });
 
         modelBuilder.Entity<User>(entity =>
