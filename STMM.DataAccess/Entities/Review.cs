@@ -3,6 +3,9 @@ using System.Collections.Generic;
 
 namespace STMM.DataAccess.Entities;
 
+/// <summary>
+/// Đánh giá từ khách hàng
+/// </summary>
 public partial class Review
 {
     /// <summary>

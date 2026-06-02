@@ -3,6 +3,9 @@ using System.Collections.Generic;
 
 namespace STMM.DataAccess.Entities;
 
+/// <summary>
+/// Khu vực trong chợ
+/// </summary>
 public partial class Area
 {
     /// <summary>
@@ -14,6 +17,11 @@ public partial class Area
     /// Thuộc chợ nào
     /// </summary>
     public int MarketId { get; set; }
+
+    /// <summary>
+    /// Ngành hàng chủ đạo của khu vực này (Tùy chọn)
+    /// </summary>
+    public int? CategoryId { get; set; }
 
     /// <summary>
     /// Tên khu vực (VD: &quot;Khu A - Thực phẩm&quot;)
@@ -54,6 +62,8 @@ public partial class Area
     /// Đánh dấu xóa mềm
     /// </summary>
     public bool? IsDeleted { get; set; }
+
+    public virtual BusinessCategory? Category { get; set; }
 
     public virtual Market Market { get; set; } = null!;
 

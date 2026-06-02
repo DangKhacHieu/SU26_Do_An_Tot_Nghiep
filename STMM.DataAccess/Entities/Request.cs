@@ -3,6 +3,9 @@ using System.Collections.Generic;
 
 namespace STMM.DataAccess.Entities;
 
+/// <summary>
+/// Yêu cầu từ tiểu thương
+/// </summary>
 public partial class Request
 {
     /// <summary>
@@ -46,9 +49,39 @@ public partial class Request
     public string Description { get; set; } = null!;
 
     /// <summary>
-    /// Trạng thái (Pending, Approved, Rejected, Processing, Completed)
+    /// Vòng đời: Pending → Quoted → Approved → Completed | Rejected
     /// </summary>
     public string? Status { get; set; }
+
+    /// <summary>
+    /// Bảng kê chi tiết báo giá vật tư dạng văn bản — sinh tự động từ danh sách task_materials
+    /// </summary>
+    public string? QuotationText { get; set; }
+
+    /// <summary>
+    /// Tổng chi phí báo giá dự kiến (VNĐ)
+    /// </summary>
+    public decimal? QuotationAmount { get; set; }
+
+    /// <summary>
+    /// Kết quả duyệt báo giá: null=Chờ duyệt | true=Đã duyệt | false=Từ chối
+    /// </summary>
+    public bool? IsQuoteApproved { get; set; }
+
+    /// <summary>
+    /// Đối tượng chi trả: Vendor=Tiểu thương chịu | Market=Chợ chịu. Quyết định ai duyệt báo giá khi status=Quoted
+    /// </summary>
+    public string? PaidBy { get; set; }
+
+    /// <summary>
+    /// Đánh giá chất lượng sửa chữa của Vendor (1–5 sao)
+    /// </summary>
+    public int? RepairRating { get; set; }
+
+    /// <summary>
+    /// Bình luận nhận xét của Vendor sau khi sửa chữa hoàn thành
+    /// </summary>
+    public string? RepairComment { get; set; }
 
     public DateTime? CreatedAt { get; set; }
 
@@ -56,9 +89,9 @@ public partial class Request
 
     public virtual Invoice? Invoice { get; set; }
 
-    public virtual ICollection<StaffTask> StaffTasks { get; set; } = new List<StaffTask>();
-
     public virtual Stall Stall { get; set; } = null!;
+
+    public virtual ICollection<Task> Tasks { get; set; } = new List<Task>();
 
     public virtual Vendor Vendor { get; set; } = null!;
 

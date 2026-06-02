@@ -19,5 +19,7 @@ namespace STMM.DataAccess.Repositories.Interfaces
         void Update(T entity);
         
         void Delete(T entity);
+        
+        IQueryable<T> Query();
     }
 }

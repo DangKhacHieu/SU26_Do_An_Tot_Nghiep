@@ -3,6 +3,9 @@ using System.Collections.Generic;
 
 namespace STMM.DataAccess.Entities;
 
+/// <summary>
+/// Sự cố hạ tầng chung do nhân viên báo cáo
+/// </summary>
 public partial class Issue
 {
     /// <summary>
@@ -11,32 +14,32 @@ public partial class Issue
     public int IssueId { get; set; }
 
     /// <summary>
-    /// Sự cố tại sạp nào
+    /// Sự cố tại khu vực gần sạp nào (dùng để định vị địa lý)
     /// </summary>
     public int StallId { get; set; }
 
     /// <summary>
-    /// Staff báo cáo
+    /// Staff báo cáo sự cố khi đi tuần
     /// </summary>
     public int CreatedByUserId { get; set; }
 
     /// <summary>
-    /// Mô tả ngắn gọn
+    /// Mô tả ngắn gọn sự cố
     /// </summary>
     public string Title { get; set; } = null!;
 
     /// <summary>
-    /// Chi tiết tình trạng
+    /// Chi tiết tình trạng hỏng hóc hạ tầng chung
     /// </summary>
     public string Description { get; set; } = null!;
 
     /// <summary>
-    /// Ảnh sự cố
+    /// Ảnh chụp hiện trường sự cố
     /// </summary>
     public string? ImageUrl { get; set; }
 
     /// <summary>
-    /// Trạng thái (Reported, InProgress, Resolved)
+    /// Vòng đời: Reported → InProgress → Resolved | Closed
     /// </summary>
     public string? Status { get; set; }
 
@@ -46,7 +49,7 @@ public partial class Issue
 
     public virtual User CreatedByUser { get; set; } = null!;
 
-    public virtual ICollection<StaffTask> StaffTasks { get; set; } = new List<StaffTask>();
-
     public virtual Stall Stall { get; set; } = null!;
+
+    public virtual ICollection<Task> Tasks { get; set; } = new List<Task>();
 }

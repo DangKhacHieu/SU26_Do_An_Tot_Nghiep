@@ -3,6 +3,9 @@ using System.Collections.Generic;
 
 namespace STMM.DataAccess.Entities;
 
+/// <summary>
+/// Thông tin thanh toán giao dịch
+/// </summary>
 public partial class Payment
 {
     /// <summary>

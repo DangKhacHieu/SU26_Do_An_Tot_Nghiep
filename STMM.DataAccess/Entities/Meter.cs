@@ -3,6 +3,9 @@ using System.Collections.Generic;
 
 namespace STMM.DataAccess.Entities;
 
+/// <summary>
+/// Thông tin công tơ điện nước
+/// </summary>
 public partial class Meter
 {
     /// <summary>

@@ -3,6 +3,9 @@ using System.Collections.Generic;
 
 namespace STMM.DataAccess.Entities;
 
+/// <summary>
+/// Câu hỏi thường gặp
+/// </summary>
 public partial class Faq
 {
     /// <summary>

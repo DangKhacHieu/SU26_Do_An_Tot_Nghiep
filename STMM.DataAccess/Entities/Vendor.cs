@@ -3,6 +3,9 @@ using System.Collections.Generic;
 
 namespace STMM.DataAccess.Entities;
 
+/// <summary>
+/// Thông tin tiểu thương
+/// </summary>
 public partial class Vendor
 {
     /// <summary>

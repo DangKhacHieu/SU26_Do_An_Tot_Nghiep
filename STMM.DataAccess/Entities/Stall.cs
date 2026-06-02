@@ -3,6 +3,9 @@ using System.Collections.Generic;
 
 namespace STMM.DataAccess.Entities;
 
+/// <summary>
+/// Thông tin quầy sạp
+/// </summary>
 public partial class Stall
 {
     /// <summary>
@@ -21,9 +24,9 @@ public partial class Stall
     public int AreaId { get; set; }
 
     /// <summary>
-    /// Phân loại ngành hàng kinh doanh
+    /// Ngành hàng kinh doanh bắt buộc của sạp
     /// </summary>
-    public string? Category { get; set; }
+    public int CategoryId { get; set; }
 
     /// <summary>
     /// Tình trạng sạp (Available, Rented, Maintenance)
@@ -86,6 +89,8 @@ public partial class Stall
     public DateTime? DeletedAt { get; set; }
 
     public virtual Area Area { get; set; } = null!;
+
+    public virtual BusinessCategory Category { get; set; } = null!;
 
     public virtual ICollection<Contract> Contracts { get; set; } = new List<Contract>();
 

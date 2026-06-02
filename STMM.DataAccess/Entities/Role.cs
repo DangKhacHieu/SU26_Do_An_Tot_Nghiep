@@ -3,6 +3,9 @@ using System.Collections.Generic;
 
 namespace STMM.DataAccess.Entities;
 
+/// <summary>
+/// Phân hệ phân quyền &amp; định danh (roles)
+/// </summary>
 public partial class Role
 {
     /// <summary>

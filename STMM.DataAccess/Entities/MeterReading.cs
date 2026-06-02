@@ -3,6 +3,9 @@ using System.Collections.Generic;
 
 namespace STMM.DataAccess.Entities;
 
+/// <summary>
+/// Chỉ số ghi nhận từ công tơ
+/// </summary>
 public partial class MeterReading
 {
     /// <summary>
