@@ -3,6 +3,9 @@ using System.Collections.Generic;
 
 namespace STMM.DataAccess.Entities;
 
+/// <summary>
+/// Đăng ký sử dụng dịch vụ
+/// </summary>
 public partial class ServiceRegistration
 {
     /// <summary>

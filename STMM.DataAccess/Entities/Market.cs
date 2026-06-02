@@ -3,6 +3,9 @@ using System.Collections.Generic;
 
 namespace STMM.DataAccess.Entities;
 
+/// <summary>
+/// Danh mục chợ
+/// </summary>
 public partial class Market
 {
     /// <summary>

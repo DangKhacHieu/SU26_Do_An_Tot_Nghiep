@@ -3,6 +3,9 @@ using System.Collections.Generic;
 
 namespace STMM.DataAccess.Entities;
 
+/// <summary>
+/// Nhật ký hoạt động của người dùng
+/// </summary>
 public partial class AuditLog
 {
     /// <summary>

@@ -3,6 +3,9 @@ using System.Collections.Generic;
 
 namespace STMM.DataAccess.Entities;
 
+/// <summary>
+/// Chi tiết các khoản phí trên hóa đơn
+/// </summary>
 public partial class InvoiceDetail
 {
     /// <summary>

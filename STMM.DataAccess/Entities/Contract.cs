@@ -3,6 +3,9 @@ using System.Collections.Generic;
 
 namespace STMM.DataAccess.Entities;
 
+/// <summary>
+/// Hợp đồng thuê sạp
+/// </summary>
 public partial class Contract
 {
     /// <summary>

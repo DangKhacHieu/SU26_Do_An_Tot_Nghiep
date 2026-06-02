@@ -3,6 +3,9 @@ using System.Collections.Generic;
 
 namespace STMM.DataAccess.Entities;
 
+/// <summary>
+/// Biên bản ghi nhận vi phạm
+/// </summary>
 public partial class Violation
 {
     /// <summary>
@@ -36,7 +39,7 @@ public partial class Violation
     public string Description { get; set; } = null!;
 
     /// <summary>
-    /// Minh chứng hình ảnh
+    /// Minh chứng hình ảnh bắt buộc
     /// </summary>
     public string ImageUrl { get; set; } = null!;
 

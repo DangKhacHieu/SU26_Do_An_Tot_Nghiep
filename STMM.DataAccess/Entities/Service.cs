@@ -3,6 +3,9 @@ using System.Collections.Generic;
 
 namespace STMM.DataAccess.Entities;
 
+/// <summary>
+/// Danh mục các dịch vụ của chợ
+/// </summary>
 public partial class Service
 {
     /// <summary>

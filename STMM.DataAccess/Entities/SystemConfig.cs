@@ -3,6 +3,9 @@ using System.Collections.Generic;
 
 namespace STMM.DataAccess.Entities;
 
+/// <summary>
+/// Cấu hình hệ thống
+/// </summary>
 public partial class SystemConfig
 {
     /// <summary>

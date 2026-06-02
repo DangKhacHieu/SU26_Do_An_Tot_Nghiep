@@ -3,6 +3,9 @@ using System.Collections.Generic;
 
 namespace STMM.DataAccess.Entities;
 
+/// <summary>
+/// Danh mục loại vi phạm
+/// </summary>
 public partial class ViolationType
 {
     /// <summary>

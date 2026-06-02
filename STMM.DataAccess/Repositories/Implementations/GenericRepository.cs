@@ -57,5 +57,10 @@ namespace STMM.DataAccess.Repositories.Implementations
             }
             _dbSet.Remove(entity);
         }
+
+        public virtual IQueryable<T> Query()
+        {
+            return _dbSet.AsQueryable();
+        }
     }
 }

@@ -3,6 +3,9 @@ using System.Collections.Generic;
 
 namespace STMM.DataAccess.Entities;
 
+/// <summary>
+/// Thông báo hệ thống
+/// </summary>
 public partial class Notification
 {
     /// <summary>

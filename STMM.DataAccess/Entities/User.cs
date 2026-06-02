@@ -1,8 +1,11 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace STMM.DataAccess.Entities;
 
+/// <summary>
+/// Thông tin tài khoản người dùng
+/// </summary>
 public partial class User
 {
     /// <summary>
@@ -98,9 +101,9 @@ public partial class User
 
     public virtual ICollection<Service> Services { get; set; } = new List<Service>();
 
-    public virtual ICollection<StaffTask> StaffTasks { get; set; } = new List<StaffTask>();
-
     public virtual ICollection<SystemConfig> SystemConfigs { get; set; } = new List<SystemConfig>();
+
+    public virtual ICollection<StaffTask> StaffTasks { get; set; } = new List<StaffTask>();
 
     public virtual Vendor? Vendor { get; set; }
 

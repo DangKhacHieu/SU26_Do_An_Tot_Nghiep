@@ -3,6 +3,9 @@ using System.Collections.Generic;
 
 namespace STMM.DataAccess.Entities;
 
+/// <summary>
+/// Các loại phí trong hệ thống
+/// </summary>
 public partial class FeeType
 {
     /// <summary>

@@ -3,6 +3,9 @@ using System.Collections.Generic;
 
 namespace STMM.DataAccess.Entities;
 
+/// <summary>
+/// Hóa đơn dịch vụ và thuê sạp
+/// </summary>
 public partial class Invoice
 {
     /// <summary>
