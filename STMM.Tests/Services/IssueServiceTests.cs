@@ -9,8 +9,7 @@ using STMM.Business.Exceptions;
 using STMM.Business.Mappers;
 using STMM.Business.Services;
 using STMM.DataAccess.Entities;
-using STMM.DataAccess.Repositories.Interfaces;
-using STMM.DataAccess.UnitOfWork;
+using STMM.DataAccess.IRepositories;
 using STMM.Tests.Helpers;
 using System;
 using System.Collections.Generic;
@@ -23,11 +22,10 @@ namespace STMM.Tests.Services
 {
     public class IssueServiceTests
     {
-        private readonly Mock<IUnitOfWork> _unitOfWorkMock;
-        private readonly Mock<IGenericRepository<Issue>> _issueRepoMock;
-        private readonly Mock<IGenericRepository<Stall>> _stallRepoMock;
-        private readonly Mock<IGenericRepository<StaffTask>> _staffTaskRepoMock;
-        private readonly Mock<IGenericRepository<User>> _userRepoMock;
+        private readonly Mock<IIssueRepository> _issueRepoMock;
+        private readonly Mock<IStallRepository> _stallRepoMock;
+        private readonly Mock<IStaffTaskRepository> _staffTaskRepoMock;
+        private readonly Mock<IUserRepository> _userRepoMock;
         private readonly Mock<IValidator<CreateIssueRequest>> _createValidatorMock;
         private readonly Mock<IValidator<UpdateIssueStatusRequest>> _updateStatusValidatorMock;
         private readonly IMapper _mapper;
@@ -35,19 +33,13 @@ namespace STMM.Tests.Services
 
         public IssueServiceTests()
         {
-            _unitOfWorkMock = new Mock<IUnitOfWork>();
-            _issueRepoMock = new Mock<IGenericRepository<Issue>>();
-            _stallRepoMock = new Mock<IGenericRepository<Stall>>();
-            _staffTaskRepoMock = new Mock<IGenericRepository<StaffTask>>();
-            _userRepoMock = new Mock<IGenericRepository<User>>();
+            _issueRepoMock = new Mock<IIssueRepository>();
+            _stallRepoMock = new Mock<IStallRepository>();
+            _staffTaskRepoMock = new Mock<IStaffTaskRepository>();
+            _userRepoMock = new Mock<IUserRepository>();
 
             _createValidatorMock = new Mock<IValidator<CreateIssueRequest>>();
             _updateStatusValidatorMock = new Mock<IValidator<UpdateIssueStatusRequest>>();
-
-            _unitOfWorkMock.Setup(u => u.Repository<Issue>()).Returns(_issueRepoMock.Object);
-            _unitOfWorkMock.Setup(u => u.Repository<Stall>()).Returns(_stallRepoMock.Object);
-            _unitOfWorkMock.Setup(u => u.Repository<StaffTask>()).Returns(_staffTaskRepoMock.Object);
-            _unitOfWorkMock.Setup(u => u.Repository<User>()).Returns(_userRepoMock.Object);
 
             var mapperConfig = new MapperConfiguration(cfg =>
             {
@@ -56,7 +48,10 @@ namespace STMM.Tests.Services
             _mapper = mapperConfig.CreateMapper();
 
             _service = new IssueService(
-                _unitOfWorkMock.Object,
+                _issueRepoMock.Object,
+                _staffTaskRepoMock.Object,
+                _stallRepoMock.Object,
+                _userRepoMock.Object,
                 _mapper,
                 _createValidatorMock.Object,
                 _updateStatusValidatorMock.Object);
@@ -79,11 +74,11 @@ namespace STMM.Tests.Services
                 new() { TaskId = 10, IssueId = 2, AssignedToUserId = staffUserId, Title = "Fix Issue 2" }
             };
 
-            _staffTaskRepoMock.Setup(r => r.Query())
-                .Returns(staffTasks.AsQueryable().ToAsyncQueryable());
+            _staffTaskRepoMock.Setup(r => r.GetAssignedIssueIdsAsync(staffUserId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new List<int> { 2 });
 
-            _issueRepoMock.Setup(r => r.Query())
-                .Returns(issues.AsQueryable().ToAsyncQueryable());
+            _issueRepoMock.Setup(r => r.GetIssuesPagedAsync(staffUserId, It.IsAny<List<int>>(), It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync((new List<Issue> { issues[0], issues[1] }, 2));
 
             // Act
             var result = await _service.GetIssuesAsync(staffUserId, new IssueQueryParams());
@@ -100,8 +95,8 @@ namespace STMM.Tests.Services
         {
             // Arrange
             var staffUserId = 1;
-            _issueRepoMock.Setup(r => r.Query()).Returns(new List<Issue>().AsQueryable().ToAsyncQueryable());
-            _staffTaskRepoMock.Setup(r => r.Query()).Returns(new List<StaffTask>().AsQueryable().ToAsyncQueryable());
+            _issueRepoMock.Setup(r => r.IsCreatorAsync(999, staffUserId, It.IsAny<CancellationToken>())).ReturnsAsync(false);
+            _staffTaskRepoMock.Setup(r => r.HasAssignedTaskAsync(999, staffUserId, It.IsAny<CancellationToken>())).ReturnsAsync(false);
 
             // Act & Assert
             await Assert.ThrowsAsync<NotFoundException>(() => _service.GetIssueByIdAsync(999, staffUserId));
@@ -119,11 +114,11 @@ namespace STMM.Tests.Services
             _createValidatorMock.Setup(v => v.ValidateAsync(req, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new ValidationResult());
 
-            _stallRepoMock.Setup(r => r.Query())
-                .Returns(new List<Stall> { stall }.AsQueryable().ToAsyncQueryable());
+            _stallRepoMock.Setup(r => r.FindAsync(It.IsAny<System.Linq.Expressions.Expression<Func<Stall, bool>>>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new List<Stall> { stall });
 
-            _userRepoMock.Setup(r => r.Query())
-                .Returns(new List<User> { user }.AsQueryable().ToAsyncQueryable());
+            _userRepoMock.Setup(r => r.FindAsync(It.IsAny<System.Linq.Expressions.Expression<Func<User, bool>>>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new List<User> { user });
 
             _issueRepoMock.Setup(r => r.AddAsync(It.IsAny<Issue>(), It.IsAny<CancellationToken>()))
                 .Returns(Task.CompletedTask);
@@ -158,8 +153,8 @@ namespace STMM.Tests.Services
                 .ReturnsAsync(new ValidationResult());
 
             // Staff task is not assigned to staffUserId 1 for issueId 5
-            _staffTaskRepoMock.Setup(r => r.Query())
-                .Returns(new List<StaffTask>().AsQueryable().ToAsyncQueryable());
+            _staffTaskRepoMock.Setup(r => r.FindAsync(It.IsAny<System.Linq.Expressions.Expression<Func<StaffTask, bool>>>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new List<StaffTask>());
 
             // Act & Assert
             await Assert.ThrowsAsync<NotFoundException>(() => _service.UpdateIssueStatusAsync(staffUserId, issueId, req));
@@ -179,11 +174,11 @@ namespace STMM.Tests.Services
             _updateStatusValidatorMock.Setup(v => v.ValidateAsync(req, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new ValidationResult());
 
-            _staffTaskRepoMock.Setup(r => r.Query())
-                .Returns(new List<StaffTask> { task }.AsQueryable().ToAsyncQueryable());
+            _staffTaskRepoMock.Setup(r => r.FindAsync(It.IsAny<System.Linq.Expressions.Expression<Func<StaffTask, bool>>>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new List<StaffTask> { task });
 
-            _issueRepoMock.Setup(r => r.Query())
-                .Returns(new List<Issue> { issue }.AsQueryable().ToAsyncQueryable());
+            _issueRepoMock.Setup(r => r.GetIssueWithRelationsAsync(issueId, true, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(issue);
 
             // Act & Assert
             await Assert.ThrowsAsync<BadRequestException>(() => _service.UpdateIssueStatusAsync(staffUserId, issueId, req));
@@ -203,13 +198,13 @@ namespace STMM.Tests.Services
             _updateStatusValidatorMock.Setup(v => v.ValidateAsync(req, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new ValidationResult());
 
-            _staffTaskRepoMock.Setup(r => r.Query())
-                .Returns(new List<StaffTask> { task }.AsQueryable().ToAsyncQueryable());
+            _staffTaskRepoMock.Setup(r => r.FindAsync(It.IsAny<System.Linq.Expressions.Expression<Func<StaffTask, bool>>>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new List<StaffTask> { task });
 
-            _issueRepoMock.Setup(r => r.Query())
-                .Returns(new List<Issue> { issue }.AsQueryable().ToAsyncQueryable());
+            _issueRepoMock.Setup(r => r.GetIssueWithRelationsAsync(issueId, true, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(issue);
 
-            _unitOfWorkMock.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            _issueRepoMock.Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
                 .ReturnsAsync(1);
 
             // Act
@@ -222,7 +217,7 @@ namespace STMM.Tests.Services
             task.Status.Should().Be("Completed");
             task.CompletedAt.Should().NotBeNull();
 
-            _unitOfWorkMock.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+            _issueRepoMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
         }
     }
 }

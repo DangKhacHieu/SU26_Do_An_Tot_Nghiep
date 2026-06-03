@@ -1,27 +1,32 @@
 using AutoMapper;
 using FluentValidation;
-using Microsoft.EntityFrameworkCore;
 using STMM.Business.DTOs.Billing;
 using STMM.Business.DTOs.Notification;
 using STMM.Business.Exceptions;
 using STMM.Business.Interfaces;
 using STMM.DataAccess.Entities;
-using STMM.DataAccess.UnitOfWork;
+using STMM.DataAccess.IRepositories;
 
 namespace STMM.Business.Services
 {
-    public class BillingService : BaseService, IBillingService
+    public class BillingService : IBillingService
     {
+        private readonly IInvoiceRepository _invoiceRepository;
+        private readonly IPaymentRepository _paymentRepository;
+        private readonly IMapper _mapper;
         private readonly INotificationService _notificationService;
         private readonly IValidator<ReceiveCashPaymentRequest> _paymentValidator;
 
         public BillingService(
-            IUnitOfWork unitOfWork,
+            IInvoiceRepository invoiceRepository,
+            IPaymentRepository paymentRepository,
             IMapper mapper,
             INotificationService notificationService,
             IValidator<ReceiveCashPaymentRequest> paymentValidator)
-            : base(unitOfWork, mapper)
         {
+            _invoiceRepository = invoiceRepository;
+            _paymentRepository = paymentRepository;
+            _mapper = mapper;
             _notificationService = notificationService;
             _paymentValidator = paymentValidator;
         }
@@ -29,23 +34,11 @@ namespace STMM.Business.Services
         /// <inheritdoc />
         public async Task<InvoiceDto> GetInvoiceDetailAsync(int invoiceId, CancellationToken ct = default)
         {
-            var invoice = await _unitOfWork.Repository<Invoice>()
-                .Query()
-                .Include(i => i.InvoiceDetails)
-                    .ThenInclude(d => d.FeeType)
-                .Include(i => i.Payments)
-                .Include(i => i.Contract)
-                    .ThenInclude(c => c.Stall)
-                        .ThenInclude(s => s.Category)
-                .Include(i => i.Contract)
-                    .ThenInclude(c => c.Vendor)
-                        .ThenInclude(v => v.User)
-                .AsNoTracking()
-                .FirstOrDefaultAsync(i => i.InvoiceId == invoiceId && i.IsDeleted != true, ct);
+            var invoice = await _invoiceRepository.GetInvoiceDetailsWithRelationsAsync(invoiceId, ct);
 
             if (invoice == null)
             {
-                throw new NotFoundException($"Không tìm thấy hóa đơn với Id = {invoiceId}.");
+                throw new NotFoundException($"Invoice with ID {invoiceId} not found.");
             }
 
             return MapInvoiceToDto(invoice);
@@ -63,30 +56,22 @@ namespace STMM.Business.Services
                     string.Join("; ", validationResult.Errors.Select(e => e.ErrorMessage)));
             }
 
-            // Load invoice with relations (tracking enabled for update)
-            var invoice = await _unitOfWork.Repository<Invoice>()
-                .Query()
-                .Include(i => i.Contract)
-                    .ThenInclude(c => c.Vendor)
-                        .ThenInclude(v => v.User)
-                .Include(i => i.Contract)
-                    .ThenInclude(c => c.Stall)
-                        .ThenInclude(s => s.Category)
-                .FirstOrDefaultAsync(i => i.InvoiceId == request.InvoiceId && i.IsDeleted != true, ct);
+            // Load invoice with relations
+            var invoice = await _invoiceRepository.GetInvoiceWithRelationsForPaymentAsync(request.InvoiceId, ct);
 
             if (invoice == null)
             {
-                throw new NotFoundException($"Không tìm thấy hóa đơn với Id = {request.InvoiceId}.");
+                throw new NotFoundException($"Invoice with ID {request.InvoiceId} not found.");
             }
 
-            // BR-31 + BR-38c: Chỉ thu được hóa đơn Unpaid
+            // Only unpaid invoices can be collected
             if (invoice.Status != "Unpaid")
             {
                 throw new BadRequestException(
-                    $"Hóa đơn đang ở trạng thái '{invoice.Status}'. Chỉ có thể thu tiền cho hóa đơn 'Unpaid'.");
+                    $"Invoice is in status '{invoice.Status}'. Payment can only be collected for 'Unpaid' invoices.");
             }
 
-            // Tạo payment record — thu đủ 100% (BR-36)
+            // Create payment record - collect 100% of amount
             var transactionCode = $"CASH-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..8].ToUpper()}";
             var payment = new Payment
             {
@@ -97,28 +82,28 @@ namespace STMM.Business.Services
                 PaidAt = DateTime.UtcNow
             };
 
-            await _unitOfWork.Repository<Payment>().AddAsync(payment, ct);
+            await _paymentRepository.AddAsync(payment, ct);
 
-            // BR-38c: Cash → Pending Confirmation (chờ Kế toán phê duyệt)
+            // Set status to pending confirmation
             invoice.Status = "Pending Confirmation";
 
-            // Gửi notification cho Vendor
+            // Send notification to Vendor
             var vendor = invoice.Contract.Vendor;
             var stall = invoice.Contract.Stall;
 
             await _notificationService.CreateAsync(new CreateNotificationRequest
             {
-                Title = "Ghi nhận thu tiền mặt",
-                Content = $"Nhân viên đã ghi nhận thu tiền mặt hóa đơn tháng {invoice.Month}/{invoice.Year} " +
-                          $"tại sạp {stall.Code} số tiền {invoice.TotalAmount:#,##0} VNĐ. " +
-                          $"Vui lòng chờ kế toán xác nhận.",
+                Title = "Cash Payment Recorded",
+                Content = $"Staff recorded cash payment for invoice of month {invoice.Month}/{invoice.Year} " +
+                          $"at stall {stall.Code} for amount {invoice.TotalAmount:#,##0} VND. " +
+                          $"Please wait for accountant confirmation.",
                 NotiType = "Invoice",
                 CreatedByUserId = staffUserId,
                 TargetUserId = vendor.UserId
             }, ct);
 
             // Save all changes in 1 transaction
-            await _unitOfWork.SaveChangesAsync(ct);
+            await _invoiceRepository.SaveChangesAsync(ct);
 
             return new PaymentResultDto
             {

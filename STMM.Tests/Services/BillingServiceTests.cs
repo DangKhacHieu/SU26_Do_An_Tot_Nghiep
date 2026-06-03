@@ -11,8 +11,7 @@ using STMM.Business.Interfaces;
 using STMM.Business.Mappers;
 using STMM.Business.Services;
 using STMM.DataAccess.Entities;
-using STMM.DataAccess.Repositories.Interfaces;
-using STMM.DataAccess.UnitOfWork;
+using STMM.DataAccess.IRepositories;
 using STMM.Tests.Helpers;
 using System;
 using System.Collections.Generic;
@@ -25,9 +24,8 @@ namespace STMM.Tests.Services
 {
     public class BillingServiceTests
     {
-        private readonly Mock<IUnitOfWork> _unitOfWorkMock;
-        private readonly Mock<IGenericRepository<Invoice>> _invoiceRepoMock;
-        private readonly Mock<IGenericRepository<Payment>> _paymentRepoMock;
+        private readonly Mock<IInvoiceRepository> _invoiceRepoMock;
+        private readonly Mock<IPaymentRepository> _paymentRepoMock;
         private readonly Mock<INotificationService> _notificationServiceMock;
         private readonly Mock<IValidator<ReceiveCashPaymentRequest>> _validatorMock;
         private readonly IMapper _mapper;
@@ -35,14 +33,10 @@ namespace STMM.Tests.Services
 
         public BillingServiceTests()
         {
-            _unitOfWorkMock = new Mock<IUnitOfWork>();
-            _invoiceRepoMock = new Mock<IGenericRepository<Invoice>>();
-            _paymentRepoMock = new Mock<IGenericRepository<Payment>>();
+            _invoiceRepoMock = new Mock<IInvoiceRepository>();
+            _paymentRepoMock = new Mock<IPaymentRepository>();
             _notificationServiceMock = new Mock<INotificationService>();
             _validatorMock = new Mock<IValidator<ReceiveCashPaymentRequest>>();
-
-            _unitOfWorkMock.Setup(u => u.Repository<Invoice>()).Returns(_invoiceRepoMock.Object);
-            _unitOfWorkMock.Setup(u => u.Repository<Payment>()).Returns(_paymentRepoMock.Object);
 
             var mapperConfig = new MapperConfiguration(cfg =>
             {
@@ -51,7 +45,8 @@ namespace STMM.Tests.Services
             _mapper = mapperConfig.CreateMapper();
 
             _service = new BillingService(
-                _unitOfWorkMock.Object,
+                _invoiceRepoMock.Object,
+                _paymentRepoMock.Object,
                 _mapper,
                 _notificationServiceMock.Object,
                 _validatorMock.Object);
@@ -64,8 +59,8 @@ namespace STMM.Tests.Services
             var invoiceId = 1;
             var invoice = CreateMockInvoice(invoiceId, "Unpaid");
 
-            _invoiceRepoMock.Setup(r => r.Query())
-                .Returns(new List<Invoice> { invoice }.AsQueryable().ToAsyncQueryable());
+            _invoiceRepoMock.Setup(r => r.GetInvoiceDetailsWithRelationsAsync(invoiceId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(invoice);
 
             // Act
             var result = await _service.GetInvoiceDetailAsync(invoiceId);
@@ -81,8 +76,8 @@ namespace STMM.Tests.Services
         public async Task GetInvoiceDetailAsync_NotFound_ThrowsNotFoundException()
         {
             // Arrange
-            _invoiceRepoMock.Setup(r => r.Query())
-                .Returns(new List<Invoice>().AsQueryable().ToAsyncQueryable());
+            _invoiceRepoMock.Setup(r => r.GetInvoiceDetailsWithRelationsAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync((Invoice?)null);
 
             // Act & Assert
             await Assert.ThrowsAsync<NotFoundException>(() => _service.GetInvoiceDetailAsync(999));
@@ -100,8 +95,8 @@ namespace STMM.Tests.Services
             _validatorMock.Setup(v => v.ValidateAsync(request, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new ValidationResult());
 
-            _invoiceRepoMock.Setup(r => r.Query())
-                .Returns(new List<Invoice> { invoice }.AsQueryable().ToAsyncQueryable());
+            _invoiceRepoMock.Setup(r => r.GetInvoiceWithRelationsForPaymentAsync(invoiceId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(invoice);
 
             _paymentRepoMock.Setup(r => r.AddAsync(It.IsAny<Payment>(), It.IsAny<CancellationToken>()))
                 .Returns(Task.CompletedTask);
@@ -109,7 +104,7 @@ namespace STMM.Tests.Services
             _notificationServiceMock.Setup(n => n.CreateAsync(It.IsAny<CreateNotificationRequest>(), It.IsAny<CancellationToken>()))
                 .Returns(Task.CompletedTask);
 
-            _unitOfWorkMock.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            _invoiceRepoMock.Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
                 .ReturnsAsync(1);
 
             // Act
@@ -134,7 +129,7 @@ namespace STMM.Tests.Services
                 r.CreatedByUserId == staffUserId
             ), It.IsAny<CancellationToken>()), Times.Once);
 
-            _unitOfWorkMock.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+            _invoiceRepoMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
         }
 
         [Fact]
@@ -149,8 +144,8 @@ namespace STMM.Tests.Services
             _validatorMock.Setup(v => v.ValidateAsync(request, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new ValidationResult());
 
-            _invoiceRepoMock.Setup(r => r.Query())
-                .Returns(new List<Invoice> { invoice }.AsQueryable().ToAsyncQueryable());
+            _invoiceRepoMock.Setup(r => r.GetInvoiceWithRelationsForPaymentAsync(invoiceId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(invoice);
 
             // Act & Assert
             await Assert.ThrowsAsync<BadRequestException>(() => _service.ReceiveCashPaymentAsync(staffUserId, request));
@@ -166,8 +161,8 @@ namespace STMM.Tests.Services
             _validatorMock.Setup(v => v.ValidateAsync(request, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new ValidationResult());
 
-            _invoiceRepoMock.Setup(r => r.Query())
-                .Returns(new List<Invoice>().AsQueryable().ToAsyncQueryable());
+            _invoiceRepoMock.Setup(r => r.GetInvoiceWithRelationsForPaymentAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync((Invoice?)null);
 
             // Act & Assert
             await Assert.ThrowsAsync<NotFoundException>(() => _service.ReceiveCashPaymentAsync(staffUserId, request));

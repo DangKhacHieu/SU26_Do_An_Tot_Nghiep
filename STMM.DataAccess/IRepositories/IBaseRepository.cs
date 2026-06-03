@@ -1,12 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Linq.Expressions;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace STMM.DataAccess.Repositories.Interfaces
+namespace STMM.DataAccess.IRepositories
 {
-    public interface IGenericRepository<T> where T : class
+    public interface IBaseRepository<T> where T : class
     {
         Task<IEnumerable<T>> GetAllAsync(CancellationToken cancellationToken = default);
         
@@ -21,5 +22,7 @@ namespace STMM.DataAccess.Repositories.Interfaces
         void Delete(T entity);
         
         IQueryable<T> Query();
+
+        Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     }
 }

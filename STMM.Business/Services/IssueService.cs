@@ -1,21 +1,26 @@
 using AutoMapper;
 using FluentValidation;
-using Microsoft.EntityFrameworkCore;
 using STMM.Business.DTOs.Common;
 using STMM.Business.DTOs.Issue;
 using STMM.Business.Exceptions;
 using STMM.Business.Interfaces;
 using STMM.DataAccess.Entities;
-using STMM.DataAccess.UnitOfWork;
+using STMM.DataAccess.IRepositories;
 using DBTask = STMM.DataAccess.Entities.StaffTask;
+
 namespace STMM.Business.Services
 {
-    public class IssueService : BaseService, IIssueService
+    public class IssueService : IIssueService
     {
+        private readonly IIssueRepository _issueRepository;
+        private readonly IStaffTaskRepository _staffTaskRepository;
+        private readonly IStallRepository _stallRepository;
+        private readonly IUserRepository _userRepository;
+        private readonly IMapper _mapper;
         private readonly IValidator<CreateIssueRequest> _createValidator;
         private readonly IValidator<UpdateIssueStatusRequest> _updateStatusValidator;
 
-        // Valid state transitions (BR-50)
+        // Valid state transitions
         private static readonly Dictionary<string, string> ValidTransitions = new()
         {
             { "Reported", "InProgress" },
@@ -23,12 +28,19 @@ namespace STMM.Business.Services
         };
 
         public IssueService(
-            IUnitOfWork unitOfWork,
+            IIssueRepository issueRepository,
+            IStaffTaskRepository staffTaskRepository,
+            IStallRepository stallRepository,
+            IUserRepository userRepository,
             IMapper mapper,
             IValidator<CreateIssueRequest> createValidator,
             IValidator<UpdateIssueStatusRequest> updateStatusValidator)
-            : base(unitOfWork, mapper)
         {
+            _issueRepository = issueRepository;
+            _staffTaskRepository = staffTaskRepository;
+            _stallRepository = stallRepository;
+            _userRepository = userRepository;
+            _mapper = mapper;
             _createValidator = createValidator;
             _updateStatusValidator = updateStatusValidator;
         }
@@ -37,38 +49,16 @@ namespace STMM.Business.Services
         public async Task<PagedResult<IssueDto>> GetIssuesAsync(
             int staffUserId, IssueQueryParams queryParams, CancellationToken ct = default)
         {
-            // Issue scope: do mình tạo HOẶC có task giao cho mình
-            var assignedIssueIds = _unitOfWork.Repository<DBTask>()
-                .Query()
-                .Where(t => t.AssignedToUserId == staffUserId && t.IssueId != null)
-                .Select(t => t.IssueId!.Value);
+            var assignedIssueIds = await _staffTaskRepository.GetAssignedIssueIdsAsync(staffUserId, ct);
 
-            var query = _unitOfWork.Repository<Issue>()
-                .Query()
-                .Include(i => i.Stall)
-                .Include(i => i.CreatedByUser)
-                .Include(i => i.StaffTasks)
-                .Where(i => i.CreatedByUserId == staffUserId || assignedIssueIds.Contains(i.IssueId));
-
-            // Filter by status
-            if (!string.IsNullOrWhiteSpace(queryParams.Status))
-            {
-                query = query.Where(i => i.Status == queryParams.Status);
-            }
-
-            var totalCount = await query.CountAsync(ct);
-
-            // Sort
-            query = queryParams.SortDescending
-                ? query.OrderByDescending(i => i.CreatedAt)
-                : query.OrderBy(i => i.CreatedAt);
-
-            // Pagination
-            var items = await query
-                .Skip((queryParams.PageNumber - 1) * queryParams.PageSize)
-                .Take(queryParams.PageSize)
-                .AsNoTracking()
-                .ToListAsync(ct);
+            var (items, totalCount) = await _issueRepository.GetIssuesPagedAsync(
+                staffUserId,
+                assignedIssueIds,
+                queryParams.Status,
+                queryParams.SortDescending,
+                queryParams.PageNumber,
+                queryParams.PageSize,
+                ct);
 
             return new PagedResult<IssueDto>
             {
@@ -83,20 +73,13 @@ namespace STMM.Business.Services
         public async Task<IssueDto> GetIssueByIdAsync(
             int issueId, int staffUserId, CancellationToken ct = default)
         {
-            // Check scope: mình tạo hoặc có task giao cho mình
             var hasAccess = await HasAccessToIssueAsync(issueId, staffUserId, ct);
             if (!hasAccess)
             {
-                throw new NotFoundException($"Không tìm thấy sự cố với Id = {issueId}.");
+                throw new NotFoundException($"Issue with ID {issueId} not found.");
             }
 
-            var issue = await _unitOfWork.Repository<Issue>()
-                .Query()
-                .Include(i => i.Stall)
-                .Include(i => i.CreatedByUser)
-                .Include(i => i.StaffTasks)
-                .AsNoTracking()
-                .FirstOrDefaultAsync(i => i.IssueId == issueId, ct);
+            var issue = await _issueRepository.GetIssueWithRelationsAsync(issueId, tracking: false, ct);
 
             return MapIssueToDto(issue!);
         }
@@ -113,17 +96,16 @@ namespace STMM.Business.Services
                     string.Join("; ", validationResult.Errors.Select(e => e.ErrorMessage)));
             }
 
-            // Check stall exists (BR-68)
-            var stall = await _unitOfWork.Repository<Stall>()
-                .Query()
-                .FirstOrDefaultAsync(s => s.StallId == request.StallId && s.IsDeleted != true, ct);
+            // Check stall exists
+            var stalls = await _stallRepository.FindAsync(s => s.StallId == request.StallId && s.IsDeleted != true, ct);
+            var stall = stalls.FirstOrDefault();
 
             if (stall == null)
             {
-                throw new NotFoundException($"Không tìm thấy sạp hàng với Id = {request.StallId}.");
+                throw new NotFoundException($"Stall with ID {request.StallId} not found.");
             }
 
-            // Create issue (BR-50: initial status = Reported)
+            // Create issue (initial status = Reported)
             var issue = new Issue
             {
                 StallId = request.StallId,
@@ -136,18 +118,15 @@ namespace STMM.Business.Services
                 UpdatedAt = DateTime.UtcNow
             };
 
-            await _unitOfWork.Repository<Issue>().AddAsync(issue, ct);
-            await _unitOfWork.SaveChangesAsync(ct);
+            await _issueRepository.AddAsync(issue, ct);
+            await _issueRepository.SaveChangesAsync(ct);
 
             // Assign navigation for mapping
             issue.Stall = stall;
 
             // Reload CreatedByUser for DTO
-            var user = await _unitOfWork.Repository<User>()
-                .Query()
-                .AsNoTracking()
-                .FirstOrDefaultAsync(u => u.UserId == staffUserId, ct);
-            issue.CreatedByUser = user!;
+            var users = await _userRepository.FindAsync(u => u.UserId == staffUserId, ct);
+            issue.CreatedByUser = users.FirstOrDefault()!;
 
             return MapIssueToDto(issue);
         }
@@ -164,70 +143,58 @@ namespace STMM.Business.Services
                     string.Join("; ", validationResult.Errors.Select(e => e.ErrorMessage)));
             }
 
-            // Authorization check: chỉ update issue có StaffTask giao cho mình (Decision 4)
-            var assignedTask = await _unitOfWork.Repository<StaffTask>()
-                .Query()
-                .FirstOrDefaultAsync(t => t.IssueId == issueId && t.AssignedToUserId == staffUserId, ct);
+            // Authorization check: only update issues assigned to this staff user
+            var tasks = await _staffTaskRepository.FindAsync(t => t.IssueId == issueId && t.AssignedToUserId == staffUserId, ct);
+            var assignedTask = tasks.FirstOrDefault();
 
             if (assignedTask == null)
             {
                 throw new NotFoundException(
-                    $"Bạn không được phân công xử lý sự cố Id = {issueId}.");
+                    $"You are not assigned to handle issue ID {issueId}.");
             }
 
-            // Load issue (tracking)
-            var issue = await _unitOfWork.Repository<Issue>()
-                .Query()
-                .Include(i => i.Stall)
-                .Include(i => i.CreatedByUser)
-                .Include(i => i.StaffTasks)
-                .FirstOrDefaultAsync(i => i.IssueId == issueId, ct);
+            // Load issue
+            var issue = await _issueRepository.GetIssueWithRelationsAsync(issueId, tracking: true, ct);
 
             if (issue == null)
             {
-                throw new NotFoundException($"Không tìm thấy sự cố với Id = {issueId}.");
+                throw new NotFoundException($"Issue with ID {issueId} not found.");
             }
 
-            // Validate state transition (BR-50)
+            // Validate state transition
             var currentStatus = issue.Status ?? "Reported";
             if (!ValidTransitions.TryGetValue(currentStatus, out var expectedNext) ||
                 expectedNext != request.NewStatus)
             {
                 throw new BadRequestException(
-                    $"Không thể chuyển trạng thái từ '{currentStatus}' sang '{request.NewStatus}'. " +
-                    $"Chỉ cho phép: {currentStatus} → {expectedNext ?? "(kết thúc)"}.");
+                    $"Cannot transition status from '{currentStatus}' to '{request.NewStatus}'. " +
+                    $"Allowed transition: {currentStatus} → {expectedNext ?? "(end)"}.");
             }
 
             // Update issue
             issue.Status = request.NewStatus;
             issue.UpdatedAt = DateTime.UtcNow;
 
-            // BR-59 + BR-57: Nếu Resolved → auto-update linked StaffTask
+            // If Resolved -> auto-update linked StaffTask
             if (request.NewStatus == "Resolved")
             {
                 assignedTask.Status = "Completed";
                 assignedTask.CompletedAt = DateTime.UtcNow;
             }
 
-            await _unitOfWork.SaveChangesAsync(ct);
+            await _issueRepository.SaveChangesAsync(ct);
 
             return MapIssueToDto(issue);
         }
 
         private async Task<bool> HasAccessToIssueAsync(int issueId, int staffUserId, CancellationToken ct)
         {
-            // Mình tạo?
-            var isCreator = await _unitOfWork.Repository<Issue>()
-                .Query()
-                .AnyAsync(i => i.IssueId == issueId && i.CreatedByUserId == staffUserId, ct);
-
+            // Created by self?
+            var isCreator = await _issueRepository.IsCreatorAsync(issueId, staffUserId, ct);
             if (isCreator) return true;
 
-            // Có task giao cho mình?
-            var hasTask = await _unitOfWork.Repository<StaffTask>()
-                .Query()
-                .AnyAsync(t => t.IssueId == issueId && t.AssignedToUserId == staffUserId, ct);
-
+            // Assigned to self?
+            var hasTask = await _staffTaskRepository.HasAssignedTaskAsync(issueId, staffUserId, ct);
             return hasTask;
         }
 

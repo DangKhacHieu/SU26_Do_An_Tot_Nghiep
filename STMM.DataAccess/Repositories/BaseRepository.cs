@@ -6,16 +6,16 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using STMM.DataAccess.Data;
-using STMM.DataAccess.Repositories.Interfaces;
+using STMM.DataAccess.IRepositories;
 
-namespace STMM.DataAccess.Repositories.Implementations
+namespace STMM.DataAccess.Repositories
 {
-    public class GenericRepository<T> : IGenericRepository<T> where T : class
+    public class BaseRepository<T> : IBaseRepository<T> where T : class
     {
         protected readonly AppDbContext _context;
         protected readonly DbSet<T> _dbSet;
 
-        public GenericRepository(AppDbContext context)
+        public BaseRepository(AppDbContext context)
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
             _dbSet = _context.Set<T>();
@@ -28,8 +28,6 @@ namespace STMM.DataAccess.Repositories.Implementations
 
         public virtual async Task<T?> GetByIdAsync(object id, CancellationToken cancellationToken = default)
         {
-            // Note: FindAsync does not support CancellationToken in the same way as other EF async methods in some overloads,
-            // but the ValueTask overload does.
             return await _dbSet.FindAsync(new[] { id }, cancellationToken);
         }
 
@@ -61,6 +59,11 @@ namespace STMM.DataAccess.Repositories.Implementations
         public virtual IQueryable<T> Query()
         {
             return _dbSet.AsQueryable();
+        }
+
+        public virtual async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            return await _context.SaveChangesAsync(cancellationToken);
         }
     }
 }

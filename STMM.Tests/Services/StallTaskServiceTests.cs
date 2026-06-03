@@ -6,8 +6,7 @@ using STMM.Business.DTOs.StallTask;
 using STMM.Business.Mappers;
 using STMM.Business.Services;
 using STMM.DataAccess.Entities;
-using STMM.DataAccess.Repositories.Interfaces;
-using STMM.DataAccess.UnitOfWork;
+using STMM.DataAccess.IRepositories;
 using STMM.Tests.Helpers;
 using System;
 using System.Collections.Generic;
@@ -20,23 +19,13 @@ namespace STMM.Tests.Services
 {
     public class StallTaskServiceTests
     {
-        private readonly Mock<IUnitOfWork> _unitOfWorkMock;
-        private readonly Mock<IGenericRepository<Stall>> _stallRepoMock;
-        private readonly Mock<IGenericRepository<Contract>> _contractRepoMock;
-        private readonly Mock<IGenericRepository<StaffTask>> _staffTaskRepoMock;
+        private readonly Mock<IStallRepository> _stallRepoMock;
         private readonly IMapper _mapper;
         private readonly StallTaskService _service;
 
         public StallTaskServiceTests()
         {
-            _unitOfWorkMock = new Mock<IUnitOfWork>();
-            _stallRepoMock = new Mock<IGenericRepository<Stall>>();
-            _contractRepoMock = new Mock<IGenericRepository<Contract>>();
-            _staffTaskRepoMock = new Mock<IGenericRepository<StaffTask>>();
-
-            _unitOfWorkMock.Setup(u => u.Repository<Stall>()).Returns(_stallRepoMock.Object);
-            _unitOfWorkMock.Setup(u => u.Repository<Contract>()).Returns(_contractRepoMock.Object);
-            _unitOfWorkMock.Setup(u => u.Repository<StaffTask>()).Returns(_staffTaskRepoMock.Object);
+            _stallRepoMock = new Mock<IStallRepository>();
 
             var mapperConfig = new MapperConfiguration(cfg =>
             {
@@ -44,7 +33,7 @@ namespace STMM.Tests.Services
             }, NullLoggerFactory.Instance);
             _mapper = mapperConfig.CreateMapper();
 
-            _service = new StallTaskService(_unitOfWorkMock.Object, _mapper);
+            _service = new StallTaskService(_stallRepoMock.Object, _mapper);
         }
 
         [Fact]
@@ -54,8 +43,8 @@ namespace STMM.Tests.Services
             var staffUserId = 1;
             var stalls = CreateMockStalls(staffUserId);
 
-            _stallRepoMock.Setup(r => r.Query())
-                .Returns(stalls.AsQueryable().ToAsyncQueryable());
+            _stallRepoMock.Setup(r => r.GetStallTasksPagedAsync(staffUserId, It.IsAny<string>(), "All", It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync((new List<Stall> { stalls[0], stalls[1] }, 2));
 
             var queryParams = new StallTaskQueryParams { Filter = "All" };
 
@@ -76,8 +65,8 @@ namespace STMM.Tests.Services
             var staffUserId = 1;
             var stalls = CreateMockStalls(staffUserId);
 
-            _stallRepoMock.Setup(r => r.Query())
-                .Returns(stalls.AsQueryable().ToAsyncQueryable());
+            _stallRepoMock.Setup(r => r.GetStallTasksPagedAsync(staffUserId, It.IsAny<string>(), "HasUnpaidInvoice", It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync((new List<Stall> { stalls[0] }, 1));
 
             var queryParams = new StallTaskQueryParams { Filter = "HasUnpaidInvoice" };
 
@@ -97,8 +86,8 @@ namespace STMM.Tests.Services
             var staffUserId = 1;
             var stalls = CreateMockStalls(staffUserId);
 
-            _stallRepoMock.Setup(r => r.Query())
-                .Returns(stalls.AsQueryable().ToAsyncQueryable());
+            _stallRepoMock.Setup(r => r.GetStallTasksPagedAsync(staffUserId, It.IsAny<string>(), "HasTask", It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync((new List<Stall> { stalls[1] }, 1));
 
             var queryParams = new StallTaskQueryParams { Filter = "HasTask" };
 
@@ -118,8 +107,8 @@ namespace STMM.Tests.Services
             var staffUserId = 1;
             var stalls = CreateMockStalls(staffUserId);
 
-            _stallRepoMock.Setup(r => r.Query())
-                .Returns(stalls.AsQueryable().ToAsyncQueryable());
+            _stallRepoMock.Setup(r => r.GetStallTasksPagedAsync(staffUserId, "A-2", "All", It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync((new List<Stall> { stalls[1] }, 1));
 
             var queryParams = new StallTaskQueryParams { Search = "A-2", Filter = "All" };
 

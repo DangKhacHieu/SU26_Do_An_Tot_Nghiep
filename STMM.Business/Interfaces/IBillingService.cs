@@ -5,13 +5,13 @@ namespace STMM.Business.Interfaces
     public interface IBillingService
     {
         /// <summary>
-        /// Xem chi tiết hóa đơn bao gồm InvoiceDetails, FeeType, Stall, Vendor info.
+        /// Get invoice detail including InvoiceDetails, FeeType, Stall, and Vendor information.
         /// </summary>
         Task<InvoiceDto> GetInvoiceDetailAsync(int invoiceId, CancellationToken ct = default);
 
         /// <summary>
-        /// Staff ghi nhận thu tiền mặt tại sạp.
-        /// Invoice → Pending Confirmation (BR-38c). Gửi notification cho Vendor.
+        /// Record cash payment collected at the stall.
+        /// Updates status to Pending Confirmation and sends notification to Vendor.
         /// </summary>
         Task<PaymentResultDto> ReceiveCashPaymentAsync(int staffUserId, ReceiveCashPaymentRequest request, CancellationToken ct = default);
     }

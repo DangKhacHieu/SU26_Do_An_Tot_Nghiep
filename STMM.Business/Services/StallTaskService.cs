@@ -1,10 +1,9 @@
 using AutoMapper;
-using Microsoft.EntityFrameworkCore;
 using STMM.Business.DTOs.Common;
 using STMM.Business.DTOs.StallTask;
 using STMM.Business.Interfaces;
 using STMM.DataAccess.Entities;
-using STMM.DataAccess.UnitOfWork;
+using STMM.DataAccess.IRepositories;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,71 +12,28 @@ using System.Threading.Tasks;
 
 namespace STMM.Business.Services
 {
-    public class StallTaskService : BaseService, IStallTaskService
+    public class StallTaskService : IStallTaskService
     {
-        public StallTaskService(IUnitOfWork unitOfWork, IMapper mapper)
-            : base(unitOfWork, mapper)
+        private readonly IStallRepository _stallRepository;
+        private readonly IMapper _mapper;
+
+        public StallTaskService(IStallRepository stallRepository, IMapper mapper)
         {
+            _stallRepository = stallRepository;
+            _mapper = mapper;
         }
 
         /// <inheritdoc />
         public async Task<PagedResult<StallTaskSummaryDto>> GetStallTasksAsync(
             int staffUserId, StallTaskQueryParams queryParams, CancellationToken ct = default)
         {
-            // Query base stalls
-            var query = _unitOfWork.Repository<Stall>().Query();
-
-            // Filter out soft deleted stalls
-            query = query.Where(s => s.IsDeleted != true);
-
-            // Filter by search (Stall Code)
-            if (!string.IsNullOrWhiteSpace(queryParams.Search))
-            {
-                var search = queryParams.Search.Trim().ToUpper();
-                query = query.Where(s => s.Code.ToUpper().Contains(search));
-            }
-
-            // Apply filter based on queryParams.Filter
-            if (queryParams.Filter == "HasUnpaidInvoice")
-            {
-                query = query.Where(s => s.Contracts.Any(c => c.IsDeleted != true && c.Status == "Active" &&
-                                                             c.Invoices.Any(i => i.IsDeleted != true && i.Status == "Unpaid")));
-            }
-            else if (queryParams.Filter == "HasTask")
-            {
-                query = query.Where(s => s.Issues.Any(i => i.StaffTasks.Any(t => t.AssignedToUserId == staffUserId && t.Status != "Completed")) ||
-                                     s.Requests.Any(r => r.StaffTasks.Any(t => t.AssignedToUserId == staffUserId && t.Status != "Completed")));
-            }
-            else
-            {
-                // "All" - union of both
-                query = query.Where(s =>
-                    s.Contracts.Any(c => c.IsDeleted != true && c.Status == "Active" &&
-                                         c.Invoices.Any(i => i.IsDeleted != true && i.Status == "Unpaid")) ||
-                    s.Issues.Any(i => i.StaffTasks.Any(t => t.AssignedToUserId == staffUserId && t.Status != "Completed")) ||
-                    s.Requests.Any(r => r.StaffTasks.Any(t => t.AssignedToUserId == staffUserId && t.Status != "Completed"))
-                );
-            }
-
-            var totalCount = await query.CountAsync(ct);
-
-            // Fetch the page items with necessary relationships
-            var stalls = await query
-                .Include(s => s.Contracts)
-                    .ThenInclude(c => c.Vendor)
-                        .ThenInclude(v => v.User)
-                .Include(s => s.Contracts)
-                    .ThenInclude(c => c.Invoices)
-                .Include(s => s.Issues)
-                    .ThenInclude(i => i.StaffTasks)
-                .Include(s => s.Requests)
-                    .ThenInclude(r => r.StaffTasks)
-                .Include(s => s.Category)
-                .OrderBy(s => s.Code)
-                .Skip((queryParams.PageNumber - 1) * queryParams.PageSize)
-                .Take(queryParams.PageSize)
-                .AsNoTracking()
-                .ToListAsync(ct);
+            var (stalls, totalCount) = await _stallRepository.GetStallTasksPagedAsync(
+                staffUserId,
+                queryParams.Search,
+                queryParams.Filter,
+                queryParams.PageNumber,
+                queryParams.PageSize,
+                ct);
 
             // Map to DTOs
             var items = stalls.Select(s =>
