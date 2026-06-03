@@ -1,6 +1,7 @@
 using AutoMapper;
 using STMM.DataAccess.Entities;
 using STMM.Business.DTOs.Violation;
+using STMM.Business.DTOs.Area;
 
 namespace STMM.Business.Mappers
 {
@@ -26,6 +27,17 @@ namespace STMM.Business.Mappers
                 .ForMember(dest => dest.Stall, opt => opt.Ignore());
 
             CreateMap<ViolationType, ViolationTypeDto>();
+
+              // Area mappings
+            CreateMap<Area, AreaDto>()
+                .ForMember(dest => dest.CategoryName, opt => opt.MapFrom(src => src.Category != null ? src.Category.Name : null));
+
+            CreateMap<AreaDto, Area>()
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.IsDeleted, opt => opt.Ignore())
+                .ForMember(dest => dest.Category, opt => opt.Ignore())
+                .ForMember(dest => dest.Market, opt => opt.Ignore())
+                .ForMember(dest => dest.Stalls, opt => opt.Ignore());
         }
     }
 }
