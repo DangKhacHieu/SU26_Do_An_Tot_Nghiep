@@ -38,5 +38,24 @@ namespace STMM.API.Controllers
                 });
             }
         }
+
+        [HttpPost("test-create-stall")]
+        public async Task<IActionResult> TestCreateStall([FromServices] STMM.Business.Interfaces.IStallService stallService, [FromBody] STMM.Business.DTOs.Stall.CreateStallDto dto)
+        {
+            try
+            {
+                var result = await stallService.CreateStallAsync(dto);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new
+                {
+                    message = ex.Message,
+                    innerException = ex.InnerException?.Message,
+                    stackTrace = ex.StackTrace
+                });
+            }
+        }
     }
 }

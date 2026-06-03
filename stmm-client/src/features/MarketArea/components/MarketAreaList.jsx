@@ -3,9 +3,11 @@ import styles from './MarketAreaList.module.css';
 import MarketAreaForm from './MarketAreaForm';
 import { getAllAreas, createArea, updateArea, deleteArea } from '../api/marketAreaApi';
 import { Rnd } from 'react-rnd';
+import StallLayoutEditor from './StallLayoutEditor';
+import ManagerLayout from './ManagerLayout';
 
 const MarketAreaList = () => {
-  const [activeZone, setActiveZone] = useState('ZONES');
+  const [activeTab, setActiveTab] = useState('ZONES');
   const [areas, setAreas] = useState([]);
   const [selectedArea, setSelectedArea] = useState(null); // For editing
   const [isFormVisible, setIsFormVisible] = useState(false);
@@ -55,10 +57,21 @@ const MarketAreaList = () => {
 
   const handleSave = async (formData) => {
     try {
+      const payload = {
+        ...formData
+      };
+
       if (selectedArea) {
-        await updateArea(selectedArea.areaId, formData);
+        const updatePayload = {
+          ...payload,
+          minX: selectedArea.minX,
+          minY: selectedArea.minY,
+          maxX: selectedArea.maxX,
+          maxY: selectedArea.maxY
+        };
+        await updateArea(selectedArea.areaId, updatePayload);
       } else {
-        await createArea({ ...formData, marketId: 1 });
+        await createArea({ ...payload, marketId: 1 });
       }
       setIsFormVisible(false);
       fetchAreas();
@@ -84,6 +97,7 @@ const MarketAreaList = () => {
         name: area.name,
         description: area.description,
         categoryId: area.categoryId,
+        categoryName: area.categoryName,
         minX: d.x,
         minY: d.y,
         maxX: d.x + width,
@@ -109,6 +123,7 @@ const MarketAreaList = () => {
         name: area.name,
         description: area.description,
         categoryId: area.categoryId,
+        categoryName: area.categoryName,
         minX: position.x,
         minY: position.y,
         maxX: position.x + width,
@@ -126,25 +141,7 @@ const MarketAreaList = () => {
   };
 
   return (
-    <div className={styles.container}>
-      <header className={styles.topbar}>
-        <div className={styles.brand}>
-          <span className={styles.brandLogo}>M.</span>
-          <span>MARKET_AREA_MANAGER</span>
-          <span className={styles.brandVersion}>V1.0.4</span>
-        </div>
-        <nav className={styles.nav}>
-          <button className={`${styles.navBtn} ${activeZone === 'OVERVIEW' ? styles.navBtnActive : ''}`} onClick={() => setActiveZone('OVERVIEW')}>OVERVIEW</button>
-          <button className={`${styles.navBtn} ${activeZone === 'ZONES' ? styles.navBtnActive : ''}`} onClick={() => setActiveZone('ZONES')}>ZONES</button>
-          <button className={`${styles.navBtn} ${activeZone === 'LOGS' ? styles.navBtnActive : ''}`} onClick={() => setActiveZone('LOGS')}>LOGS</button>
-        </nav>
-        <div className={styles.actions}>
-          {!viewingAreaStalls && (
-            <button onClick={handleAddNew} style={{background: 'var(--accent-color)', color: 'white', padding: '8px 20px', border: 'none', borderRadius: '4px', cursor: 'pointer'}}>NEW_AREA</button>
-          )}
-        </div>
-      </header>
-
+    <ManagerLayout activeTab={activeTab} setActiveTab={setActiveTab}>
       <div className={styles.main}>
         {/* Form Panel */}
         {isFormVisible && (
@@ -155,21 +152,33 @@ const MarketAreaList = () => {
           />
         )}
 
-        {/* Canvas / List Area */}
-        <div className={styles.canvasArea}>
-          <div className={styles.canvasHeader}>
-            <div className={styles.canvasTitle}>
-              {viewingAreaStalls ? `CANVAS: STALLS IN ${viewingAreaStalls.name.toUpperCase()}` : 'CANVAS: MAP AREA'}
-            </div>
-            {viewingAreaStalls && (
-              <button 
-                onClick={() => setViewingAreaStalls(null)}
-                style={{background: 'transparent', color: 'var(--text-primary)', border: '1px solid var(--panel-border)', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer'}}
-              >
-                ← BACK TO AREAS
-              </button>
+        <div className={styles.actionsBar}>
+          <div>
+            <h3 className={styles.sectionTitle}>
+               {viewingAreaStalls ? `CANVAS: STALLS IN ${viewingAreaStalls.name.toUpperCase()}` : 'MAP LAYOUT'}
+            </h3>
+            {!viewingAreaStalls && (
+               <p style={{fontSize: '12px', color: 'var(--text-secondary)', margin: 0, marginTop: '4px'}}>
+                 Drag and resize areas within the grid. Changes are saved automatically.
+               </p>
             )}
           </div>
+          <div className={styles.actionsRight}>
+            {viewingAreaStalls ? (
+                <button 
+                  onClick={() => setViewingAreaStalls(null)}
+                  style={{background: 'transparent', color: 'var(--text-primary)', border: '1px solid var(--panel-border)', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer'}}
+                >
+                  ← BACK TO AREAS
+                </button>
+            ) : (
+                <button onClick={handleAddNew} style={{background: '#517594', color: 'white', padding: '8px 20px', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold'}}>+ NEW AREA</button>
+            )}
+          </div>
+        </div>
+
+        {/* Canvas / List Area */}
+        <div className={styles.canvasArea}>
           <div className={styles.canvasContainer}>
             <div className={styles.gridBg}>
               <div style={{ position: 'relative', width: '100%', height: '100%' }}>
@@ -245,13 +254,14 @@ const MarketAreaList = () => {
                   </div>
                 )}
 
-                {/* 2. Stalls View (Mock) */}
+                {/* 2. Stalls View */}
                 {viewingAreaStalls && (
-                  <div style={{color: 'var(--text-secondary)', width: '100%', textAlign: 'center', marginTop: '40px', position: 'absolute'}}>
-                    <div style={{fontSize: '40px', marginBottom: '16px'}}>🏬</div>
-                    <h3>Khu vực: {viewingAreaStalls.name}</h3>
-                    <p>Hiện tại chưa có dữ liệu quầy sạp (Stalls) cho khu vực này.</p>
-                    <p>Chúng ta sẽ cần gọi API Stalls từ Backend để đổ dữ liệu vào đây.</p>
+                  <div style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0 }}>
+                    <StallLayoutEditor 
+                      areaId={viewingAreaStalls.areaId} 
+                      areaName={viewingAreaStalls.name}
+                      onBack={() => setViewingAreaStalls(null)}
+                    />
                   </div>
                 )}
 
@@ -260,7 +270,7 @@ const MarketAreaList = () => {
           </div>
         </div>
       </div>
-    </div>
+    </ManagerLayout>
   );
 };
 

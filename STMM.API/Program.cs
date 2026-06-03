@@ -63,6 +63,7 @@ builder.Services.AddScoped<IBillingService, BillingService>();
 builder.Services.AddScoped<IIssueService, IssueService>();
 builder.Services.AddScoped<IStallTaskService, StallTaskService>();
 builder.Services.AddScoped<IAreaService, AreaService>();
+builder.Services.AddScoped<IStallService, StallService>();
 
 // 1. Controllers & JSON Options
 builder.Services.AddControllers()

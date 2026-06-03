@@ -2,8 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using AutoMapper;
+using Microsoft.EntityFrameworkCore;
 using STMM.Business.DTOs.Area;
 using STMM.Business.Interfaces;
+using STMM.DataAccess.Data;
 using STMM.DataAccess.Entities;
 using STMM.DataAccess.IRepositories;
 
@@ -13,11 +15,13 @@ namespace STMM.Business.Services
     {
         private readonly IAreaRepository _areaRepository;
         private readonly IMapper _mapper;
+        private readonly AppDbContext _context;
 
-        public AreaService(IAreaRepository areaRepository, IMapper mapper)
+        public AreaService(IAreaRepository areaRepository, IMapper mapper, AppDbContext context)
         {
             _areaRepository = areaRepository;
             _mapper = mapper;
+            _context = context;
         }
 
         public async Task<IEnumerable<AreaDto>> GetAllAreasAsync(int? marketId = null)
@@ -32,9 +36,46 @@ namespace STMM.Business.Services
             return area == null ? null : _mapper.Map<AreaDto>(area);
         }
 
+        private async Task<int?> ResolveCategoryAsync(int? categoryId, string? categoryName)
+        {
+            if (!string.IsNullOrWhiteSpace(categoryName))
+            {
+                var nameLower = categoryName.ToLower().Trim();
+                // We use EF Core directly via AppDbContext to simplify category resolution
+                var existingCategory = await _context.Set<BusinessCategory>()
+                    .FirstOrDefaultAsync(c => c.Name.ToLower() == nameLower);
+
+                if (existingCategory != null)
+                {
+                    return existingCategory.CategoryId;
+                }
+                else
+                {
+                    var newCategory = new BusinessCategory
+                    {
+                        Name = categoryName.Trim(),
+                        Code = "CAT_" + Guid.NewGuid().ToString("N").Substring(0, 6).ToUpper(),
+                        IsActive = true,
+                        CreatedAt = DateTime.UtcNow
+                    };
+                    _context.Set<BusinessCategory>().Add(newCategory);
+                    await _context.SaveChangesAsync();
+                    return newCategory.CategoryId;
+                }
+            }
+            return categoryId;
+        }
+
         public async Task<AreaDto> CreateAreaAsync(CreateAreaRequest request)
         {
             var area = _mapper.Map<Area>(request);
+            
+            var resolvedCategoryId = await ResolveCategoryAsync(request.CategoryId, request.CategoryName);
+            if (resolvedCategoryId.HasValue)
+            {
+                area.CategoryId = resolvedCategoryId.Value;
+            }
+            
             area.CreatedAt = DateTime.UtcNow;
             area.IsDeleted = false;
 
@@ -54,6 +95,12 @@ namespace STMM.Business.Services
             }
 
             _mapper.Map(request, existingArea);
+            
+            var resolvedCategoryId = await ResolveCategoryAsync(request.CategoryId, request.CategoryName);
+            if (resolvedCategoryId.HasValue)
+            {
+                existingArea.CategoryId = resolvedCategoryId.Value;
+            }
             
             _areaRepository.Update(existingArea);
             await _areaRepository.SaveChangesAsync();
