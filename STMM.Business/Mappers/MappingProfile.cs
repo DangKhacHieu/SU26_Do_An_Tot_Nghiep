@@ -35,6 +35,13 @@ namespace STMM.Business.Mappers
             CreateMap<User, UserDetailDto>()
                 .ForMember(dest => dest.RoleName, opt => opt.MapFrom(src => src.Role != null ? src.Role.Name : string.Empty))
                 .ForMember(dest => dest.RoleDescription, opt => opt.MapFrom(src => src.Role != null ? src.Role.Description : string.Empty));
+
+            // FAQ mappings
+            CreateMap<Faq, STMM.Business.DTOs.Faq.FaqDto>();
+
+            // Content (Notification) mappings
+            CreateMap<Notification, STMM.Business.DTOs.Content.ContentDto>()
+                .ForMember(dest => dest.TargetUserName, opt => opt.MapFrom(src => src.TargetUser != null ? src.TargetUser.Name : string.Empty));
         }
     }
 }

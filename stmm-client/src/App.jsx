@@ -4,6 +4,11 @@ import DashboardManager from './pages/FE_Manager/DashboardManager';
 import UserListManager from './pages/FE_Manager/UserListManager';
 import UserFormManager from './pages/FE_Manager/UserFormManager';
 import UserDetailManager from './pages/FE_Manager/UserDetailManager';
+import ContentListManager from './pages/FE_Manager/ContentListManager';
+import ContentFormManager from './pages/FE_Manager/ContentFormManager';
+import ContentDetailManager from './pages/FE_Manager/ContentDetailManager';
+import FaqListManager from './pages/FE_Manager/FaqListManager';
+import FaqFormManager from './pages/FE_Manager/FaqFormManager';
 import './App.css';
 
 const PAGE_TITLES = {
@@ -11,6 +16,11 @@ const PAGE_TITLES = {
   users:     { title: 'Quản lý Tài khoản', sub: 'Danh sách, phân quyền và quản trị tài khoản thành viên.' },
   form:      { title: 'Đăng ký / Chỉnh sửa Tài khoản', sub: 'Nhập đầy đủ thông tin để tạo hoặc cập nhật tài khoản.' },
   detail:    { title: 'Chi tiết Tài khoản', sub: 'Thông tin đầy đủ và lịch sử hoạt động của tài khoản.' },
+  content:   { title: 'Quản lý Tin tức & Thông báo', sub: 'Quản lý các bài viết trên trang chủ và thông báo theo vai trò.' },
+  'content-form': { title: 'Tạo / Cập nhật Tin tức & Thông báo', sub: 'Nhập nội dung tiêu đề, phân loại và cấu hình gửi.' },
+  'content-detail': { title: 'Chi tiết Tin tức & Thông báo', sub: 'Xem trước nội dung chi tiết bài viết hoặc thông báo đã gửi.' },
+  faqs:      { title: 'Quản lý Câu hỏi thường gặp', sub: 'Xem, cập nhật, tạo mới danh sách FAQs hệ thống.' },
+  'faq-form': { title: 'Tạo / Cập nhật FAQ', sub: 'Thêm hoặc chỉnh sửa thông tin câu hỏi thường gặp.' },
 };
 
 function App() {
@@ -35,6 +45,11 @@ function App() {
       case 'users':     return <UserListManager navigate={navigate} addToast={addToast} />;
       case 'form':      return <UserFormManager userId={currentUserId} navigate={navigate} addToast={addToast} />;
       case 'detail':    return <UserDetailManager userId={currentUserId} navigate={navigate} addToast={addToast} />;
+      case 'content':   return <ContentListManager navigate={navigate} addToast={addToast} />;
+      case 'content-form': return <ContentFormManager contentId={currentUserId} navigate={navigate} addToast={addToast} />;
+      case 'content-detail': return <ContentDetailManager contentId={currentUserId} navigate={navigate} addToast={addToast} />;
+      case 'faqs':      return <FaqListManager navigate={navigate} addToast={addToast} />;
+      case 'faq-form':  return <FaqFormManager faqId={currentUserId} navigate={navigate} addToast={addToast} />;
       default:          return <DashboardManager addToast={addToast} navigate={navigate} />;
     }
   };
