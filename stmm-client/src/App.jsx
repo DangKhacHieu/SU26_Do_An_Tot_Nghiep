@@ -1,122 +1,95 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { useState } from 'react';
+import SidebarManager from './pages/FE_Manager/SidebarManager';
+import DashboardManager from './pages/FE_Manager/DashboardManager';
+import UserListManager from './pages/FE_Manager/UserListManager';
+import UserFormManager from './pages/FE_Manager/UserFormManager';
+import UserDetailManager from './pages/FE_Manager/UserDetailManager';
+import './App.css';
+
+const PAGE_TITLES = {
+  dashboard: { title: 'Tổng quan hệ thống', sub: 'Thống kê tổng hợp và trạng thái hoạt động của MHMS.' },
+  users:     { title: 'Quản lý Tài khoản', sub: 'Danh sách, phân quyền và quản trị tài khoản thành viên.' },
+  form:      { title: 'Đăng ký / Chỉnh sửa Tài khoản', sub: 'Nhập đầy đủ thông tin để tạo hoặc cập nhật tài khoản.' },
+  detail:    { title: 'Chi tiết Tài khoản', sub: 'Thông tin đầy đủ và lịch sử hoạt động của tài khoản.' },
+};
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [currentPage, setCurrentPage] = useState('dashboard');
+  const [currentUserId, setCurrentUserId] = useState(null);
+  const [toasts, setToasts] = useState([]);
+
+  const addToast = (message, type = 'info') => {
+    const id = Date.now();
+    setToasts((prev) => [...prev, { id, message, type }]);
+    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 4000);
+  };
+
+  const navigate = (page, id = null) => {
+    setCurrentUserId(id);
+    setCurrentPage(page);
+  };
+
+  const renderPage = () => {
+    switch (currentPage) {
+      case 'dashboard': return <DashboardManager addToast={addToast} navigate={navigate} />;
+      case 'users':     return <UserListManager navigate={navigate} addToast={addToast} />;
+      case 'form':      return <UserFormManager userId={currentUserId} navigate={navigate} addToast={addToast} />;
+      case 'detail':    return <UserDetailManager userId={currentUserId} navigate={navigate} addToast={addToast} />;
+      default:          return <DashboardManager addToast={addToast} navigate={navigate} />;
+    }
+  };
+
+  const pageInfo = PAGE_TITLES[currentPage] || PAGE_TITLES['dashboard'];
+
+  const toastIcon = (type) => {
+    if (type === 'success') return (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="20 6 9 17 4 12" />
+      </svg>
+    );
+    if (type === 'error') return (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" />
+      </svg>
+    );
+    return (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+      </svg>
+    );
+  };
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <div className="app-container">
+      {/* ── SIDEBAR ── */}
+      <SidebarManager currentPage={currentPage} navigate={navigate} />
 
-      <div className="ticks"></div>
+      {/* ── MAIN ── */}
+      <main className="app-main">
+        <header className="app-header">
+          <div className="header-title-section">
+            <h1>{pageInfo.title}</h1>
+            <p>{pageInfo.sub}</p>
+          </div>
+        </header>
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
+        <div className="dashboard-content">
+          {renderPage()}
         </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+      </main>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+      {/* ── TOASTS ── */}
+      <div className="toast-container">
+        {toasts.map((t) => (
+          <div key={t.id} className={`toast-message ${t.type}`}>
+            <span className={`toast-icon ${t.type}`}>{toastIcon(t.type)}</span>
+            <div className="toast-text">{t.message}</div>
+            <button className="toast-close" onClick={() => setToasts((p) => p.filter((x) => x.id !== t.id))}>×</button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
-export default App
+export default App;

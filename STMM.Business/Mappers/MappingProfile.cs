@@ -1,6 +1,7 @@
 using AutoMapper;
 using STMM.DataAccess.Entities;
 using STMM.Business.DTOs.Violation;
+using STMM.Business.DTOs.User;
 
 namespace STMM.Business.Mappers
 {
@@ -26,6 +27,15 @@ namespace STMM.Business.Mappers
                 .ForMember(dest => dest.Stall, opt => opt.Ignore());
 
             CreateMap<ViolationType, ViolationTypeDto>();
+
+            // User and Role mappings
+            CreateMap<Role, RoleDto>();
+            CreateMap<User, UserDto>()
+                .ForMember(dest => dest.RoleName, opt => opt.MapFrom(src => src.Role != null ? src.Role.Name : string.Empty));
+            CreateMap<User, UserDetailDto>()
+                .ForMember(dest => dest.RoleName, opt => opt.MapFrom(src => src.Role != null ? src.Role.Name : string.Empty))
+                .ForMember(dest => dest.RoleDescription, opt => opt.MapFrom(src => src.Role != null ? src.Role.Description : string.Empty));
         }
     }
 }
+

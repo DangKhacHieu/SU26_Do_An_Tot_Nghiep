@@ -62,6 +62,7 @@ builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IBillingService, BillingService>();
 builder.Services.AddScoped<IIssueService, IssueService>();
 builder.Services.AddScoped<IStallTaskService, StallTaskService>();
+builder.Services.AddScoped<IUserService, UserService>();
 
 // 1. Controllers & JSON Options
 builder.Services.AddControllers()
