@@ -27,9 +27,10 @@ namespace STMM.Business.Validators
                 .WithMessage("Mô tả sự cố phải có ít nhất 10 ký tự.");
 
             RuleFor(x => x.ImageUrl)
-                .Must(url => Uri.TryCreate(url, UriKind.Absolute, out _))
+                .Must(urlStr => urlStr!.Split(';', StringSplitOptions.RemoveEmptyEntries)
+                    .All(url => Uri.TryCreate(url.Trim(), UriKind.Absolute, out _)))
                 .When(x => !string.IsNullOrEmpty(x.ImageUrl))
-                .WithMessage("URL ảnh không đúng định dạng.");
+                .WithMessage("URL ảnh không đúng định dạng hoặc chứa URL không hợp lệ.");
         }
     }
 }
