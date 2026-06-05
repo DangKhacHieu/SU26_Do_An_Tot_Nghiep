@@ -85,16 +85,18 @@ builder.Services.AddAutoMapper(cfg =>
 builder.Services.AddValidatorsFromAssembly(typeof(MappingProfile).Assembly);
 
 // Register Business Services
-builder.Services.AddScoped<IViolationService, ViolationService>();
-builder.Services.AddScoped<INotificationService, NotificationService>();
-builder.Services.AddScoped<IBillingService, BillingService>();
-builder.Services.AddScoped<IIssueService, IssueService>();
-builder.Services.AddScoped<IStallTaskService, StallTaskService>();
-builder.Services.AddScoped<IStaffTaskService, StaffTaskService>();
-builder.Services.AddScoped<IQuotationService, QuotationService>();
-builder.Services.AddScoped<IMeterReadingService, MeterReadingService>();
-builder.Services.AddScoped<IFileStorageService, CloudinaryStorageService>();
-
+            builder.Services.AddScoped<IViolationService, ViolationService>();
+            builder.Services.AddScoped<INotificationService, NotificationService>();
+            builder.Services.AddScoped<IBillingService, BillingService>();
+            builder.Services.AddScoped<IIssueService, IssueService>();
+            builder.Services.AddScoped<IStallTaskService, StallTaskService>();
+            builder.Services.AddScoped<IStaffTaskService, StaffTaskService>();
+            builder.Services.AddScoped<IQuotationService, QuotationService>();
+            builder.Services.AddScoped<IMeterReadingService, MeterReadingService>();
+            builder.Services.AddScoped<IFileStorageService, CloudinaryStorageService>();
+            builder.Services.AddScoped<IUserService, UserService>();
+            builder.Services.AddScoped<IFaqService, FaqService>();
+            builder.Services.AddScoped<IContentService, ContentService>();
 
 // 1. Controllers & JSON Options
 builder.Services.AddControllers()

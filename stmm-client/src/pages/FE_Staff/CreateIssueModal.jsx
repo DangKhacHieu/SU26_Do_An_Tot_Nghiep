@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import './CreateIssueModal.css';
 
 export default function CreateIssueModal({ userId, baseUrl, onClose, onSuccess }) {
   const [stalls, setStalls] = useState([]);

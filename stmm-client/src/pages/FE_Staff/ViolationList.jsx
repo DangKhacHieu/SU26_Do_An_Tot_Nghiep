@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import './ViolationList.css';
 
-export default function IssueList({ userId, baseUrl, onViewDetails, onOpenCreateModal }) {
-  const [issues, setIssues] = useState([]);
+export default function ViolationList({ userId, baseUrl, onViewDetails, onOpenCreateModal }) {
+  const [violations, setViolations] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   
@@ -14,52 +15,52 @@ export default function IssueList({ userId, baseUrl, onViewDetails, onOpenCreate
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const fetchIssues = async () => {
+  const fetchViolations = async () => {
     setLoading(true);
     setError(null);
     try {
       // Build API query string
-      let url = `${baseUrl}/api/staff/issues?userId=${userId}&pageNumber=${pageNumber}&pageSize=${pageSize}&sortDescending=${sortDescending}`;
+      let url = `${baseUrl}/api/violations?userId=${userId}&pageNumber=${pageNumber}&pageSize=${pageSize}&sortDescending=${sortDescending}`;
       if (statusFilter) {
         url += `&status=${statusFilter}`;
       }
       
       const response = await fetch(url);
       if (!response.ok) {
-        throw new Error(`Failed to fetch issues: ${response.statusText}`);
+        throw new Error(`Failed to fetch violations: ${response.statusText}`);
       }
       const data = await response.json();
       
-      // Filter client-side if searchQuery is provided (since backend doesn't have search text filtering built-in for GetIssues)
+      // Filter client-side if searchQuery is provided (since backend doesn't have search text filtering built-in for simple GetViolations)
       let items = data.items || [];
       if (searchQuery.trim() !== '') {
         const query = searchQuery.toLowerCase();
         items = items.filter(v => 
-          v.issueId.toString().includes(query) ||
+          v.violationId.toString().includes(query) ||
           (v.stallCode && v.stallCode.toLowerCase().includes(query)) ||
           (v.title && v.title.toLowerCase().includes(query)) ||
           (v.description && v.description.toLowerCase().includes(query))
         );
       }
       
-      setIssues(items);
+      setViolations(items);
       setTotalCount(data.totalCount || 0);
       setTotalPages(data.totalPages || 1);
     } catch (err) {
       setError(err.message);
-      setIssues([]);
+      setViolations([]);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchIssues();
+    fetchViolations();
   }, [userId, pageNumber, statusFilter, sortDescending]);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
-    fetchIssues();
+    fetchViolations();
   };
 
   const handleResetFilters = () => {
@@ -67,6 +68,11 @@ export default function IssueList({ userId, baseUrl, onViewDetails, onOpenCreate
     setStatusFilter('');
     setPageNumber(1);
     setSortDescending(true);
+  };
+
+  const formatVnd = (amount) => {
+    if (amount === undefined || amount === null) return '0 VND';
+    return amount.toLocaleString('vi-VN') + ' VND';
   };
 
   const formatDate = (dateString) => {
@@ -83,16 +89,16 @@ export default function IssueList({ userId, baseUrl, onViewDetails, onOpenCreate
   return (
     <div className="violation-list-container">
       <div className="breadcrumb-path">
-        <span>Dashboard</span> &gt; <span className="active-path">Issues</span>
+        <span>Dashboard</span> &gt; <span className="active-path">Violations</span>
       </div>
 
       <div className="section-header">
         <div>
-          <h1 className="main-title">Issue List</h1>
-          <p className="subtitle">Manage and track reported facility issues.</p>
+          <h1 className="main-title">Violation List</h1>
+          <p className="subtitle">Manage and track reported violations.</p>
         </div>
         <button className="btn-primary report-btn" onClick={onOpenCreateModal}>
-          + Report New Issue
+          + Report Violation
         </button>
       </div>
 
@@ -117,10 +123,10 @@ export default function IssueList({ userId, baseUrl, onViewDetails, onOpenCreate
             className="filter-select"
           >
             <option value="">All Statuses</option>
-            <option value="Reported">Reported</option>
-            <option value="InProgress">InProgress</option>
-            <option value="Resolved">Resolved</option>
-            <option value="Closed">Closed</option>
+            <option value="Pending">Pending</option>
+            <option value="Approved">Approved</option>
+            <option value="Rejected">Rejected</option>
+            <option value="Finalized">Finalized</option>
           </select>
         </div>
 
@@ -144,48 +150,50 @@ export default function IssueList({ userId, baseUrl, onViewDetails, onOpenCreate
 
       {/* Content Table */}
       {loading ? (
-        <div className="loading-state">Loading issues...</div>
+        <div className="loading-state">Loading violations...</div>
       ) : error ? (
         <div className="error-state">
           <p className="error-message">Error: {error}</p>
-          <button className="btn-secondary" onClick={fetchIssues}>Retry</button>
+          <button className="btn-secondary" onClick={fetchViolations}>Retry</button>
         </div>
-      ) : issues.length === 0 ? (
+      ) : violations.length === 0 ? (
         <div className="empty-state">
-          <p>No issues found.</p>
+          <p>No violations found.</p>
         </div>
       ) : (
         <>
           <div className="table-responsive">
-            <table className="violation-table issue-table">
+            <table className="violation-table">
               <thead>
                 <tr>
-                  <th>Issue ID</th>
-                  <th>Issue Title</th>
-                  <th>Location</th>
-                  <th>Status</th>
+                  <th>Violation ID</th>
+                  <th>Type</th>
+                  <th>Location (Stall)</th>
+                  <th>Fine Amount</th>
                   <th>Reported By</th>
                   <th>Date</th>
+                  <th>Status</th>
                   <th>Action</th>
                 </tr>
               </thead>
               <tbody>
-                {issues.map((item) => (
-                  <tr key={item.issueId}>
-                    <td><strong>ISS-{item.issueId}</strong></td>
-                    <td>{item.title}</td>
-                    <td><span className="badge-stall">{item.stallCode || `ID: ${item.stallId}`}</span></td>
+                {violations.map((v) => (
+                  <tr key={v.violationId}>
+                    <td><strong>VIO-{v.violationId}</strong></td>
+                    <td>{v.title}</td>
+                    <td><span className="badge-stall">{v.stallCode || `ID: ${v.stallId}`}</span></td>
+                    <td>{formatVnd(v.fineAmount)}</td>
+                    <td>Staff #{v.createdBy}</td>
+                    <td>{formatDate(v.createdAt)}</td>
                     <td>
-                      <span className={`status-badge ${item.status?.toLowerCase() || 'reported'}`}>
-                        {item.status || 'Reported'}
+                      <span className={`status-badge ${v.status?.toLowerCase() || 'pending'}`}>
+                        {v.status || 'Pending'}
                       </span>
                     </td>
-                    <td>{item.createdByName || `Staff #${item.createdByUserId}`}</td>
-                    <td>{formatDate(item.createdAt)}</td>
                     <td>
                       <button 
                         className="btn-link" 
-                        onClick={() => onViewDetails(item.issueId)}
+                        onClick={() => onViewDetails(v.violationId)}
                       >
                         View Details
                       </button>
@@ -199,7 +207,7 @@ export default function IssueList({ userId, baseUrl, onViewDetails, onOpenCreate
           {/* Pagination Controls */}
           <div className="pagination-wrapper">
             <span className="pagination-info">
-              Showing 1 to {issues.length} of {totalCount} entries
+              Showing 1 to {violations.length} of {totalCount} entries
             </span>
             <div className="pagination-buttons">
               <button 

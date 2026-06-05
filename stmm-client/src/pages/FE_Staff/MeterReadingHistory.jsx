@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import './MeterReadingHistory.css';
 
 export default function MeterReadingHistory({ stallId, baseUrl, userId, onViewMeterDetail, onOpenRecordModal, onBack }) {
   const [readings, setReadings] = useState([]);

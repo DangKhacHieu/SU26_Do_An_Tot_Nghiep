@@ -1,0 +1,12 @@
+/* =========================================
+   DASHBOARD ADMIN SYSTEM PAGE
+   File: DashboardAdminSystem.css
+   ========================================= */
+
+@import "../FE_Manager/DashboardManager.css";
+
+/* ── Overrides and additions ── */
+.font-admin-accent {
+  background: #f3e8ff !important;
+  color: #7c3aed !important;
+}

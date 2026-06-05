@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import './ViolationDetails.css';
 
 export default function ViolationDetails({ violationId, userId, baseUrl, onBack }) {
   const [violation, setViolation] = useState(null);

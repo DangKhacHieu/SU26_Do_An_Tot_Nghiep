@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import './MeterDetail.css';
 
 export default function MeterDetail({ meterId, baseUrl, onBack }) {
   const [meter, setMeter] = useState(null);

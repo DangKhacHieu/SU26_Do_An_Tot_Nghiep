@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import './CreateViolationModal.css';
 
 export default function CreateViolationModal({ userId, baseUrl, onClose, onSuccess }) {
   const [violationTypes, setViolationTypes] = useState([]);
