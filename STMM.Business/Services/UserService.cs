@@ -39,44 +39,13 @@ namespace STMM.Business.Services
 
         public async Task<IEnumerable<UserDto>> GetUsersAsync(string? roleName, string? search, CancellationToken ct = default)
         {
-            var query = _userRepository.Query()
-                .Include(u => u.Role)
-                .Where(u => u.IsDeleted != true);
-
-            // Filter out system administrator roles if they should not be managed by Manager
-            // (Manager can manage Staff, Accountant, Vendor, Customer)
-            // But we keep it general and allow filtering by any role name, except Admin/Manager themselves if preferred.
-            // Let's just exclude Admin and Manager roles from user list if the request comes from Manager console,
-            // or keep them but filter by roleName if specified.
-            if (!string.IsNullOrEmpty(roleName))
-            {
-                query = query.Where(u => u.Role.Name.ToLower() == roleName.ToLower());
-            }
-            else
-            {
-                // By default, if no role filter is set, show the manageable roles
-                var manageableRoles = new[] { "staff", "accountant", "vendor", "customer" };
-                query = query.Where(u => manageableRoles.Contains(u.Role.Name.ToLower()));
-            }
-
-            if (!string.IsNullOrEmpty(search))
-            {
-                var searchLower = search.ToLower();
-                query = query.Where(u => u.Name.ToLower().Contains(searchLower) 
-                                      || u.Email.ToLower().Contains(searchLower) 
-                                      || u.Phone.Contains(searchLower) 
-                                      || u.Cccd.Contains(searchLower));
-            }
-
-            var users = await query.AsNoTracking().ToListAsync(ct);
+            var users = await _userRepository.GetUsersWithRolesAsync(roleName, search, ct);
             return _mapper.Map<IEnumerable<UserDto>>(users);
         }
 
         public async Task<UserDetailDto> GetUserByIdAsync(int id, CancellationToken ct = default)
         {
-            var user = await _userRepository.Query()
-                .Include(u => u.Role)
-                .FirstOrDefaultAsync(u => u.UserId == id && u.IsDeleted != true, ct);
+            var user = await _userRepository.GetUserByIdWithRoleAsync(id, ct);
 
             if (user == null)
             {
@@ -155,9 +124,7 @@ namespace STMM.Business.Services
                 throw new BadRequestException(string.Join("; ", validationResult.Errors.Select(e => e.ErrorMessage)));
             }
 
-            var user = await _userRepository.Query()
-                .Include(u => u.Role)
-                .FirstOrDefaultAsync(u => u.UserId == id && u.IsDeleted != true, ct);
+            var user = await _userRepository.GetUserByIdWithRoleAsync(id, ct);
 
             if (user == null)
             {
@@ -220,9 +187,7 @@ namespace STMM.Business.Services
                 throw new BadRequestException("Trạng thái không hợp lệ. Phải là Active, Locked hoặc Suspended.");
             }
 
-            var user = await _userRepository.Query()
-                .Include(u => u.Role)
-                .FirstOrDefaultAsync(u => u.UserId == id && u.IsDeleted != true, ct);
+            var user = await _userRepository.GetUserByIdWithRoleAsync(id, ct);
 
             if (user == null)
             {
