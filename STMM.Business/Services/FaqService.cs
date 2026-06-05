@@ -1,6 +1,5 @@
 using AutoMapper;
 using FluentValidation;
-using Microsoft.EntityFrameworkCore;
 using STMM.Business.DTOs.Faq;
 using STMM.Business.Exceptions;
 using STMM.Business.Interfaces;
@@ -38,19 +37,7 @@ namespace STMM.Business.Services
 
         public async Task<IEnumerable<FaqDto>> GetFaqsAsync(string? category, bool? isActive, CancellationToken ct = default)
         {
-            var query = _faqRepository.Query();
-
-            if (!string.IsNullOrEmpty(category))
-            {
-                query = query.Where(f => f.Category == category);
-            }
-
-            if (isActive.HasValue)
-            {
-                query = query.Where(f => f.IsActive == isActive.Value);
-            }
-
-            var faqs = await query.OrderByDescending(f => f.CreatedAt).ToListAsync(ct);
+            var faqs = await _faqRepository.GetFaqsAsync(category, isActive, ct);
             return _mapper.Map<IEnumerable<FaqDto>>(faqs);
         }
 
@@ -77,10 +64,7 @@ namespace STMM.Business.Services
             if (creatorId <= 0)
             {
                 // Find a Manager or Admin user in db
-                var managerUser = await _userRepository.Query()
-                    .Include(u => u.Role)
-                    .FirstOrDefaultAsync(u => u.Role.Name.ToLower() == "manager" || u.Role.Name.ToLower() == "admin", ct);
-                
+                var managerUser = await _userRepository.GetFirstManagerOrAdminAsync(ct);
                 creatorId = managerUser?.UserId ?? 1;
             }
 
