@@ -1,6 +1,5 @@
 using AutoMapper;
 using FluentValidation;
-using Microsoft.EntityFrameworkCore;
 using STMM.Business.DTOs.Content;
 using STMM.Business.Exceptions;
 using STMM.Business.Interfaces;
@@ -38,28 +37,13 @@ namespace STMM.Business.Services
 
         public async Task<IEnumerable<ContentDto>> GetContentsAsync(string? type, string? targetRole, CancellationToken ct = default)
         {
-            IQueryable<Notification> query = _notificationRepository.Query()
-                .Include(n => n.TargetUser);
-
-            if (!string.IsNullOrEmpty(type))
-            {
-                query = query.Where(n => n.NotiType == type);
-            }
-
-            if (!string.IsNullOrEmpty(targetRole))
-            {
-                query = query.Where(n => n.TargetRole == targetRole);
-            }
-
-            var results = await query.OrderByDescending(n => n.CreatedAt).ToListAsync(ct);
+            var results = await _notificationRepository.GetNotificationsAsync(type, targetRole, ct);
             return _mapper.Map<IEnumerable<ContentDto>>(results);
         }
 
         public async Task<ContentDto> GetContentByIdAsync(int id, CancellationToken ct = default)
         {
-            var content = await _notificationRepository.Query()
-                .Include(n => n.TargetUser)
-                .FirstOrDefaultAsync(n => n.NotiId == id, ct);
+            var content = await _notificationRepository.GetNotificationWithUserByIdAsync(id, ct);
 
             if (content == null)
             {
@@ -81,10 +65,7 @@ namespace STMM.Business.Services
             int creatorId = request.CreatedByUserId ?? 0;
             if (creatorId <= 0)
             {
-                var managerUser = await _userRepository.Query()
-                    .Include(u => u.Role)
-                    .FirstOrDefaultAsync(u => u.Role.Name.ToLower() == "manager" || u.Role.Name.ToLower() == "admin", ct);
-                
+                var managerUser = await _userRepository.GetFirstManagerOrAdminAsync(ct);
                 creatorId = managerUser?.UserId ?? 1;
             }
 
@@ -145,9 +126,7 @@ namespace STMM.Business.Services
                 throw new BadRequestException(string.Join("; ", valResult.Errors.Select(e => e.ErrorMessage)));
             }
 
-            var notification = await _notificationRepository.Query()
-                .Include(n => n.TargetUser)
-                .FirstOrDefaultAsync(n => n.NotiId == id, ct);
+            var notification = await _notificationRepository.GetNotificationWithUserByIdAsync(id, ct);
 
             if (notification == null)
             {
@@ -174,8 +153,7 @@ namespace STMM.Business.Services
 
         public async Task<bool> DeleteContentAsync(int id, CancellationToken ct = default)
         {
-            var notification = await _notificationRepository.Query()
-                .FirstOrDefaultAsync(n => n.NotiId == id, ct);
+            var notification = await _notificationRepository.GetByIdAsync(id, ct);
 
             if (notification == null)
             {

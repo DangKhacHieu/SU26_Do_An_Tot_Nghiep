@@ -49,5 +49,12 @@ namespace STMM.DataAccess.Repositories
                 .Include(u => u.Role)
                 .FirstOrDefaultAsync(u => u.UserId == id && u.IsDeleted != true, ct);
         }
+
+        public async Task<User?> GetFirstManagerOrAdminAsync(CancellationToken ct = default)
+        {
+            return await _dbSet.AsQueryable()
+                .Include(u => u.Role)
+                .FirstOrDefaultAsync(u => u.Role.Name.ToLower() == "manager" || u.Role.Name.ToLower() == "admin", ct);
+        }
     }
 }
