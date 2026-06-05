@@ -6,6 +6,7 @@ using STMM.DataAccess.IRepositories;
 using STMM.DataAccess.Repositories;
 using STMM.Business.Mappers;
 using STMM.Business.Interfaces;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using STMM.Business.Services;
 using STMM.API.Middleware;
 using System.Text.Json.Serialization;
@@ -62,6 +63,8 @@ builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IBillingService, BillingService>();
 builder.Services.AddScoped<IIssueService, IssueService>();
 builder.Services.AddScoped<IStallTaskService, StallTaskService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IUserService, UserService>();
 
 // 1. Controllers & JSON Options
 builder.Services.AddControllers()
@@ -116,9 +119,7 @@ builder.Services.AddSwaggerGen(options =>
     */
 });
 
-// 3. JWT Authentication & Authorization (Để dạng comment chờ login)
-/*
-// Cần cài đặt Package: Microsoft.AspNetCore.Authentication.JwtBearer
+// 3. JWT Authentication & Authorization
 var jwtSettings = builder.Configuration.GetSection("Jwt");
 var key = System.Text.Encoding.UTF8.GetBytes(jwtSettings["Key"]!);
 
@@ -144,7 +145,8 @@ builder.Services.AddAuthentication(options =>
 });
 
 builder.Services.AddAuthorization();
-*/
+
+
 
 // 6. EPPlus Excel License (Để dạng comment chờ sử dụng Excel)
 // Cần cài đặt Package: EPPlus
@@ -170,7 +172,7 @@ app.UseHttpsRedirection();
 app.UseCors("AllowReact");
 
 // Phân quyền (Mở comment UseAuthentication khi có chức năng login)
-// app.UseAuthentication();
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();

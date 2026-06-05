@@ -1,122 +1,175 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { useEffect, useState } from "react";
+import "./App.css";
+import "./AppDashboard.css";
+
+import HomePage from "./components/HomePage";
+import LoginForm from "./components/LoginForm";
+import RegisterForm from "./components/RegisterForm";
+import ProfilePage from "./components/Profile/ProfilePage.jsx";
+import ChangePasswordForm from "./components/Profile/ChangePasswordForm.jsx";
+import EditProfileForm from "./components/Profile/EditProfileForm.jsx";
+import authService from "./services/authService";
+import AdminDashboard from "./components/AdminDashboard";
+import VendorDashboard from "./components/VendorDashboard";
+import StaffDashboard from "./components/StaffDashboard";
+import ManagerDashboard from "./components/ManagerDashboard";
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [path, setPath] = useState(window.location.pathname);
+  const [user, setUser] = useState(authService.getUser());
+
+  const navigate = (to) => {
+    window.history.pushState({}, "", to);
+    setPath(to);
+  };
+
+  useEffect(() => {
+    setUser(authService.getUser());
+
+    const handlePopState = () => {
+      setPath(window.location.pathname);
+      setUser(authService.getUser());
+    };
+
+    window.addEventListener("popstate", handlePopState);
+
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, []);
+
+  const handleLoginSuccess = (loginResult) => {
+    const loginUser = loginResult?.user || null;
+    const redirectPath = loginResult?.redirectUrl || "/";
+
+    setUser(loginUser);
+    navigate(redirectPath);
+  };
+
+  const handleLogout = () => {
+    authService.logout();
+    setUser(null);
+    navigate("/");
+  };
+
+  if (path === "/login") {
+    return (
+      <LoginForm
+        onBack={() => navigate("/")}
+        onGoToRegister={() => navigate("/register")}
+        onLoginSuccess={handleLoginSuccess}
+      />
+    );
+  }
+
+  if (path === "/register") {
+    return (
+      <RegisterForm
+        onBack={() => navigate("/")}
+        onGoToLogin={() => navigate("/login")}
+        onRegistered={(loginResult) => {
+          const loginUser = loginResult?.user || loginResult || null;
+          const redirectPath = loginResult?.redirectUrl || "/";
+
+          if (loginUser) {
+            setUser(loginUser);
+          }
+
+          navigate(redirectPath);
+        }}
+      />
+    );
+  }
+
+  if (path === "/profile") {
+    return (
+      <ProfilePage
+        user={user}
+        onBack={() => navigate("/")}
+        onGoToLogin={() => navigate("/login")}
+        onGoToProfile={() => navigate("/profile")}
+        onGoToEditProfile={() => navigate("/edit-profile")}
+        onGoToChangePassword={() => navigate("/change-password")}
+        onLogout={handleLogout}
+      />
+    );
+  }
+
+  if (path === "/change-password") {
+    return (
+      <ChangePasswordForm
+        onBack={() => navigate("/")}
+        onPasswordChanged={() => navigate("/")}
+      />
+    );
+  }
+
+  if (path === "/edit-profile") {
+    return (
+      <EditProfileForm
+        user={user}
+        onBack={() => navigate("/profile")}
+        onGoToLogin={() => navigate("/login")}
+        onGoToProfile={() => navigate("/profile")}
+        onLogout={handleLogout}
+        onProfileUpdated={(updatedUser) => {
+          setUser(updatedUser);
+          navigate("/profile");
+        }}
+      />
+    );
+  }
+
+  if (path === "/admin/dashboard") {
+    return (
+      <AdminDashboard
+        user={user}
+        onBack={() => navigate("/")}
+        onLogout={handleLogout}
+      />
+    );
+  }
+
+  if (path === "/vendor/dashboard") {
+    return (
+      <VendorDashboard
+        user={user}
+        onBack={() => navigate("/")}
+        onLogout={handleLogout}
+      />
+    );
+  }
+
+  if (path === "/staff/dashboard") {
+    return (
+      <StaffDashboard
+        user={user}
+        onBack={() => navigate("/")}
+        onLogout={handleLogout}
+      />
+    );
+  }
+
+  if (path === "/manager/dashboard") {
+    return (
+      <ManagerDashboard
+        user={user}
+        onBack={() => navigate("/")}
+        onLogout={handleLogout}
+      />
+    );
+  }
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+    <HomePage
+      user={user}
+      onGoToLogin={() => navigate("/login")}
+      onGoToRegister={() => navigate("/register")}
+      onGoToProfile={() => navigate("/profile")}
+      onGoToChangePassword={() => navigate("/change-password")}
+      onLogout={handleLogout}
+    />
+  );
 }
 
-export default App
+export default App;
