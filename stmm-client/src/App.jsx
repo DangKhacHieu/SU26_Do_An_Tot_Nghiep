@@ -9,6 +9,14 @@ import ContentFormManager from './pages/FE_Manager/ContentFormManager';
 import ContentDetailManager from './pages/FE_Manager/ContentDetailManager';
 import FaqListManager from './pages/FE_Manager/FaqListManager';
 import FaqFormManager from './pages/FE_Manager/FaqFormManager';
+
+// Admin System Imports
+import SidebarAdminSystem from './pages/FE_AdminSystem/SidebarAdminSystem';
+import DashboardAdminSystem from './pages/FE_AdminSystem/DashboardAdminSystem';
+import UserListAdminSystem from './pages/FE_AdminSystem/UserListAdminSystem';
+import UserFormAdminSystem from './pages/FE_AdminSystem/UserFormAdminSystem';
+import UserDetailAdminSystem from './pages/FE_AdminSystem/UserDetailAdminSystem';
+
 import './App.css';
 
 const PAGE_TITLES = {
@@ -21,6 +29,12 @@ const PAGE_TITLES = {
   'content-detail': { title: 'Chi tiết Tin tức & Thông báo', sub: 'Xem trước nội dung chi tiết bài viết hoặc thông báo đã gửi.' },
   faqs:      { title: 'Quản lý Câu hỏi thường gặp', sub: 'Xem, cập nhật, tạo mới danh sách FAQs hệ thống.' },
   'faq-form': { title: 'Tạo / Cập nhật FAQ', sub: 'Thêm hoặc chỉnh sửa thông tin câu hỏi thường gặp.' },
+  
+  // Admin System Titles
+  'admin-dashboard': { title: 'Tổng quan hệ thống (Admin)', sub: 'Thống kê tổng hợp và quản trị toàn hệ thống.' },
+  'admin-users':     { title: 'Quản lý Tài khoản (Admin)', sub: 'Danh sách và quản trị tài khoản toàn hệ thống.' },
+  'admin-user-form': { title: 'Đăng ký / Chỉnh sửa Tài khoản (Admin)', sub: 'Nhập đầy đủ thông tin để tạo hoặc cập nhật tài khoản.' },
+  'admin-user-detail': { title: 'Chi tiết Tài khoản (Admin)', sub: 'Thông tin đầy đủ và lịch sử hoạt động của tài khoản.' },
 };
 
 function App() {
@@ -50,6 +64,13 @@ function App() {
       case 'content-detail': return <ContentDetailManager contentId={currentUserId} navigate={navigate} addToast={addToast} />;
       case 'faqs':      return <FaqListManager navigate={navigate} addToast={addToast} />;
       case 'faq-form':  return <FaqFormManager faqId={currentUserId} navigate={navigate} addToast={addToast} />;
+      
+      // Admin System Pages
+      case 'admin-dashboard': return <DashboardAdminSystem addToast={addToast} navigate={navigate} />;
+      case 'admin-users':     return <UserListAdminSystem navigate={navigate} addToast={addToast} />;
+      case 'admin-user-form': return <UserFormAdminSystem userId={currentUserId} navigate={navigate} addToast={addToast} />;
+      case 'admin-user-detail': return <UserDetailAdminSystem userId={currentUserId} navigate={navigate} addToast={addToast} />;
+
       default:          return <DashboardManager addToast={addToast} navigate={navigate} />;
     }
   };
@@ -77,7 +98,11 @@ function App() {
   return (
     <div className="app-container">
       {/* ── SIDEBAR ── */}
-      <SidebarManager currentPage={currentPage} navigate={navigate} />
+      {currentPage.startsWith('admin-') ? (
+        <SidebarAdminSystem currentPage={currentPage} navigate={navigate} />
+      ) : (
+        <SidebarManager currentPage={currentPage} navigate={navigate} />
+      )}
 
       {/* ── MAIN ── */}
       <main className="app-main">
@@ -85,6 +110,32 @@ function App() {
           <div className="header-title-section">
             <h1>{pageInfo.title}</h1>
             <p>{pageInfo.sub}</p>
+          </div>
+          <div className="header-actions">
+            <select
+              value={currentPage.startsWith('admin-') ? 'admin' : 'manager'}
+              onChange={(e) => {
+                if (e.target.value === 'admin') {
+                  navigate('admin-dashboard');
+                } else {
+                  navigate('dashboard');
+                }
+              }}
+              style={{
+                padding: '6px 12px',
+                borderRadius: '6px',
+                border: '1px solid var(--border-color)',
+                fontSize: '13px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                background: '#f8fafc',
+                color: 'var(--text-main)',
+                outline: 'none'
+              }}
+            >
+              <option value="manager">Manager Console</option>
+              <option value="admin">Admin System Console</option>
+            </select>
           </div>
         </header>
 

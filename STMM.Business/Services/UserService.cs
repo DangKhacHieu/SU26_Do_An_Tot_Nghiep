@@ -1,12 +1,10 @@
 using AutoMapper;
 using FluentValidation;
-using Microsoft.EntityFrameworkCore;
 using STMM.Business.DTOs.User;
 using STMM.Business.Exceptions;
 using STMM.Business.Interfaces;
 using STMM.DataAccess.Entities;
 using STMM.DataAccess.IRepositories;
-using BCrypt.Net;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -39,44 +37,13 @@ namespace STMM.Business.Services
 
         public async Task<IEnumerable<UserDto>> GetUsersAsync(string? roleName, string? search, CancellationToken ct = default)
         {
-            var query = _userRepository.Query()
-                .Include(u => u.Role)
-                .Where(u => u.IsDeleted != true);
-
-            // Filter out system administrator roles if they should not be managed by Manager
-            // (Manager can manage Staff, Accountant, Vendor, Customer)
-            // But we keep it general and allow filtering by any role name, except Admin/Manager themselves if preferred.
-            // Let's just exclude Admin and Manager roles from user list if the request comes from Manager console,
-            // or keep them but filter by roleName if specified.
-            if (!string.IsNullOrEmpty(roleName))
-            {
-                query = query.Where(u => u.Role.Name.ToLower() == roleName.ToLower());
-            }
-            else
-            {
-                // By default, if no role filter is set, show the manageable roles
-                var manageableRoles = new[] { "staff", "accountant", "vendor", "customer" };
-                query = query.Where(u => manageableRoles.Contains(u.Role.Name.ToLower()));
-            }
-
-            if (!string.IsNullOrEmpty(search))
-            {
-                var searchLower = search.ToLower();
-                query = query.Where(u => u.Name.ToLower().Contains(searchLower) 
-                                      || u.Email.ToLower().Contains(searchLower) 
-                                      || u.Phone.Contains(searchLower) 
-                                      || u.Cccd.Contains(searchLower));
-            }
-
-            var users = await query.AsNoTracking().ToListAsync(ct);
+            var users = await _userRepository.GetUsersWithRolesAsync(roleName, search, limitToManageableRoles: true, ct);
             return _mapper.Map<IEnumerable<UserDto>>(users);
         }
 
         public async Task<UserDetailDto> GetUserByIdAsync(int id, CancellationToken ct = default)
         {
-            var user = await _userRepository.Query()
-                .Include(u => u.Role)
-                .FirstOrDefaultAsync(u => u.UserId == id && u.IsDeleted != true, ct);
+            var user = await _userRepository.GetUserByIdWithRoleAsync(id, ct);
 
             if (user == null)
             {
@@ -155,9 +122,7 @@ namespace STMM.Business.Services
                 throw new BadRequestException(string.Join("; ", validationResult.Errors.Select(e => e.ErrorMessage)));
             }
 
-            var user = await _userRepository.Query()
-                .Include(u => u.Role)
-                .FirstOrDefaultAsync(u => u.UserId == id && u.IsDeleted != true, ct);
+            var user = await _userRepository.GetUserByIdWithRoleAsync(id, ct);
 
             if (user == null)
             {
@@ -220,9 +185,7 @@ namespace STMM.Business.Services
                 throw new BadRequestException("Trạng thái không hợp lệ. Phải là Active, Locked hoặc Suspended.");
             }
 
-            var user = await _userRepository.Query()
-                .Include(u => u.Role)
-                .FirstOrDefaultAsync(u => u.UserId == id && u.IsDeleted != true, ct);
+            var user = await _userRepository.GetUserByIdWithRoleAsync(id, ct);
 
             if (user == null)
             {
@@ -263,6 +226,41 @@ namespace STMM.Business.Services
             var manageableRoles = new[] { "staff", "accountant", "vendor", "customer" };
             var filteredRoles = roles.Where(r => manageableRoles.Contains(r.Name.ToLower()));
             return _mapper.Map<IEnumerable<RoleDto>>(filteredRoles);
+        }
+
+        public async Task<IEnumerable<UserDto>> GetAdminUsersAsync(string? roleName, string? search, CancellationToken ct = default)
+        {
+            var users = await _userRepository.GetUsersWithRolesAsync(roleName, search, limitToManageableRoles: false, ct);
+            return _mapper.Map<IEnumerable<UserDto>>(users);
+        }
+
+        public async Task<IEnumerable<RoleDto>> GetAdminRolesAsync(CancellationToken ct = default)
+        {
+            var roles = await _roleRepository.GetAllAsync(ct);
+            return _mapper.Map<IEnumerable<RoleDto>>(roles);
+        }
+
+        public async Task<UserDto> ResetPasswordAsync(int id, string newPassword, CancellationToken ct = default)
+        {
+            if (string.IsNullOrEmpty(newPassword) || newPassword.Length < 6)
+            {
+                throw new BadRequestException("Mật khẩu mới phải có ít nhất 6 ký tự.");
+            }
+
+            var user = await _userRepository.GetUserByIdWithRoleAsync(id, ct);
+
+            if (user == null)
+            {
+                throw new NotFoundException($"Không tìm thấy người dùng có ID {id}.");
+            }
+
+            user.Password = BCrypt.Net.BCrypt.HashPassword(newPassword);
+            user.UpdatedAt = DateTime.UtcNow;
+
+            _userRepository.Update(user);
+            await _userRepository.SaveChangesAsync(ct);
+
+            return _mapper.Map<UserDto>(user);
         }
     }
 }

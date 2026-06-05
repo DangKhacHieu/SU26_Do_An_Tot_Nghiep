@@ -1,0 +1,41 @@
+/* =========================================
+   USER DETAIL ADMIN SYSTEM PAGE
+   File: UserDetailAdminSystem.css
+   ========================================= */
+
+@import "../FE_Manager/UserDetailManager.css";
+
+/* ── Hero background gradient for Admin ── */
+.admin-hero-bg {
+  background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%) !important;
+}
+
+/* ── Overrides for Admin buttons and badges ── */
+.btn-admin-accent {
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%) !important;
+  color: #fff !important;
+  box-shadow: 0 2px 8px rgba(124, 58, 237, 0.3);
+}
+
+.btn-admin-accent:hover {
+  background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%) !important;
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4);
+}
+
+.udetail-badge-role.admin-system {
+  background: #f3e8ff !important;
+  color: #7c3aed !important;
+  border: 1px solid #e9d5ff !important;
+}
+
+.udetail-badge-role.admin {
+  background: #f3e8ff !important;
+  color: #7c3aed !important;
+  border: 1px solid #e9d5ff !important;
+}
+
+.udetail-badge-role.manager {
+  background: #fee2e2 !important;
+  color: #dc2626 !important;
+  border: 1px solid #fecaca !important;
+}
