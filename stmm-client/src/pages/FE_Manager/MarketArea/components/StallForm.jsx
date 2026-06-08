@@ -77,7 +77,7 @@ const StallForm = ({ initialData, areaId, onSave, onCancel }) => {
                     <h2 className={styles.title}>
                         <span>✎</span> {initialData ? 'Edit Stall' : 'Create New Stall'}
                     </h2>
-                    <button onClick={onCancel} style={{position: 'absolute', top: 24, right: 24, background: 'transparent', border: 'none', color: '#ccc', cursor: 'pointer', fontSize: 20}}>&times;</button>
+                    <button onClick={onCancel} style={{position: 'absolute', top: 24, right: 24, background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 20}}>&times;</button>
                 
                 {error && <div style={{color: '#ff4d4f', marginBottom: 16, fontSize: 13}}>{error}</div>}
                 

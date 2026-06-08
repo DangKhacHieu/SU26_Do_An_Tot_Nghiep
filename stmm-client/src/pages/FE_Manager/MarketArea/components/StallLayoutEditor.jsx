@@ -94,23 +94,23 @@ const StallLayoutEditor = ({ areaId, areaName, onBack }) => {
 
     return (
         <div className={styles.editorContainer}>
-            <div style={{position: 'absolute', bottom: 24, right: 24, zIndex: 100}}>
+            <div style={{position: 'absolute', bottom: 8, right: 8, zIndex: 100}}>
                 <button 
                     onClick={() => { setSelectedStall(null); setIsFormOpen(true); }} 
-                    style={{background: '#517594', color: 'white', border: 'none', padding: '12px 24px', borderRadius: '30px', cursor: 'pointer', fontWeight: 'bold', boxShadow: '0 4px 12px rgba(0,0,0,0.5)', fontSize: 14}}
+                    style={{background: 'var(--color-primary)', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '16px', cursor: 'pointer', fontWeight: 'bold', boxShadow: '0 2px 8px rgba(81, 117, 148, 0.4)', fontSize: 11}}
                 >
-                    + Add New Stall
+                    + Add Stall
                 </button>
             </div>
 
-            <div className={styles.gridContainer} ref={editorRef} id="editor-bounds">
+            <div className={styles.gridContainer} ref={editorRef}>
                 {loading ? (
                     <div className={styles.loading}>Loading stalls...</div>
                 ) : (
                     stalls.map(stall => (
                         <Rnd
                             key={stall.stallId}
-                            bounds="#editor-bounds"
+                            bounds="parent"
                             size={{ width: stall.width || 100, height: stall.height || 100 }}
                             position={{ x: stall.mapX || 0, y: stall.mapY || 0 }}
                             onDragStop={(e, d) => handleDragStop(stall.stallId, e, d)}

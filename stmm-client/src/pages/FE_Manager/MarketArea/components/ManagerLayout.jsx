@@ -8,21 +8,21 @@ const ManagerLayout = ({ children, activeTab, setActiveTab }) => {
       <aside className={styles.sidebar}>
         <div className={styles.sidebarHeader}>
           <div className={styles.logoBox}>
-            <span className={styles.logoText}>M</span>
+            <span className={styles.logoText}>S</span>
           </div>
           <div className={styles.titleBox}>
-            <h1 className={styles.mainTitle}>MarketManager</h1>
-            <span className={styles.subTitle}>Management Console</span>
+            <h1 className={styles.mainTitle}>SHMM</h1>
+            <span className={styles.subTitle}>Manager Console</span>
           </div>
         </div>
 
         <nav className={styles.navMenu}>
           <button 
-            className={`${styles.navItem} ${activeTab === 'OVERVIEW' ? styles.active : ''}`}
-            onClick={() => setActiveTab('OVERVIEW')}
+            className={`${styles.navItem} ${activeTab === 'DASHBOARD' ? styles.active : ''}`}
+            onClick={() => setActiveTab('DASHBOARD')}
           >
             <span className={styles.navIcon}>📊</span>
-            OVERVIEW
+            DASHBOARD
           </button>
           
           <button 
@@ -30,23 +30,15 @@ const ManagerLayout = ({ children, activeTab, setActiveTab }) => {
             onClick={() => setActiveTab('ZONES')}
           >
             <span className={styles.navIcon}>🗺️</span>
-            ZONES & LAYOUT
+            MARKET AREAS
           </button>
           
           <button 
-            className={`${styles.navItem} ${activeTab === 'STALLS' ? styles.active : ''}`}
-            onClick={() => setActiveTab('STALLS')}
+            className={`${styles.navItem} ${activeTab === 'VENDORS' ? styles.active : ''}`}
+            onClick={() => setActiveTab('VENDORS')}
           >
-            <span className={styles.navIcon}>🏬</span>
-            STALLS
-          </button>
-
-          <button 
-            className={`${styles.navItem} ${activeTab === 'REQUESTS' ? styles.active : ''}`}
-            onClick={() => setActiveTab('REQUESTS')}
-          >
-            <span className={styles.navIcon}>📝</span>
-            REQUESTS
+            <span className={styles.navIcon}>👥</span>
+            VENDORS
           </button>
 
           <button 
@@ -55,6 +47,14 @@ const ManagerLayout = ({ children, activeTab, setActiveTab }) => {
           >
             <span className={styles.navIcon}>💳</span>
             BILLS
+          </button>
+
+          <button 
+            className={`${styles.navItem} ${activeTab === 'VIOLATIONS' ? styles.active : ''}`}
+            onClick={() => setActiveTab('VIOLATIONS')}
+          >
+            <span className={styles.navIcon}>⚠️</span>
+            VIOLATIONS
           </button>
         </nav>
 
@@ -71,7 +71,8 @@ const ManagerLayout = ({ children, activeTab, setActiveTab }) => {
         {/* Top Navbar */}
         <header className={styles.topbar}>
           <div className={styles.topbarLeft}>
-            <h2 className={styles.pageTitle}>MarketManager</h2>
+            {/* Can put breadcrumbs or current page title here */}
+            <h2 className={styles.pageTitle}>{activeTab === 'ZONES' ? 'Market Areas' : activeTab}</h2>
           </div>
           <div className={styles.topbarRight}>
             <div className={styles.searchBox}>

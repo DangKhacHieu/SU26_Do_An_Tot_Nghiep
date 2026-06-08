@@ -54,6 +54,7 @@ const MarketAreaForm = ({ initialData, onSave, onCancel }) => {
           <h2 className={styles.title}>
             <span>✎</span> {initialData ? 'EDIT_AREA' : 'NEW_AREA'}
           </h2>
+          <button onClick={onCancel} style={{position: 'absolute', top: 24, right: 24, background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 20}}>&times;</button>
           
           <div className={styles.formGroup}>
             <label>AREA NAME</label>

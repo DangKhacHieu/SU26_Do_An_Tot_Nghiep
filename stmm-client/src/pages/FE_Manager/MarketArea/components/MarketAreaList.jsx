@@ -184,14 +184,14 @@ const MarketAreaList = () => {
               <div style={{ position: 'relative', width: '100%', height: '100%' }}>
                 
                 {/* 1. Interactive Area Map */}
-                {!viewingAreaStalls && areas.map((area, index) => {
-                  // Fallback values if DB doesn't have coordinates yet
+                {areas.map((area, index) => {
                   const defaultX = (index % 4) * 200 + 24;
                   const defaultY = Math.floor(index / 4) * 160 + 24;
                   const x = area.minX !== null ? area.minX : defaultX;
                   const y = area.minY !== null ? area.minY : defaultY;
                   const width = (area.maxX !== null && area.minX !== null) ? (area.maxX - area.minX) : 180;
                   const height = (area.maxY !== null && area.minY !== null) ? (area.maxY - area.minY) : 140;
+                  const isActive = viewingAreaStalls && viewingAreaStalls.areaId === area.areaId;
 
                   return (
                     <Rnd
@@ -203,65 +203,86 @@ const MarketAreaList = () => {
                       bounds="parent"
                       dragGrid={[10, 10]}
                       resizeGrid={[10, 10]}
+                      disableDragging={isActive}
                       style={{
-                        background: 'rgba(255,255,255,0.05)', 
-                        border: '1px solid var(--text-secondary)', 
+                        background: 'var(--color-accent-2)', 
+                        border: '1px solid var(--color-primary)', 
                         display: 'flex', 
                         flexDirection: 'column',
-                        alignItems: 'center', 
-                        justifyContent: 'center',
-                        cursor: 'move',
+                        cursor: isActive ? 'default' : 'move',
                         borderRadius: '8px',
-                        transition: 'background-color 0.3s, border-color 0.3s',
-                        zIndex: 1
+                        transition: 'background-color 0.3s, border-color 0.3s, box-shadow 0.3s',
+                        zIndex: isActive ? 50 : 1,
+                        color: 'var(--text-primary)',
+                        overflow: 'hidden'
                       }}
-                      onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--accent-color)'; e.currentTarget.style.background = 'rgba(59, 130, 246, 0.1)'; e.currentTarget.style.zIndex = 10; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--text-secondary)'; e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.zIndex = 1; }}
+                      onMouseEnter={(e) => { 
+                        if(!isActive) {
+                          e.currentTarget.style.boxShadow = 'var(--shadow-md)'; 
+                          e.currentTarget.style.background = 'var(--color-accent-1)'; 
+                          e.currentTarget.style.zIndex = 10; 
+                        }
+                      }}
+                      onMouseLeave={(e) => { 
+                        if(!isActive) {
+                          e.currentTarget.style.boxShadow = 'none'; 
+                          e.currentTarget.style.background = 'var(--color-accent-2)'; 
+                          e.currentTarget.style.zIndex = 1; 
+                        }
+                      }}
                     >
-                      <div 
-                        onDoubleClick={() => handleViewStalls(area)}
-                        style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}
-                        title="Double click to view Stalls"
-                      >
-                        <div style={{position: 'absolute', top: 8, right: 8, display: 'flex', gap: '4px'}}>
-                          <button 
-                            onMouseDown={(e) => e.stopPropagation()} 
-                            onClick={(e) => handleEdit(e, area)}
-                            style={{background: 'var(--accent-color)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px', fontSize: '10px'}}
-                            title="Edit Area"
-                          >
-                            ✎
-                          </button>
-                          <button 
-                            onMouseDown={(e) => e.stopPropagation()} 
-                            onClick={(e) => handleDelete(e, area.areaId)}
-                            style={{background: 'var(--danger-color)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px', fontSize: '10px'}}
-                            title="Delete Area"
-                          >
-                            ✕
-                          </button>
+                      {isActive ? (
+                        <div style={{ width: '100%', height: '100%', position: 'relative', display: 'flex', flexDirection: 'column' }}>
+                          {/* Header Bar for Active Area */}
+                          <div style={{ background: 'var(--color-primary)', color: '#fff', padding: '4px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', fontWeight: 'bold' }}>
+                            <span>{area.name} - Editing Stalls</span>
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); setViewingAreaStalls(null); }}
+                              style={{ background: 'rgba(0,0,0,0.2)', border: 'none', color: '#fff', cursor: 'pointer', borderRadius: '4px', padding: '2px 8px' }}
+                            >
+                              Close
+                            </button>
+                          </div>
+                          {/* Nested StallLayoutEditor */}
+                          <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+                            <StallLayoutEditor areaId={area.areaId} areaName={area.name} />
+                          </div>
                         </div>
-                        <div style={{fontWeight: 'bold', marginBottom: '8px', textAlign: 'center', userSelect: 'none'}}>{area.name}</div>
-                        <div style={{fontSize: '10px', color: 'var(--text-secondary)', textAlign: 'center', padding: '0 8px', userSelect: 'none'}}>{area.description}</div>
-                      </div>
+                      ) : (
+                        <div 
+                          onDoubleClick={() => handleViewStalls(area)}
+                          style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}
+                          title="Double click to edit Stalls inside"
+                        >
+                          <div style={{position: 'absolute', top: 8, right: 8, display: 'flex', gap: '4px'}}>
+                            <button 
+                              onMouseDown={(e) => e.stopPropagation()} 
+                              onClick={(e) => handleEdit(e, area)}
+                              style={{background: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px', fontSize: '10px'}}
+                              title="Edit Area Details"
+                            >
+                              ✎
+                            </button>
+                            <button 
+                              onMouseDown={(e) => e.stopPropagation()} 
+                              onClick={(e) => handleDelete(e, area.areaId)}
+                              style={{background: '#e11d48', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px', fontSize: '10px'}}
+                              title="Delete Area"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                          <div style={{fontWeight: 'bold', marginBottom: '8px', textAlign: 'center', userSelect: 'none', color: 'var(--color-primary)'}}>{area.name}</div>
+                          <div style={{fontSize: '10px', color: 'var(--text-secondary)', textAlign: 'center', padding: '0 8px', userSelect: 'none'}}>{area.description}</div>
+                        </div>
+                      )}
                     </Rnd>
                   );
                 })}
 
-                {!viewingAreaStalls && areas.length === 0 && (
+                {areas.length === 0 && (
                   <div style={{color: 'var(--text-secondary)', position: 'absolute', top: '24px', left: '24px'}}>
                     No areas found. Click NEW_AREA to create one!
-                  </div>
-                )}
-
-                {/* 2. Stalls View */}
-                {viewingAreaStalls && (
-                  <div style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0 }}>
-                    <StallLayoutEditor 
-                      areaId={viewingAreaStalls.areaId} 
-                      areaName={viewingAreaStalls.name}
-                      onBack={() => setViewingAreaStalls(null)}
-                    />
                   </div>
                 )}
 

@@ -4,7 +4,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.4);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
   z-index: 1000;
@@ -18,10 +18,11 @@
   display: flex;
   flex-direction: column;
   padding: 32px;
-  background: #2A2B30;
-  border: 1px solid #444;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-color);
   border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--shadow-lg);
+  position: relative;
 }
 
 .section {
@@ -37,6 +38,7 @@
   align-items: center;
   gap: 8px;
   text-transform: uppercase;
+  color: var(--text-primary);
 }
 
 .formGroup {
@@ -47,18 +49,18 @@
   display: block;
   font-size: 11px;
   font-weight: 600;
-  color: #ccc;
+  color: var(--text-secondary);
   margin-bottom: 8px;
   letter-spacing: 1px;
 }
 
 .input, .textarea, .select {
   width: 100%;
-  background: rgba(0,0,0,0.2);
-  border: 1px solid #555;
+  background: var(--bg-main);
+  border: 1px solid var(--border-color);
   border-radius: 6px;
   padding: 10px 12px;
-  color: #fff;
+  color: var(--text-primary);
   font-size: 13px;
   transition: all 0.3s ease;
 }
@@ -70,8 +72,9 @@
 
 .input:focus, .textarea:focus, .select:focus {
   outline: none;
-  border-color: #517594;
-  background: rgba(0,0,0,0.4);
+  border-color: var(--color-primary);
+  background: var(--bg-panel);
+  box-shadow: 0 0 0 2px var(--color-accent-2);
 }
 
 .actions {
@@ -93,25 +96,25 @@
 }
 
 .btnPrimary {
-  background: #517594;
+  background: var(--color-primary);
   color: white;
   border: none;
 }
 
 .btnPrimary:hover {
-  background: var(--accent-hover);
-  box-shadow: 0 0 15px var(--accent-glow);
+  background: var(--color-secondary);
+  box-shadow: var(--shadow-sm);
   transform: translateY(-1px);
 }
 
 .btnSecondary {
   background: transparent;
-  color: #ccc;
-  border: 1px solid #555;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
 }
 
 .btnSecondary:hover {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: #fff;
-  color: #fff;
+  background: var(--bg-main);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }
