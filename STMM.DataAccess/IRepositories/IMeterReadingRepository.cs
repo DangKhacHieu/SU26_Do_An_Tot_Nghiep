@@ -1,8 +1,14 @@
-﻿using STMM.DataAccess.Entities;
+using STMM.DataAccess.Entities;
 
 namespace STMM.DataAccess.IRepositories
 {
     public interface IMeterReadingRepository : IBaseRepository<MeterReading>
     {
+        Task<(IEnumerable<MeterReading> Items, int TotalCount)> GetReadingsByStallIdPagedAsync(
+            int stallId, string? meterType, int pageNumber, int pageSize, CancellationToken ct = default);
+
+        Task<MeterReading?> GetLatestReadingByMeterIdAsync(int meterId, CancellationToken ct = default);
+
+        Task<bool> ExistsByMeterAndDateAsync(int meterId, DateOnly recordedAt, CancellationToken ct = default);
     }
 }

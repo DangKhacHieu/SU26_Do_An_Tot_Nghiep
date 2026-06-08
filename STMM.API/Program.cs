@@ -9,6 +9,34 @@ using STMM.Business.Interfaces;
 using STMM.Business.Services;
 using STMM.API.Middleware;
 using System.Text.Json.Serialization;
+using System.IO;
+
+// Load .env file if it exists in the current directory or parent solution directory
+var currentDir = Directory.GetCurrentDirectory();
+var dotenvPath = Path.Combine(currentDir, ".env");
+if (!File.Exists(dotenvPath))
+{
+    var parentDir = Directory.GetParent(currentDir)?.FullName;
+    if (parentDir != null)
+    {
+        dotenvPath = Path.Combine(parentDir, ".env");
+    }
+}
+
+if (File.Exists(dotenvPath))
+{
+    foreach (var line in File.ReadAllLines(dotenvPath))
+    {
+        if (string.IsNullOrWhiteSpace(line) || line.StartsWith("#")) continue;
+        var parts = line.Split('=', 2);
+        if (parts.Length == 2)
+        {
+            var key = parts[0].Trim();
+            var val = parts[1].Trim();
+            Environment.SetEnvironmentVariable(key, val);
+        }
+    }
+}
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -57,13 +85,21 @@ builder.Services.AddAutoMapper(cfg =>
 builder.Services.AddValidatorsFromAssembly(typeof(MappingProfile).Assembly);
 
 // Register Business Services
-builder.Services.AddScoped<IViolationService, ViolationService>();
-builder.Services.AddScoped<INotificationService, NotificationService>();
-builder.Services.AddScoped<IBillingService, BillingService>();
-builder.Services.AddScoped<IIssueService, IssueService>();
-builder.Services.AddScoped<IStallTaskService, StallTaskService>();
-builder.Services.AddScoped<IAreaService, AreaService>();
-builder.Services.AddScoped<IStallService, StallService>();
+            builder.Services.AddScoped<IViolationService, ViolationService>();
+            builder.Services.AddScoped<INotificationService, NotificationService>();
+            builder.Services.AddScoped<IBillingService, BillingService>();
+            builder.Services.AddScoped<IIssueService, IssueService>();
+            builder.Services.AddScoped<IStallTaskService, StallTaskService>();
+            builder.Services.AddScoped<IStaffTaskService, StaffTaskService>();
+            builder.Services.AddScoped<IQuotationService, QuotationService>();
+            builder.Services.AddScoped<IMeterReadingService, MeterReadingService>();
+            builder.Services.AddScoped<IFileStorageService, CloudinaryStorageService>();
+            builder.Services.AddScoped<IUserService, UserService>();
+            builder.Services.AddScoped<IFaqService, FaqService>();
+            builder.Services.AddScoped<IContentService, ContentService>();
+            builder.Services.AddScoped<IAreaService, AreaService>();
+            builder.Services.AddScoped<IStallService, StallService>();
+            
 
 // 1. Controllers & JSON Options
 builder.Services.AddControllers()

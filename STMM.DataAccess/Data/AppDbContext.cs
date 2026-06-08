@@ -1126,6 +1126,9 @@ public partial class AppDbContext : DbContext
                 .HasPrecision(18, 2)
                 .HasComment("Tổng chi phí vật tư thực tế = SUM(task_materials.amount). Kế toán dùng để tính OPEX cuối tháng")
                 .HasColumnName("actual_cost");
+            entity.Property(e => e.AreaId)
+                .HasComment("Khu vực được giao đo (FK → areas)")
+                .HasColumnName("area_id");
             entity.Property(e => e.AssignedToUserId)
                 .HasComment("Staff được giao việc")
                 .HasColumnName("assigned_to_user_id");
@@ -1173,6 +1176,10 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Request).WithMany(p => p.StaffTasks)
                 .HasForeignKey(d => d.RequestId)
                 .HasConstraintName("fk_staff_tasks_requests");
+
+            entity.HasOne(d => d.Area).WithMany(p => p.StaffTasks)
+                .HasForeignKey(d => d.AreaId)
+                .HasConstraintName("fk_staff_tasks_areas");
         });
 
         modelBuilder.Entity<TaskMaterial>(entity =>

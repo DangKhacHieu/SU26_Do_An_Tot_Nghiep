@@ -11,7 +11,7 @@ namespace STMM.DataAccess.Repositories
         {
         }
 
-        public async Task<(IEnumerable<Stall> Items, int TotalCount)> GetStallTasksPagedAsync(
+        public async Task<(IEnumerable<StallTaskSummaryQueryResult> Items, int TotalCount)> GetStallTasksPagedAsync(
             int staffUserId,
             string? search,
             string? filter,
@@ -50,23 +50,59 @@ namespace STMM.DataAccess.Repositories
             var totalCount = await query.CountAsync(ct);
 
             var items = await query
-                .Include(s => s.Contracts)
-                    .ThenInclude(c => c.Vendor)
-                        .ThenInclude(v => v.User)
-                .Include(s => s.Contracts)
-                    .ThenInclude(c => c.Invoices)
-                .Include(s => s.Issues)
-                    .ThenInclude(i => i.StaffTasks)
-                .Include(s => s.Requests)
-                    .ThenInclude(r => r.StaffTasks)
-                .Include(s => s.Category)
                 .OrderBy(s => s.Code)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
-                .AsNoTracking()
+                .Select(s => new StallTaskSummaryQueryResult(
+                    s.StallId,
+                    s.Code,
+                    s.Category != null ? s.Category.Name : string.Empty,
+                    s.Status ?? string.Empty,
+                    s.Contracts.Where(c => c.Status == "Active" && c.IsDeleted != true)
+                               .Select(c => c.Vendor.BusinessName)
+                               .FirstOrDefault() ?? string.Empty,
+                    s.Contracts.Where(c => c.Status == "Active" && c.IsDeleted != true)
+                               .Select(c => c.Vendor.User.Phone)
+                               .FirstOrDefault() ?? string.Empty,
+                    s.Contracts.Where(c => c.Status == "Active" && c.IsDeleted != true)
+                               .Any(c => c.Invoices.Any(i => i.Status == "Unpaid" && i.IsDeleted != true)),
+                    s.Contracts.Where(c => c.Status == "Active" && c.IsDeleted != true)
+                               .SelectMany(c => c.Invoices.Where(i => i.Status == "Unpaid" && i.IsDeleted != true))
+                               .Count(),
+                    s.Contracts.Where(c => c.Status == "Active" && c.IsDeleted != true)
+                               .SelectMany(c => c.Invoices.Where(i => i.Status == "Unpaid" && i.IsDeleted != true))
+                               .Sum(i => (decimal?)i.TotalAmount) ?? 0m,
+                    s.Issues.SelectMany(i => i.StaffTasks).Count(t => t.AssignedToUserId == staffUserId && t.Status != "Completed") +
+                    s.Requests.SelectMany(r => r.StaffTasks).Count(t => t.AssignedToUserId == staffUserId && t.Status != "Completed"),
+                    s.Issues.SelectMany(i => i.StaffTasks)
+                            .Where(t => t.AssignedToUserId == staffUserId && t.Status != "Completed")
+                            .Select(t => t.TaskType)
+                            .Concat(
+                                s.Requests.SelectMany(r => r.StaffTasks)
+                                          .Where(t => t.AssignedToUserId == staffUserId && t.Status != "Completed")
+                                          .Select(t => t.TaskType)
+                            )
+                            .Distinct()
+                ))
                 .ToListAsync(ct);
 
             return (items, totalCount);
+        }
+
+        public async Task<List<StallChecklistQueryResult>> GetStallsChecklistByAreaAsync(int areaId, int year, int month, CancellationToken ct = default)
+        {
+            return await _context.Stalls
+                .Where(s => s.AreaId == areaId && s.IsDeleted != true && s.Status == "Rented")
+                .OrderBy(s => s.Code)
+                .Select(s => new StallChecklistQueryResult(
+                    s.StallId,
+                    s.Code,
+                    s.Status ?? string.Empty,
+                    s.Meters.Any(m => m.IsActive == true) && 
+                    s.Meters.Where(m => m.IsActive == true)
+                        .All(m => m.MeterReadings.Any(mr => mr.RecordedAt.Year == year && mr.RecordedAt.Month == month))
+                ))
+                .ToListAsync(ct);
         }
     }
 }

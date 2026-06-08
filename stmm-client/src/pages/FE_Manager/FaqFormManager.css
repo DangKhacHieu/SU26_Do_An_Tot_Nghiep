@@ -1,0 +1,46 @@
+.faq-form-container {
+  max-width: 900px;
+  margin: 0 auto;
+  animation: fadeIn 0.4s ease-out;
+}
+
+.faq-textarea {
+  min-height: 200px;
+  font-family: inherit;
+  resize: vertical;
+}
+
+.flex-align-center {
+  display: flex;
+  align-items: center;
+  padding-top: 14px;
+}
+
+.checkbox-container {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.checkbox-container input {
+  margin-top: 4px;
+  cursor: pointer;
+}
+
+.checkbox-label-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.checkbox-label-text strong {
+  font-size: 0.875rem;
+  color: #1e293b;
+}
+
+.checkbox-subtext {
+  font-size: 0.75rem;
+  color: #64748b;
+}

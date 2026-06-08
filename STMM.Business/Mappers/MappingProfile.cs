@@ -1,6 +1,9 @@
 using AutoMapper;
 using STMM.DataAccess.Entities;
 using STMM.Business.DTOs.Violation;
+using STMM.Business.DTOs.Meter;
+using STMM.Business.DTOs.Task;
+using STMM.Business.DTOs.User;
 using STMM.Business.DTOs.Area;
 using STMM.Business.DTOs.Stall;
 
@@ -28,6 +31,47 @@ namespace STMM.Business.Mappers
                 .ForMember(dest => dest.Stall, opt => opt.Ignore());
 
             CreateMap<ViolationType, ViolationTypeDto>();
+
+            // Meter mappings
+            CreateMap<Meter, MeterDto>()
+                .ForMember(d => d.StallCode, o => o.MapFrom(s => s.Stall != null ? s.Stall.Code : string.Empty))
+                .ForMember(d => d.InstalledAt, o => o.MapFrom(s => s.InstalledAt.HasValue ? s.InstalledAt.Value.ToString("yyyy-MM-dd") : null))
+                .ForMember(d => d.LastReadingValue, o => o.Ignore()); // Will be populated in service
+
+            // MeterReading mappings
+            CreateMap<MeterReading, MeterReadingDto>()
+                .ForMember(d => d.MeterSerialNumber, o => o.MapFrom(s => s.Meter != null ? s.Meter.SerialNumber : string.Empty))
+                .ForMember(d => d.MeterType, o => o.MapFrom(s => s.Meter != null ? s.Meter.Type : string.Empty))
+                .ForMember(d => d.StallCode, o => o.MapFrom(s => s.Meter != null && s.Meter.Stall != null ? s.Meter.Stall.Code : string.Empty))
+                .ForMember(d => d.CreatedByName, o => o.MapFrom(s => s.CreatedByUser != null ? s.CreatedByUser.Name : string.Empty))
+                .ForMember(d => d.RecordedAt, o => o.MapFrom(s => s.RecordedAt.ToString("yyyy-MM-dd")));
+
+            // Task mappings
+            CreateMap<StaffTask, TaskDto>()
+                .ForMember(dest => dest.AssignedToName, opt => opt.MapFrom(src => src.AssignedToUser != null ? src.AssignedToUser.Name : string.Empty))
+                .ForMember(dest => dest.AreaName, opt => opt.MapFrom(src => src.Area != null ? src.Area.Name : string.Empty))
+                .ForMember(dest => dest.Materials, opt => opt.MapFrom(src => src.TaskMaterials));
+
+            CreateMap<StaffTask, TaskSummaryDto>()
+                .ForMember(dest => dest.AssignedToName, opt => opt.MapFrom(src => src.AssignedToUser != null ? src.AssignedToUser.Name : string.Empty))
+                .ForMember(dest => dest.AreaName, opt => opt.MapFrom(src => src.Area != null ? src.Area.Name : string.Empty));
+
+            CreateMap<TaskMaterial, TaskMaterialDto>();
+
+            // User and Role mappings
+            CreateMap<Role, RoleDto>();
+            CreateMap<User, UserDto>()
+                .ForMember(dest => dest.RoleName, opt => opt.MapFrom(src => src.Role != null ? src.Role.Name : string.Empty));
+            CreateMap<User, UserDetailDto>()
+                .ForMember(dest => dest.RoleName, opt => opt.MapFrom(src => src.Role != null ? src.Role.Name : string.Empty))
+                .ForMember(dest => dest.RoleDescription, opt => opt.MapFrom(src => src.Role != null ? src.Role.Description : string.Empty));
+
+            // FAQ mappings
+            CreateMap<Faq, STMM.Business.DTOs.Faq.FaqDto>();
+
+            // Content (Notification) mappings
+            CreateMap<Notification, STMM.Business.DTOs.Content.ContentDto>()
+                .ForMember(dest => dest.TargetUserName, opt => opt.MapFrom(src => src.TargetUser != null ? src.TargetUser.Name : string.Empty));
 
               // Area mappings
             CreateMap<Area, AreaDto>()

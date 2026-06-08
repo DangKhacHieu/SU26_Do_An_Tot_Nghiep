@@ -1,0 +1,132 @@
+.content-list-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  animation: fadeIn 0.4s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.content-title-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.content-title-text {
+  font-weight: 600;
+  color: #1e293b;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.content-title-text:hover {
+  color: #2563eb;
+  text-decoration: underline;
+}
+
+.content-preview-snippet {
+  font-size: 0.8125rem;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+.badge-content-type {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+.badge-content-type.article {
+  background-color: #ecfdf5;
+  color: #059669;
+}
+
+.badge-content-type.announcement {
+  background-color: #eff6ff;
+  color: #2563eb;
+}
+
+.badge-content-type.system {
+  background-color: #f1f5f9;
+  color: #475569;
+}
+
+.badge-content-type.invoice {
+  background-color: #f5f3ff;
+  color: #6d28d9;
+}
+
+.badge-content-type.violation {
+  background-color: #fef2f2;
+  color: #b91c1c;
+}
+
+.badge-content-type.request {
+  background-color: #fffbeb;
+  color: #b45309;
+}
+
+.badge-content-type.other {
+  background-color: #fafaf9;
+  color: #57534e;
+}
+
+.badge-role-target {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border: 1px solid transparent;
+}
+
+.target-user-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  align-items: flex-start;
+}
+
+.target-role-subtext {
+  font-size: 0.7rem;
+  color: #64748b;
+  font-weight: 500;
+  margin-left: 2px;
+}
+
+/* Modals extra alignments */
+.text-center {
+  text-align: center;
+}
+
+.text-secondary {
+  color: #64748b;
+}
+
+.modal-icon-wrap.danger {
+  color: #ef4444;
+  background-color: #fef2f2;
+}
+
+.spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid rgba(37, 99, 235, 0.1);
+  border-top-color: #2563eb;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
