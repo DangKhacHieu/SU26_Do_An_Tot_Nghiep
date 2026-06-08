@@ -82,6 +82,12 @@ const NAV_GROUPS = [
         icon: <IconFaq />,
         childKeys: ['faq-form'],
       },
+      {
+        key: 'market-areas',
+        label: 'Quản lý Mặt bằng',
+        icon: <IconGrid />, // Using IconGrid for Market Areas
+        childKeys: [],
+      },
     ],
   },
 ];

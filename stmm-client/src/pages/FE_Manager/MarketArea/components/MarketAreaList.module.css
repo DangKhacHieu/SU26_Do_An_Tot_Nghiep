@@ -31,6 +31,7 @@
   flex-direction: column;
   flex: 1;
   overflow: hidden;
+  height: calc(100vh - 160px); /* Account for header and padding */
 }
 
 .canvasArea {

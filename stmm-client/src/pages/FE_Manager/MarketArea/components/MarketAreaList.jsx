@@ -4,10 +4,8 @@ import MarketAreaForm from './MarketAreaForm';
 import { getAllAreas, createArea, updateArea, deleteArea } from '../api/marketAreaApi';
 import { Rnd } from 'react-rnd';
 import StallLayoutEditor from './StallLayoutEditor';
-import ManagerLayout from './ManagerLayout';
 
 const MarketAreaList = () => {
-  const [activeTab, setActiveTab] = useState('ZONES');
   const [areas, setAreas] = useState([]);
   const [selectedArea, setSelectedArea] = useState(null); // For editing
   const [isFormVisible, setIsFormVisible] = useState(false);
@@ -141,7 +139,6 @@ const MarketAreaList = () => {
   };
 
   return (
-    <ManagerLayout activeTab={activeTab} setActiveTab={setActiveTab}>
       <div className={styles.main}>
         {/* Form Panel */}
         {isFormVisible && (
@@ -291,7 +288,6 @@ const MarketAreaList = () => {
           </div>
         </div>
       </div>
-    </ManagerLayout>
   );
 };
 

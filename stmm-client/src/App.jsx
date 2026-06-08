@@ -41,6 +41,7 @@ const PAGE_TITLES = {
   'content-detail': { title: 'Chi tiết Tin tức & Thông báo', sub: 'Xem trước nội dung chi tiết bài viết hoặc thông báo đã gửi.' },
   faqs:      { title: 'Quản lý Câu hỏi thường gặp', sub: 'Xem, cập nhật, tạo mới danh sách FAQs hệ thống.' },
   'faq-form': { title: 'Tạo / Cập nhật FAQ', sub: 'Thêm hoặc chỉnh sửa thông tin câu hỏi thường gặp.' },
+  'market-areas': { title: 'Quản lý Mặt bằng', sub: 'Thiết kế sơ đồ mặt bằng và quản lý các sạp hàng.' },
   
   // Admin System Titles
   'admin-dashboard': { title: 'Tổng quan hệ thống (Admin)', sub: 'Thống kê tổng hợp và quản trị toàn hệ thống.' },
@@ -136,6 +137,7 @@ function App() {
   const renderPage = () => {
     switch (currentPage) {
       case 'dashboard': return <DashboardManager addToast={addToast} navigate={navigate} />;
+      case 'market-areas': return <MarketAreaList />;
       case 'users':     return <UserListManager navigate={navigate} addToast={addToast} />;
       case 'form':      return <UserFormManager userId={currentUserId} navigate={navigate} addToast={addToast} />;
       case 'detail':    return <UserDetailManager userId={currentUserId} navigate={navigate} addToast={addToast} />;
@@ -507,15 +509,6 @@ function App() {
       </div>
     </div>
   );
-  return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<MarketAreaList />} />
-        {/* You can add more routes here in the future */}
-      </Routes>
-    </Router>
-  );
 }
 
-export default App;
 export default App;
