@@ -151,7 +151,9 @@ export default function HomePage({
         <div className="news-grid">
           {newsList.map((news, index) => (
             <article className="news-card" key={index}>
-              <img className="news-image" src={news.image} alt={news.title} />
+              <div className="news-image-wrapper">
+                <img className="news-image" src={news.image} alt={news.title} />
+              </div>
 
               <div className="news-content">
                 <span className="news-type">{news.type}</span>

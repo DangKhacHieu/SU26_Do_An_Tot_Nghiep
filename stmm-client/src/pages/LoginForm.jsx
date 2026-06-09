@@ -1,13 +1,50 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import authService from "../services/authService";
 import "./LoginForm.css";
 
-export default function LoginForm({ onBack, onGoToRegister, onLoginSuccess }) {
+export default function LoginForm({ onBack, onGoToRegister, onGoToForgotPassword, onLoginSuccess }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const initGoogle = () => {
+      window.google?.accounts.id.initialize({
+        client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID || "733979401918-egmrcldjnt2o2o30t7u3v1rskep1lhre.apps.googleusercontent.com",
+        callback: handleGoogleLogin,
+      });
+      window.google?.accounts.id.renderButton(
+        document.getElementById("google-login-btn"),
+        { theme: "outline", size: "large", width: "100%" }
+      );
+    };
+
+    if (window.google) {
+      initGoogle();
+    } else {
+      const script = document.createElement("script");
+      script.src = "https://accounts.google.com/gsi/client";
+      script.async = true;
+      script.defer = true;
+      script.onload = initGoogle;
+      document.body.appendChild(script);
+    }
+  }, []);
+
+  const handleGoogleLogin = async (response) => {
+    setError("");
+    setLoading(true);
+    try {
+      const res = await authService.loginWithGoogle(response.credential);
+      onLoginSuccess(res);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Đăng nhập bằng Google thất bại");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -124,7 +161,7 @@ export default function LoginForm({ onBack, onGoToRegister, onLoginSuccess }) {
                 <span>Remember me</span>
               </label>
 
-              <button type="button">Forgot password?</button>
+              <button type="button" onClick={onGoToForgotPassword}>Forgot password?</button>
             </div>
 
             {error && <div className="modern-message error">{error}</div>}
@@ -138,6 +175,12 @@ export default function LoginForm({ onBack, onGoToRegister, onLoginSuccess }) {
               <span>→</span>
             </button>
           </form>
+
+          <div className="auth-divider">
+            <span>Hoặc</span>
+          </div>
+
+          <div id="google-login-btn" className="google-btn-container"></div>
 
           <p className="auth-switch-text">
             Chưa có tài khoản?{" "}

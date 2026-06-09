@@ -44,3 +44,18 @@ export interface RegisterRequest {
   phone: string;
   cccd: string;
 }
+
+export interface RegisterResponse {
+  requiresVerification: boolean;
+  email: string;
+  message: string;
+}
+
+export interface VerifyEmailRequest {
+  email: string;
+  code: string;
+}
+
+export interface ResendVerificationRequest {
+  email: string;
+}

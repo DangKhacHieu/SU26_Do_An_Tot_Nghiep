@@ -270,3 +270,138 @@
     align-items: stretch;
   }
 }
+
+/* Activity / Notification Section */
+.profile-activity-card {
+  text-align: left; /* Override parent #root text-align: center */
+}
+
+.activity-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  border-bottom: 1px solid #eef2ec;
+  padding-bottom: 16px;
+}
+
+.activity-header h3 {
+  font-size: 1.4rem;
+  margin: 0 0 4px;
+  color: #1d2818;
+}
+
+.activity-header p {
+  color: #6b755d;
+  font-size: 0.9rem;
+}
+
+.activity-header .link-button {
+  background: none;
+  border: none;
+  color: #4f5f45;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.9rem;
+  text-decoration: underline;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+.activity-header .link-button:hover {
+  background: #eef2ec;
+}
+
+.activity-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.activity-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 20px;
+  border-radius: 16px;
+  background: #fdfdfd;
+  border: 1px solid #eef2ec;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.activity-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(29, 40, 24, 0.05);
+  background: #fbfcf9;
+}
+
+/* Accent left border depending on notiType or unread state */
+.activity-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: #cbd5c5; /* default read border */
+}
+
+.activity-item.unread::before {
+  background: #2e7d32; /* vibrant green for unread */
+}
+
+.activity-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.activity-item-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.activity-item-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #1d2818;
+  margin: 0;
+}
+
+.unread-dot {
+  width: 8px;
+  height: 8px;
+  background: #2e7d32;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.activity-item-content {
+  font-size: 0.95rem;
+  color: #4f5f45;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.activity-item-time {
+  font-size: 0.8rem;
+  color: #8fa085;
+}
+
+.activity-item-empty {
+  padding: 32px;
+  text-align: center;
+  color: #8fa085;
+  background: #f9faf7;
+  border-radius: 16px;
+  border: 1px dashed #cbd5c5;
+}
+

@@ -3,7 +3,8 @@ import {
   LoginRequest,
   LoginResponse,
   RefreshTokenRequest,
-  RegisterRequest
+  RegisterRequest,
+  RegisterResponse
 } from '../types/auth.types';
 
 declare global {
@@ -186,9 +187,21 @@ class AuthService {
   /**
    * Đăng ký
    */
-  async register(request: RegisterRequest): Promise<LoginResponse> {
+  async register(request: RegisterRequest): Promise<RegisterResponse> {
     try {
-      const response = await this.api.post<LoginResponse>('/auth/register', request);
+      const response = await this.api.post<RegisterResponse>('/auth/register', request);
+      return response.data;
+    } catch (error: any) {
+      throw new Error(getApiErrorMessage(error, 'Đăng ký thất bại'));
+    }
+  }
+
+  /**
+   * Xác thực email kích hoạt tài khoản
+   */
+  async verifyEmail(email: string, code: string): Promise<LoginResponse> {
+    try {
+      const response = await this.api.post<LoginResponse>('/auth/verify-email', { email, code });
 
       this.accessToken = response.data.accessToken;
       this.refreshToken = response.data.refreshToken;
@@ -196,7 +209,18 @@ class AuthService {
 
       return response.data;
     } catch (error: any) {
-      throw new Error(getApiErrorMessage(error, 'Đăng ký thất bại'));
+      throw new Error(getApiErrorMessage(error, 'Xác thực email thất bại'));
+    }
+  }
+
+  /**
+   * Gửi lại mã OTP xác thực email
+   */
+  async resendVerificationCode(email: string): Promise<void> {
+    try {
+      await this.api.post('/auth/resend-verification', { email });
+    } catch (error: any) {
+      throw new Error(getApiErrorMessage(error, 'Gửi lại mã xác thực thất bại'));
     }
   }
 
@@ -214,6 +238,56 @@ class AuthService {
       });
     } catch (error: any) {
       throw new Error(getApiErrorMessage(error, "Đổi mật khẩu thất bại"));
+    }
+  }
+
+  /**
+   * Đăng nhập hoặc đăng ký bằng tài khoản Google
+   */
+  async loginWithGoogle(idToken: string): Promise<LoginResponse> {
+    try {
+      const response = await this.api.post<LoginResponse>('/auth/google', { idToken });
+      
+      this.accessToken = response.data.accessToken;
+      this.refreshToken = response.data.refreshToken;
+      this.saveTokens(response.data);
+      
+      return response.data;
+    } catch (error: any) {
+      throw new Error(getApiErrorMessage(error, 'Đăng nhập Google thất bại'));
+    }
+  }
+
+  /**
+   * Yêu cầu khôi phục mật khẩu (gửi mã OTP)
+   */
+  async forgotPassword(email: string): Promise<void> {
+    try {
+      await this.api.post('/auth/forgot-password', { email });
+    } catch (error: any) {
+      throw new Error(getApiErrorMessage(error, 'Yêu cầu khôi phục mật khẩu thất bại'));
+    }
+  }
+
+  /**
+   * Xác thực mã OTP khôi phục mật khẩu
+   */
+  async verifyResetOtp(email: string, code: string): Promise<void> {
+    try {
+      await this.api.post('/auth/verify-reset-otp', { email, code });
+    } catch (error: any) {
+      throw new Error(getApiErrorMessage(error, 'Xác thực OTP thất bại'));
+    }
+  }
+
+  /**
+   * Đặt lại mật khẩu mới bằng mã OTP
+   */
+  async resetPassword(email: string, code: string, newPassword: string): Promise<void> {
+    try {
+      await this.api.post('/auth/reset-password', { email, code, newPassword });
+    } catch (error: any) {
+      throw new Error(getApiErrorMessage(error, 'Khôi phục mật khẩu thất bại'));
     }
   }
 }

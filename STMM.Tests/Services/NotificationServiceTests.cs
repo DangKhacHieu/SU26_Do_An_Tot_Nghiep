@@ -14,12 +14,14 @@ namespace STMM.Tests.Services
     public class NotificationServiceTests
     {
         private readonly Mock<INotificationRepository> _notificationRepoMock;
+        private readonly Mock<AutoMapper.IMapper> _mapperMock;
         private readonly NotificationService _service;
 
         public NotificationServiceTests()
         {
             _notificationRepoMock = new Mock<INotificationRepository>();
-            _service = new NotificationService(_notificationRepoMock.Object);
+            _mapperMock = new Mock<AutoMapper.IMapper>();
+            _service = new NotificationService(_notificationRepoMock.Object, _mapperMock.Object);
         }
 
         [Fact]

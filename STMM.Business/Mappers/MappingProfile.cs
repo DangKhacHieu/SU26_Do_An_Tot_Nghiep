@@ -3,6 +3,7 @@ using STMM.DataAccess.Entities;
 using STMM.Business.DTOs.Violation;
 using STMM.Business.DTOs.Auth;
 using STMM.Business.DTOs.User;
+using STMM.Business.DTOs.Notification;
 
 namespace STMM.Business.Mappers
 {
@@ -31,6 +32,9 @@ namespace STMM.Business.Mappers
             // Auth mappings
             CreateMap<STMM.DataAccess.Entities.User, UserDto>()
                 .ForMember(dest => dest.RoleName, opt => opt.MapFrom(src => src.Role != null ? src.Role.Name : "Unknown"));
+
+            // Notification mappings
+            CreateMap<Notification, NotificationDto>();
         }
     }
 }

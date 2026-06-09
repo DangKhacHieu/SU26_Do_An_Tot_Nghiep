@@ -2,17 +2,19 @@ import { useEffect, useState } from "react";
 import "./App.css";
 import "./AppDashboard.css";
 
-import HomePage from "./components/HomePage";
-import LoginForm from "./components/LoginForm";
-import RegisterForm from "./components/RegisterForm";
-import ProfilePage from "./components/Profile/ProfilePage.jsx";
-import ChangePasswordForm from "./components/Profile/ChangePasswordForm.jsx";
-import EditProfileForm from "./components/Profile/EditProfileForm.jsx";
+import HomePage from "./pages/HomePage.jsx";
+import LoginForm from "./pages/LoginForm.jsx";
+import RegisterForm from "./pages/RegisterForm.jsx";
+import ForgotPasswordForm from "./pages/ForgotPasswordForm.jsx";
+import ProfilePage from "./pages/Profile/ProfilePage.jsx";
+import ChangePasswordForm from "./pages/Profile/ChangePasswordForm.jsx";
+import EditProfileForm from "./pages/Profile/EditProfileForm.jsx";
+import NotificationListPage from "./pages/Profile/NotificationListPage.jsx";
 import authService from "./services/authService";
-import AdminDashboard from "./components/AdminDashboard";
-import VendorDashboard from "./components/VendorDashboard";
-import StaffDashboard from "./components/StaffDashboard";
-import ManagerDashboard from "./components/ManagerDashboard";
+import AdminDashboard from "./pages/AdminDashboard.jsx";
+import VendorDashboard from "./pages/VendorDashboard.jsx";
+import StaffDashboard from "./pages/StaffDashboard.jsx";
+import ManagerDashboard from "./pages/ManagerDashboard.jsx";
 
 function App() {
   const [path, setPath] = useState(window.location.pathname);
@@ -57,7 +59,17 @@ function App() {
       <LoginForm
         onBack={() => navigate("/")}
         onGoToRegister={() => navigate("/register")}
+        onGoToForgotPassword={() => navigate("/forgot-password")}
         onLoginSuccess={handleLoginSuccess}
+      />
+    );
+  }
+
+  if (path === "/forgot-password") {
+    return (
+      <ForgotPasswordForm
+        onBack={() => navigate("/login")}
+        onGoToLogin={() => navigate("/login")}
       />
     );
   }
@@ -90,6 +102,19 @@ function App() {
         onGoToProfile={() => navigate("/profile")}
         onGoToEditProfile={() => navigate("/edit-profile")}
         onGoToChangePassword={() => navigate("/change-password")}
+        onGoToNotifications={() => navigate("/notifications")}
+        onLogout={handleLogout}
+      />
+    );
+  }
+
+  if (path === "/notifications") {
+    return (
+      <NotificationListPage
+        user={user}
+        onBack={() => navigate("/")}
+        onGoToLogin={() => navigate("/login")}
+        onGoToProfile={() => navigate("/profile")}
         onLogout={handleLogout}
       />
     );

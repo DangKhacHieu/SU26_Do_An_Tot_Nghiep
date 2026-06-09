@@ -1,5 +1,7 @@
+import { useEffect, useState } from "react";
 import Header from "../Header";
 import Footer from "../Footer";
+import notificationService from "../../services/notificationService";
 import "./ProfilePage.css";
 
 function getInitials(name) {
@@ -20,8 +22,47 @@ export default function ProfilePage({
   onGoToProfile,
   onGoToEditProfile,
   onGoToChangePassword,
+  onGoToNotifications,
   onLogout,
 }) {
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedNoti, setSelectedNoti] = useState(null);
+
+  const handleSelectNotification = async (item) => {
+    setSelectedNoti(item);
+    if (!item.isRead) {
+      try {
+        await notificationService.markAsRead(item.notiId);
+        setNotifications((prev) =>
+          prev.map((n) => (n.notiId === item.notiId ? { ...n, isRead: true } : n))
+        );
+      } catch (err) {
+        console.error("Lỗi khi đánh dấu đã đọc:", err);
+      }
+    }
+  };
+
+  const displayedNotifications = notifications.slice(0, 3);
+
+  useEffect(() => {
+    if (user && user.userId) {
+      notificationService
+        .getNotifications(user.userId, user.roleName)
+        .then((data) => {
+          const sorted = (data || []).sort((a, b) => {
+            return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+          });
+          setNotifications(sorted);
+          setLoading(false);
+        })
+        .catch((err) => {
+          console.error("Lỗi khi lấy thông báo:", err);
+          setLoading(false);
+        });
+    }
+  }, [user]);
+
   if (!user) {
     return (
       <>
@@ -50,25 +91,6 @@ export default function ProfilePage({
 
   const initials = getInitials(user.name);
   const firstName = user.name?.split(" ")[0] || user.name;
-
-  const notifications = [
-    {
-      title: "Weekend Offer: 20% Off Organic Produce",
-      description: "Only 2 days left to claim your discount at Stall #05.",
-      time: "2 hours ago",
-    },
-    {
-      title: "Transaction Successful",
-      description:
-        "You have successfully topped up 2,000,000 VND into STMM Wallet.",
-      time: "Yesterday",
-    },
-    {
-      title: "+150 Reward Points",
-      description: "Thank you for your feedback on StallMap services.",
-      time: "3 days ago",
-    },
-  ];
 
   return (
     <>
@@ -117,7 +139,7 @@ export default function ProfilePage({
             <article className="summary-card notification-card">
               <div className="summary-card-top">
                 <span>Latest Notifications</span>
-                <strong>4 new alerts</strong>
+                <strong>{notifications.filter(n => !n.isRead).length} new alerts</strong>
               </div>
               <p className="summary-card-note">
                 Review your recent activity and important messages.
@@ -182,26 +204,91 @@ export default function ProfilePage({
                   <h3>Latest Notifications</h3>
                   <p>Recent events and reminders for your account.</p>
                 </div>
-                <button type="button" className="link-button">
-                  View all
-                </button>
+                {notifications.length > 0 && (
+                  <button
+                    type="button"
+                    className="link-button"
+                    onClick={onGoToNotifications}
+                  >
+                    Xem tất cả
+                  </button>
+                )}
               </div>
 
               <ul className="activity-list">
-                {notifications.map((item, index) => (
-                  <li className="activity-item" key={index}>
-                    <div>
-                      <strong>{item.title}</strong>
-                      <p>{item.description}</p>
-                    </div>
-                    <span>{item.time}</span>
+                {loading ? (
+                  <li className="activity-item-empty">
+                    <span>Đang tải thông báo...</span>
                   </li>
-                ))}
+                ) : notifications.length === 0 ? (
+                  <li className="activity-item-empty">
+                    <span>Không có thông báo nào.</span>
+                  </li>
+                ) : (
+                  displayedNotifications.map((item, index) => (
+                    <li
+                      className={`activity-item ${item.isRead ? "" : "unread"}`}
+                      key={item.notiId || index}
+                      onClick={() => handleSelectNotification(item)}
+                      style={{ cursor: "pointer" }}
+                    >
+                      <div className="activity-item-header">
+                        <div className="activity-item-title-row">
+                          {!item.isRead && <span className="unread-dot" title="Chưa đọc"></span>}
+                          <h4 className="activity-item-title">{item.title}</h4>
+                        </div>
+                        {item.notiType && (
+                          <span className={`activity-item-tag ${item.notiType.toLowerCase()}`}>
+                            {item.notiType}
+                          </span>
+                        )}
+                      </div>
+                      <p className="activity-item-content">{item.content}</p>
+                      <span className="activity-item-time">
+                        {item.createdAt
+                          ? new Date(item.createdAt).toLocaleString("vi-VN", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                              day: "2-digit",
+                              month: "2-digit",
+                              year: "numeric",
+                            })
+                          : ""}
+                      </span>
+                    </li>
+                  ))
+                )}
               </ul>
             </section>
           </div>
         </div>
       </main>
+
+      {selectedNoti && (
+        <div className="noti-modal-overlay" onClick={() => setSelectedNoti(null)}>
+          <div className="noti-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="noti-modal-header">
+              <span className={`activity-item-tag ${selectedNoti.notiType ? selectedNoti.notiType.toLowerCase() : "default"}`}>
+                {selectedNoti.notiType || "Thông báo"}
+              </span>
+              <button className="noti-modal-close" onClick={() => setSelectedNoti(null)}>
+                &times;
+              </button>
+            </div>
+            <h3 className="noti-modal-title">{selectedNoti.title}</h3>
+            <p className="noti-modal-body">{selectedNoti.content}</p>
+            <div className="noti-modal-footer">
+              <span className="noti-modal-time">
+                Nhận lúc: {selectedNoti.createdAt ? new Date(selectedNoti.createdAt).toLocaleString("vi-VN") : ""}
+              </span>
+              <button className="noti-modal-btn" onClick={() => setSelectedNoti(null)}>
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <Footer />
     </>
   );
