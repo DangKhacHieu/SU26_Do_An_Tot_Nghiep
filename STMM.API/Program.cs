@@ -6,6 +6,7 @@ using STMM.DataAccess.IRepositories;
 using STMM.DataAccess.Repositories;
 using STMM.Business.Mappers;
 using STMM.Business.Interfaces;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using STMM.Business.Services;
 using STMM.API.Middleware;
 using System.Text.Json.Serialization;
@@ -31,9 +32,9 @@ if (File.Exists(dotenvPath))
         var parts = line.Split('=', 2);
         if (parts.Length == 2)
         {
-            var key = parts[0].Trim();
-            var val = parts[1].Trim();
-            Environment.SetEnvironmentVariable(key, val);
+            var envKey = parts[0].Trim();
+            var envVal = parts[1].Trim();
+            Environment.SetEnvironmentVariable(envKey, envVal);
         }
     }
 }
@@ -43,6 +44,9 @@ var builder = WebApplication.CreateBuilder(args);
 // Register AppDbContext
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// Register MemoryCache
+builder.Services.AddMemoryCache();
 
 // Register Repositories
 builder.Services.AddScoped<IAreaRepository, AreaRepository>();
@@ -85,21 +89,23 @@ builder.Services.AddAutoMapper(cfg =>
 builder.Services.AddValidatorsFromAssembly(typeof(MappingProfile).Assembly);
 
 // Register Business Services
-            builder.Services.AddScoped<IViolationService, ViolationService>();
-            builder.Services.AddScoped<INotificationService, NotificationService>();
-            builder.Services.AddScoped<IBillingService, BillingService>();
-            builder.Services.AddScoped<IIssueService, IssueService>();
-            builder.Services.AddScoped<IStallTaskService, StallTaskService>();
-            builder.Services.AddScoped<IStaffTaskService, StaffTaskService>();
-            builder.Services.AddScoped<IQuotationService, QuotationService>();
-            builder.Services.AddScoped<IMeterReadingService, MeterReadingService>();
-            builder.Services.AddScoped<IFileStorageService, CloudinaryStorageService>();
-            builder.Services.AddScoped<IUserService, UserService>();
-            builder.Services.AddScoped<IFaqService, FaqService>();
-            builder.Services.AddScoped<IContentService, ContentService>();
-            builder.Services.AddScoped<IAreaService, AreaService>();
-            builder.Services.AddScoped<IStallService, StallService>();
-            
+builder.Services.AddScoped<IViolationService, ViolationService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IBillingService, BillingService>();
+builder.Services.AddScoped<IIssueService, IssueService>();
+builder.Services.AddScoped<IStallTaskService, StallTaskService>();
+builder.Services.AddScoped<IStaffTaskService, StaffTaskService>();
+builder.Services.AddScoped<IQuotationService, QuotationService>();
+builder.Services.AddScoped<IMeterReadingService, MeterReadingService>();
+builder.Services.AddScoped<IFileStorageService, CloudinaryStorageService>();
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IFaqService, FaqService>();
+builder.Services.AddScoped<IContentService, ContentService>();
+builder.Services.AddScoped<IAreaService, AreaService>();
+builder.Services.AddScoped<IStallService, StallService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
+
 
 // 1. Controllers & JSON Options
 builder.Services.AddControllers()
@@ -154,9 +160,7 @@ builder.Services.AddSwaggerGen(options =>
     */
 });
 
-// 3. JWT Authentication & Authorization (Để dạng comment chờ login)
-/*
-// Cần cài đặt Package: Microsoft.AspNetCore.Authentication.JwtBearer
+// 3. JWT Authentication & Authorization
 var jwtSettings = builder.Configuration.GetSection("Jwt");
 var key = System.Text.Encoding.UTF8.GetBytes(jwtSettings["Key"]!);
 
@@ -182,7 +186,8 @@ builder.Services.AddAuthentication(options =>
 });
 
 builder.Services.AddAuthorization();
-*/
+
+
 
 // 6. EPPlus Excel License (Để dạng comment chờ sử dụng Excel)
 // Cần cài đặt Package: EPPlus
@@ -208,7 +213,7 @@ app.UseHttpsRedirection();
 app.UseCors("AllowReact");
 
 // Phân quyền (Mở comment UseAuthentication khi có chức năng login)
-// app.UseAuthentication();
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();

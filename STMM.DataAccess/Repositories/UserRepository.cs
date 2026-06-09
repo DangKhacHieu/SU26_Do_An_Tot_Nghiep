@@ -15,6 +15,8 @@ namespace STMM.DataAccess.Repositories
         {
         }
 
+
+
         public async Task<bool> IsActiveStaffAsync(int userId, CancellationToken ct = default)
         {
             return await _context.Users
@@ -62,6 +64,13 @@ namespace STMM.DataAccess.Repositories
             return await _dbSet.AsQueryable()
                 .Include(u => u.Role)
                 .FirstOrDefaultAsync(u => u.Role.Name.ToLower() == "manager" || u.Role.Name.ToLower() == "admin", ct);
+        }
+
+        public async Task<User?> GetUserByEmailAsync(string email, CancellationToken ct = default)
+        {
+            return await _context.Users
+                .Include(u => u.Role)
+                .FirstOrDefaultAsync(u => u.Email.ToLower() == email.Trim().ToLower(), ct);
         }
     }
 }

@@ -1,5 +1,7 @@
 using AutoMapper;
 using FluentValidation;
+using Microsoft.EntityFrameworkCore;
+using STMM.Business.DTOs.Auth;
 using STMM.Business.DTOs.User;
 using STMM.Business.Exceptions;
 using STMM.Business.Interfaces;
@@ -20,24 +22,32 @@ namespace STMM.Business.Services
         private readonly IMapper _mapper;
         private readonly IValidator<CreateUserRequest> _createUserValidator;
         private readonly IValidator<UpdateUserRequest> _updateUserValidator;
+        private readonly IValidator<EditProfileRequest> _editProfileValidator;
 
         public UserService(
             IUserRepository userRepository,
             IRoleRepository roleRepository,
             IMapper mapper,
             IValidator<CreateUserRequest> createUserValidator,
-            IValidator<UpdateUserRequest> updateUserValidator)
+            IValidator<UpdateUserRequest> updateUserValidator,
+            IValidator<EditProfileRequest> editProfileValidator)
         {
-            _userRepository = userRepository;
-            _roleRepository = roleRepository;
-            _mapper = mapper;
-            _createUserValidator = createUserValidator;
-            _updateUserValidator = updateUserValidator;
+            _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
+            _roleRepository = roleRepository ?? throw new ArgumentNullException(nameof(roleRepository));
+            _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
+            _createUserValidator = createUserValidator ?? throw new ArgumentNullException(nameof(createUserValidator));
+            _updateUserValidator = updateUserValidator ?? throw new ArgumentNullException(nameof(updateUserValidator));
+            _editProfileValidator = editProfileValidator ?? throw new ArgumentNullException(nameof(editProfileValidator));
         }
 
         public async Task<IEnumerable<UserDto>> GetUsersAsync(string? roleName, string? search, CancellationToken ct = default)
         {
-            var users = await _userRepository.GetUsersWithRolesAsync(roleName, search, limitToManageableRoles: true, ct);
+            var users = await _userRepository.GetUsersWithRolesAsync(
+                roleName,
+                search,
+                limitToManageableRoles: true,
+                ct);
+
             return _mapper.Map<IEnumerable<UserDto>>(users);
         }
 
@@ -56,34 +66,45 @@ namespace STMM.Business.Services
         public async Task<UserDto> RegisterUserAsync(CreateUserRequest request, CancellationToken ct = default)
         {
             var validationResult = await _createUserValidator.ValidateAsync(request, ct);
+
             if (!validationResult.IsValid)
             {
-                throw new BadRequestException(string.Join("; ", validationResult.Errors.Select(e => e.ErrorMessage)));
+                throw new BadRequestException(
+                    string.Join("; ", validationResult.Errors.Select(e => e.ErrorMessage)));
             }
 
-            // Check if role exists
             var role = await _roleRepository.GetByIdAsync(request.RoleId, ct);
+
             if (role == null)
             {
                 throw new BadRequestException("Vai trò được chọn không tồn tại.");
             }
 
-            // Check duplicate email
-            var existingEmails = await _userRepository.FindAsync(u => u.Email.ToLower() == request.Email.ToLower() && u.IsDeleted != true, ct);
+            var existingEmails = await _userRepository.FindAsync(
+                u => u.Email.ToLower() == request.Email.ToLower()
+                     && u.IsDeleted != true,
+                ct);
+
             if (existingEmails.Any())
             {
                 throw new BadRequestException("Email này đã được sử dụng.");
             }
 
-            // Check duplicate phone
-            var existingPhones = await _userRepository.FindAsync(u => u.Phone == request.Phone && u.IsDeleted != true, ct);
+            var existingPhones = await _userRepository.FindAsync(
+                u => u.Phone == request.Phone
+                     && u.IsDeleted != true,
+                ct);
+
             if (existingPhones.Any())
             {
                 throw new BadRequestException("Số điện thoại này đã được sử dụng.");
             }
 
-            // Check duplicate CCCD
-            var existingCccds = await _userRepository.FindAsync(u => u.Cccd == request.Cccd && u.IsDeleted != true, ct);
+            var existingCccds = await _userRepository.FindAsync(
+                u => u.Cccd == request.Cccd
+                     && u.IsDeleted != true,
+                ct);
+
             if (existingCccds.Any())
             {
                 throw new BadRequestException("Số CCCD này đã được sử dụng.");
@@ -108,7 +129,6 @@ namespace STMM.Business.Services
             await _userRepository.AddAsync(user, ct);
             await _userRepository.SaveChangesAsync(ct);
 
-            // Re-assign role reference for mapping
             user.Role = role;
 
             return _mapper.Map<UserDto>(user);
@@ -117,9 +137,11 @@ namespace STMM.Business.Services
         public async Task<UserDto> UpdateUserAsync(int id, UpdateUserRequest request, CancellationToken ct = default)
         {
             var validationResult = await _updateUserValidator.ValidateAsync(request, ct);
+
             if (!validationResult.IsValid)
             {
-                throw new BadRequestException(string.Join("; ", validationResult.Errors.Select(e => e.ErrorMessage)));
+                throw new BadRequestException(
+                    string.Join("; ", validationResult.Errors.Select(e => e.ErrorMessage)));
             }
 
             var user = await _userRepository.GetUserByIdWithRoleAsync(id, ct);
@@ -129,29 +151,41 @@ namespace STMM.Business.Services
                 throw new NotFoundException($"Không tìm thấy người dùng có ID {id}.");
             }
 
-            // Check if role exists
             var role = await _roleRepository.GetByIdAsync(request.RoleId, ct);
+
             if (role == null)
             {
                 throw new BadRequestException("Vai trò được chọn không tồn tại.");
             }
 
-            // Check duplicate email
-            var existingEmails = await _userRepository.FindAsync(u => u.Email.ToLower() == request.Email.ToLower() && u.UserId != id && u.IsDeleted != true, ct);
+            var existingEmails = await _userRepository.FindAsync(
+                u => u.Email.ToLower() == request.Email.ToLower()
+                     && u.UserId != id
+                     && u.IsDeleted != true,
+                ct);
+
             if (existingEmails.Any())
             {
                 throw new BadRequestException("Email này đã được sử dụng bởi người dùng khác.");
             }
 
-            // Check duplicate phone
-            var existingPhones = await _userRepository.FindAsync(u => u.Phone == request.Phone && u.UserId != id && u.IsDeleted != true, ct);
+            var existingPhones = await _userRepository.FindAsync(
+                u => u.Phone == request.Phone
+                     && u.UserId != id
+                     && u.IsDeleted != true,
+                ct);
+
             if (existingPhones.Any())
             {
                 throw new BadRequestException("Số điện thoại này đã được sử dụng bởi người dùng khác.");
             }
 
-            // Check duplicate CCCD
-            var existingCccds = await _userRepository.FindAsync(u => u.Cccd == request.Cccd && u.UserId != id && u.IsDeleted != true, ct);
+            var existingCccds = await _userRepository.FindAsync(
+                u => u.Cccd == request.Cccd
+                     && u.UserId != id
+                     && u.IsDeleted != true,
+                ct);
+
             if (existingCccds.Any())
             {
                 throw new BadRequestException("Số CCCD này đã được sử dụng bởi người dùng khác.");
@@ -174,6 +208,53 @@ namespace STMM.Business.Services
             await _userRepository.SaveChangesAsync(ct);
 
             user.Role = role;
+
+            return _mapper.Map<UserDto>(user);
+        }
+
+        public async Task<UserDto> UpdateProfileAsync(int userId, EditProfileRequest request, CancellationToken ct = default)
+        {
+            var validationResult = await _editProfileValidator.ValidateAsync(request, ct);
+
+            if (!validationResult.IsValid)
+            {
+                var errors = string.Join(", ", validationResult.Errors.Select(e => e.ErrorMessage));
+                throw new BadRequestException(errors);
+            }
+
+            var user = await _userRepository.Query()
+                .Include(u => u.Role)
+                .FirstOrDefaultAsync(u => u.UserId == userId && u.IsDeleted != true, ct);
+
+            if (user == null)
+            {
+                throw new NotFoundException("Không tìm thấy người dùng");
+            }
+
+            request.Name = request.Name.Trim();
+            request.Phone = request.Phone.Trim();
+
+            if (user.Phone != request.Phone)
+            {
+                var isPhoneDuplicate = await _userRepository.Query()
+                    .AnyAsync(
+                        u => u.Phone == request.Phone
+                             && u.UserId != userId
+                             && u.IsDeleted != true,
+                        ct);
+
+                if (isPhoneDuplicate)
+                {
+                    throw new BadRequestException("Số điện thoại đã được sử dụng bởi tài khoản khác");
+                }
+            }
+
+            user.Name = request.Name;
+            user.Phone = request.Phone;
+            user.UpdatedAt = DateTime.UtcNow;
+
+            _userRepository.Update(user);
+            await _userRepository.SaveChangesAsync(ct);
 
             return _mapper.Map<UserDto>(user);
         }
@@ -204,6 +285,7 @@ namespace STMM.Business.Services
         public async Task<bool> DeleteUserAsync(int id, CancellationToken ct = default)
         {
             var user = await _userRepository.GetByIdAsync(id, ct);
+
             if (user == null || user.IsDeleted == true)
             {
                 throw new NotFoundException($"Không tìm thấy người dùng có ID {id}.");
@@ -222,15 +304,28 @@ namespace STMM.Business.Services
         public async Task<IEnumerable<RoleDto>> GetRolesAsync(CancellationToken ct = default)
         {
             var roles = await _roleRepository.GetAllAsync(ct);
-            // Only expose operational roles for the Manager to create
-            var manageableRoles = new[] { "staff", "accountant", "vendor", "customer" };
+
+            var manageableRoles = new[]
+            {
+                "staff",
+                "accountant",
+                "vendor",
+                "customer"
+            };
+
             var filteredRoles = roles.Where(r => manageableRoles.Contains(r.Name.ToLower()));
+
             return _mapper.Map<IEnumerable<RoleDto>>(filteredRoles);
         }
 
         public async Task<IEnumerable<UserDto>> GetAdminUsersAsync(string? roleName, string? search, CancellationToken ct = default)
         {
-            var users = await _userRepository.GetUsersWithRolesAsync(roleName, search, limitToManageableRoles: false, ct);
+            var users = await _userRepository.GetUsersWithRolesAsync(
+                roleName,
+                search,
+                limitToManageableRoles: false,
+                ct);
+
             return _mapper.Map<IEnumerable<UserDto>>(users);
         }
 

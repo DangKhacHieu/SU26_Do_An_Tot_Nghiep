@@ -1286,7 +1286,8 @@ public partial class AppDbContext : DbContext
                 .HasColumnName("phone");
             entity.Property(e => e.RoleId)
                 .HasComment("Liên kết tới bảng roles")
-                .HasColumnName("role_id");
+                .HasColumnName("role_id")
+                .ValueGeneratedNever();
             entity.Property(e => e.Status)
                 .HasDefaultValueSql("'Active'::text")
                 .HasComment("Trạng thái tài khoản (Active, Suspended, Locked)")

@@ -1,9 +1,11 @@
 using AutoMapper;
 using STMM.DataAccess.Entities;
 using STMM.Business.DTOs.Violation;
+using STMM.Business.DTOs.Auth;
+using STMM.Business.DTOs.User;
+using STMM.Business.DTOs.Notification;
 using STMM.Business.DTOs.Meter;
 using STMM.Business.DTOs.Task;
-using STMM.Business.DTOs.User;
 using STMM.Business.DTOs.Area;
 using STMM.Business.DTOs.Stall;
 
@@ -31,6 +33,12 @@ namespace STMM.Business.Mappers
                 .ForMember(dest => dest.Stall, opt => opt.Ignore());
 
             CreateMap<ViolationType, ViolationTypeDto>();
+            // Auth mappings
+            CreateMap<STMM.DataAccess.Entities.User, UserDto>()
+                .ForMember(dest => dest.RoleName, opt => opt.MapFrom(src => src.Role != null ? src.Role.Name : "Unknown"));
+
+            // Notification mappings
+            CreateMap<Notification, NotificationDto>();
 
             // Meter mappings
             CreateMap<Meter, MeterDto>()
@@ -73,7 +81,7 @@ namespace STMM.Business.Mappers
             CreateMap<Notification, STMM.Business.DTOs.Content.ContentDto>()
                 .ForMember(dest => dest.TargetUserName, opt => opt.MapFrom(src => src.TargetUser != null ? src.TargetUser.Name : string.Empty));
 
-              // Area mappings
+            // Area mappings
             CreateMap<Area, AreaDto>()
                 .ForMember(dest => dest.CategoryName, opt => opt.MapFrom(src => src.Category != null ? src.Category.Name : null));
 
@@ -143,6 +151,9 @@ namespace STMM.Business.Mappers
                 .ForMember(dest => dest.Reviews, opt => opt.Ignore())
                 .ForMember(dest => dest.ServiceRegistrations, opt => opt.Ignore())
                 .ForMember(dest => dest.Violations, opt => opt.Ignore());
+
+            // Notification mappings
+            CreateMap<Notification, NotificationDto>();
         }
     }
 }
