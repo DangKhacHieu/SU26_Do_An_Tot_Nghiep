@@ -4,13 +4,15 @@ import "./AppDashboard.css";
 import "./pages/FE_Staff/FE_Staff.css";
 
 import HomePage from "./pages/FE_Customer/HomePage.jsx";
-import LoginForm from "./pages/FE_Customer/LoginForm.jsx";
-import RegisterForm from "./pages/FE_Customer/RegisterForm.jsx";
-import ForgotPasswordForm from "./pages/FE_Customer/ForgotPasswordForm.jsx";
+import LoginForm from "./pages/FE_Customer/Auth/LoginForm.jsx";
+import RegisterForm from "./pages/FE_Customer/Auth/RegisterForm.jsx";
+import ForgotPasswordForm from "./pages/FE_Customer/Auth/ForgotPasswordForm.jsx";
 import ProfilePage from "./pages/FE_Customer/Profile/ProfilePage.jsx";
 import ChangePasswordForm from "./pages/FE_Customer/Profile/ChangePasswordForm.jsx";
 import EditProfileForm from "./pages/FE_Customer/Profile/EditProfileForm.jsx";
 import NotificationListPage from "./pages/FE_Customer/Profile/NotificationListPage.jsx";
+import MarketMapPage from "./pages/FE_Customer/Market/MarketMapPage.jsx";
+import StallDetailPage from "./pages/FE_Customer/Market/StallDetailPage.jsx";
 
 import authService from "./services/authService";
 
@@ -109,11 +111,13 @@ const PAGE_TITLES = {
 
 function App() {
   const [path, setPath] = useState(window.location.pathname);
+  const [search, setSearch] = useState(window.location.search);
   const [user, setUser] = useState(authService.getUser());
 
   const navigatePath = (to) => {
     window.history.pushState({}, "", to);
-    setPath(to);
+    setPath(to.split("?")[0]);
+    setSearch(to.includes("?") ? to.substring(to.indexOf("?")) : "");
   };
 
   useEffect(() => {
@@ -121,6 +125,7 @@ function App() {
 
     const handlePopState = () => {
       setPath(window.location.pathname);
+      setSearch(window.location.search);
       setUser(authService.getUser());
     };
 
@@ -612,54 +617,60 @@ function App() {
 
             <nav className="sidebar-nav">
               <button
-                className={`sidebar-nav-item ${currentStaffView === "dashboard" ? "active" : ""
-                  }`}
+                className={`sidebar-nav-item ${
+                  currentStaffView === "dashboard" ? "active" : ""
+                }`}
                 onClick={() => setCurrentStaffView("dashboard")}
               >
                 <span className="sidebar-nav-icon">📊</span> Dashboard
               </button>
 
               <button
-                className={`sidebar-nav-item ${currentStaffView === "tasks" ? "active" : ""
-                  }`}
+                className={`sidebar-nav-item ${
+                  currentStaffView === "tasks" ? "active" : ""
+                }`}
                 onClick={() => setCurrentStaffView("tasks")}
               >
                 <span className="sidebar-nav-icon">📋</span> Tasks
               </button>
 
               <button
-                className={`sidebar-nav-item ${["meters", "meter-details"].includes(currentStaffView)
-                  ? "active"
-                  : ""
-                  }`}
+                className={`sidebar-nav-item ${
+                  ["meters", "meter-details"].includes(currentStaffView)
+                    ? "active"
+                    : ""
+                }`}
                 onClick={() => setCurrentStaffView("meters")}
               >
                 <span className="sidebar-nav-icon">⚡</span> Meters
               </button>
 
               <button
-                className={`sidebar-nav-item ${["violations", "violation-details"].includes(currentStaffView)
-                  ? "active"
-                  : ""
-                  }`}
+                className={`sidebar-nav-item ${
+                  ["violations", "violation-details"].includes(currentStaffView)
+                    ? "active"
+                    : ""
+                }`}
                 onClick={() => setCurrentStaffView("violations")}
               >
                 <span className="sidebar-nav-icon">⚠️</span> Violations
               </button>
 
               <button
-                className={`sidebar-nav-item ${["issues", "issue-details"].includes(currentStaffView)
-                  ? "active"
-                  : ""
-                  }`}
+                className={`sidebar-nav-item ${
+                  ["issues", "issue-details"].includes(currentStaffView)
+                    ? "active"
+                    : ""
+                }`}
                 onClick={() => setCurrentStaffView("issues")}
               >
                 <span className="sidebar-nav-icon">🔧</span> Issues
               </button>
 
               <button
-                className={`sidebar-nav-item ${currentStaffView === "stall-list" ? "active" : ""
-                  }`}
+                className={`sidebar-nav-item ${
+                  currentStaffView === "stall-list" ? "active" : ""
+                }`}
                 onClick={() => setCurrentStaffView("stall-list")}
               >
                 <span className="sidebar-nav-icon">🏪</span> List Stall
@@ -905,6 +916,9 @@ function App() {
         onGoToEditProfile={() => navigatePath("/edit-profile")}
         onGoToChangePassword={() => navigatePath("/change-password")}
         onGoToNotifications={() => navigatePath("/notifications")}
+        onGoToStallsMap={(mid) =>
+          navigatePath(mid ? "/stalls-map?marketId=" + mid : "/stalls-map")
+        }
         onLogout={handleLogout}
       />
     );
@@ -917,6 +931,49 @@ function App() {
         onBack={() => navigatePath("/")}
         onGoToLogin={() => navigatePath("/login")}
         onGoToProfile={() => navigatePath("/profile")}
+        onGoToStallsMap={(mid) =>
+          navigatePath(mid ? "/stalls-map?marketId=" + mid : "/stalls-map")
+        }
+        onLogout={handleLogout}
+      />
+    );
+  }
+
+  if (path === "/stalls-map") {
+    const params = new URLSearchParams(window.location.search);
+    const marketId = parseInt(params.get("marketId")) || 1;
+    return (
+      <MarketMapPage
+        user={user}
+        marketId={marketId}
+        onBack={() => navigatePath("/")}
+        onGoToLogin={() => navigatePath("/login")}
+        onGoToProfile={() => navigatePath("/profile")}
+        onGoToNotifications={() => navigatePath("/notifications")}
+        onGoToStallsMap={(mid) =>
+          navigatePath(mid ? "/stalls-map?marketId=" + mid : "/stalls-map")
+        }
+        onGoToStallDetail={(id) => navigatePath("/stalls/" + id)}
+        onLogout={handleLogout}
+      />
+    );
+  }
+
+  if (path.startsWith("/stalls/")) {
+    const segments = path.split("/");
+    const stallIdStr = segments[segments.length - 1];
+    const stallId = parseInt(stallIdStr) || 0;
+    return (
+      <StallDetailPage
+        user={user}
+        stallId={stallId}
+        onBack={() => navigatePath("/stalls-map")}
+        onGoToLogin={() => navigatePath("/login")}
+        onGoToProfile={() => navigatePath("/profile")}
+        onGoToNotifications={() => navigatePath("/notifications")}
+        onGoToStallsMap={(mid) =>
+          navigatePath(mid ? "/stalls-map?marketId=" + mid : "/stalls-map")
+        }
         onLogout={handleLogout}
       />
     );
@@ -925,8 +982,16 @@ function App() {
   if (path === "/change-password") {
     return (
       <ChangePasswordForm
-        onBack={() => navigatePath("/")}
-        onPasswordChanged={() => navigatePath("/")}
+        user={user}
+        onBack={() => navigatePath("/profile")}
+        onGoToLogin={() => navigatePath("/login")}
+        onGoToProfile={() => navigatePath("/profile")}
+        onGoToNotifications={() => navigatePath("/notifications")}
+        onGoToStallsMap={(mid) =>
+          navigatePath(mid ? "/stalls-map?marketId=" + mid : "/stalls-map")
+        }
+        onLogout={handleLogout}
+        onPasswordChanged={() => navigatePath("/profile")}
       />
     );
   }
@@ -938,6 +1003,10 @@ function App() {
         onBack={() => navigatePath("/profile")}
         onGoToLogin={() => navigatePath("/login")}
         onGoToProfile={() => navigatePath("/profile")}
+        onGoToNotifications={() => navigatePath("/notifications")}
+        onGoToStallsMap={(mid) =>
+          navigatePath(mid ? "/stalls-map?marketId=" + mid : "/stalls-map")
+        }
         onLogout={handleLogout}
         onProfileUpdated={(updatedUser) => {
           setUser(updatedUser);
@@ -976,6 +1045,11 @@ function App() {
       onGoToRegister={() => navigatePath("/register")}
       onGoToProfile={() => navigatePath("/profile")}
       onGoToChangePassword={() => navigatePath("/change-password")}
+      onGoToNotifications={() => navigatePath("/notifications")}
+      onGoToStallsMap={(mid) =>
+        navigatePath(mid ? "/stalls-map?marketId=" + mid : "/stalls-map")
+      }
+      onGoToStallDetail={(id) => navigatePath("/stalls/" + id)}
       onLogout={handleLogout}
     />
   );

@@ -6,6 +6,7 @@ namespace STMM.Business.Interfaces
 {
     public interface IStallService
     {
+        Task<IEnumerable<StallDto>> GetAllStallsAsync();
         Task<IEnumerable<StallDto>> GetAllStallsByAreaIdAsync(int areaId);
         Task<StallDto?> GetStallByIdAsync(int id);
         Task<StallDto> CreateStallAsync(CreateStallDto createStallDto);
@@ -13,5 +14,6 @@ namespace STMM.Business.Interfaces
         Task<StallDto> UpdateStallLocationAsync(int id, UpdateStallLocationDto locationDto);
         Task<StallDto> UpdateStallStatusAsync(int id, string status);
         Task<bool> DeactivateStallAsync(int id);
+        Task<HighestRatedStallDto?> GetHighestRatedStallAsync();
     }
 }

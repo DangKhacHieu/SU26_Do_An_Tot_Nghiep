@@ -22,6 +22,17 @@ namespace STMM.Business.Services
             _mapper = mapper;
         }
 
+        public async Task<IEnumerable<StallDto>> GetAllStallsAsync()
+        {
+            var stalls = await _context.Stalls
+                .Include(s => s.Area)
+                .Include(s => s.Category)
+                .Where(s => s.IsDeleted != true)
+                .ToListAsync();
+
+            return _mapper.Map<IEnumerable<StallDto>>(stalls);
+        }
+
         public async Task<IEnumerable<StallDto>> GetAllStallsByAreaIdAsync(int areaId)
         {
             var stalls = await _context.Stalls
@@ -168,6 +179,59 @@ namespace STMM.Business.Services
             await _context.SaveChangesAsync();
 
             return true;
+        }
+
+        public async Task<HighestRatedStallDto?> GetHighestRatedStallAsync()
+        {
+            // Find the stall with the highest average rating
+            var highestRatedGroup = await _context.Reviews
+                .GroupBy(r => r.StallId)
+                .Select(g => new
+                {
+                    StallId = g.Key,
+                    AverageRating = g.Average(r => r.Rating)
+                })
+                .OrderByDescending(x => x.AverageRating)
+                .FirstOrDefaultAsync();
+
+            Stall? stall = null;
+            double avgRating = 5.0; // default fallback
+
+            if (highestRatedGroup != null)
+            {
+                stall = await _context.Stalls
+                    .Include(s => s.Area)
+                    .Include(s => s.Category)
+                    .FirstOrDefaultAsync(s => s.StallId == highestRatedGroup.StallId && s.IsDeleted != true);
+                
+                avgRating = Math.Round(highestRatedGroup.AverageRating, 1);
+            }
+
+            // Fallback: get the first rented stall
+            if (stall == null)
+            {
+                stall = await _context.Stalls
+                    .Include(s => s.Area)
+                    .Include(s => s.Category)
+                    .FirstOrDefaultAsync(s => s.IsDeleted != true && s.Status == "Rented");
+
+                if (stall == null)
+                {
+                    stall = await _context.Stalls
+                        .Include(s => s.Area)
+                        .Include(s => s.Category)
+                        .FirstOrDefaultAsync(s => s.IsDeleted != true);
+                }
+            }
+
+            if (stall == null)
+            {
+                return null;
+            }
+
+            var dto = _mapper.Map<HighestRatedStallDto>(stall);
+            dto.AverageRating = avgRating;
+            return dto;
         }
     }
 }

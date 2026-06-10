@@ -1,8 +1,13 @@
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using System.Linq;
+using System;
 using STMM.Business.DTOs.Stall;
 using STMM.Business.Interfaces;
+using STMM.DataAccess.Data;
+using STMM.DataAccess.Entities;
 
 namespace STMM.API.Controllers
 {
@@ -15,6 +20,13 @@ namespace STMM.API.Controllers
         public StallsController(IStallService stallService)
         {
             _stallService = stallService;
+        }
+
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<StallDto>>> GetAllStalls()
+        {
+            var stalls = await _stallService.GetAllStallsAsync();
+            return Ok(stalls);
         }
 
         [HttpGet("area/{areaId}")]
@@ -91,6 +103,18 @@ namespace STMM.API.Controllers
             var result = await _stallService.DeactivateStallAsync(id);
             if (!result) return NotFound();
             return NoContent();
+        }
+
+        [HttpGet("highest-rated")]
+        public async Task<ActionResult<object>> GetHighestRatedStall()
+        {
+            var result = await _stallService.GetHighestRatedStallAsync();
+            if (result == null)
+            {
+                return NotFound("Không tìm thấy gian hàng nào.");
+            }
+
+            return Ok(result);
         }
     }
 }

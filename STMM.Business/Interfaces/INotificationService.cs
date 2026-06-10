@@ -22,5 +22,15 @@ namespace STMM.Business.Interfaces
         /// Mark a notification as read.
         /// </summary>
         Task MarkAsReadAsync(int notiId, CancellationToken ct = default);
+
+        /// <summary>
+        /// Mark all notifications as read for a user.
+        /// </summary>
+        Task MarkAllAsReadAsync(int userId, string? roleName, CancellationToken ct = default);
+
+        /// <summary>
+        /// Delete a notification.
+        /// </summary>
+        Task DeleteAsync(int notiId, CancellationToken ct = default);
     }
 }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import authService from "../../services/authService";
+import authService from "../../../services/authService";
 import "./LoginForm.css";
 
 export default function LoginForm({ onBack, onGoToRegister, onGoToForgotPassword, onLoginSuccess }) {

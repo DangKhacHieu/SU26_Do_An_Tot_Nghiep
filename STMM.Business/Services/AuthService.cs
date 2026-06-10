@@ -29,6 +29,7 @@ namespace STMM.Business.Services
         private readonly IMapper _mapper;
         private readonly IValidator<LoginRequest> _loginValidator;
         private readonly IValidator<RegisterRequest> _registerValidator;
+        private readonly IValidator<ChangePasswordRequest> _changePasswordValidator;
         private readonly IConfiguration _configuration;
         private readonly IEmailService _emailService;
         private readonly IMemoryCache _cache;
@@ -39,6 +40,7 @@ namespace STMM.Business.Services
             IMapper mapper,
             IValidator<LoginRequest> loginValidator,
             IValidator<RegisterRequest> registerValidator,
+            IValidator<ChangePasswordRequest> changePasswordValidator,
             IConfiguration configuration,
             IEmailService emailService,
             IMemoryCache cache)
@@ -48,6 +50,7 @@ namespace STMM.Business.Services
             _mapper = mapper;
             _loginValidator = loginValidator;
             _registerValidator = registerValidator;
+            _changePasswordValidator = changePasswordValidator;
             _configuration = configuration;
             _emailService = emailService;
             _cache = cache;
@@ -671,6 +674,33 @@ namespace STMM.Business.Services
                 User = userDto,
                 RedirectUrl = GetRedirectUrlByRole(roleName)
             };
+        }
+
+        public async Task ChangePasswordAsync(int userId, ChangePasswordRequest request, CancellationToken ct = default)
+        {
+            var validationResult = await _changePasswordValidator.ValidateAsync(request, ct);
+            if (!validationResult.IsValid)
+            {
+                var errors = string.Join(", ", validationResult.Errors.Select(e => e.ErrorMessage));
+                throw new BadRequestException(errors);
+            }
+
+            var user = await _userRepository.GetByIdAsync(userId, ct);
+            if (user == null)
+            {
+                throw new NotFoundException("Tài khoản không tồn tại");
+            }
+
+            if (!BCrypt.Net.BCrypt.Verify(request.CurrentPassword, user.Password))
+            {
+                throw new BadRequestException("Mật khẩu cũ không chính xác");
+            }
+
+            user.Password = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+            user.UpdatedAt = DateTime.UtcNow;
+
+            _userRepository.Update(user);
+            await _userRepository.SaveChangesAsync(ct);
         }
 
         private class GoogleTokenInfo

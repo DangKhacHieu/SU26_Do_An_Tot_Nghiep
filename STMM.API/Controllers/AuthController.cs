@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 using STMM.Business.DTOs.Auth;
 using STMM.Business.Interfaces;
 
@@ -121,6 +123,25 @@ namespace STMM.API.Controllers
         {
             var result = await _authService.LoginWithGoogleAsync(request, ct);
             return Ok(result);
+        }
+
+        /// <summary>
+        /// Đổi mật khẩu người dùng
+        /// </summary>
+        [Authorize]
+        [HttpPost("change-password")]
+        public async Task<IActionResult> ChangePassword(
+            [FromBody] ChangePasswordRequest request,
+            CancellationToken ct)
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
+            {
+                return Unauthorized(new { message = "Không xác định được người dùng." });
+            }
+
+            await _authService.ChangePasswordAsync(userId, request, ct);
+            return Ok(new { message = "Đổi mật khẩu thành công." });
         }
     }
 }

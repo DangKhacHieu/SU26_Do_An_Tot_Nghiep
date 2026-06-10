@@ -61,6 +61,32 @@ class NotificationService {
       throw new Error(error.response?.data?.message || 'Không thể đánh dấu thông báo đã đọc');
     }
   }
+
+  /**
+   * Đánh dấu tất cả thông báo là đã đọc
+   */
+  async markAllAsRead(userId: number, roleName?: string): Promise<void> {
+    try {
+      const params: any = { userId };
+      if (roleName) {
+        params.roleName = roleName;
+      }
+      await this.api.put('/notifications/read-all', null, { params });
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Không thể đánh dấu tất cả thông báo là đã đọc');
+    }
+  }
+
+  /**
+   * Xóa thông báo
+   */
+  async deleteNotification(notiId: number): Promise<void> {
+    try {
+      await this.api.delete(`/notifications/${notiId}`);
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Không thể xóa thông báo');
+    }
+  }
 }
 
 export default new NotificationService();
