@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace STMM.DataAccess.Entities;
@@ -27,6 +27,16 @@ public partial class Vendor
     /// Mã số thuế doanh nghiệp
     /// </summary>
     public string? TaxCode { get; set; }
+
+    /// <summary>
+    /// Số tài khoản ngân hàng
+    /// </summary>
+    public string? BankAccount { get; set; }
+
+    /// <summary>
+    /// Tên ngân hàng
+    /// </summary>
+    public string? BankName { get; set; }
 
     /// <summary>
     /// Link giấy phép kinh doanh scan

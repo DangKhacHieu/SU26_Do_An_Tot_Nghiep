@@ -94,9 +94,16 @@ const NAV_GROUPS = [
         icon: <IconContent />,
         childKeys: [],
       },
+      {
+        key: 'contracts',
+        label: 'Quản lý Hợp đồng',
+        icon: <IconContent />,
+        childKeys: ['contract-form', 'contract-detail'],
+      },
     ],
   },
 ];
+
 
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function SidebarManager({ currentPage, navigate }) {

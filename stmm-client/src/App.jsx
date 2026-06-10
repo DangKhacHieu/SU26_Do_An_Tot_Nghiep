@@ -40,6 +40,10 @@ import FaqListManager from "./pages/FE_Manager/FaqListManager";
 import FaqFormManager from "./pages/FE_Manager/FaqFormManager";
 import MarketAreaList from "./pages/FE_Manager/MarketArea/components/MarketAreaList";
 import BusinessCategoryListManager from "./pages/FE_Manager/BusinessCategoryListManager";
+import ContractListManager from "./pages/FE_Manager/ContractListManager";
+import ContractDetailManager from "./pages/FE_Manager/ContractDetailManager";
+import ContractFormManager from "./pages/FE_Manager/ContractFormManager";
+
 
 // FE Admin System Imports
 import SidebarAdminSystem from "./pages/FE_AdminSystem/SidebarAdminSystem";
@@ -93,6 +97,19 @@ const PAGE_TITLES = {
     title: "Quản lý Danh mục Kinh doanh",
     sub: "Quản lý danh mục ngành hàng, hàng hóa kinh doanh tại quầy sạp chợ.",
   },
+  contracts: {
+    title: "Quản lý Hợp đồng",
+    sub: "Quản lý, gia hạn, chấm dứt và in hợp đồng thuê ki-ốt.",
+  },
+  "contract-form": {
+    title: "Tạo Hợp đồng Mới",
+    sub: "Nhập thông tin chi tiết để tạo hợp đồng thuê sạp.",
+  },
+  "contract-detail": {
+    title: "Chi tiết Hợp đồng",
+    sub: "Xem thông tin chi tiết, xuất in bản cứng, hoặc đính kèm bản quét ký tên.",
+  },
+
 
   "admin-dashboard": {
     title: "Tổng quan hệ thống (Admin)",
@@ -203,6 +220,33 @@ function App() {
             addToast={addToast}
           />
         );
+
+      case "contracts":
+        return (
+          <ContractListManager
+            navigate={navigateConsole}
+            addToast={addToast}
+          />
+        );
+
+      case "contract-form":
+        return (
+          <ContractFormManager
+            contractId={currentUserId}
+            navigate={navigateConsole}
+            addToast={addToast}
+          />
+        );
+
+      case "contract-detail":
+        return (
+          <ContractDetailManager
+            contractId={currentUserId}
+            navigate={navigateConsole}
+            addToast={addToast}
+          />
+        );
+
 
       case "users":
         return (
