@@ -46,3 +46,12 @@ export interface PaymentSummaryDto {
   method: string;
   paidAt: string;
 }
+
+export interface UnpaidInvoiceSummaryDto {
+  invoiceId: number;
+  month: number;
+  year: number;
+  totalAmount: number;
+  dueDate: string | null;
+  feeTypeSummary: string;
+}

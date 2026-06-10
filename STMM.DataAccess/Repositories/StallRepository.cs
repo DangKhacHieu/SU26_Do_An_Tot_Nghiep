@@ -49,42 +49,63 @@ namespace STMM.DataAccess.Repositories
 
             var totalCount = await query.CountAsync(ct);
 
-            var items = await query
+            var stallsList = await query
                 .OrderBy(s => s.Code)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
-                .Select(s => new StallTaskSummaryQueryResult(
+                .Select(s => new {
                     s.StallId,
                     s.Code,
-                    s.Category != null ? s.Category.Name : string.Empty,
-                    s.Status ?? string.Empty,
-                    s.Contracts.Where(c => c.Status == "Active" && c.IsDeleted != true)
+                    StallCategory = s.Category != null ? s.Category.Name : string.Empty,
+                    StallStatus = s.Status ?? string.Empty,
+                    VendorName = s.Contracts.Where(c => c.Status == "Active" && c.IsDeleted != true)
                                .Select(c => c.Vendor.BusinessName)
                                .FirstOrDefault() ?? string.Empty,
-                    s.Contracts.Where(c => c.Status == "Active" && c.IsDeleted != true)
+                    VendorPhone = s.Contracts.Where(c => c.Status == "Active" && c.IsDeleted != true)
                                .Select(c => c.Vendor.User.Phone)
                                .FirstOrDefault() ?? string.Empty,
-                    s.Contracts.Where(c => c.Status == "Active" && c.IsDeleted != true)
+                    HasUnpaidInvoice = s.Contracts.Where(c => c.Status == "Active" && c.IsDeleted != true)
                                .Any(c => c.Invoices.Any(i => i.Status == "Unpaid" && i.IsDeleted != true)),
-                    s.Contracts.Where(c => c.Status == "Active" && c.IsDeleted != true)
+                    UnpaidInvoiceCount = s.Contracts.Where(c => c.Status == "Active" && c.IsDeleted != true)
                                .SelectMany(c => c.Invoices.Where(i => i.Status == "Unpaid" && i.IsDeleted != true))
                                .Count(),
-                    s.Contracts.Where(c => c.Status == "Active" && c.IsDeleted != true)
+                    UnpaidTotalAmount = s.Contracts.Where(c => c.Status == "Active" && c.IsDeleted != true)
                                .SelectMany(c => c.Invoices.Where(i => i.Status == "Unpaid" && i.IsDeleted != true))
                                .Sum(i => (decimal?)i.TotalAmount) ?? 0m,
-                    s.Issues.SelectMany(i => i.StaffTasks).Count(t => t.AssignedToUserId == staffUserId && t.Status != "Completed") +
-                    s.Requests.SelectMany(r => r.StaffTasks).Count(t => t.AssignedToUserId == staffUserId && t.Status != "Completed"),
-                    s.Issues.SelectMany(i => i.StaffTasks)
-                            .Where(t => t.AssignedToUserId == staffUserId && t.Status != "Completed")
-                            .Select(t => t.TaskType)
-                            .Concat(
-                                s.Requests.SelectMany(r => r.StaffTasks)
-                                          .Where(t => t.AssignedToUserId == staffUserId && t.Status != "Completed")
-                                          .Select(t => t.TaskType)
-                            )
-                            .Distinct()
-                ))
+                })
                 .ToListAsync(ct);
+
+            var stallIds = stallsList.Select(s => s.StallId).ToList();
+
+            var issueTasks = await _context.StaffTasks
+                .Where(t => t.AssignedToUserId == staffUserId && t.Status != "Completed" && t.Issue != null && stallIds.Contains(t.Issue.StallId))
+                .Select(t => new { StallId = t.Issue.StallId, t.TaskType })
+                .ToListAsync(ct);
+
+            var requestTasks = await _context.StaffTasks
+                .Where(t => t.AssignedToUserId == staffUserId && t.Status != "Completed" && t.Request != null && stallIds.Contains(t.Request.StallId))
+                .Select(t => new { StallId = t.Request.StallId, t.TaskType })
+                .ToListAsync(ct);
+
+            var items = stallsList.Select(s => {
+                var stallIssueTasks = issueTasks.Where(t => t.StallId == s.StallId).Select(t => t.TaskType);
+                var stallRequestTasks = requestTasks.Where(t => t.StallId == s.StallId).Select(t => t.TaskType);
+                var taskTypes = stallIssueTasks.Concat(stallRequestTasks).Distinct().ToList();
+
+                return new StallTaskSummaryQueryResult(
+                    s.StallId,
+                    s.Code,
+                    s.StallCategory,
+                    s.StallStatus,
+                    s.VendorName,
+                    s.VendorPhone,
+                    s.HasUnpaidInvoice,
+                    s.UnpaidInvoiceCount,
+                    s.UnpaidTotalAmount,
+                    taskTypes.Count,
+                    taskTypes
+                );
+            }).ToList();
 
             return (items, totalCount);
         }

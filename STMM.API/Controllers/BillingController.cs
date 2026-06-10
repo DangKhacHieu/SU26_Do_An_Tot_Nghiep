@@ -40,5 +40,15 @@ namespace STMM.API.Controllers
             var result = await _billingService.ReceiveCashPaymentAsync(userId, request, ct);
             return Ok(result);
         }
+
+        /// <summary>
+        /// Get list of unpaid invoices for a specific stall (to choose for cash payment).
+        /// </summary>
+        [HttpGet("invoices/stall/{stallId}/unpaid")]
+        public async Task<IActionResult> GetUnpaidInvoicesByStall(int stallId, CancellationToken ct)
+        {
+            var result = await _billingService.GetUnpaidInvoicesByStallAsync(stallId, ct);
+            return Ok(result);
+        }
     }
 }

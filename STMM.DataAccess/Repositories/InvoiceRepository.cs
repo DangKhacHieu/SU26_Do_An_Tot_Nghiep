@@ -38,5 +38,17 @@ namespace STMM.DataAccess.Repositories
                         .ThenInclude(s => s.Category)
                 .FirstOrDefaultAsync(i => i.InvoiceId == invoiceId && i.IsDeleted != true, ct);
         }
+
+        public async Task<List<Invoice>> GetUnpaidInvoicesByStallAsync(int stallId, CancellationToken ct = default)
+        {
+            return await _context.Invoices
+                .Include(i => i.InvoiceDetails)
+                    .ThenInclude(d => d.FeeType)
+                .Where(i => i.Contract.StallId == stallId && i.Status == "Unpaid" && i.IsDeleted != true)
+                .OrderBy(i => i.Year)
+                .ThenBy(i => i.Month)
+                .AsNoTracking()
+                .ToListAsync(ct);
+        }
     }
 }

@@ -14,5 +14,10 @@ namespace STMM.Business.Interfaces
         /// Updates status to Pending Confirmation and sends notification to Vendor.
         /// </summary>
         Task<PaymentResultDto> ReceiveCashPaymentAsync(int staffUserId, ReceiveCashPaymentRequest request, CancellationToken ct = default);
+
+        /// <summary>
+        /// Get list of unpaid invoices for a specific stall.
+        /// </summary>
+        Task<List<UnpaidInvoiceSummaryDto>> GetUnpaidInvoicesByStallAsync(int stallId, CancellationToken ct = default);
     }
 }
