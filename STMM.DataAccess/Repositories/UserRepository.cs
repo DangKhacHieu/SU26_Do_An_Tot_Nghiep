@@ -56,6 +56,7 @@ namespace STMM.DataAccess.Repositories
         {
             return await _dbSet
                 .Include(u => u.Role)
+                .Include(u => u.Vendor)
                 .FirstOrDefaultAsync(u => u.UserId == id && u.IsDeleted != true, ct);
         }
 

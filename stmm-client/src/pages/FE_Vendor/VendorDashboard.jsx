@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import "./VendorDashboard.css";
 import VendorServiceList from "../FE_Vendor/VendorServices/VendorServiceList";
 import VendorMyServices from "../FE_Vendor/VendorServices/VendorMyServices";
+import VendorProfile from "./VendorProfile";
 
 // Icons
 const IconServices = () => (
@@ -139,7 +140,9 @@ function VendorDashboard({ user, onBack, onLogout }) {
             </div>
             <div className="vendor-topbar-icons">
               <IconNotifications />
-              <IconUser />
+              <div style={{ cursor: 'pointer' }} onClick={() => setActiveMenu('PROFILE')}>
+                  <IconUser />
+              </div>
               <IconSetting />
             </div>
           </div>
@@ -166,7 +169,13 @@ function VendorDashboard({ user, onBack, onLogout }) {
             </div>
           )}
 
-          {activeMenu !== 'SERVICES' && activeMenu !== 'REQUESTS' && (
+          {activeMenu === 'PROFILE' && (
+            <div style={{ height: '100%' }}>
+              <VendorProfile />
+            </div>
+          )}
+
+          {activeMenu !== 'SERVICES' && activeMenu !== 'REQUESTS' && activeMenu !== 'PROFILE' && (
             <div style={{ color: '#888', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
               <h2>Chức năng {activeMenu} đang được phát triển.</h2>
             </div>

@@ -224,6 +224,7 @@ namespace STMM.Business.Services
 
             var user = await _userRepository.Query()
                 .Include(u => u.Role)
+                .Include(u => u.Vendor)
                 .FirstOrDefaultAsync(u => u.UserId == userId && u.IsDeleted != true, ct);
 
             if (user == null)
@@ -252,6 +253,11 @@ namespace STMM.Business.Services
             user.Name = request.Name;
             user.Phone = request.Phone;
             user.UpdatedAt = DateTime.UtcNow;
+
+            if (user.Vendor != null && request.BusinessName != null)
+            {
+                user.Vendor.BusinessName = request.BusinessName;
+            }
 
             _userRepository.Update(user);
             await _userRepository.SaveChangesAsync(ct);
@@ -356,6 +362,38 @@ namespace STMM.Business.Services
             await _userRepository.SaveChangesAsync(ct);
 
             return _mapper.Map<UserDto>(user);
+        }
+
+        public async Task<bool> ChangePasswordAsync(int userId, ChangePasswordRequest request, CancellationToken ct = default)
+        {
+            if (request.NewPassword != request.ConfirmPassword)
+            {
+                throw new BadRequestException("Mật khẩu xác nhận không khớp.");
+            }
+
+            if (request.NewPassword.Length < 6)
+            {
+                throw new BadRequestException("Mật khẩu mới phải có ít nhất 6 ký tự.");
+            }
+
+            var user = await _userRepository.GetByIdAsync(userId, ct);
+            if (user == null || user.IsDeleted == true)
+            {
+                throw new NotFoundException("Không tìm thấy người dùng.");
+            }
+
+            if (!BCrypt.Net.BCrypt.Verify(request.CurrentPassword, user.Password))
+            {
+                throw new BadRequestException("Mật khẩu hiện tại không chính xác.");
+            }
+
+            user.Password = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+            user.UpdatedAt = DateTime.UtcNow;
+
+            _userRepository.Update(user);
+            await _userRepository.SaveChangesAsync(ct);
+
+            return true;
         }
     }
 }
