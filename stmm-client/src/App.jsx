@@ -39,6 +39,7 @@ import ContentDetailManager from "./pages/FE_Manager/ContentDetailManager";
 import FaqListManager from "./pages/FE_Manager/FaqListManager";
 import FaqFormManager from "./pages/FE_Manager/FaqFormManager";
 import MarketAreaList from "./pages/FE_Manager/MarketArea/components/MarketAreaList";
+import BusinessCategoryListManager from "./pages/FE_Manager/BusinessCategoryListManager";
 
 // FE Admin System Imports
 import SidebarAdminSystem from "./pages/FE_AdminSystem/SidebarAdminSystem";
@@ -87,6 +88,10 @@ const PAGE_TITLES = {
   "market-areas": {
     title: "Quản lý Mặt bằng",
     sub: "Thiết kế sơ đồ mặt bằng và quản lý các sạp hàng.",
+  },
+  "business-categories": {
+    title: "Quản lý Danh mục Kinh doanh",
+    sub: "Quản lý danh mục ngành hàng, hàng hóa kinh doanh tại quầy sạp chợ.",
   },
 
   "admin-dashboard": {
@@ -190,6 +195,14 @@ function App() {
 
       case "market-areas":
         return <MarketAreaList />;
+
+      case "business-categories":
+        return (
+          <BusinessCategoryListManager
+            navigate={navigateConsole}
+            addToast={addToast}
+          />
+        );
 
       case "users":
         return (

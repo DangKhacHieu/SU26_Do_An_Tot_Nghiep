@@ -8,6 +8,7 @@ using STMM.Business.DTOs.Meter;
 using STMM.Business.DTOs.Task;
 using STMM.Business.DTOs.Area;
 using STMM.Business.DTOs.Stall;
+using STMM.Business.DTOs.BusinessCategory;
 
 namespace STMM.Business.Mappers
 {
@@ -15,6 +16,23 @@ namespace STMM.Business.Mappers
     {
         public MappingProfile()
         {
+            // BusinessCategory mappings
+            CreateMap<BusinessCategory, BusinessCategoryDto>()
+                .ForMember(dest => dest.StallsCount, opt => opt.Ignore())
+                .ForMember(dest => dest.AreasCount, opt => opt.Ignore());
+
+            CreateMap<CreateBusinessCategoryRequest, BusinessCategory>()
+                .ForMember(dest => dest.CategoryId, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.Areas, opt => opt.Ignore())
+                .ForMember(dest => dest.Stalls, opt => opt.Ignore());
+
+            CreateMap<UpdateBusinessCategoryRequest, BusinessCategory>()
+                .ForMember(dest => dest.CategoryId, opt => opt.Ignore())
+                .ForMember(dest => dest.Code, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.Areas, opt => opt.Ignore())
+                .ForMember(dest => dest.Stalls, opt => opt.Ignore());
             // Violation mappings
             CreateMap<Violation, ViolationDto>()
                 .ForMember(dest => dest.CreatedBy, opt => opt.MapFrom(src => src.CreatedByUserId))

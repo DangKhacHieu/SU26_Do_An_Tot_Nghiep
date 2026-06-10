@@ -88,6 +88,12 @@ const NAV_GROUPS = [
         icon: <IconGrid />, // Using IconGrid for Market Areas
         childKeys: [],
       },
+      {
+        key: 'business-categories',
+        label: 'Danh mục kinh doanh',
+        icon: <IconContent />,
+        childKeys: [],
+      },
     ],
   },
 ];

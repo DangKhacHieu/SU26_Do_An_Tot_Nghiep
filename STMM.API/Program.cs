@@ -105,6 +105,7 @@ builder.Services.AddScoped<IAreaService, AreaService>();
 builder.Services.AddScoped<IStallService, StallService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<IBusinessCategoryService, BusinessCategoryService>();
 
 
 // 1. Controllers & JSON Options
