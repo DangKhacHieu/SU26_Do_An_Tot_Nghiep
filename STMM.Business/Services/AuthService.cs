@@ -96,7 +96,7 @@ namespace STMM.Business.Services
                 Phone = user.Phone,
                 RoleId = user.RoleId,
                 RoleName = roleName,
-                Status = user.Status
+                Status = user.Status ?? string.Empty
             };
 
             return new LoginResponse
@@ -452,7 +452,7 @@ namespace STMM.Business.Services
                     Phone = user.Phone,
                     RoleId = user.RoleId,
                     RoleName = roleName,
-                    Status = user.Status
+                    Status = user.Status ?? string.Empty
                 };
 
                 return new LoginResponse
@@ -661,7 +661,7 @@ namespace STMM.Business.Services
                 Phone = user.Phone,
                 RoleId = user.RoleId,
                 RoleName = roleName,
-                Status = user.Status
+                Status = user.Status ?? string.Empty
             };
 
             return new LoginResponse

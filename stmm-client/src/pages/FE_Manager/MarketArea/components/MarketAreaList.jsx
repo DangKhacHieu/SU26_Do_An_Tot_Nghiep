@@ -70,21 +70,31 @@ const MarketAreaList = () => {
 
   const handleSave = async (formData) => {
     try {
-      const payload = {
-        ...formData
-      };
-
       if (selectedArea) {
         const updatePayload = {
-          ...payload,
+          name: formData.name,
+          description: formData.description,
+          categoryName: formData.categoryName,
           minX: selectedArea.minX,
           minY: selectedArea.minY,
-          maxX: selectedArea.maxX,
-          maxY: selectedArea.maxY
+          maxX: selectedArea.minX !== null ? selectedArea.minX + formData.width : formData.width,
+          maxY: selectedArea.minY !== null ? selectedArea.minY + formData.height : formData.height
         };
         await updateArea(selectedArea.areaId, updatePayload);
       } else {
-        await createArea({ ...payload, marketId: 1 });
+        // Create new area. Place it at some default coordinates if we want, 
+        // but backend expects minX, minY, maxX, maxY.
+        const createPayload = {
+          name: formData.name,
+          description: formData.description,
+          categoryName: formData.categoryName,
+          marketId: 1, // default market for now
+          minX: 24, // default starting X
+          minY: 24, // default starting Y
+          maxX: 24 + formData.width,
+          maxY: 24 + formData.height
+        };
+        await createArea(createPayload);
       }
       setIsFormVisible(false);
       fetchAreas();
@@ -164,6 +174,7 @@ const MarketAreaList = () => {
         {isFormVisible && (
           <MarketAreaForm 
             initialData={selectedArea} 
+            existingAreas={areas}
             onSave={handleSave} 
             onCancel={() => setIsFormVisible(false)} 
           />
