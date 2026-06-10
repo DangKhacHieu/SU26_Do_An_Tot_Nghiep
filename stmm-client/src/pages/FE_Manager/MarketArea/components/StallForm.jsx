@@ -1,14 +1,18 @@
 import { useState, useEffect } from 'react';
-import { createStall, updateStall } from '../api/stallApi';
+import { createPortal } from 'react-dom';
+import { createStall, updateStall, updateStallStatus, updateStallLocation } from '../api/stallApi';
 import { getAllCategories } from '../api/categoryApi';
 import styles from './MarketAreaForm.module.css';
 
-const StallForm = ({ initialData, areaId, onSave, onCancel }) => {
+const StallForm = ({ initialData, areaId, areaWidth, areaHeight, onSave, onCancel }) => {
     const [formData, setFormData] = useState({
         code: '',
         categoryName: '',
         status: 'Available',
-        size: ''
+        size: '',
+        description: '',
+        width: 100,
+        height: 100
     });
     const [categories, setCategories] = useState([]);
     const [error, setError] = useState('');
@@ -32,7 +36,10 @@ const StallForm = ({ initialData, areaId, onSave, onCancel }) => {
                 code: initialData.code || '',
                 categoryName: initialData.categoryName || '',
                 status: initialData.status || 'Available',
-                size: initialData.size || ''
+                size: initialData.size || '',
+                description: initialData.description || '',
+                width: initialData.width || 100,
+                height: initialData.height || 100
             });
         }
     }, [initialData]);
@@ -58,8 +65,31 @@ const StallForm = ({ initialData, areaId, onSave, onCancel }) => {
 
             if (initialData?.stallId) {
                 await updateStall(initialData.stallId, payload);
+                
+                let currentWidth = parseFloat(formData.width) || 100;
+                let currentHeight = parseFloat(formData.height) || 100;
+                
+                // Clamp width and height to area bounds if available
+                if (areaWidth) currentWidth = Math.min(currentWidth, areaWidth);
+                if (areaHeight) currentHeight = Math.min(currentHeight, areaHeight);
+                
+                if (currentWidth !== initialData.width || currentHeight !== initialData.height) {
+                    await updateStallLocation(initialData.stallId, {
+                        width: currentWidth,
+                        height: currentHeight,
+                        mapX: initialData.mapX || 0,
+                        mapY: initialData.mapY || 0
+                    });
+                }
             } else {
-                await createStall({ ...payload, areaId });
+                let currentWidth = parseFloat(formData.width) || 100;
+                let currentHeight = parseFloat(formData.height) || 100;
+                
+                // Clamp width and height to area bounds if available
+                if (areaWidth) currentWidth = Math.min(currentWidth, areaWidth);
+                if (areaHeight) currentHeight = Math.min(currentHeight, areaHeight);
+
+                await createStall({ ...payload, areaId, width: currentWidth, height: currentHeight });
             }
             onSave();
         } catch (err) {
@@ -70,12 +100,12 @@ const StallForm = ({ initialData, areaId, onSave, onCancel }) => {
         }
     };
 
-    return (
-        <div className={styles.overlay}>
-            <div className={styles.panel}>
+    const modalContent = (
+        <div className={styles.overlay} style={{position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 9999, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+            <div className={styles.panel} style={{maxHeight: '90vh', overflowY: 'auto'}}>
                 <div className={styles.section}>
                     <h2 className={styles.title}>
-                        <span>✎</span> {initialData ? 'Edit Stall' : 'Create New Stall'}
+                        <span>✎</span> {initialData ? 'Chỉnh sửa Sạp' : 'Thêm Sạp mới'}
                     </h2>
                     <button onClick={onCancel} style={{position: 'absolute', top: 24, right: 24, background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 20}}>&times;</button>
                 
@@ -83,7 +113,7 @@ const StallForm = ({ initialData, areaId, onSave, onCancel }) => {
                 
                 <form onSubmit={handleSubmit}>
                     <div className={styles.formGroup}>
-                        <label htmlFor="code">Stall Code <span style={{color: '#ff4d4f'}}>*</span></label>
+                        <label htmlFor="code">Mã sạp (Stall Code) <span style={{color: '#ff4d4f'}}>*</span></label>
                         <input
                             className={styles.input}
                             type="text"
@@ -92,12 +122,15 @@ const StallForm = ({ initialData, areaId, onSave, onCancel }) => {
                             value={formData.code}
                             onChange={handleChange}
                             required
+                            disabled={!!initialData}
+                            title={initialData ? "Không được phép sửa Mã sạp" : ""}
                             placeholder="e.g., A-101"
+                            style={{ backgroundColor: initialData ? '#f5f5f5' : 'white', cursor: initialData ? 'not-allowed' : 'text' }}
                         />
                     </div>
                     
                     <div className={styles.formGroup}>
-                        <label htmlFor="categoryName">Category Name <span style={{color: '#ff4d4f'}}>*</span></label>
+                        <label htmlFor="categoryName">Tên sạp / Ngành hàng (Category) <span style={{color: '#ff4d4f'}}>*</span></label>
                         <input
                             className={styles.input}
                             type="text"
@@ -116,15 +149,33 @@ const StallForm = ({ initialData, areaId, onSave, onCancel }) => {
                             ))}
                         </datalist>
                     </div>
+
+                    <div className={styles.formGroup}>
+                        <label htmlFor="description">Người đang thuê (Tenant Name)</label>
+                        <input
+                            className={styles.input}
+                            type="text"
+                            id="description"
+                            name="description"
+                            value={initialData?.tenantName || ''}
+                            readOnly
+                            disabled
+                            style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed' }}
+                            placeholder="Chưa có người thuê..."
+                            title="Tên người thuê được tự động cập nhật từ hệ thống Hợp đồng"
+                        />
+                    </div>
                     
                     <div className={styles.formGroup}>
-                        <label htmlFor="status">Status</label>
+                        <label htmlFor="status">Tình trạng (Status) {initialData?.tenantName && <span style={{color: '#ff4d4f', fontSize: 10}}>(Đã khóa bởi Hợp đồng)</span>}</label>
                         <select
                             className={styles.select}
                             id="status"
                             name="status"
                             value={formData.status}
                             onChange={handleChange}
+                            disabled={!!initialData?.tenantName}
+                            style={{ backgroundColor: initialData?.tenantName ? '#f5f5f5' : 'white', cursor: initialData?.tenantName ? 'not-allowed' : 'pointer' }}
                         >
                             <option value="Available">Available</option>
                             <option value="Rented">Rented</option>
@@ -132,26 +183,43 @@ const StallForm = ({ initialData, areaId, onSave, onCancel }) => {
                         </select>
                     </div>
 
-                    <div className={styles.formGroup}>
-                        <label htmlFor="size">Size (m²)</label>
-                        <input
-                            className={styles.input}
-                            type="number"
-                            step="0.1"
-                            id="size"
-                            name="size"
-                            value={formData.size}
-                            onChange={handleChange}
-                            placeholder="e.g., 20.5"
-                        />
+                    <div className={styles.formGroup} style={{display: 'flex', gap: 12}}>
+                        <div style={{flex: 1}}>
+                            <label htmlFor="width">Chiều dài hiển thị (px)</label>
+                            <input
+                                className={styles.input}
+                                type="number"
+                                id="width"
+                                name="width"
+                                value={formData.width}
+                                onChange={handleChange}
+                                max={areaWidth || undefined}
+                                title={areaWidth ? `Tối đa ${areaWidth}px (bằng với Khu vực)` : ""}
+                                required
+                            />
+                        </div>
+                        <div style={{flex: 1}}>
+                            <label htmlFor="height">Chiều rộng hiển thị (px)</label>
+                            <input
+                                className={styles.input}
+                                type="number"
+                                id="height"
+                                name="height"
+                                value={formData.height}
+                                onChange={handleChange}
+                                max={areaHeight || undefined}
+                                title={areaHeight ? `Tối đa ${areaHeight}px (bằng với Khu vực)` : ""}
+                                required
+                            />
+                        </div>
                     </div>
                     
                     <div className={styles.actions}>
                         <button type="submit" className={styles.btnPrimary} disabled={loading}>
-                            {loading ? 'Saving...' : 'Save Stall'}
+                            {loading ? 'Đang lưu...' : 'Lưu Sạp'}
                         </button>
                         <button type="button" onClick={onCancel} className={styles.btnSecondary} disabled={loading}>
-                            Cancel
+                            Hủy bỏ
                         </button>
                     </div>
                 </form>
@@ -159,6 +227,8 @@ const StallForm = ({ initialData, areaId, onSave, onCancel }) => {
             </div>
         </div>
     );
+
+    return createPortal(modalContent, document.body);
 };
 
 export default StallForm;

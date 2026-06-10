@@ -17,5 +17,7 @@ namespace STMM.Business.DTOs.Stall
         public double? Size { get; set; }
 
         public DateOnly? FireInsuranceExpiry { get; set; }
+
+        public string? Status { get; set; }
     }
 }

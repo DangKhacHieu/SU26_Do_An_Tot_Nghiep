@@ -117,6 +117,16 @@ namespace STMM.Business.Services
                 return false;
             }
 
+            // Check if any stall in this area has an active contract
+            var hasActiveContracts = await _context.Stalls
+                .Include(s => s.Contracts)
+                .AnyAsync(s => s.AreaId == id && s.IsDeleted != true && s.Contracts.Any(c => c.Status == "Active"));
+
+            if (hasActiveContracts)
+            {
+                throw new InvalidOperationException("Không thể xóa khu vực vì có sạp đang có hợp đồng hiệu lực (có người thuê).");
+            }
+
             existingArea.IsDeleted = true;
             _areaRepository.Update(existingArea);
             await _areaRepository.SaveChangesAsync();

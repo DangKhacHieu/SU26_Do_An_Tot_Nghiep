@@ -27,10 +27,24 @@ namespace STMM.Business.Services
             var stalls = await _context.Stalls
                 .Include(s => s.Area)
                 .Include(s => s.Category)
+                .Include(s => s.Contracts)
+                    .ThenInclude(c => c.Vendor)
                 .Where(s => s.AreaId == areaId && s.IsDeleted != true)
                 .ToListAsync();
 
-            return _mapper.Map<IEnumerable<StallDto>>(stalls);
+            var dtos = _mapper.Map<IEnumerable<StallDto>>(stalls).ToList();
+            
+            for(int i = 0; i < stalls.Count; i++)
+            {
+                var activeContract = stalls[i].Contracts.FirstOrDefault(c => c.Status == "Active");
+                if (activeContract != null)
+                {
+                    dtos[i].Status = "Rented";
+                    dtos[i].TenantName = activeContract.Vendor?.BusinessName;
+                }
+            }
+
+            return dtos;
         }
 
         public async Task<StallDto?> GetStallByIdAsync(int id)
@@ -38,11 +52,21 @@ namespace STMM.Business.Services
             var stall = await _context.Stalls
                 .Include(s => s.Area)
                 .Include(s => s.Category)
+                .Include(s => s.Contracts)
+                    .ThenInclude(c => c.Vendor)
                 .FirstOrDefaultAsync(s => s.StallId == id && s.IsDeleted != true);
 
             if (stall == null) return null;
 
-            return _mapper.Map<StallDto>(stall);
+            var dto = _mapper.Map<StallDto>(stall);
+            var activeContract = stall.Contracts.FirstOrDefault(c => c.Status == "Active");
+            if (activeContract != null)
+            {
+                dto.Status = "Rented";
+                dto.TenantName = activeContract.Vendor?.BusinessName;
+            }
+
+            return dto;
         }
 
         private async Task<int?> ResolveCategoryAsync(int? categoryId, string? categoryName)
@@ -117,6 +141,12 @@ namespace STMM.Business.Services
                 stall.CategoryId = resolvedCategoryId.Value;
             }
 
+            // Force status to Rented if there is an active contract
+            if (await _context.Contracts.AnyAsync(c => c.StallId == id && c.Status == "Active"))
+            {
+                stall.Status = "Rented";
+            }
+
             await _context.SaveChangesAsync();
 
             return await GetStallByIdAsync(id) ?? _mapper.Map<StallDto>(stall);
@@ -157,10 +187,18 @@ namespace STMM.Business.Services
 
         public async Task<bool> DeactivateStallAsync(int id)
         {
-            var stall = await _context.Stalls.FirstOrDefaultAsync(s => s.StallId == id && s.IsDeleted != true);
+            var stall = await _context.Stalls
+                .Include(s => s.Contracts)
+                .FirstOrDefaultAsync(s => s.StallId == id && s.IsDeleted != true);
+            
             if (stall == null)
             {
                 return false;
+            }
+
+            if (stall.Contracts.Any(c => c.Status == "Active"))
+            {
+                throw new InvalidOperationException("Không thể xóa sạp vì sạp đang có hợp đồng hiệu lực (có người thuê).");
             }
 
             stall.IsDeleted = true;

@@ -132,7 +132,6 @@ namespace STMM.Business.Mappers
             CreateMap<UpdateStallDto, Stall>()
                 .ForMember(dest => dest.StallId, opt => opt.Ignore())
                 .ForMember(dest => dest.AreaId, opt => opt.Ignore())
-                .ForMember(dest => dest.Status, opt => opt.Ignore())
                 .ForMember(dest => dest.MapX, opt => opt.Ignore())
                 .ForMember(dest => dest.MapY, opt => opt.Ignore())
                 .ForMember(dest => dest.Width, opt => opt.Ignore())
