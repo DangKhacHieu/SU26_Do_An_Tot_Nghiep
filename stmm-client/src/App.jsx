@@ -14,7 +14,7 @@ import NotificationListPage from "./pages/FE_Customer/Profile/NotificationListPa
 
 import authService from "./services/authService";
 
-import VendorDashboard from "./pages/FE_Customer/VendorDashboard.jsx";
+import VendorDashboard from "./pages/FE_Vendor/VendorDashboard.jsx";
 
 // FE Staff Imports
 import ViolationList from "./pages/FE_Staff/ViolationList";
