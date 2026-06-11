@@ -72,8 +72,8 @@ const IconSetting = () => (
 function VendorDashboard({ user, onBack, onLogout }) {
   const vendorId = user?.userId;
   const [activeMenu, setActiveMenu] = useState('REQUESTS');
-  const [activeSubTab, setActiveSubTab] = useState('my-services');
   const [searchTerm, setSearchTerm] = useState('');
+  const [serviceTab, setServiceTab] = useState('AVAILABLE'); // 'AVAILABLE' | 'MY_SERVICES'
 
   const MENU_ITEMS = [
     { id: 'SERVICES', label: 'SERVICES', icon: <IconServices /> },
@@ -150,21 +150,22 @@ function VendorDashboard({ user, onBack, onLogout }) {
 
         {/* Content */}
         <main className="vendor-content">
-          {activeMenu === 'SERVICES' && (
+          {activeMenu === 'SERVICES' && serviceTab === 'AVAILABLE' && (
             <div style={{ height: '100%' }}>
               <VendorServiceList 
                 vendorId={vendorId} 
                 searchTerm={searchTerm} 
+                onViewMyServices={() => setServiceTab('MY_SERVICES')}
               />
             </div>
           )}
 
-          {activeMenu === 'REQUESTS' && (
+          {activeMenu === 'SERVICES' && serviceTab === 'MY_SERVICES' && (
             <div style={{ height: '100%' }}>
               <VendorMyServices 
                 vendorId={vendorId} 
                 searchTerm={searchTerm} 
-                onAddService={() => setActiveMenu('SERVICES')} 
+                onAddService={() => setServiceTab('AVAILABLE')} 
               />
             </div>
           )}
@@ -175,7 +176,7 @@ function VendorDashboard({ user, onBack, onLogout }) {
             </div>
           )}
 
-          {activeMenu !== 'SERVICES' && activeMenu !== 'REQUESTS' && activeMenu !== 'PROFILE' && (
+          {activeMenu !== 'SERVICES' && activeMenu !== 'PROFILE' && (
             <div style={{ color: '#888', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
               <h2>Chức năng {activeMenu} đang được phát triển.</h2>
             </div>

@@ -26,12 +26,16 @@ public class VendorServicesController : ControllerBase
         _context = context;
     }
 
-    private int GetVendorId()
+    private async Task<int> GetVendorIdAsync(CancellationToken ct)
     {
-        var vendorIdStr = User.FindFirstValue("VendorId") ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (int.TryParse(vendorIdStr, out var vendorId))
+        var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (int.TryParse(userIdStr, out var userId))
         {
-            return vendorId;
+            var vendor = await _context.Vendors.FirstOrDefaultAsync(v => v.UserId == userId, ct);
+            if (vendor != null)
+            {
+                return vendor.VendorId;
+            }
         }
         throw new UnauthorizedAccessException("Không xác định được danh tính người bán.");
     }
@@ -39,7 +43,7 @@ public class VendorServicesController : ControllerBase
     [HttpGet("available")]
     public async Task<IActionResult> GetAvailableServices(CancellationToken ct)
     {
-        var vendorId = GetVendorId();
+        var vendorId = await GetVendorIdAsync(ct);
         var services = await _vendorServiceManagement.GetAvailableServicesAsync(vendorId, ct);
         return Ok(services);
     }
@@ -47,15 +51,23 @@ public class VendorServicesController : ControllerBase
     [HttpGet("my-services")]
     public async Task<IActionResult> GetMyServices(CancellationToken ct)
     {
-        var vendorId = GetVendorId();
+        var vendorId = await GetVendorIdAsync(ct);
         var myServices = await _vendorServiceManagement.GetMyServicesAsync(vendorId, ct);
         return Ok(myServices);
+    }
+
+    [HttpGet("my-stalls")]
+    public async Task<IActionResult> GetMyStalls(CancellationToken ct)
+    {
+        var vendorId = await GetVendorIdAsync(ct);
+        var stalls = await _vendorServiceManagement.GetMyStallsAsync(vendorId, ct);
+        return Ok(stalls);
     }
 
     [HttpPost("register")]
     public async Task<IActionResult> RegisterService([FromBody] RegisterServiceRequest request, CancellationToken ct)
     {
-        var vendorId = GetVendorId();
+        var vendorId = await GetVendorIdAsync(ct);
         var result = await _vendorServiceManagement.RegisterServiceAsync(vendorId, request, ct);
         return Ok(new { message = "Đăng ký thành công. Vui lòng đợi Ban quản lý phê duyệt để kích hoạt dịch vụ.", data = result });
     }
@@ -63,7 +75,7 @@ public class VendorServicesController : ControllerBase
     [HttpPost("{id}/cancel")]
     public async Task<IActionResult> CancelService(int id, CancellationToken ct)
     {
-        var vendorId = GetVendorId();
+        var vendorId = await GetVendorIdAsync(ct);
         await _vendorServiceManagement.CancelServiceAsync(vendorId, id, ct);
         return Ok(new { message = "Yêu cầu hủy dịch vụ đã được ghi nhận thành công." });
     }

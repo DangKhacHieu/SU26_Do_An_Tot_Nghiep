@@ -2,22 +2,30 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import '../../../AppDashboard.css';
 
-const VendorServiceList = ({ vendorId, searchTerm = '' }) => {
+const VendorServiceList = ({ vendorId, searchTerm = '', onViewMyServices }) => {
     const [services, setServices] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [confirmService, setConfirmService] = useState(null);
     const [viewService, setViewService] = useState(null);
-    const [stallId, setStallId] = useState(''); // Need to select stall to register
+    const [myStalls, setMyStalls] = useState([]);
+    const [selectedStalls, setSelectedStalls] = useState([]);
+    const [isRegistering, setIsRegistering] = useState(false);
 
     useEffect(() => {
         const fetchServices = async () => {
             try {
                 const token = localStorage.getItem('accessToken');
-                const response = await axios.get('http://localhost:5056/api/vendor/services/available', {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-                setServices(response.data);
+                const [servicesRes, stallsRes] = await Promise.all([
+                    axios.get('http://localhost:5056/api/vendor/services/available', {
+                        headers: { Authorization: `Bearer ${token}` }
+                    }),
+                    axios.get('http://localhost:5056/api/vendor/services/my-stalls', {
+                        headers: { Authorization: `Bearer ${token}` }
+                    })
+                ]);
+                setServices(servicesRes.data);
+                setMyStalls(stallsRes.data || []);
             } catch (err) {
                 setError('Không thể tải danh sách dịch vụ.');
                 console.error(err);
@@ -30,28 +38,49 @@ const VendorServiceList = ({ vendorId, searchTerm = '' }) => {
 
     const handleRegisterClick = (service) => {
         setConfirmService(service);
+        if (myStalls.length === 1) {
+            setSelectedStalls([myStalls[0].stallId]);
+        } else {
+            setSelectedStalls([]);
+        }
     };
 
     const handleConfirmRegister = async () => {
-        if (!stallId) {
-            alert('Vui lòng nhập hoặc chọn mã Sạp của bạn để đăng ký.');
+        if (selectedStalls.length === 0) {
+            alert('Vui lòng chọn ít nhất một Sạp để đăng ký dịch vụ.');
             return;
         }
 
+        setIsRegistering(true);
         try {
             const token = localStorage.getItem('accessToken');
-            const response = await axios.post('http://localhost:5056/api/vendor/services/register', {
-                serviceId: confirmService.serviceId,
-                stallId: parseInt(stallId)
-            }, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            alert(response.data.message);
+            const promises = selectedStalls.map(sId => 
+                axios.post('http://localhost:5056/api/vendor/services/register', {
+                    serviceId: confirmService.serviceId,
+                    stallId: parseInt(sId)
+                }, {
+                    headers: { Authorization: `Bearer ${token}` }
+                })
+            );
+
+            await Promise.all(promises);
+            
+            alert('Đăng ký dịch vụ thành công cho các sạp đã chọn! Vui lòng đợi Ban quản lý phê duyệt.');
             setConfirmService(null);
         } catch (err) {
-            const msg = err.response?.data?.message || 'Có lỗi xảy ra khi đăng ký dịch vụ.';
+            const msg = err.response?.data?.message || 'Có lỗi xảy ra khi đăng ký dịch vụ cho một số sạp.';
             alert(msg);
+        } finally {
+            setIsRegistering(false);
         }
+    };
+
+    const handleToggleStall = (stallId) => {
+        setSelectedStalls(prev => 
+            prev.includes(stallId) 
+                ? prev.filter(id => id !== stallId)
+                : [...prev, stallId]
+        );
     };
 
     if (loading) return <div>Đang tải danh sách dịch vụ...</div>;
@@ -69,6 +98,12 @@ const VendorServiceList = ({ vendorId, searchTerm = '' }) => {
                     <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 'bold' }}>Available Services</h2>
                     <span style={{ color: '#888', fontSize: '13px' }}>Explore and register for new services</span>
                 </div>
+                <button 
+                    onClick={onViewMyServices}
+                    style={{ background: '#fff', color: '#000', border: '1px solid #000', padding: '10px 16px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                    My Services
+                </button>
             </div>
 
             <div style={{ display: 'flex', gap: '16px', marginBottom: '24px', alignItems: 'flex-end' }}>
@@ -155,22 +190,33 @@ const VendorServiceList = ({ vendorId, searchTerm = '' }) => {
                         <p style={{ marginTop: '16px' }}>Bạn đang yêu cầu đăng ký dịch vụ: <strong>{confirmService.name}</strong></p>
                         
                         <div style={{ marginTop: '24px' }}>
-                            <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', fontSize: '14px' }}>Mã ID Sạp thụ hưởng dịch vụ:</label>
-                            <input 
-                                type="number" 
-                                value={stallId} 
-                                onChange={e => setStallId(e.target.value)} 
-                                placeholder="Nhập ID Sạp của bạn (VD: 1)" 
-                                style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ccc', outline: 'none' }}
-                            />
+                            <label style={{ display: 'block', marginBottom: '12px', fontWeight: 'bold', fontSize: '14px' }}>Chọn Sạp để đăng ký:</label>
+                            {myStalls.length === 0 ? (
+                                <p style={{ color: '#ff4d4f', fontSize: '14px', margin: 0, padding: '12px', background: '#fff2f0', borderRadius: '6px' }}>Bạn chưa có hợp đồng thuê sạp nào có thể đăng ký dịch vụ.</p>
+                            ) : (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '200px', overflowY: 'auto' }}>
+                                    {myStalls.map(stall => (
+                                        <label key={stall.stallId} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '8px', border: '1px solid #e5e7eb', borderRadius: '6px' }}>
+                                            <input 
+                                                type="checkbox" 
+                                                checked={selectedStalls.includes(stall.stallId)} 
+                                                onChange={() => handleToggleStall(stall.stallId)} 
+                                                style={{ width: '16px', height: '16px' }}
+                                            />
+                                            <span>Sạp {stall.code} {stall.size ? `(${stall.size}m²)` : ''}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                            )}
                         </div>
 
                         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '32px' }}>
-                            <button onClick={() => setConfirmService(null)} style={{ padding: '10px 20px', border: '1px solid #ccc', background: 'transparent', borderRadius: '6px', cursor: 'pointer' }}>Hủy</button>
+                            <button onClick={() => setConfirmService(null)} disabled={isRegistering} style={{ padding: '10px 20px', border: '1px solid #ccc', background: 'transparent', borderRadius: '6px', cursor: 'pointer' }}>Hủy</button>
                             <button 
                                 onClick={handleConfirmRegister} 
-                                style={{ padding: '10px 20px', border: 'none', background: '#000', color: 'white', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>
-                                Xác nhận
+                                disabled={isRegistering || myStalls.length === 0 || selectedStalls.length === 0}
+                                style={{ padding: '10px 20px', border: 'none', background: isRegistering || myStalls.length === 0 || selectedStalls.length === 0 ? '#9ca3af' : '#000', color: 'white', borderRadius: '6px', cursor: isRegistering || myStalls.length === 0 || selectedStalls.length === 0 ? 'not-allowed' : 'pointer', fontWeight: 'bold' }}>
+                                {isRegistering ? 'Đang xử lý...' : 'Xác nhận Đăng ký'}
                             </button>
                         </div>
                     </div>

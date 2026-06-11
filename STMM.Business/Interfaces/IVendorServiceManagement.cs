@@ -9,6 +9,7 @@ public interface IVendorServiceManagement
 {
     Task<IEnumerable<ServiceDto>> GetAvailableServicesAsync(int vendorId, CancellationToken ct = default);
     Task<IEnumerable<ServiceRegistrationDto>> GetMyServicesAsync(int vendorId, CancellationToken ct = default);
+    Task<IEnumerable<STMM.Business.DTOs.Stall.StallDto>> GetMyStallsAsync(int vendorId, CancellationToken ct = default);
     Task<ServiceRegistrationDto> RegisterServiceAsync(int vendorId, RegisterServiceRequest request, CancellationToken ct = default);
     Task CancelServiceAsync(int vendorId, int registrationId, CancellationToken ct = default);
 }

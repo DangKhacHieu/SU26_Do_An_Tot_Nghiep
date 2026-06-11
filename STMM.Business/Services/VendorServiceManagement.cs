@@ -77,6 +77,26 @@ public class VendorServiceManagement : IVendorServiceManagement
         });
     }
 
+    public async Task<IEnumerable<STMM.Business.DTOs.Stall.StallDto>> GetMyStallsAsync(int vendorId, CancellationToken ct = default)
+    {
+        var vendorContracts = await _contractRepository.Query()
+            .Include(c => c.Stall)
+            .Where(c => c.VendorId == vendorId && (c.Status == "Active" || c.Status == "Pending" || c.Status == "PendingApproval"))
+            .ToListAsync(ct);
+
+        var stalls = vendorContracts.Select(c => c.Stall).Where(s => s != null).DistinctBy(s => s.StallId);
+        
+        return stalls.Select(s => new STMM.Business.DTOs.Stall.StallDto
+        {
+            StallId = s.StallId,
+            Code = s.Code,
+            AreaId = s.AreaId,
+            CategoryId = s.CategoryId,
+            Size = s.Size,
+            Status = s.Status
+        });
+    }
+
     public async Task<ServiceRegistrationDto> RegisterServiceAsync(int vendorId, RegisterServiceRequest request, CancellationToken ct = default)
     {
         // A.4.1 Debt Restriction
