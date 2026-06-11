@@ -155,6 +155,7 @@ function VendorDashboard({ user, onBack, onLogout }) {
               <VendorServiceList 
                 vendorId={vendorId} 
                 searchTerm={searchTerm} 
+                setSearchTerm={setSearchTerm}
                 onViewMyServices={() => setServiceTab('MY_SERVICES')}
               />
             </div>
@@ -165,6 +166,7 @@ function VendorDashboard({ user, onBack, onLogout }) {
               <VendorMyServices 
                 vendorId={vendorId} 
                 searchTerm={searchTerm} 
+                setSearchTerm={setSearchTerm}
                 onAddService={() => setServiceTab('AVAILABLE')} 
               />
             </div>

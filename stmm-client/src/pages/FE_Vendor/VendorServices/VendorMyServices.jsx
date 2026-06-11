@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import '../../../AppDashboard.css';
 
-const VendorMyServices = ({ vendorId, searchTerm = '', onAddService }) => {
+const VendorMyServices = ({ vendorId, searchTerm = '', setSearchTerm, onAddService }) => {
     const [myServices, setMyServices] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
