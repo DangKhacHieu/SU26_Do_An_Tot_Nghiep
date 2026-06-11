@@ -8,6 +8,9 @@ using STMM.Business.DTOs.Meter;
 using STMM.Business.DTOs.Task;
 using STMM.Business.DTOs.Area;
 using STMM.Business.DTOs.Stall;
+using STMM.Business.DTOs.BusinessCategory;
+using STMM.Business.DTOs.Contract;
+
 
 namespace STMM.Business.Mappers
 {
@@ -15,6 +18,23 @@ namespace STMM.Business.Mappers
     {
         public MappingProfile()
         {
+            // BusinessCategory mappings
+            CreateMap<BusinessCategory, BusinessCategoryDto>()
+                .ForMember(dest => dest.StallsCount, opt => opt.Ignore())
+                .ForMember(dest => dest.AreasCount, opt => opt.Ignore());
+
+            CreateMap<CreateBusinessCategoryRequest, BusinessCategory>()
+                .ForMember(dest => dest.CategoryId, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.Areas, opt => opt.Ignore())
+                .ForMember(dest => dest.Stalls, opt => opt.Ignore());
+
+            CreateMap<UpdateBusinessCategoryRequest, BusinessCategory>()
+                .ForMember(dest => dest.CategoryId, opt => opt.Ignore())
+                .ForMember(dest => dest.Code, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.Areas, opt => opt.Ignore())
+                .ForMember(dest => dest.Stalls, opt => opt.Ignore());
             // Violation mappings
             CreateMap<Violation, ViolationDto>()
                 .ForMember(dest => dest.CreatedBy, opt => opt.MapFrom(src => src.CreatedByUserId))
@@ -154,6 +174,25 @@ namespace STMM.Business.Mappers
 
             // Notification mappings
             CreateMap<Notification, NotificationDto>();
+
+            // Contract mappings
+            CreateMap<Contract, ContractDto>()
+                .ForMember(d => d.StallCode, o => o.MapFrom(s => s.Stall.Code))
+                .ForMember(d => d.StallSize, o => o.MapFrom(s => s.Stall.Size))
+                .ForMember(d => d.AreaName, o => o.MapFrom(s => s.Stall.Area.Name))
+                .ForMember(d => d.MarketName, o => o.MapFrom(s => s.Stall.Area.Market.MarketName))
+                .ForMember(d => d.VendorName, o => o.MapFrom(s => s.Vendor.User.Name))
+                .ForMember(d => d.VendorEmail, o => o.MapFrom(s => s.Vendor.User.Email))
+                .ForMember(d => d.VendorPhone, o => o.MapFrom(s => s.Vendor.User.Phone))
+                .ForMember(d => d.VendorCccd, o => o.MapFrom(s => s.Vendor.User.Cccd))
+                .ForMember(d => d.VendorAddress, o => o.MapFrom(s => s.Vendor.Address))
+                .ForMember(d => d.VendorTaxCode, o => o.MapFrom(s => s.Vendor.TaxCode))
+                .ForMember(d => d.VendorBusinessName, o => o.MapFrom(s => s.Vendor.BusinessName))
+                .ForMember(d => d.VendorBankAccount, o => o.MapFrom(s => s.Vendor.BankAccount))
+                .ForMember(d => d.VendorBankName, o => o.MapFrom(s => s.Vendor.BankName));
+
+            CreateMap<ContractFile, ContractFileDto>();
         }
     }
 }
+

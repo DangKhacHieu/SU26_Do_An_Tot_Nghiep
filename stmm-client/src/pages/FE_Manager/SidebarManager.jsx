@@ -88,9 +88,22 @@ const NAV_GROUPS = [
         icon: <IconGrid />, // Using IconGrid for Market Areas
         childKeys: [],
       },
+      {
+        key: 'business-categories',
+        label: 'Danh mục kinh doanh',
+        icon: <IconContent />,
+        childKeys: [],
+      },
+      {
+        key: 'contracts',
+        label: 'Quản lý Hợp đồng',
+        icon: <IconContent />,
+        childKeys: ['contract-form', 'contract-detail'],
+      },
     ],
   },
 ];
+
 
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function SidebarManager({ currentPage, navigate }) {

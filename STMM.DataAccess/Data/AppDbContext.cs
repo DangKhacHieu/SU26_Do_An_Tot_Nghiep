@@ -1347,6 +1347,12 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.TaxCode)
                 .HasComment("Mã số thuế doanh nghiệp")
                 .HasColumnName("tax_code");
+            entity.Property(e => e.BankAccount)
+                .HasComment("Số tài khoản ngân hàng")
+                .HasColumnName("bank_account");
+            entity.Property(e => e.BankName)
+                .HasComment("Tên ngân hàng")
+                .HasColumnName("bank_name");
             entity.Property(e => e.UserId)
                 .HasComment("Quan hệ 1-1 với tài khoản đăng nhập")
                 .HasColumnName("user_id");
