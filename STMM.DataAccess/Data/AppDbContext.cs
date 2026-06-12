@@ -973,6 +973,13 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.VendorId)
                 .HasComment("Tiểu thương nào đăng ký")
                 .HasColumnName("vendor_id");
+            entity.Property(e => e.EndDate)
+                .HasComment("Thời điểm kết thúc chu kỳ tính phí hiện tại (nếu có)")
+                .HasColumnName("end_date");
+            entity.Property(e => e.IsAutoRenew)
+                .HasDefaultValue(true)
+                .HasComment("Cờ tự động gia hạn (Mặc định là true cho các dịch vụ theo chu kỳ)")
+                .HasColumnName("is_auto_renew");
 
             entity.HasOne(d => d.Service).WithMany(p => p.ServiceRegistrations)
                 .HasForeignKey(d => d.ServiceId)

@@ -16,5 +16,6 @@ namespace STMM.Business.DTOs.User
         public DateTime? LastLogin { get; set; }
         public DateTime? CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
+        public string? BusinessName { get; set; }
     }
 }
