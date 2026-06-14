@@ -1,0 +1,71 @@
+.content-detail-container {
+  max-width: 900px;
+  margin: 0 auto;
+  animation: fadeIn 0.4s ease-out;
+}
+
+.detail-card {
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  border: 1px solid #e2e8f0;
+  padding: 32px;
+}
+
+.detail-header-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #f1f5f9;
+  padding-bottom: 16px;
+  margin-bottom: 24px;
+}
+
+.detail-meta-header {
+  margin-bottom: 28px;
+}
+
+.meta-badges {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.detail-meta-header h1 {
+  font-size: 1.875rem;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.35;
+  margin: 0 0 12px 0;
+}
+
+.meta-author-time {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8125rem;
+  color: #64748b;
+}
+
+.bullet-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background-color: #cbd5e1;
+}
+
+.detail-body {
+  border-top: 1px solid #f1f5f9;
+  padding-top: 24px;
+}
+
+.detail-paragraph {
+  font-size: 0.9375rem;
+  color: #334155;
+  line-height: 1.7;
+  margin-bottom: 18px;
+}
+
+.detail-paragraph:last-child {
+  margin-bottom: 0;
+}

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import './IssueList.css';
 
 export default function IssueList({ userId, baseUrl, onViewDetails, onOpenCreateModal }) {
   const [issues, setIssues] = useState([]);

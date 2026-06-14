@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import './IssueDetails.css';
 
 export default function IssueDetails({ issueId, userId, baseUrl, onBack }) {
   const [issue, setIssue] = useState(null);

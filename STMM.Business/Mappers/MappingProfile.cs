@@ -3,6 +3,7 @@ using STMM.DataAccess.Entities;
 using STMM.Business.DTOs.Violation;
 using STMM.Business.DTOs.Meter;
 using STMM.Business.DTOs.Task;
+using STMM.Business.DTOs.User;
 
 namespace STMM.Business.Mappers
 {
@@ -54,6 +55,21 @@ namespace STMM.Business.Mappers
                 .ForMember(dest => dest.AreaName, opt => opt.MapFrom(src => src.Area != null ? src.Area.Name : string.Empty));
 
             CreateMap<TaskMaterial, TaskMaterialDto>();
+
+            // User and Role mappings
+            CreateMap<Role, RoleDto>();
+            CreateMap<User, UserDto>()
+                .ForMember(dest => dest.RoleName, opt => opt.MapFrom(src => src.Role != null ? src.Role.Name : string.Empty));
+            CreateMap<User, UserDetailDto>()
+                .ForMember(dest => dest.RoleName, opt => opt.MapFrom(src => src.Role != null ? src.Role.Name : string.Empty))
+                .ForMember(dest => dest.RoleDescription, opt => opt.MapFrom(src => src.Role != null ? src.Role.Description : string.Empty));
+
+            // FAQ mappings
+            CreateMap<Faq, STMM.Business.DTOs.Faq.FaqDto>();
+
+            // Content (Notification) mappings
+            CreateMap<Notification, STMM.Business.DTOs.Content.ContentDto>()
+                .ForMember(dest => dest.TargetUserName, opt => opt.MapFrom(src => src.TargetUser != null ? src.TargetUser.Name : string.Empty));
         }
     }
 }

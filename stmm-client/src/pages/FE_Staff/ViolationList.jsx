@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import './ViolationList.css';
 
 export default function ViolationList({ userId, baseUrl, onViewDetails, onOpenCreateModal }) {
   const [violations, setViolations] = useState([]);
