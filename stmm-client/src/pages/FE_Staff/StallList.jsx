@@ -98,10 +98,10 @@ export default function StallList({ baseUrl, userId, onShowNotification, onViewM
 
   const getTaskLabel = (type) => {
     switch (type) {
-      case 'MeterReading': return 'Ghi Điện Nước';
-      case 'CashCollection': return 'Thu Tiền Mặt';
-      case 'Repair': return 'Sửa Chữa';
-      case 'Maintenance': return 'Bảo Trì';
+      case 'MeterReading': return 'Meter Reading';
+      case 'CashCollection': return 'Cash Collection';
+      case 'Repair': return 'Repair';
+      case 'Maintenance': return 'Maintenance';
       default: return type;
     }
   };
@@ -114,62 +114,70 @@ export default function StallList({ baseUrl, userId, onShowNotification, onViewM
 
       <div className="section-header">
         <div>
-          <h1 className="main-title">🏪 Danh Sách Sạp Đi Tuần</h1>
-          <p className="subtitle">Xem danh sách các sạp cần thực hiện nhiệm vụ ghi chỉ số hoặc thu nợ.</p>
+          <h1 className="main-title">🏪 Stall Checklist</h1>
+          <p className="subtitle">View and manage stalls requiring utility readings or debt collection.</p>
         </div>
       </div>
 
-      {/* Filter and Search Bar */}
-      <div className="filters-wrapper">
-        <form onSubmit={handleSearchSubmit} className="search-box">
-          <span className="search-icon">🔍</span>
-          <input
-            type="text"
-            placeholder="Tìm theo mã sạp..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="filter-input"
-          />
-          <button type="submit" className="btn-search">Tìm kiếm</button>
-        </form>
+      {/* Toolbar: Search + Filters */}
+      <div className="toolbar">
+        <div className="toolbar-left">
+          <form onSubmit={handleSearchSubmit} className="search-wrap">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input
+              type="text"
+              className="search-input"
+              placeholder="Search by stall code..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            {searchQuery && (
+              <button type="button" className="search-clear" onClick={() => { setSearchQuery(''); setAppliedSearch(''); }} title="Clear">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+              </button>
+            )}
+          </form>
 
-        <div className="filter-tabs">
-          <button 
-            className={`tab-btn ${filterType === 'All' ? 'active' : ''}`}
-            onClick={() => { setFilterType('All'); setPageNumber(1); }}
-          >
-            Tất cả
-          </button>
-          <button 
-            className={`tab-btn ${filterType === 'HasTask' ? 'active' : ''}`}
-            onClick={() => { setFilterType('HasTask'); setPageNumber(1); }}
-          >
-            📋 Có nhiệm vụ
-          </button>
-          <button 
-            className={`tab-btn ${filterType === 'HasUnpaidInvoice' ? 'active' : ''}`}
-            onClick={() => { setFilterType('HasUnpaidInvoice'); setPageNumber(1); }}
-          >
-            💰 Nợ hóa đơn
-          </button>
+          <div className="filter-tabs">
+            <button 
+              className={`tab-btn ${filterType === 'All' ? 'active' : ''}`}
+              onClick={() => { setFilterType('All'); setPageNumber(1); }}
+            >
+              All
+            </button>
+            <button 
+              className={`tab-btn ${filterType === 'HasTask' ? 'active' : ''}`}
+              onClick={() => { setFilterType('HasTask'); setPageNumber(1); }}
+            >
+              📋 Has Tasks
+            </button>
+            <button 
+              className={`tab-btn ${filterType === 'HasUnpaidInvoice' ? 'active' : ''}`}
+              onClick={() => { setFilterType('HasUnpaidInvoice'); setPageNumber(1); }}
+            >
+              💰 Unpaid Debt
+            </button>
+          </div>
+
+          {(searchQuery || filterType !== 'All') && (
+            <button type="button" className="btn-filter-clear" onClick={handleResetFilters}>
+              Clear Filters
+            </button>
+          )}
         </div>
-
-        <button type="button" className="btn-secondary-outline" onClick={handleResetFilters}>
-          Xóa lọc
-        </button>
       </div>
 
       {/* Content Grid */}
       {loading ? (
-        <div className="loading-state">Đang tải danh sách sạp...</div>
+        <div className="loading-state">Loading stalls...</div>
       ) : error ? (
         <div className="error-state">
-          <p className="error-message">Lỗi: {error}</p>
-          <button className="btn-secondary" onClick={fetchStalls}>Thử lại</button>
+          <p className="error-message">Error: {error}</p>
+          <button className="btn-secondary" onClick={fetchStalls}>Retry</button>
         </div>
       ) : stalls.length === 0 ? (
         <div className="empty-state">
-          <p>Không tìm thấy sạp nào phù hợp với bộ lọc.</p>
+          <p>No stalls match the selected filters.</p>
         </div>
       ) : (
         <>
@@ -182,22 +190,22 @@ export default function StallList({ baseUrl, userId, onShowNotification, onViewM
                     <span className="stall-code">{stall.stallCode}</span>
                   </div>
                   <span className={`stall-status-badge ${stall.stallStatus.toLowerCase()}`}>
-                    {stall.stallStatus === 'Rented' ? 'Đang thuê' : stall.stallStatus}
+                    {stall.stallStatus === 'Rented' ? 'Rented' : stall.stallStatus}
                   </span>
                 </div>
 
                 <div className="stall-card-body">
                   <div className="info-row">
-                    <span className="info-label">Danh mục:</span>
-                    <span className="info-value">{stall.stallCategory || 'Chưa phân loại'}</span>
+                    <span className="info-label">Category:</span>
+                    <span className="info-value">{stall.stallCategory || 'Uncategorized'}</span>
                   </div>
                   <div className="info-row">
-                    <span className="info-label">Chủ sạp:</span>
+                    <span className="info-label">Owner:</span>
                     <span className="info-value font-semibold">{stall.vendorName || 'N/A'}</span>
                   </div>
                   {stall.vendorPhone && (
                     <div className="info-row">
-                      <span className="info-label">SĐT:</span>
+                      <span className="info-label">Phone:</span>
                       <span className="info-value">{stall.vendorPhone}</span>
                     </div>
                   )}
@@ -206,9 +214,9 @@ export default function StallList({ baseUrl, userId, onShowNotification, onViewM
 
                   {/* Task Tags */}
                   <div className="task-tags-container">
-                    <span className="tags-title">Nhiệm vụ đi tuần:</span>
+                    <span className="tags-title">Checklist Tasks:</span>
                     {stall.taskTypes.length === 0 ? (
-                      <span className="no-tasks-tag">✅ Hoàn thành</span>
+                      <span className="no-tasks-tag">✅ Completed</span>
                     ) : (
                       <div className="tags-list">
                         {stall.taskTypes.map((type, idx) => (
@@ -223,7 +231,7 @@ export default function StallList({ baseUrl, userId, onShowNotification, onViewM
                   {/* Debt Summary */}
                   {stall.hasUnpaidInvoice && (
                     <div className="debt-summary-box">
-                      <span>Nợ hóa đơn: <strong>{stall.unpaidInvoiceCount} tháng</strong></span>
+                      <span>Unpaid invoice(s): <strong>{stall.unpaidInvoiceCount} month(s)</strong></span>
                       <span className="debt-total">{stall.unpaidTotalAmount.toLocaleString('vi-VN')} VND</span>
                     </div>
                   )}
@@ -233,18 +241,18 @@ export default function StallList({ baseUrl, userId, onShowNotification, onViewM
                   <button 
                     className="btn-card-action violation-btn" 
                     onClick={() => openModal('violation', stall.stallId, stall.stallCode)}
-                    title="Lập biên bản vi phạm cho sạp này"
+                    title="Report violation for this stall"
                   >
-                    ⚠️ Vi phạm
+                    ⚠️ Violation
                   </button>
 
                   {stall.stallStatus === 'Rented' && (
                     <button 
                       className="btn-card-action meter-btn" 
                       onClick={() => onViewMeterHistory(stall.stallId)}
-                      title="Xem lịch sử ghi số điện nước"
+                      title="View meter reading history"
                     >
-                      ⚡ Lịch sử công tơ
+                      ⚡ Meter History
                     </button>
                   )}
 
@@ -252,9 +260,9 @@ export default function StallList({ baseUrl, userId, onShowNotification, onViewM
                     <button 
                       className="btn-card-action cash-btn" 
                       onClick={() => onViewInvoices(stall.stallId, stall.stallCode)}
-                      title="Xem hóa đơn chưa đóng"
+                      title="View unpaid invoices"
                     >
-                      📄 Xem hóa đơn
+                      📄 View Invoices
                     </button>
                   )}
                 </div>
@@ -265,7 +273,7 @@ export default function StallList({ baseUrl, userId, onShowNotification, onViewM
           {/* Pagination Controls */}
           <div className="pagination-wrapper">
             <span className="pagination-info">
-              Hiển thị {stalls.length} trên tổng số {totalCount} sạp
+              Showing {stalls.length} of {totalCount} stalls
             </span>
             <div className="pagination-buttons">
               <button 
@@ -273,7 +281,7 @@ export default function StallList({ baseUrl, userId, onShowNotification, onViewM
                 onClick={() => setPageNumber(p => Math.max(p - 1, 1))}
                 disabled={pageNumber === 1}
               >
-                Trước
+                Prev
               </button>
               
               {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
@@ -291,7 +299,7 @@ export default function StallList({ baseUrl, userId, onShowNotification, onViewM
                 onClick={() => setPageNumber(p => Math.min(p + 1, totalPages))}
                 disabled={pageNumber === totalPages}
               >
-                Sau
+                Next
               </button>
             </div>
           </div>
@@ -306,7 +314,7 @@ export default function StallList({ baseUrl, userId, onShowNotification, onViewM
           prefilledStallId={activeStallId}
           onClose={closeModal}
           onSuccess={(newViolation) => 
-            handleModalSuccess(`Đã lập biên bản vi phạm VIO-${newViolation.violationId} thành công cho sạp ${activeStallCode}`)
+            handleModalSuccess(`Successfully reported violation VIO-${newViolation.violationId} for stall ${activeStallCode}`)
           }
         />
       )}

@@ -71,7 +71,7 @@ export default function IssueList({ userId, baseUrl, onViewDetails, onOpenCreate
 
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString('vi-VN', {
+    return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
@@ -91,26 +91,27 @@ export default function IssueList({ userId, baseUrl, onViewDetails, onOpenCreate
           <h1 className="main-title">Issue List</h1>
           <p className="subtitle">Manage and track reported facility issues.</p>
         </div>
-        <button className="btn-primary report-btn" onClick={onOpenCreateModal}>
-          + Report New Issue
-        </button>
       </div>
 
-      {/* Filter and Search Bar */}
-      <form onSubmit={handleSearchSubmit} className="filters-wrapper">
-        <div className="search-box">
-          <span className="search-icon">🔍</span>
-          <input
-            type="text"
-            placeholder="Search ID, Stall Code, or Description..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="filter-input"
-          />
-        </div>
-        
-        <div className="filter-group">
-          <label className="filter-label">Status:</label>
+      {/* Toolbar: Search + Filters + CTA */}
+      <div className="toolbar">
+        <div className="toolbar-left">
+          <form onSubmit={handleSearchSubmit} className="search-wrap">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input
+              type="text"
+              className="search-input"
+              placeholder="Search ID, Stall Code, or Description..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            {searchQuery && (
+              <button type="button" className="search-clear" onClick={() => setSearchQuery('')} title="Clear">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+              </button>
+            )}
+          </form>
+          
           <select 
             value={statusFilter} 
             onChange={(e) => { setStatusFilter(e.target.value); setPageNumber(1); }}
@@ -122,10 +123,7 @@ export default function IssueList({ userId, baseUrl, onViewDetails, onOpenCreate
             <option value="Resolved">Resolved</option>
             <option value="Closed">Closed</option>
           </select>
-        </div>
 
-        <div className="filter-group">
-          <label className="filter-label">Sort:</label>
           <select 
             value={sortDescending ? "desc" : "asc"} 
             onChange={(e) => { setSortDescending(e.target.value === "desc"); setPageNumber(1); }}
@@ -134,15 +132,20 @@ export default function IssueList({ userId, baseUrl, onViewDetails, onOpenCreate
             <option value="desc">Newest First</option>
             <option value="asc">Oldest First</option>
           </select>
+
+          {(searchQuery || statusFilter || !sortDescending) && (
+            <button type="button" className="btn-filter-clear" onClick={handleResetFilters}>
+              Clear Filters
+            </button>
+          )}
         </div>
 
-        <button type="submit" className="btn-secondary">Search</button>
-        <button type="button" className="btn-secondary-outline" onClick={handleResetFilters}>
-          Clear
+        <button className="btn-primary" onClick={onOpenCreateModal}>
+          + Report New Issue
         </button>
-      </form>
+      </div>
 
-      {/* Content Table */}
+      {/* Content Table card */}
       {loading ? (
         <div className="loading-state">Loading issues...</div>
       ) : error ? (
@@ -156,44 +159,50 @@ export default function IssueList({ userId, baseUrl, onViewDetails, onOpenCreate
         </div>
       ) : (
         <>
-          <div className="table-responsive">
-            <table className="violation-table issue-table">
-              <thead>
-                <tr>
-                  <th>Issue ID</th>
-                  <th>Issue Title</th>
-                  <th>Location</th>
-                  <th>Status</th>
-                  <th>Reported By</th>
-                  <th>Date</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {issues.map((item) => (
-                  <tr key={item.issueId}>
-                    <td><strong>ISS-{item.issueId}</strong></td>
-                    <td>{item.title}</td>
-                    <td><span className="badge-stall">{item.stallCode || `ID: ${item.stallId}`}</span></td>
-                    <td>
-                      <span className={`status-badge ${item.status?.toLowerCase() || 'reported'}`}>
-                        {item.status || 'Reported'}
-                      </span>
-                    </td>
-                    <td>{item.createdByName || `Staff #${item.createdByUserId}`}</td>
-                    <td>{formatDate(item.createdAt)}</td>
-                    <td>
-                      <button 
-                        className="btn-link" 
-                        onClick={() => onViewDetails(item.issueId)}
-                      >
-                        View Details
-                      </button>
-                    </td>
+          <div className="table-card">
+            <div className="table-card-header">
+              <span className="table-card-title">Issues</span>
+              <span className="table-count-badge">{totalCount} issues</span>
+            </div>
+            <div className="table-responsive">
+              <table className="staff-table">
+                <thead>
+                  <tr>
+                    <th>Issue ID</th>
+                    <th>Issue Title</th>
+                    <th>Location</th>
+                    <th>Status</th>
+                    <th>Reported By</th>
+                    <th>Date</th>
+                    <th>Action</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {issues.map((item) => (
+                    <tr key={item.issueId}>
+                      <td><strong>ISS-{item.issueId}</strong></td>
+                      <td>{item.title}</td>
+                      <td><span className="badge-stall">{item.stallCode || `ID: ${item.stallId}`}</span></td>
+                      <td>
+                        <span className={`status-badge ${item.status?.toLowerCase() || 'reported'}`}>
+                          {item.status || 'Reported'}
+                        </span>
+                      </td>
+                      <td>{item.createdByName || `Staff #${item.createdByUserId}`}</td>
+                      <td>{formatDate(item.createdAt)}</td>
+                      <td>
+                        <button 
+                          className="btn-link" 
+                          onClick={() => onViewDetails(item.issueId)}
+                        >
+                          View Details
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
 
           {/* Pagination Controls */}

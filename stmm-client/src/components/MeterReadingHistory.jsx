@@ -59,20 +59,11 @@ export default function MeterReadingHistory({ stallId, baseUrl, userId, onViewMe
           <h1 className="main-title">Meter Reading History (Stall ID: {stallId})</h1>
           <p className="subtitle">Displaying utility readings recorded over the last 6 months.</p>
         </div>
-        <div style={{ display: 'flex', gap: '10px' }}>
-          <button className="btn-secondary-outline" onClick={onBack}>
-            &larr; Back
-          </button>
-          <button className="btn-primary report-btn" onClick={onOpenRecordModal}>
-            + Record Reading
-          </button>
-        </div>
       </div>
 
-      {/* Filter and search styling */}
-      <div className="filters-wrapper">
-        <div className="filter-group">
-          <label className="filter-label">Meter Type:</label>
+      {/* Toolbar: Filters + CTA */}
+      <div className="toolbar">
+        <div className="toolbar-left">
           <select
             value={meterType}
             onChange={(e) => { setMeterType(e.target.value); setPageNumber(1); }}
@@ -82,12 +73,23 @@ export default function MeterReadingHistory({ stallId, baseUrl, userId, onViewMe
             <option value="Electricity">Electricity (⚡)</option>
             <option value="Water">Water (💧)</option>
           </select>
+
+          <button className="btn-secondary" onClick={fetchReadings} disabled={loading}>
+            Refresh
+          </button>
         </div>
-        <button className="btn-secondary" onClick={fetchReadings} disabled={loading}>
-          Refresh
-        </button>
+
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button className="btn-secondary-outline" onClick={onBack}>
+            &larr; Back
+          </button>
+          <button className="btn-primary" onClick={onOpenRecordModal}>
+            + Record Reading
+          </button>
+        </div>
       </div>
 
+      {/* Content Table card */}
       {loading ? (
         <div className="loading-state">Loading history...</div>
       ) : error ? (
@@ -101,70 +103,76 @@ export default function MeterReadingHistory({ stallId, baseUrl, userId, onViewMe
         </div>
       ) : (
         <>
-          <div className="table-responsive">
-            <table className="violation-table">
-              <thead>
-                <tr>
-                  <th>Serial Number</th>
-                  <th>Type</th>
-                  <th>Old Value</th>
-                  <th>New Value</th>
-                  <th>Consumption</th>
-                  <th>Recorded At</th>
-                  <th>Staff</th>
-                  <th>Evidence</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {readings.map((r) => (
-                  <tr key={r.meterReadingId}>
-                    <td>
-                      <button 
-                        className="btn-link" 
-                        onClick={() => onViewMeterDetail(r.meterId)}
-                        style={{ fontWeight: 'bold', padding: 0 }}
-                      >
-                        {r.meterSerialNumber}
-                      </button>
-                    </td>
-                    <td>
-                      <span className={`status-badge ${r.meterType?.toLowerCase() === 'electricity' ? 'approved' : 'finalized'}`}>
-                        {r.meterType === 'Electricity' ? '⚡ Electricity' : '💧 Water'}
-                      </span>
-                    </td>
-                    <td>{r.oldValue}</td>
-                    <td>{r.newValue}</td>
-                    <td><strong>{r.consumption.toFixed(2)}</strong></td>
-                    <td>{formatDate(r.recordedAt)}</td>
-                    <td>{r.createdByName || `ID: ${r.createdByUserId}`}</td>
-                    <td>
-                      {r.imageUrl ? (
-                        <a 
-                          href={r.imageUrl} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="btn-link"
-                          style={{ color: '#0066cc' }}
-                        >
-                          View Image
-                        </a>
-                      ) : (
-                        <span style={{ color: '#888' }}>No Image</span>
-                      )}
-                    </td>
-                    <td>
-                      <button 
-                        className="btn-link" 
-                        onClick={() => onViewMeterDetail(r.meterId)}
-                      >
-                        Meter Info
-                      </button>
-                    </td>
+          <div className="table-card">
+            <div className="table-card-header">
+              <span className="table-card-title">Meter Readings</span>
+              <span className="table-count-badge">{totalCount} records</span>
+            </div>
+            <div className="table-responsive">
+              <table className="staff-table">
+                <thead>
+                  <tr>
+                    <th>Serial Number</th>
+                    <th>Type</th>
+                    <th>Old Value</th>
+                    <th>New Value</th>
+                    <th>Consumption</th>
+                    <th>Recorded At</th>
+                    <th>Staff</th>
+                    <th>Evidence</th>
+                    <th>Action</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {readings.map((r) => (
+                    <tr key={r.meterReadingId}>
+                      <td>
+                        <button 
+                          className="btn-link" 
+                          onClick={() => onViewMeterDetail(r.meterId)}
+                          style={{ fontWeight: 'bold', padding: 0 }}
+                        >
+                          {r.meterSerialNumber}
+                        </button>
+                      </td>
+                      <td>
+                        <span className={`status-badge ${r.meterType?.toLowerCase() === 'electricity' ? 'approved' : 'finalized'}`}>
+                          {r.meterType === 'Electricity' ? '⚡ Electricity' : '💧 Water'}
+                        </span>
+                      </td>
+                      <td>{r.oldValue}</td>
+                      <td>{r.newValue}</td>
+                      <td><strong>{r.consumption.toFixed(2)}</strong></td>
+                      <td>{formatDate(r.recordedAt)}</td>
+                      <td>{r.createdByName || `ID: ${r.createdByUserId}`}</td>
+                      <td>
+                        {r.imageUrl ? (
+                          <a 
+                            href={r.imageUrl} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="btn-link"
+                            style={{ color: '#0066cc' }}
+                          >
+                            View Image
+                          </a>
+                        ) : (
+                          <span style={{ color: '#888' }}>No Image</span>
+                        )}
+                      </td>
+                      <td>
+                        <button 
+                          className="btn-link" 
+                          onClick={() => onViewMeterDetail(r.meterId)}
+                        >
+                          Meter Info
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
 
           <div className="pagination-wrapper">

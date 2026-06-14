@@ -10,6 +10,9 @@ import IssueDetails from './pages/FE_Staff/IssueDetails';
 import CreateIssueModal from './pages/FE_Staff/CreateIssueModal';
 import StallList from './pages/FE_Staff/StallList';
 import StallInvoiceDetail from './pages/FE_Staff/StallInvoiceDetail';
+import TaskList from './pages/FE_Staff/TaskList';
+import TaskDetail from './pages/FE_Staff/TaskDetail';
+import SidebarStaff from './pages/FE_Staff/SidebarStaff';
 import './pages/FE_Staff/FE_Staff.css';
 
 // FE Manager Imports
@@ -51,6 +54,20 @@ const PAGE_TITLES = {
   'admin-user-detail': { title: 'Chi tiết Tài khoản (Admin)', sub: 'Thông tin đầy đủ và lịch sử hoạt động của tài khoản.' },
 };
 
+const STAFF_PAGE_TITLES = {
+  dashboard: { title: 'Staff Dashboard', sub: 'Welcome back! Here is your daily overview.' },
+  tasks:     { title: 'Daily Tasks', sub: 'View and update your assigned repair and maintenance tasks.' },
+  'task-details': { title: 'Task Details', sub: 'Review task requirements, submit materials or report completion.' },
+  meters:    { title: 'Stalls Utility Meters', sub: 'Digitize and record electric and water meter readings.' },
+  'meter-details': { title: 'Meter Details', sub: 'Detailed history and serial number tracking for utility meters.' },
+  violations: { title: 'Violations Log', sub: 'Report and manage merchant rule compliance records.' },
+  'violation-details': { title: 'Violation Details', sub: 'Full audit of logged merchant violation report.' },
+  issues:    { title: 'Infrastructure Issues', sub: 'Report and monitor facilities incidents.' },
+  'issue-details': { title: 'Issue Details', sub: 'Detailed breakdown of facilities issue and repair status.' },
+  'stall-list': { title: 'Stalls Directory', sub: 'Track stalls operations, debts, and invoice payments.' },
+  'stall-invoices': { title: 'Invoice Details', sub: 'View service fee breakdown and record cash collection.' }
+};
+
 function App() {
   // Console Mode: 'manager' | 'admin' | 'staff'
   const [consoleMode, setConsoleMode] = useState('manager');
@@ -74,6 +91,7 @@ function App() {
   // Staff States
   const [currentStaffView, setCurrentStaffView] = useState('dashboard');
   const [selectedViolationId, setSelectedViolationId] = useState(null);
+  const [selectedTaskId, setSelectedTaskId] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   
   // Issue state
@@ -264,64 +282,21 @@ function App() {
 
         <div className="app-body">
           {/* Sidebar Layout */}
-          <aside className="app-sidebar">
-            <div className="sidebar-brand-section">
-              <h2 className="sidebar-brand">MHMS STAFF</h2>
-              <span className="sidebar-brand-sub">MANAGEMENT CONSOLE</span>
-            </div>
-
-            <nav className="sidebar-nav">
-              <button 
-                className={`sidebar-nav-item ${currentStaffView === 'dashboard' ? 'active' : ''}`}
-                onClick={() => setCurrentStaffView('dashboard')}
-              >
-                <span className="sidebar-nav-icon">📊</span> Dashboard
-              </button>
-              <button 
-                className={`sidebar-nav-item ${currentStaffView === 'tasks' ? 'active' : ''}`}
-                onClick={() => setCurrentStaffView('tasks')}
-              >
-                <span className="sidebar-nav-icon">📋</span> Tasks
-              </button>
-              <button 
-                className={`sidebar-nav-item ${['meters', 'meter-details'].includes(currentStaffView) ? 'active' : ''}`}
-                onClick={() => setCurrentStaffView('meters')}
-              >
-                <span className="sidebar-nav-icon">⚡</span> Meters
-              </button>
-              <button 
-                className={`sidebar-nav-item ${['violations', 'violation-details'].includes(currentStaffView) ? 'active' : ''}`}
-                onClick={() => setCurrentStaffView('violations')}
-              >
-                <span className="sidebar-nav-icon">⚠️</span> Violations
-              </button>
-              <button 
-                className={`sidebar-nav-item ${['issues', 'issue-details'].includes(currentStaffView) ? 'active' : ''}`}
-                onClick={() => setCurrentStaffView('issues')}
-              >
-                <span className="sidebar-nav-icon">🔧</span> Issues
-              </button>
-              <button 
-                className={`sidebar-nav-item ${currentStaffView === 'stall-list' ? 'active' : ''}`}
-                onClick={() => setCurrentStaffView('stall-list')}
-              >
-                <span className="sidebar-nav-icon">🏪</span> List Stall
-              </button>
-            </nav>
-
-            <div className="sidebar-footer">
-              <button className="sidebar-nav-item logout-btn" onClick={() => alert("Logged out! (Demo)")}>
-                <span className="sidebar-nav-icon">🚪</span> LOGOUT
-              </button>
-            </div>
-          </aside>
+          <SidebarStaff
+            currentView={currentStaffView}
+            setView={setCurrentStaffView}
+          />
 
           {/* Main Work Area */}
           <main className="app-main-content">
             <div className="main-top-navbar">
-              <div className="navbar-title">Market Management</div>
-              <div className="navbar-search-placeholder">
-                <input type="text" placeholder="Search system..." disabled />
+              <div className="header-title-section" style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                <h1 style={{ fontSize: '18px', fontWeight: '700', margin: 0, color: 'var(--color-text-primary)', textAlign: 'left' }}>
+                  {STAFF_PAGE_TITLES[currentStaffView]?.title || 'Staff Console'}
+                </h1>
+                <p style={{ color: 'var(--color-text-secondary)', fontSize: '12.5px', margin: '3px 0 0 0', textAlign: 'left' }}>
+                  {STAFF_PAGE_TITLES[currentStaffView]?.sub || 'Market Hall Management System.'}
+                </p>
               </div>
               <div className="navbar-icons-placeholder">
                 <span className="nav-icon" title="Notifications">🔔</span>
@@ -396,10 +371,24 @@ function App() {
               )}
 
               {currentStaffView === 'tasks' && (
-                <div className="mock-view">
-                  <h1>📋 Tasks List</h1>
-                  <p>Tasks assigned by management are listed here.</p>
-                </div>
+                <TaskList
+                  userId={userId}
+                  baseUrl={baseUrl}
+                  onViewDetails={(id) => {
+                    setSelectedTaskId(id);
+                    setCurrentStaffView('task-details');
+                  }}
+                />
+              )}
+
+              {currentStaffView === 'task-details' && (
+                <TaskDetail
+                  taskId={selectedTaskId}
+                  userId={userId}
+                  baseUrl={baseUrl}
+                  onBack={() => setCurrentStaffView('tasks')}
+                  onShowNotification={handleShowNotification}
+                />
               )}
 
               {currentStaffView === 'issues' && (

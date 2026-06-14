@@ -84,6 +84,47 @@ namespace STMM.Tests.Services
         }
 
         [Fact]
+        public async Task GetUnpaidInvoicesByStallAsync_ValidStallId_ReturnsUnpaidInvoices()
+        {
+            // Arrange
+            var stallId = 3;
+            var mockInvoices = new List<Invoice>
+            {
+                CreateMockInvoice(1, "Unpaid"),
+                CreateMockInvoice(2, "Unpaid")
+            };
+
+            _invoiceRepoMock.Setup(r => r.GetUnpaidInvoicesByStallAsync(stallId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(mockInvoices);
+
+            // Act
+            var result = await _service.GetUnpaidInvoicesByStallAsync(stallId);
+
+            // Assert
+            result.Should().NotBeNull();
+            result.Should().HaveCount(2);
+            result[0].InvoiceId.Should().Be(1);
+            result[0].FeeTypeSummary.Should().Contain("Rent");
+            result[0].FeeTypeSummary.Should().Contain("Electricity");
+        }
+
+        [Fact]
+        public async Task GetUnpaidInvoicesByStallAsync_NoUnpaidInvoices_ReturnsEmptyList()
+        {
+            // Arrange
+            var stallId = 3;
+            _invoiceRepoMock.Setup(r => r.GetUnpaidInvoicesByStallAsync(stallId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new List<Invoice>());
+
+            // Act
+            var result = await _service.GetUnpaidInvoicesByStallAsync(stallId);
+
+            // Assert
+            result.Should().NotBeNull();
+            result.Should().BeEmpty();
+        }
+
+        [Fact]
         public async Task ReceiveCashPaymentAsync_ValidRequest_CreatesPaymentAndUpdatesInvoiceStatus()
         {
             // Arrange

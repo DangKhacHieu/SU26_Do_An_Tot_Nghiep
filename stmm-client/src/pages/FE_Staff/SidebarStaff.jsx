@@ -1,0 +1,166 @@
+import './SidebarStaff.css';
+
+/**
+ * SidebarStaff — Thanh điều hướng bên trái của Staff Console.
+ *
+ * Props:
+ *   currentView  {string}    — view đang active ('dashboard', 'tasks', ...)
+ *   setView      {function}  — hàm chuyển view
+ *
+ * Pattern: giống SidebarManager, accent màu xanh dương (#3b82f6)
+ */
+
+// ─── Icon components ─────────────────────────────────────────────────────────
+
+const IconDashboard = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="3" width="7" height="7" />
+    <rect x="14" y="3" width="7" height="7" />
+    <rect x="3" y="14" width="7" height="7" />
+    <rect x="14" y="14" width="7" height="7" />
+  </svg>
+);
+
+const IconTasks = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M9 11l3 3L22 4" />
+    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+  </svg>
+);
+
+const IconMeters = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10" />
+    <polyline points="12 6 12 12 16 14" />
+  </svg>
+);
+
+const IconViolations = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+    <line x1="12" y1="9" x2="12" y2="13" />
+    <line x1="12" y1="17" x2="12.01" y2="17" />
+  </svg>
+);
+
+const IconIssues = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="3" />
+    <path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14" />
+  </svg>
+);
+
+const IconStalls = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+    <polyline points="9 22 9 12 15 12 15 22" />
+  </svg>
+);
+
+// ─── Navigation structure ─────────────────────────────────────────────────────
+// Mỗi group có label và danh sách items.
+// Mỗi item: { key, label, icon, childKeys? }
+//   - key       : view name để setView
+//   - childKeys : các view con cũng được tính là active khi mở
+const NAV_GROUPS = [
+  {
+    label: 'Tổng quan',
+    items: [
+      {
+        key: 'dashboard',
+        label: 'Dashboard',
+        icon: <IconDashboard />,
+      },
+    ],
+  },
+  {
+    label: 'Hoạt động',
+    items: [
+      {
+        key: 'tasks',
+        label: 'Tasks',
+        icon: <IconTasks />,
+        childKeys: ['task-details'],
+      },
+      {
+        key: 'meters',
+        label: 'Meters',
+        icon: <IconMeters />,
+        childKeys: ['meter-details'],
+      },
+      {
+        key: 'violations',
+        label: 'Violations',
+        icon: <IconViolations />,
+        childKeys: ['violation-details'],
+      },
+      {
+        key: 'issues',
+        label: 'Issues',
+        icon: <IconIssues />,
+        childKeys: ['issue-details'],
+      },
+    ],
+  },
+  {
+    label: 'Quản lý',
+    items: [
+      {
+        key: 'stall-list',
+        label: 'List Stall',
+        icon: <IconStalls />,
+        childKeys: ['stall-invoices'],
+      },
+    ],
+  },
+];
+
+// ─── Component ────────────────────────────────────────────────────────────────
+export default function SidebarStaff({ currentView, setView }) {
+  const isActive = (item) =>
+    item.key === currentView ||
+    (item.childKeys && item.childKeys.includes(currentView));
+
+  return (
+    <aside className="staff-sidebar">
+      {/* Brand */}
+      <div className="staff-brand-section">
+        <div className="staff-brand-logo">ST</div>
+        <div className="staff-brand-name">
+          <span className="staff-brand-title">MHMS</span>
+          <span className="staff-brand-subtitle">Staff Console</span>
+        </div>
+      </div>
+
+      {/* Navigation groups */}
+      <div style={{ flex: 1 }}>
+        {NAV_GROUPS.map((group) => (
+          <div key={group.label}>
+            <p className="staff-sidebar-section-label">{group.label}</p>
+            <nav className="staff-sidebar-menu">
+              {group.items.map((item) => (
+                <button
+                  key={item.key}
+                  className={`staff-menu-item ${isActive(item) ? 'active' : ''}`}
+                  onClick={() => setView(item.key)}
+                >
+                  <span className="staff-menu-icon">{item.icon}</span>
+                  <span className="staff-menu-label">{item.label}</span>
+                </button>
+              ))}
+            </nav>
+          </div>
+        ))}
+      </div>
+
+      {/* Footer: current user info */}
+      <div className="staff-sidebar-footer">
+        <div className="staff-user-avatar">S</div>
+        <div className="staff-user-info">
+          <span className="staff-user-name">Staff</span>
+          <span className="staff-user-role">Nhân viên</span>
+        </div>
+      </div>
+    </aside>
+  );
+}

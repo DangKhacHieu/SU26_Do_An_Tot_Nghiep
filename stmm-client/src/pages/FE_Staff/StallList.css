@@ -222,6 +222,7 @@
   background: #15803d;
 }
 
+<<<<<<< Updated upstream
 .filter-tabs {
   display: flex;
   gap: 8px;
@@ -247,6 +248,10 @@
   background: var(--primary-color);
   color: #ffffff;
 }
+=======
+/* Filter and Search Bar styles are inherited from FE_Staff.css */
+
+>>>>>>> Stashed changes
 
 .btn-search {
   padding: 8px 16px;

@@ -71,29 +71,29 @@ export default function ReceiveCashModal({ stallId, stallCode, baseUrl, userId, 
     <div className="modal-overlay">
       <div className="modal-container receive-cash-modal">
         <div className="modal-header">
-          <h2 className="modal-title">💰 Thu tiền mặt - Sạp {stallCode}</h2>
+          <h2 className="modal-title">💰 Cash Collection - Stall {stallCode}</h2>
           <button className="modal-close-btn" onClick={onClose} disabled={submitting}>&times;</button>
         </div>
 
         <form onSubmit={handleSubmit} className="modal-form">
           {submitError && (
             <div className="error-alert">
-              <strong>Lỗi:</strong> {submitError}
+              <strong>Error:</strong> {submitError}
             </div>
           )}
 
           <div className="form-group">
-            <label className="form-label">CHỌN HÓA ĐƠN CẦN THU</label>
+            <label className="form-label">SELECT INVOICE TO COLLECT</label>
 
             {loading ? (
-              <div className="modal-loading-state">Đang tải hóa đơn...</div>
+              <div className="modal-loading-state">Loading invoices...</div>
             ) : error ? (
               <div className="modal-error-state">
-                <span className="warning-text">⚠️ Lỗi: {error}</span>
+                <span className="warning-text">⚠️ Error: {error}</span>
               </div>
             ) : invoices.length === 0 ? (
               <div className="modal-empty-state">
-                🎉 Không có hóa đơn chưa thanh toán nào cho sạp {stallCode}.
+                🎉 No unpaid invoices for stall {stallCode}.
               </div>
             ) : (
               <div className="invoice-selection-list">
@@ -112,13 +112,13 @@ export default function ReceiveCashModal({ stallId, stallCode, baseUrl, userId, 
                     />
                     <div className="invoice-card-details">
                       <div className="invoice-card-header">
-                        <span className="invoice-month-year">Hóa đơn Tháng {invoice.month}/{invoice.year}</span>
+                        <span className="invoice-month-year">Invoice Month {invoice.month}/{invoice.year}</span>
                         <span className="invoice-amount">{invoice.totalAmount.toLocaleString('vi-VN')} VND</span>
                       </div>
                       <div className="invoice-card-body">
-                        <span className="invoice-fee-summary">Phí: {invoice.feeTypeSummary || 'Chi phí dịch vụ'}</span>
+                        <span className="invoice-fee-summary">Fees: {invoice.feeTypeSummary || 'Service Fee'}</span>
                         {invoice.dueDate && (
-                          <span className="invoice-due-date">Hạn đóng: {new Date(invoice.dueDate).toLocaleDateString('vi-VN')}</span>
+                          <span className="invoice-due-date">Due Date: {new Date(invoice.dueDate).toLocaleDateString('en-US')}</span>
                         )}
                       </div>
                     </div>
@@ -131,15 +131,15 @@ export default function ReceiveCashModal({ stallId, stallCode, baseUrl, userId, 
           {selectedInvoice && (
             <div className="payment-summary-box">
               <div className="summary-row">
-                <span>Tổng tiền thu:</span>
+                <span>Total Amount:</span>
                 <strong className="text-primary">{selectedInvoice.totalAmount.toLocaleString('vi-VN')} VND</strong>
               </div>
               <div className="summary-row font-sm text-muted">
-                <span>Phương thức:</span>
-                <span>Tiền mặt (gạch nợ 100%)</span>
+                <span>Method:</span>
+                <span>Cash (100% debit clearing)</span>
               </div>
               <div className="summary-info-alert">
-                ℹ️ Hóa đơn sau khi thu sẽ chuyển sang trạng thái <strong>Chờ đối soát</strong> và gửi thông báo tới Tiểu thương.
+                ℹ️ Collected invoice status will be updated to <strong>Pending Reconciliation</strong> and a notification will be sent to the Vendor.
               </div>
             </div>
           )}
@@ -151,14 +151,14 @@ export default function ReceiveCashModal({ stallId, stallCode, baseUrl, userId, 
               onClick={onClose}
               disabled={submitting}
             >
-              HỦY BỎ
+              Cancel
             </button>
             <button
               type="submit"
               className="btn-primary-dark"
               disabled={submitting || !selectedInvoiceId || invoices.length === 0}
             >
-              {submitting ? "ĐANG GHI NHẬN..." : "XÁC NHẬN THU TIỀN"}
+              {submitting ? "Recording..." : "Confirm Collection"}
             </button>
           </div>
         </form>

@@ -33,7 +33,7 @@ export default function ViolationDetails({ violationId, userId, baseUrl, onBack 
 
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString('vi-VN', {
+    return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
@@ -42,7 +42,7 @@ export default function ViolationDetails({ violationId, userId, baseUrl, onBack 
 
   const formatTime = (dateString) => {
     if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleTimeString('vi-VN', {
+    return new Date(dateString).toLocaleTimeString('en-US', {
       hour: '2-digit',
       minute: '2-digit',
       second: '2-digit'
