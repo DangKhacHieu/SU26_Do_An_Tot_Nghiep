@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using STMM.DataAccess.Data;
 using STMM.DataAccess.Entities;
 using STMM.DataAccess.IRepositories;
@@ -54,6 +54,7 @@ namespace STMM.DataAccess.Repositories
         {
             return await _dbSet
                 .Include(u => u.Role)
+                .Include(u => u.Vendor)
                 .FirstOrDefaultAsync(u => u.UserId == id && u.IsDeleted != true, ct);
         }
 
@@ -62,6 +63,13 @@ namespace STMM.DataAccess.Repositories
             return await _dbSet.AsQueryable()
                 .Include(u => u.Role)
                 .FirstOrDefaultAsync(u => u.Role.Name.ToLower() == "manager" || u.Role.Name.ToLower() == "admin", ct);
+        }
+
+        public async Task<User?> GetUserByEmailAsync(string email, CancellationToken ct = default)
+        {
+            return await _context.Users
+                .Include(u => u.Role)
+                .FirstOrDefaultAsync(u => u.Email.ToLower() == email.Trim().ToLower(), ct);
         }
     }
 }

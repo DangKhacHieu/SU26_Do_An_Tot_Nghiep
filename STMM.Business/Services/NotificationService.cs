@@ -1,18 +1,25 @@
+using AutoMapper;
 using STMM.Business.DTOs.Notification;
 using STMM.Business.Exceptions;
 using STMM.Business.Interfaces;
 using STMM.DataAccess.Entities;
 using STMM.DataAccess.IRepositories;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace STMM.Business.Services
 {
     public class NotificationService : INotificationService
     {
         private readonly INotificationRepository _notificationRepository;
+        private readonly IMapper _mapper;
 
-        public NotificationService(INotificationRepository notificationRepository)
+        public NotificationService(INotificationRepository notificationRepository, IMapper mapper)
         {
             _notificationRepository = notificationRepository;
+            _mapper = mapper;
         }
 
         /// <inheritdoc />
@@ -47,6 +54,36 @@ namespace STMM.Business.Services
             };
 
             await _notificationRepository.AddAsync(notification, ct);
+            await _notificationRepository.SaveChangesAsync(ct);
+        }
+
+        /// <inheritdoc />
+        public async Task<IEnumerable<NotificationDto>> GetNotificationsForUserAsync(int userId, string? roleName, CancellationToken ct = default)
+        {
+            var targetRoleLower = roleName?.Trim().ToLower();
+
+            var notifications = await _notificationRepository.FindAsync(n =>
+                (n.TargetUserId == userId) ||
+                (!string.IsNullOrWhiteSpace(n.TargetRole) && n.TargetRole.ToLower() == targetRoleLower) ||
+                (!string.IsNullOrWhiteSpace(n.TargetRole) && n.TargetRole.ToLower() == "public"),
+                ct);
+
+            var sortedNotifications = notifications.OrderByDescending(n => n.CreatedAt ?? DateTime.MinValue);
+
+            return _mapper.Map<IEnumerable<NotificationDto>>(sortedNotifications);
+        }
+
+        /// <inheritdoc />
+        public async Task MarkAsReadAsync(int notiId, CancellationToken ct = default)
+        {
+            var notification = await _notificationRepository.GetByIdAsync(notiId, ct);
+            if (notification == null)
+            {
+                throw new NotFoundException($"Notification with ID {notiId} not found.");
+            }
+
+            notification.IsRead = true;
+            _notificationRepository.Update(notification);
             await _notificationRepository.SaveChangesAsync(ct);
         }
     }

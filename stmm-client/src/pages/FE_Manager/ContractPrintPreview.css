@@ -1,0 +1,408 @@
+/* Clean, Minimalist Light Theme PDF Preview Overlay */
+.print-preview-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 9999;
+  background-color: #f1f5f9; /* Light gray backdrop */
+  display: flex;
+  overflow: hidden;
+  color: #1e293b;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+/* Side Configuration Panel (Light Theme) */
+.print-controls {
+  width: 380px;
+  background-color: #ffffff;
+  border-right: 1px solid #e2e8f0;
+  padding: 1.25rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  box-shadow: 4px 0 20px rgba(0, 0, 0, 0.03);
+}
+
+.controls-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 0.75rem;
+}
+
+.controls-header h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.btn-close-preview {
+  background: #fef2f2;
+  border: 1px solid #fecdd3;
+  color: #dc2626;
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.btn-close-preview:hover {
+  background: #fee2e2;
+  border-color: #fca5a5;
+  color: #b91c1c;
+}
+
+.control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  background: #f8fafc;
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.control-group h4 {
+  font-size: 0.875rem;
+  color: #334155;
+  font-weight: 700;
+  margin: 0 0 0.15rem 0;
+}
+
+.control-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.control-row label {
+  font-size: 0.75rem;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.control-row input {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 0.45rem 0.75rem;
+  color: #334155;
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.control-row input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+}
+
+/* Tip Box styling */
+.tip-box {
+  background-color: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1e40af;
+}
+
+.tip-box h4 {
+  color: #1e3a8a;
+}
+
+.actions-panel {
+  margin-top: auto;
+  padding-top: 1rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.btn-print-action {
+  width: 100%;
+  padding: 0.75rem;
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-print-action:hover {
+  background: #1d4ed8;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35);
+}
+
+/* Preview Canvas (Soft light background) */
+.print-preview-container {
+  flex: 1;
+  padding: 2.5rem;
+  overflow-y: auto;
+  background-color: #f1f5f9;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+}
+
+/* A4 Sheet Preview Styling - Centered and locked on Screen */
+.a4-page {
+  background-color: #ffffff;
+  color: #000000;
+  width: 210mm;
+  height: 297mm; /* Exact A4 height to prevent text overflow overlaps */
+  padding: 15mm 20mm; /* Extra vertical breathing room */
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.02);
+  font-family: "Times New Roman", Times, serif;
+  font-size: 11pt; /* Optimized font size for standard legal layout */
+  line-height: 1.3;
+  box-sizing: border-box;
+  flex-shrink: 0; /* Important: prevents vertical squishing on screen */
+  overflow: hidden; /* Prevent text spill from drawing onto next page */
+  position: relative;
+}
+
+.a4-page-break {
+  display: none;
+}
+
+/* Document Inner Elements - Absolute Print Units (pt) for consistency */
+.print-header {
+  text-align: center;
+  margin-bottom: 12pt;
+}
+
+.header-national strong {
+  display: block;
+  font-size: 11pt;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.header-national span {
+  display: block;
+  font-size: 11.5pt;
+  font-weight: bold;
+}
+
+.header-divider {
+  width: 120px;
+  height: 1px;
+  background-color: #000000;
+  margin: 4pt auto 0 auto;
+}
+
+.header-title {
+  margin-top: 6pt;
+}
+
+.header-title h2 {
+  font-size: 15pt;
+  font-weight: bold;
+  margin: 0;
+}
+
+.header-title span {
+  font-size: 10pt;
+  font-style: italic;
+}
+
+.legal-basis {
+  list-style-type: square;
+  padding-left: 15pt;
+  margin-bottom: 8pt;
+  font-style: italic;
+  font-size: 10pt;
+}
+
+.legal-basis li {
+  margin-bottom: 2pt;
+}
+
+.intro-text {
+  margin-bottom: 8pt;
+  font-size: 11pt;
+}
+
+.party-info {
+  margin-bottom: 8pt;
+}
+
+.party-info h3 {
+  font-weight: bold;
+  font-size: 11pt;
+  margin: 0 0 4pt 0;
+  text-decoration: underline;
+}
+
+.party-info ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.party-info li {
+  margin-bottom: 2pt;
+  font-size: 11pt;
+}
+
+.party-abbreviation {
+  font-style: italic;
+  text-align: right;
+  margin-top: 2pt;
+  font-size: 10pt;
+}
+
+.agreement-clause {
+  margin: 8pt 0;
+  text-align: justify;
+  font-size: 11pt;
+}
+
+.section-title {
+  font-weight: bold;
+  text-align: center;
+  margin-top: 10pt;
+  margin-bottom: 4pt;
+  text-transform: uppercase;
+  font-size: 11pt;
+}
+
+.clause-item {
+  margin-top: 3pt;
+  margin-bottom: 3pt;
+  font-size: 11pt;
+}
+
+.sub-clause-list {
+  padding-left: 15pt;
+  margin-bottom: 4pt;
+  text-align: justify;
+}
+
+.sub-clause-list li {
+  margin-bottom: 2pt;
+  font-size: 11pt;
+}
+
+.bullet-sub-list {
+  list-style-type: none;
+  padding-left: 12pt;
+  margin: 2pt 0;
+}
+
+.bullet-sub-list li {
+  margin-bottom: 2pt;
+  font-size: 11pt;
+}
+
+.signature-section {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20pt;
+  page-break-inside: avoid;
+}
+
+.signature-col {
+  width: 45%;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.signature-col strong {
+  display: block;
+  font-size: 11pt;
+}
+
+.signature-col span {
+  font-style: italic;
+  font-size: 10pt;
+}
+
+.signature-space {
+  height: 50pt;
+}
+
+/* NATIVE BROWSER PRINT CONFIGURATIONS */
+@media print {
+  /* Hide all elements directly in body except the print preview modal portal */
+  body > :not(.print-preview-modal),
+  #root {
+    display: none !important;
+  }
+
+  body, html {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 210mm !important;
+    height: auto !important;
+    min-height: auto !important;
+  }
+
+  @page {
+    size: A4;
+    margin: 0; /* Hides default header/footer text (URL, datetime, page numbers) */
+  }
+
+  .no-print,
+  .print-controls,
+  .btn-print-action {
+    display: none !important;
+  }
+
+  .print-preview-modal {
+    position: relative !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 210mm !important;
+    height: auto !important;
+    background: transparent !important;
+    display: block !important;
+    color: #000000 !important;
+    margin: 0 auto !important;
+  }
+
+  .print-preview-container {
+    padding: 0 !important;
+    background: transparent !important;
+    overflow: visible !important;
+    display: block !important;
+    width: 210mm !important;
+    margin: 0 auto !important;
+  }
+
+  .a4-page {
+    width: 210mm !important;
+    height: 297mm !important; /* Force exact physical A4 height to prevent blank pages */
+    margin: 0 auto !important;
+    padding: 15mm 20mm !important;
+    box-shadow: none !important;
+    page-break-after: always !important;
+    page-break-inside: avoid !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important; /* Clips minor text layout overflow so browser doesn't spawn empty page breaks */
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    font-family: "Times New Roman", Times, serif !important;
+  }
+
+  .a4-page:last-child {
+    page-break-after: avoid !important; /* Prevents blank pages at the end of the printed document */
+  }
+}
