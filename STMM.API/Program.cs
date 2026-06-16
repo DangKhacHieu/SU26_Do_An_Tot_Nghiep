@@ -6,9 +6,12 @@ using STMM.DataAccess.IRepositories;
 using STMM.DataAccess.Repositories;
 using STMM.Business.Mappers;
 using STMM.Business.Interfaces;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using STMM.Business.Services;
 using STMM.API.Middleware;
 using System.Text.Json.Serialization;
+using System.IO;
+
 // Load environment variables from .env file if it exists
 var currentDir = System.IO.Directory.GetCurrentDirectory();
 var envPath = System.IO.Path.Combine(currentDir, ".env");
@@ -31,7 +34,7 @@ if (System.IO.File.Exists(envPath))
         var separatorIndex = line.IndexOf('=');
         if (separatorIndex > 0)
         {
-            var key = line.Substring(0, separatorIndex).Trim();
+            var envKey = line.Substring(0, separatorIndex).Trim();
             var value = line.Substring(separatorIndex + 1).Trim();
             
             if (value.StartsWith("\"") && value.EndsWith("\"") && value.Length >= 2)
@@ -43,7 +46,7 @@ if (System.IO.File.Exists(envPath))
                 value = value.Substring(1, value.Length - 2);
             }
             
-            System.Environment.SetEnvironmentVariable(key, value);
+            System.Environment.SetEnvironmentVariable(envKey, value);
         }
     }
 }
@@ -53,6 +56,9 @@ var builder = WebApplication.CreateBuilder(args);
 // Register AppDbContext
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// Register MemoryCache
+builder.Services.AddMemoryCache();
 
 // Register Repositories
 builder.Services.AddScoped<IAreaRepository, AreaRepository>();
@@ -100,11 +106,28 @@ builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IBillingService, BillingService>();
 builder.Services.AddScoped<IIssueService, IssueService>();
 builder.Services.AddScoped<IStallTaskService, StallTaskService>();
+
+// Accountant Portal Services
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IFinancialConfigService, FinancialConfigService>();
 builder.Services.AddScoped<IRepairPriceService, RepairPriceService>();
 builder.Services.AddScoped<IUserProfileService, UserProfileService>();
+
+// Other Services from Merge_Code
+builder.Services.AddScoped<IStaffTaskService, StaffTaskService>();
+builder.Services.AddScoped<IQuotationService, QuotationService>();
+builder.Services.AddScoped<IMeterReadingService, MeterReadingService>();
+builder.Services.AddScoped<IFileStorageService, CloudinaryStorageService>();
+builder.Services.AddScoped<IVendorServiceManagement, VendorServiceManagement>();
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IFaqService, FaqService>();
+builder.Services.AddScoped<IContentService, ContentService>();
+builder.Services.AddScoped<IAreaService, AreaService>();
+builder.Services.AddScoped<IStallService, StallService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<IBusinessCategoryService, BusinessCategoryService>();
+builder.Services.AddScoped<IContractService, ContractService>();
 
 // 1. Controllers & JSON Options
 builder.Services.AddControllers()
@@ -126,42 +149,13 @@ builder.Services.AddCors(options =>
     });
 });
 
-// 5. Swagger Configuration & Bearer JWT (Để dạng comment chờ login)
+// 5. Swagger Configuration & Bearer JWT
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
-    /*
-    // Cần cài đặt Package: Microsoft.AspNetCore.Authentication.JwtBearer
-    options.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
-    {
-        Name = "Authorization",
-        Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
-        Scheme = "bearer",
-        BearerFormat = "JWT",
-        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
-        Description = "Nhập: Bearer {your JWT token}"
-    });
-
-    options.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
-    {
-        {
-            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
-            {
-                Reference = new Microsoft.OpenApi.Models.OpenApiReference
-                {
-                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
-                    Id = "Bearer"
-                }
-            },
-            Array.Empty<string>()
-        }
-    });
-    */
 });
 
-// 3. JWT Authentication & Authorization (Để dạng comment chờ login)
-/*
-// Cần cài đặt Package: Microsoft.AspNetCore.Authentication.JwtBearer
+// 3. JWT Authentication & Authorization
 var jwtSettings = builder.Configuration.GetSection("Jwt");
 var key = System.Text.Encoding.UTF8.GetBytes(jwtSettings["Key"]!);
 
@@ -187,14 +181,6 @@ builder.Services.AddAuthentication(options =>
 });
 
 builder.Services.AddAuthorization();
-*/
-
-// 6. EPPlus Excel License (Để dạng comment chờ sử dụng Excel)
-// Cần cài đặt Package: EPPlus
-// OfficeOpenXml.ExcelPackage.License.SetNonCommercialOrganization("STMM");
-
-// 7. SignalR Configuration (Để dạng comment chờ notification)
-// builder.Services.AddSignalR();
 
 var app = builder.Build();
 
@@ -212,8 +198,8 @@ app.UseHttpsRedirection();
 // Kích hoạt CORS (Phải đặt trước Auth)
 app.UseCors("AllowReact");
 
-// Phân quyền (Mở comment UseAuthentication khi có chức năng login)
-// app.UseAuthentication();
+// Phân quyền
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();

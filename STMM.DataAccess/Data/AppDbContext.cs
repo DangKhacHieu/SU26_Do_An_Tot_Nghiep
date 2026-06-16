@@ -973,6 +973,13 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.VendorId)
                 .HasComment("Tiểu thương nào đăng ký")
                 .HasColumnName("vendor_id");
+            entity.Property(e => e.EndDate)
+                .HasComment("Thời điểm kết thúc chu kỳ tính phí hiện tại (nếu có)")
+                .HasColumnName("end_date");
+            entity.Property(e => e.IsAutoRenew)
+                .HasDefaultValue(true)
+                .HasComment("Cờ tự động gia hạn (Mặc định là true cho các dịch vụ theo chu kỳ)")
+                .HasColumnName("is_auto_renew");
 
             entity.HasOne(d => d.Service).WithMany(p => p.ServiceRegistrations)
                 .HasForeignKey(d => d.ServiceId)
@@ -1126,6 +1133,9 @@ public partial class AppDbContext : DbContext
                 .HasPrecision(18, 2)
                 .HasComment("Tổng chi phí vật tư thực tế = SUM(task_materials.amount). Kế toán dùng để tính OPEX cuối tháng")
                 .HasColumnName("actual_cost");
+            entity.Property(e => e.AreaId)
+                .HasComment("Khu vực được giao đo (FK → areas)")
+                .HasColumnName("area_id");
             entity.Property(e => e.AssignedToUserId)
                 .HasComment("Staff được giao việc")
                 .HasColumnName("assigned_to_user_id");
@@ -1173,6 +1183,10 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Request).WithMany(p => p.StaffTasks)
                 .HasForeignKey(d => d.RequestId)
                 .HasConstraintName("fk_staff_tasks_requests");
+
+            entity.HasOne(d => d.Area).WithMany(p => p.StaffTasks)
+                .HasForeignKey(d => d.AreaId)
+                .HasConstraintName("fk_staff_tasks_areas");
         });
 
         modelBuilder.Entity<TaskMaterial>(entity =>
@@ -1279,7 +1293,8 @@ public partial class AppDbContext : DbContext
                 .HasColumnName("phone");
             entity.Property(e => e.RoleId)
                 .HasComment("Liên kết tới bảng roles")
-                .HasColumnName("role_id");
+                .HasColumnName("role_id")
+                .ValueGeneratedNever();
             entity.Property(e => e.Status)
                 .HasDefaultValueSql("'Active'::text")
                 .HasComment("Trạng thái tài khoản (Active, Suspended, Locked)")
@@ -1332,6 +1347,12 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.TaxCode)
                 .HasComment("Mã số thuế doanh nghiệp")
                 .HasColumnName("tax_code");
+            entity.Property(e => e.BankAccount)
+                .HasComment("Số tài khoản ngân hàng")
+                .HasColumnName("bank_account");
+            entity.Property(e => e.BankName)
+                .HasComment("Tên ngân hàng")
+                .HasColumnName("bank_name");
             entity.Property(e => e.UserId)
                 .HasComment("Quan hệ 1-1 với tài khoản đăng nhập")
                 .HasColumnName("user_id");

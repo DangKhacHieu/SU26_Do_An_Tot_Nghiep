@@ -1244,6 +1244,18 @@ namespace STMM.DataAccess.Migrations
                         .HasColumnName("cancelled_at")
                         .HasComment("Thời điểm hủy dịch vụ");
 
+                    b.Property<DateTime?>("EndDate")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("end_date")
+                        .HasComment("Thời điểm kết thúc chu kỳ tính phí hiện tại (nếu có)");
+
+                    b.Property<bool>("IsAutoRenew")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("is_auto_renew")
+                        .HasComment("Cờ tự động gia hạn (Mặc định là true cho các dịch vụ theo chu kỳ)");
+
                     b.Property<DateTime?>("RegisteredAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
@@ -1305,6 +1317,11 @@ namespace STMM.DataAccess.Migrations
                         .HasColumnType("numeric(18,2)")
                         .HasColumnName("actual_cost")
                         .HasComment("Tổng chi phí vật tư thực tế = SUM(task_materials.amount). Kế toán dùng để tính OPEX cuối tháng");
+
+                    b.Property<int?>("AreaId")
+                        .HasColumnType("integer")
+                        .HasColumnName("area_id")
+                        .HasComment("Khu vực được giao đo (FK → areas)");
 
                     b.Property<int>("AssignedToUserId")
                         .HasColumnType("integer")
@@ -1368,6 +1385,8 @@ namespace STMM.DataAccess.Migrations
 
                     b.HasKey("TaskId")
                         .HasName("tasks_pkey");
+
+                    b.HasIndex("AreaId");
 
                     b.HasIndex(new[] { "AssignedToUserId" }, "idx_staff_tasks_assigned_to_user_id");
 
@@ -2211,6 +2230,11 @@ namespace STMM.DataAccess.Migrations
 
             modelBuilder.Entity("STMM.DataAccess.Entities.StaffTask", b =>
                 {
+                    b.HasOne("STMM.DataAccess.Entities.Area", "Area")
+                        .WithMany("StaffTasks")
+                        .HasForeignKey("AreaId")
+                        .HasConstraintName("fk_staff_tasks_areas");
+
                     b.HasOne("STMM.DataAccess.Entities.User", "AssignedToUser")
                         .WithMany("StaffTasks")
                         .HasForeignKey("AssignedToUserId")
@@ -2226,6 +2250,8 @@ namespace STMM.DataAccess.Migrations
                         .WithMany("StaffTasks")
                         .HasForeignKey("RequestId")
                         .HasConstraintName("fk_staff_tasks_requests");
+
+                    b.Navigation("Area");
 
                     b.Navigation("AssignedToUser");
 
@@ -2335,6 +2361,8 @@ namespace STMM.DataAccess.Migrations
 
             modelBuilder.Entity("STMM.DataAccess.Entities.Area", b =>
                 {
+                    b.Navigation("StaffTasks");
+
                     b.Navigation("Stalls");
                 });
 

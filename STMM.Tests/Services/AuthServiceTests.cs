@@ -5,6 +5,11 @@ using STMM.Business.Exceptions;
 using STMM.Business.Services;
 using STMM.DataAccess.Entities;
 using STMM.DataAccess.IRepositories;
+using STMM.Business.Validators;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Caching.Memory;
+using AutoMapper;
+using STMM.Business.Interfaces;
 using STMM.Tests.Helpers;
 using System;
 using System.Collections.Generic;
@@ -18,12 +23,42 @@ namespace STMM.Tests.Services
     public class AuthServiceTests
     {
         private readonly Mock<IUserRepository> _userRepoMock;
+        private readonly Mock<IRoleRepository> _roleRepoMock;
+        private readonly Mock<IMapper> _mapperMock;
+        private readonly Mock<IConfiguration> _configMock;
+        private readonly Mock<IEmailService> _emailServiceMock;
+        private readonly Mock<IMemoryCache> _cacheMock;
         private readonly AuthService _service;
 
         public AuthServiceTests()
         {
             _userRepoMock = new Mock<IUserRepository>();
-            _service = new AuthService(_userRepoMock.Object);
+            _roleRepoMock = new Mock<IRoleRepository>();
+            _mapperMock = new Mock<IMapper>();
+            _emailServiceMock = new Mock<IEmailService>();
+            _cacheMock = new Mock<IMemoryCache>();
+
+            // Mock configuration for JWT settings
+            _configMock = new Mock<IConfiguration>();
+            var jwtSectionMock = new Mock<IConfigurationSection>();
+            jwtSectionMock.Setup(s => s["Key"]).Returns("SuperSecretKeyWithAtLeast32CharactersForHMACSHA256!");
+            jwtSectionMock.Setup(s => s["Issuer"]).Returns("STMM");
+            jwtSectionMock.Setup(s => s["Audience"]).Returns("STMM");
+            _configMock.Setup(c => c.GetSection("Jwt")).Returns(jwtSectionMock.Object);
+
+            var loginValidator = new LoginValidator();
+            var registerValidator = new RegisterValidator();
+
+            _service = new AuthService(
+                _userRepoMock.Object,
+                _roleRepoMock.Object,
+                _mapperMock.Object,
+                loginValidator,
+                registerValidator,
+                _configMock.Object,
+                _emailServiceMock.Object,
+                _cacheMock.Object
+            );
         }
 
         [Fact]
@@ -54,12 +89,12 @@ namespace STMM.Tests.Services
         {
             // Arrange
             var request = new LoginRequest { Email = "notfound@stmm.vn", Password = "password" };
-            var usersList = new List<User>().AsQueryable().ToAsyncQueryable();
-            _userRepoMock.Setup(r => r.Query()).Returns(usersList);
+            _userRepoMock.Setup(r => r.GetUserByEmailAsync("notfound@stmm.vn", It.IsAny<CancellationToken>()))
+                .ReturnsAsync((User?)null);
 
             // Act & Assert
             var exception = await Assert.ThrowsAsync<BadRequestException>(() => _service.LoginAsync(request));
-            exception.Message.Should().Be("Tên đăng nhập hoặc mật khẩu không chính xác.");
+            exception.Message.Should().Be("Email hoặc mật khẩu không chính xác");
         }
 
         [Fact]
@@ -67,20 +102,17 @@ namespace STMM.Tests.Services
         {
             // Arrange
             var request = new LoginRequest { Email = "deleted@stmm.vn", Password = "password" };
-            var usersList = new List<User>
-            {
-                new User
+            _userRepoMock.Setup(r => r.GetUserByEmailAsync("deleted@stmm.vn", It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new User
                 {
                     Email = "deleted@stmm.vn",
                     Password = "password",
                     IsDeleted = true
-                }
-            }.AsQueryable().ToAsyncQueryable();
-            _userRepoMock.Setup(r => r.Query()).Returns(usersList);
+                });
 
             // Act & Assert
             var exception = await Assert.ThrowsAsync<BadRequestException>(() => _service.LoginAsync(request));
-            exception.Message.Should().Be("Tên đăng nhập hoặc mật khẩu không chính xác.");
+            exception.Message.Should().Be("Email hoặc mật khẩu không chính xác");
         }
 
         [Fact]
@@ -88,20 +120,17 @@ namespace STMM.Tests.Services
         {
             // Arrange
             var request = new LoginRequest { Email = "locked@stmm.vn", Password = "password" };
-            var usersList = new List<User>
-            {
-                new User
+            _userRepoMock.Setup(r => r.GetUserByEmailAsync("locked@stmm.vn", It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new User
                 {
                     Email = "locked@stmm.vn",
                     Password = "password",
                     Status = "Locked"
-                }
-            }.AsQueryable().ToAsyncQueryable();
-            _userRepoMock.Setup(r => r.Query()).Returns(usersList);
+                });
 
             // Act & Assert
             var exception = await Assert.ThrowsAsync<BadRequestException>(() => _service.LoginAsync(request));
-            exception.Message.Should().Be("Tài khoản đã bị khóa. Vui lòng liên hệ quản trị viên.");
+            exception.Message.Should().Be("Tài khoản đã bị khóa hoặc tạm dừng");
         }
 
         [Fact]
@@ -109,19 +138,16 @@ namespace STMM.Tests.Services
         {
             // Arrange
             var request = new LoginRequest { Email = "test@stmm.vn", Password = "wrongpassword" };
-            var usersList = new List<User>
-            {
-                new User
+            _userRepoMock.Setup(r => r.GetUserByEmailAsync("test@stmm.vn", It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new User
                 {
                     Email = "test@stmm.vn",
                     Password = BCrypt.Net.BCrypt.HashPassword("correctpassword")
-                }
-            }.AsQueryable().ToAsyncQueryable();
-            _userRepoMock.Setup(r => r.Query()).Returns(usersList);
+                });
 
             // Act & Assert
             var exception = await Assert.ThrowsAsync<BadRequestException>(() => _service.LoginAsync(request));
-            exception.Message.Should().Be("Tên đăng nhập hoặc mật khẩu không chính xác.");
+            exception.Message.Should().Be("Email hoặc mật khẩu không chính xác");
         }
 
         [Fact]
@@ -130,9 +156,8 @@ namespace STMM.Tests.Services
             // Arrange
             var request = new LoginRequest { Email = "plain@stmm.vn", Password = "plainpassword" };
             var role = new Role { RoleId = 3, Name = "Accountant" };
-            var usersList = new List<User>
-            {
-                new User
+            _userRepoMock.Setup(r => r.GetUserByEmailAsync("plain@stmm.vn", It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new User
                 {
                     UserId = 10,
                     Name = "Le Binh",
@@ -140,26 +165,20 @@ namespace STMM.Tests.Services
                     Password = "plainpassword",
                     RoleId = 3,
                     Role = role
-                }
-            }.AsQueryable().ToAsyncQueryable();
-            _userRepoMock.Setup(r => r.Query()).Returns(usersList);
-            _userRepoMock.Setup(r => r.Update(It.IsAny<User>()));
-            _userRepoMock.Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+                });
 
             // Act
             var result = await _service.LoginAsync(request);
 
             // Assert
             result.Should().NotBeNull();
-            result.UserId.Should().Be(10);
-            result.Name.Should().Be("Le Binh");
-            result.Email.Should().Be("plain@stmm.vn");
-            result.RoleId.Should().Be(3);
-            result.RoleName.Should().Be("Accountant");
-            result.Token.Should().StartWith("dummy-jwt-token-");
-
-            _userRepoMock.Verify(r => r.Update(It.Is<User>(u => u.UserId == 10 && u.LastLogin != null)), Times.Once);
-            _userRepoMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+            result.User.Should().NotBeNull();
+            result.User.UserId.Should().Be(10);
+            result.User.Name.Should().Be("Le Binh");
+            result.User.Email.Should().Be("plain@stmm.vn");
+            result.User.RoleId.Should().Be(3);
+            result.User.RoleName.Should().Be("Accountant");
+            result.AccessToken.Should().NotBeNullOrEmpty();
         }
 
         [Fact]
@@ -168,9 +187,8 @@ namespace STMM.Tests.Services
             // Arrange
             var request = new LoginRequest { Email = "bcrypt@stmm.vn", Password = "bcryptpassword" };
             var role = new Role { RoleId = 2, Name = "Manager" };
-            var usersList = new List<User>
-            {
-                new User
+            _userRepoMock.Setup(r => r.GetUserByEmailAsync("bcrypt@stmm.vn", It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new User
                 {
                     UserId = 12,
                     Name = "Manager User",
@@ -178,26 +196,20 @@ namespace STMM.Tests.Services
                     Password = BCrypt.Net.BCrypt.HashPassword("bcryptpassword"),
                     RoleId = 2,
                     Role = role
-                }
-            }.AsQueryable().ToAsyncQueryable();
-            _userRepoMock.Setup(r => r.Query()).Returns(usersList);
-            _userRepoMock.Setup(r => r.Update(It.IsAny<User>()));
-            _userRepoMock.Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+                });
 
             // Act
             var result = await _service.LoginAsync(request);
 
             // Assert
             result.Should().NotBeNull();
-            result.UserId.Should().Be(12);
-            result.Name.Should().Be("Manager User");
-            result.Email.Should().Be("bcrypt@stmm.vn");
-            result.RoleId.Should().Be(2);
-            result.RoleName.Should().Be("Manager");
-            result.Token.Should().StartWith("dummy-jwt-token-");
-
-            _userRepoMock.Verify(r => r.Update(It.Is<User>(u => u.UserId == 12 && u.LastLogin != null)), Times.Once);
-            _userRepoMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+            result.User.Should().NotBeNull();
+            result.User.UserId.Should().Be(12);
+            result.User.Name.Should().Be("Manager User");
+            result.User.Email.Should().Be("bcrypt@stmm.vn");
+            result.User.RoleId.Should().Be(2);
+            result.User.RoleName.Should().Be("Manager");
+            result.AccessToken.Should().NotBeNullOrEmpty();
         }
     }
 }

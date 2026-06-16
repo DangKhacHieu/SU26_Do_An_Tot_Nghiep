@@ -1,0 +1,74 @@
+import axios, { AxiosInstance } from 'axios';
+import { UserDto } from '../types/user.types';
+
+const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5056/api').replace(/\/$/, '');
+
+const getApiErrorMessage = (error: any, fallback: string): string => {
+  const data = error.response?.data;
+
+  if (data?.message) return data.message;
+  if (data?.detail) return data.detail;
+
+  if (data?.errors && typeof data.errors === 'object') {
+    return Object.values(data.errors).flat().join(', ');
+  }
+
+  if (error.code === 'ERR_NETWORK') {
+    return 'Không kết nối được API. Hãy kiểm tra API đã chạy đúng cổng trong file .env chưa.';
+  }
+
+  return fallback;
+};
+
+class UserService {
+  private api: AxiosInstance;
+
+  constructor() {
+    this.api = axios.create({
+      baseURL: API_BASE_URL,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    // Add interceptor to automatically add token to request header from localStorage
+    this.api.interceptors.request.use((config) => {
+      const token = localStorage.getItem('accessToken');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+      return config;
+    });
+  }
+
+  /**
+   * Cập nhật thông tin cá nhân
+   */
+  async updateProfile(userId: number, name: string, phone: string): Promise<UserDto> {
+    try {
+      const response = await this.api.put<UserDto>(`/users/profile?userId=${userId}`, {
+        name,
+        phone,
+      });
+
+      // Cập nhật thông tin user trong localStorage
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        const currentUser = JSON.parse(userStr);
+        const updatedUser = {
+          ...currentUser,
+          name: response.data.name,
+          phone: response.data.phone,
+        };
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        return updatedUser;
+      }
+
+      return response.data;
+    } catch (error: any) {
+      throw new Error(getApiErrorMessage(error, 'Cập nhật thông tin cá nhân thất bại'));
+    }
+  }
+}
+
+export default new UserService();

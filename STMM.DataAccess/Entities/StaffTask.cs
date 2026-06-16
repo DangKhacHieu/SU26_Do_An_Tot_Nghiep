@@ -29,6 +29,11 @@ public partial class StaffTask
     public int? IssueId { get; set; }
 
     /// <summary>
+    /// Khu vực được giao đo (FK → areas)
+    /// </summary>
+    public int? AreaId { get; set; }
+
+    /// <summary>
     /// Repair, Maintenance, UtilityReading, CashCollection
     /// </summary>
     public string TaskType { get; set; } = null!;
@@ -75,6 +80,8 @@ public partial class StaffTask
     public virtual Issue? Issue { get; set; }
 
     public virtual Request? Request { get; set; }
+
+    public virtual Area? Area { get; set; }
 
     public virtual ICollection<TaskMaterial> TaskMaterials { get; set; } = new List<TaskMaterial>();
 }

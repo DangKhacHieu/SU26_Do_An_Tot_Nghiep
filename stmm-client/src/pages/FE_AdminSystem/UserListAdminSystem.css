@@ -1,0 +1,57 @@
+/* =========================================
+   USER LIST ADMIN SYSTEM PAGE
+   File: UserListAdminSystem.css
+   ========================================= */
+
+@import "../FE_Manager/UserListManager.css";
+
+/* ── Admin system overrides ── */
+.btn-admin-accent {
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%) !important;
+  color: #fff !important;
+  box-shadow: 0 2px 8px rgba(124, 58, 237, 0.3);
+}
+
+.btn-admin-accent:hover {
+  background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%) !important;
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4);
+}
+
+.badge-admin {
+  background: #f3e8ff !important;
+  color: #7c3aed !important;
+}
+
+/* ── Role badges for system admin and manager ── */
+.badge-role.admin-system {
+  background: #f3e8ff;
+  color: #7c3aed;
+  border: 1px solid #e9d5ff;
+}
+
+.badge-role.admin {
+  background: #f3e8ff;
+  color: #7c3aed;
+  border: 1px solid #e9d5ff;
+}
+
+.badge-role.manager {
+  background: #fee2e2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+/* ── Actions cell reset password icon ── */
+.btn-icon.reset-pw:hover {
+  background: #7c3aed;
+  color: #fff;
+  border-color: transparent;
+}
+
+/* ── Password input field styling in reset modal ── */
+.pw-toggle {
+  transition: color 0.15s;
+}
+.pw-toggle:hover {
+  color: #7c3aed !important;
+}

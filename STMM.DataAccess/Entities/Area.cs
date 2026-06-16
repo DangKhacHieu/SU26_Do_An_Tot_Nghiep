@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace STMM.DataAccess.Entities;
@@ -68,4 +68,6 @@ public partial class Area
     public virtual Market Market { get; set; } = null!;
 
     public virtual ICollection<Stall> Stalls { get; set; } = new List<Stall>();
+
+    public virtual ICollection<StaffTask> StaffTasks { get; set; } = new List<StaffTask>();
 }

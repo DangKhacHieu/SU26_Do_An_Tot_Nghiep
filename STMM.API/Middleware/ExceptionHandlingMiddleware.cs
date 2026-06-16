@@ -67,9 +67,17 @@ namespace STMM.API.Middleware
                     context.Response.StatusCode = StatusCodes.Status500InternalServerError;
                     problemDetails.Status = StatusCodes.Status500InternalServerError;
                     problemDetails.Title = "Internal Server Error";
-                    problemDetails.Detail = _env.IsDevelopment() 
-                        ? $"{exception.Message} \n {exception.StackTrace}" 
-                        : "An unexpected error occurred. Please contact the administrator.";
+                    if (_env.IsDevelopment())
+                    {
+                        var inner = exception.InnerException != null
+                            ? $"\nInnerException: {exception.InnerException.Message}\n{exception.InnerException.StackTrace}"
+                            : string.Empty;
+                        problemDetails.Detail = $"{exception.Message} \n {exception.StackTrace}{inner}";
+                    }
+                    else
+                    {
+                        problemDetails.Detail = "An unexpected error occurred. Please contact the administrator.";
+                    }
                     break;
             }
 

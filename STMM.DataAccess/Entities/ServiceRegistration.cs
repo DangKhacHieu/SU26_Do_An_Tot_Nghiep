@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace STMM.DataAccess.Entities;
@@ -42,6 +42,16 @@ public partial class ServiceRegistration
     /// Thời điểm hủy dịch vụ
     /// </summary>
     public DateTime? CancelledAt { get; set; }
+
+    /// <summary>
+    /// Thời điểm kết thúc chu kỳ tính phí hiện tại (nếu có)
+    /// </summary>
+    public DateTime? EndDate { get; set; }
+
+    /// <summary>
+    /// Cờ tự động gia hạn (Mặc định là true cho các dịch vụ theo chu kỳ)
+    /// </summary>
+    public bool IsAutoRenew { get; set; }
 
     public virtual Service Service { get; set; } = null!;
 

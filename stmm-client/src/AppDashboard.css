@@ -1,0 +1,15 @@
+.role-dashboard-menu {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin: 24px 0;
+}
+
+.role-dashboard-menu div {
+  background: #f6f0d7;
+  border: 1px solid #c5d89d;
+  border-radius: 14px;
+  padding: 14px;
+  font-weight: 600;
+  color: #4f5f3a;
+}
