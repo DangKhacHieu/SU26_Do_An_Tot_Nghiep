@@ -26,40 +26,40 @@ const NAV_ITEMS = [
   {
     section: 'Tổng quan',
     items: [
-      { path: '/dashboard', label: 'Tổng quan & Báo cáo', icon: LayoutDashboard }
+      { path: '/accountant/dashboard', label: 'Tổng quan & Báo cáo', icon: LayoutDashboard }
     ]
   },
   {
     section: 'Nghiệp vụ Tài chính',
     items: [
-      { path: '/financial-config', label: 'Cấu hình tài chính', icon: Settings },
-      { path: '/periodic-invoices', label: 'Hóa đơn định kỳ', icon: Receipt },
-      { path: '/payment-verification', label: 'Đối soát & Thanh toán', icon: CheckSquare },
+      { path: '/accountant/financial-config', label: 'Cấu hình tài chính', icon: Settings },
+      { path: '/accountant/periodic-invoices', label: 'Hóa đơn định kỳ', icon: Receipt },
+      { path: '/accountant/payment-verification', label: 'Đối soát & Thanh toán', icon: CheckSquare },
     ]
   },
   {
     section: 'Quản lý',
     items: [
-      { path: '/violations-penalties', label: 'Vi phạm & Phạt', icon: ShieldAlert },
-      { path: '/repair-price', label: 'Giá sửa chữa', icon: Wrench },
+      { path: '/accountant/violations-penalties', label: 'Vi phạm & Phạt', icon: ShieldAlert },
+      { path: '/accountant/repair-price', label: 'Giá sửa chữa', icon: Wrench },
     ]
   },
   {
     section: 'Tài khoản',
     items: [
-      { path: '/profile-management', label: 'Hồ sơ cá nhân', icon: User },
+      { path: '/accountant/profile-management', label: 'Hồ sơ cá nhân', icon: User },
     ]
   }
 ];
 
 const PAGE_LABELS = {
-  '/dashboard': 'Tổng quan & Báo cáo',
-  '/financial-config': 'Cấu hình Tài chính',
-  '/periodic-invoices': 'Hóa đơn Định kỳ',
-  '/violations-penalties': 'Vi phạm & Phạt',
-  '/repair-price': 'Giá Sửa Chữa',
-  '/payment-verification': 'Đối soát & Thanh toán',
-  '/profile-management': 'Hồ sơ Cá nhân',
+  '/accountant/dashboard': 'Tổng quan & Báo cáo',
+  '/accountant/financial-config': 'Cấu hình Tài chính',
+  '/accountant/periodic-invoices': 'Hóa đơn Định kỳ',
+  '/accountant/violations-penalties': 'Vi phạm & Phạt',
+  '/accountant/repair-price': 'Giá Sửa Chữa',
+  '/accountant/payment-verification': 'Đối soát & Thanh toán',
+  '/accountant/profile-management': 'Hồ sơ Cá nhân',
 };
 
 export default function AccountantLayout() {
@@ -78,7 +78,7 @@ export default function AccountantLayout() {
 
   useEffect(() => {
     const loadSession = () => {
-      const session = localStorage.getItem('user_session');
+      const session = localStorage.getItem('user');
       if (session) {
         try {
           const parsed = JSON.parse(session);
@@ -123,7 +123,9 @@ export default function AccountantLayout() {
 
   const handleLogout = () => {
     if (window.confirm('Bạn có chắc chắn muốn đăng xuất khỏi hệ thống STMM?')) {
-      localStorage.removeItem('user_session');
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('user');
       navigate('/login');
     }
   };

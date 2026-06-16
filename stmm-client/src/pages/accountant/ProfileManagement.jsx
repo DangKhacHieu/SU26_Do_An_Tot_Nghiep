@@ -56,7 +56,7 @@ export default function ProfileManagement() {
     setIsMock(false);
 
     // Retrieve user session info from localStorage
-    const session = localStorage.getItem('user_session');
+    const session = localStorage.getItem('user');
     let currentUserId = 1;
     if (session) {
       try {
@@ -135,13 +135,13 @@ export default function ProfileManagement() {
       setProfile(tempProfile);
 
       // Sync with localStorage
-      const session = localStorage.getItem('user_session');
+      const session = localStorage.getItem('user');
       if (session) {
         try {
           const parsed = JSON.parse(session);
           parsed.name = tempProfile.name;
           parsed.email = tempProfile.email;
-          localStorage.setItem('user_session', JSON.stringify(parsed));
+          localStorage.setItem('user', JSON.stringify(parsed));
           window.dispatchEvent(new Event('userSessionUpdated'));
         } catch (e) {
           console.error('Lỗi cập nhật localStorage:', e);
@@ -175,13 +175,13 @@ export default function ProfileManagement() {
         setTempProfile(merged);
 
         // Sync with localStorage
-        const session = localStorage.getItem('user_session');
+        const session = localStorage.getItem('user');
         if (session) {
           try {
             const parsed = JSON.parse(session);
             parsed.name = data.name;
             parsed.email = data.email;
-            localStorage.setItem('user_session', JSON.stringify(parsed));
+            localStorage.setItem('user', JSON.stringify(parsed));
             window.dispatchEvent(new Event('userSessionUpdated'));
           } catch (e) {
             console.error('Lỗi cập nhật localStorage:', e);

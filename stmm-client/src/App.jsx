@@ -63,9 +63,17 @@ import PaymentVerification from './pages/accountant/PaymentVerification';
 import ProfileManagement from './pages/accountant/ProfileManagement';
 
 // Guard components
-function ProtectedRoute() {
-  const session = localStorage.getItem('user_session');
-  if (!session) {
+function ProtectedRoute({ allowedRoles }) {
+  const userStr = localStorage.getItem('user');
+  if (!userStr) {
+    return <Navigate to="/login" replace />;
+  }
+  try {
+    const user = JSON.parse(userStr);
+    if (allowedRoles && !allowedRoles.includes(user.roleName)) {
+      return <Navigate to="/" replace />;
+    }
+  } catch (e) {
     return <Navigate to="/login" replace />;
   }
   return <Outlet />;
@@ -1024,8 +1032,9 @@ function AppContent() {
       } />
 
       {/* 4. Protected Accountant Portal Routing */}
-      <Route element={<ProtectedRoute />}>
-        <Route path="/" element={<AccountantLayout />}>
+      <Route element={<ProtectedRoute allowedRoles={["Accountant"]} />}>
+        <Route path="/accountant" element={<AccountantLayout />}>
+          <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="financial-config" element={<FinancialConfig />} />
           <Route path="periodic-invoices" element={<PeriodicInvoices />} />
