@@ -9,6 +9,44 @@ using STMM.Business.Interfaces;
 using STMM.Business.Services;
 using STMM.API.Middleware;
 using System.Text.Json.Serialization;
+// Load environment variables from .env file if it exists
+var currentDir = System.IO.Directory.GetCurrentDirectory();
+var envPath = System.IO.Path.Combine(currentDir, ".env");
+if (!System.IO.File.Exists(envPath))
+{
+    var parentDir = System.IO.Directory.GetParent(currentDir)?.FullName;
+    if (!string.IsNullOrEmpty(parentDir))
+    {
+        envPath = System.IO.Path.Combine(parentDir, ".env");
+    }
+}
+
+if (System.IO.File.Exists(envPath))
+{
+    foreach (var line in System.IO.File.ReadAllLines(envPath))
+    {
+        if (string.IsNullOrWhiteSpace(line) || line.StartsWith('#'))
+            continue;
+
+        var separatorIndex = line.IndexOf('=');
+        if (separatorIndex > 0)
+        {
+            var key = line.Substring(0, separatorIndex).Trim();
+            var value = line.Substring(separatorIndex + 1).Trim();
+            
+            if (value.StartsWith("\"") && value.EndsWith("\"") && value.Length >= 2)
+            {
+                value = value.Substring(1, value.Length - 2);
+            }
+            else if (value.StartsWith("'") && value.EndsWith("'") && value.Length >= 2)
+            {
+                value = value.Substring(1, value.Length - 2);
+            }
+            
+            System.Environment.SetEnvironmentVariable(key, value);
+        }
+    }
+}
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -62,6 +100,11 @@ builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IBillingService, BillingService>();
 builder.Services.AddScoped<IIssueService, IssueService>();
 builder.Services.AddScoped<IStallTaskService, StallTaskService>();
+builder.Services.AddScoped<IDashboardService, DashboardService>();
+builder.Services.AddScoped<IFinancialConfigService, FinancialConfigService>();
+builder.Services.AddScoped<IRepairPriceService, RepairPriceService>();
+builder.Services.AddScoped<IUserProfileService, UserProfileService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
 
 // 1. Controllers & JSON Options
 builder.Services.AddControllers()

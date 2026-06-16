@@ -26,6 +26,12 @@ namespace STMM.Tests.Services
     {
         private readonly Mock<IInvoiceRepository> _invoiceRepoMock;
         private readonly Mock<IPaymentRepository> _paymentRepoMock;
+        private readonly Mock<IContractRepository> _contractRepoMock;
+        private readonly Mock<IMeterRepository> _meterRepoMock;
+        private readonly Mock<IMeterReadingRepository> _meterReadingRepoMock;
+        private readonly Mock<IFeeTypeRepository> _feeTypeRepoMock;
+        private readonly Mock<IViolationRepository> _violationRepoMock;
+        private readonly Mock<IRequestRepository> _requestRepoMock;
         private readonly Mock<INotificationService> _notificationServiceMock;
         private readonly Mock<IValidator<ReceiveCashPaymentRequest>> _validatorMock;
         private readonly IMapper _mapper;
@@ -35,6 +41,12 @@ namespace STMM.Tests.Services
         {
             _invoiceRepoMock = new Mock<IInvoiceRepository>();
             _paymentRepoMock = new Mock<IPaymentRepository>();
+            _contractRepoMock = new Mock<IContractRepository>();
+            _meterRepoMock = new Mock<IMeterRepository>();
+            _meterReadingRepoMock = new Mock<IMeterReadingRepository>();
+            _feeTypeRepoMock = new Mock<IFeeTypeRepository>();
+            _violationRepoMock = new Mock<IViolationRepository>();
+            _requestRepoMock = new Mock<IRequestRepository>();
             _notificationServiceMock = new Mock<INotificationService>();
             _validatorMock = new Mock<IValidator<ReceiveCashPaymentRequest>>();
 
@@ -47,6 +59,12 @@ namespace STMM.Tests.Services
             _service = new BillingService(
                 _invoiceRepoMock.Object,
                 _paymentRepoMock.Object,
+                _contractRepoMock.Object,
+                _meterRepoMock.Object,
+                _meterReadingRepoMock.Object,
+                _feeTypeRepoMock.Object,
+                _violationRepoMock.Object,
+                _requestRepoMock.Object,
                 _mapper,
                 _notificationServiceMock.Object,
                 _validatorMock.Object);

@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using STMM.Business.DTOs.Violation;
 using STMM.Business.Interfaces;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace STMM.API.Controllers
 {
@@ -61,6 +63,58 @@ namespace STMM.API.Controllers
         public async Task<IActionResult> GetViolationTypes(CancellationToken ct)
         {
             var result = await _violationService.GetViolationTypesAsync(ct);
+            return Ok(result);
+        }
+
+        // --- ACCOUNTANT / GENERAL ADDITIONS ---
+
+        /// <summary>
+        /// Lấy toàn bộ danh sách biên bản vi phạm của toàn hệ thống (tra cứu nộp phạt).
+        /// </summary>
+        [HttpGet("all")]
+        public async Task<IActionResult> GetAllViolations(CancellationToken ct)
+        {
+            var result = await _violationService.GetAllViolationsAsync(ct);
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// Lấy toàn bộ danh mục Loại vi phạm (kèm cả loại đã ẩn).
+        /// </summary>
+        [HttpGet("types/all")]
+        public async Task<IActionResult> GetAllViolationTypes(CancellationToken ct)
+        {
+            var result = await _violationService.GetAllViolationTypesWithInactiveAsync(ct);
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// Tạo loại vi phạm mới.
+        /// </summary>
+        [HttpPost("types")]
+        public async Task<IActionResult> CreateViolationType([FromBody] CreateViolationTypeRequest request, CancellationToken ct)
+        {
+            var result = await _violationService.CreateViolationTypeAsync(request, ct);
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// Cập nhật loại vi phạm.
+        /// </summary>
+        [HttpPut("types/{id}")]
+        public async Task<IActionResult> UpdateViolationType(int id, [FromBody] UpdateViolationTypeRequest request, CancellationToken ct)
+        {
+            var result = await _violationService.UpdateViolationTypeAsync(id, request, ct);
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// Xóa (Ẩn hoạt động) loại vi phạm.
+        /// </summary>
+        [HttpDelete("types/{id}")]
+        public async Task<IActionResult> DeleteViolationType(int id, CancellationToken ct)
+        {
+            var result = await _violationService.DeleteViolationTypeAsync(id, ct);
             return Ok(result);
         }
     }
