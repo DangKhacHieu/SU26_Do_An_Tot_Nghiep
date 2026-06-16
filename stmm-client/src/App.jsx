@@ -43,6 +43,7 @@ import BusinessCategoryListManager from "./pages/FE_Manager/BusinessCategoryList
 import ContractListManager from "./pages/FE_Manager/ContractListManager";
 import ContractDetailManager from "./pages/FE_Manager/ContractDetailManager";
 import ContractFormManager from "./pages/FE_Manager/ContractFormManager";
+import ProfileManager from "./pages/FE_Manager/ProfileManager";
 
 
 // FE Admin System Imports
@@ -109,6 +110,10 @@ const PAGE_TITLES = {
     title: "Chi tiết Hợp đồng",
     sub: "Xem thông tin chi tiết, xuất in bản cứng, hoặc đính kèm bản quét ký tên.",
   },
+  "manager-profile": {
+    title: "Thông tin cá nhân",
+    sub: "Xem và cập nhật thông tin cá nhân hoặc thay đổi mật khẩu tài khoản.",
+  },
 
 
   "admin-dashboard": {
@@ -170,22 +175,29 @@ function App() {
   // =========================
   // Manager / Admin Console State
   // =========================
-  const getInitialConsolePage = () => {
-    if (path === "/admin/dashboard") return "admin-dashboard";
+  const getInitialConsolePage = (currentPath) => {
+    if (currentPath.startsWith("/admin")) {
+      const parts = currentPath.split("/");
+      const sub = parts[2];
+      if (!sub) return "admin-dashboard";
+      if (sub.startsWith("admin-")) return sub;
+      return "admin-" + sub;
+    }
+    if (currentPath.startsWith("/manager")) {
+      const parts = currentPath.split("/");
+      const sub = parts[2];
+      return sub || "dashboard";
+    }
     return "dashboard";
   };
 
-  const [currentPage, setCurrentPage] = useState(getInitialConsolePage());
+  const [currentPage, setCurrentPage] = useState(getInitialConsolePage(path));
   const [currentUserId, setCurrentUserId] = useState(null);
   const [toasts, setToasts] = useState([]);
 
   useEffect(() => {
-    if (path === "/admin/dashboard") {
-      setCurrentPage("admin-dashboard");
-    }
-
-    if (path === "/manager/dashboard") {
-      setCurrentPage("dashboard");
+    if (path.startsWith("/admin") || path.startsWith("/manager")) {
+      setCurrentPage(getInitialConsolePage(path));
     }
   }, [path]);
 
@@ -201,10 +213,28 @@ function App() {
   const navigateConsole = (page, id = null) => {
     setCurrentUserId(id);
     setCurrentPage(page);
+
+    let newPath = "";
+    if (page.startsWith("admin-")) {
+      const sub = page.substring(6); // e.g. "admin-users" -> "users"
+      newPath = `/admin/${sub}`;
+    } else {
+      newPath = `/manager/${page}`;
+    }
+
+    if (window.location.pathname !== newPath) {
+      window.history.pushState({}, "", newPath);
+      setPath(newPath);
+    }
   };
 
   const renderPage = () => {
     switch (currentPage) {
+      case "manager-profile":
+        return (
+          <ProfileManager navigate={navigateConsole} addToast={addToast} />
+        );
+
       case "dashboard":
         return (
           <DashboardManager addToast={addToast} navigate={navigateConsole} />
@@ -403,50 +433,6 @@ function App() {
     );
   };
 
-  const renderConsoleSwitcher = () => {
-    const activeMode = currentPage.startsWith("admin-") ? "admin" : "manager";
-
-    return (
-      <div className="header-actions">
-        <select
-          value={activeMode}
-          onChange={(e) => {
-            const mode = e.target.value;
-
-            if (mode === "admin") {
-              setCurrentPage("admin-dashboard");
-              navigatePath("/admin/dashboard");
-            }
-
-            if (mode === "manager") {
-              setCurrentPage("dashboard");
-              navigatePath("/manager/dashboard");
-            }
-
-            if (mode === "staff") {
-              navigatePath("/staff/dashboard");
-            }
-          }}
-          style={{
-            padding: "6px 12px",
-            borderRadius: "6px",
-            border: "1px solid var(--border-color)",
-            fontSize: "13px",
-            fontWeight: "600",
-            cursor: "pointer",
-            background: "#f8fafc",
-            color: "var(--text-main)",
-            outline: "none",
-          }}
-        >
-          <option value="manager">Manager Console</option>
-          <option value="admin">Admin System Console</option>
-          <option value="staff">Staff Console</option>
-        </select>
-      </div>
-    );
-  };
-
   const renderManagerOrAdminConsole = () => {
     return (
       <div className="app-container">
@@ -454,11 +440,15 @@ function App() {
           <SidebarAdminSystem
             currentPage={currentPage}
             navigate={navigateConsole}
+            user={user}
+            onLogout={handleLogout}
           />
         ) : (
           <SidebarManager
             currentPage={currentPage}
             navigate={navigateConsole}
+            user={user}
+            onLogout={handleLogout}
           />
         )}
 
@@ -468,8 +458,6 @@ function App() {
               <h1>{pageInfo.title}</h1>
               <p>{pageInfo.sub}</p>
             </div>
-
-            {renderConsoleSwitcher()}
           </header>
 
           <div className="dashboard-content">{renderPage()}</div>
@@ -1004,11 +992,11 @@ function App() {
     );
   }
 
-  if (path === "/admin/dashboard") {
+  if (path.startsWith("/admin")) {
     return renderManagerOrAdminConsole();
   }
 
-  if (path === "/manager/dashboard") {
+  if (path.startsWith("/manager")) {
     return renderManagerOrAdminConsole();
   }
 

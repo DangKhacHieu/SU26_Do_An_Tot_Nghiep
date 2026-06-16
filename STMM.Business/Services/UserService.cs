@@ -387,6 +387,11 @@ namespace STMM.Business.Services
                 throw new BadRequestException("Mật khẩu hiện tại không chính xác.");
             }
 
+            if (BCrypt.Net.BCrypt.Verify(request.NewPassword, user.Password))
+            {
+                throw new BadRequestException("Mật khẩu mới không được trùng với mật khẩu hiện tại.");
+            }
+
             user.Password = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
             user.UpdatedAt = DateTime.UtcNow;
 
