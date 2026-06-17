@@ -68,7 +68,7 @@ export default function ViolationDetails({ violationId, userId, baseUrl, onBack 
       </div>
 
       <div className="details-header">
-        <h1 className="main-title">VIOLATION DETAILS: VIO-{violation.violationId}</h1>
+        <h1 className="main-title">VIOLATION DETAILS: {violation.violationId}</h1>
         <button className="btn-secondary-outline" onClick={onBack}>
           &larr; Back to List
         </button>
@@ -144,7 +144,7 @@ export default function ViolationDetails({ violationId, userId, baseUrl, onBack 
       </div>
 
       <div className="audit-footer">
-        Logged by: Staff User #{violation.createdBy} | Timestamp: {formatDate(violation.createdAt)} {formatTime(violation.createdAt)}
+        Logged by: Staff User {violation.createdBy} | Timestamp: {formatDate(violation.createdAt)} {formatTime(violation.createdAt)}
       </div>
     </div>
   );

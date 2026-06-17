@@ -174,7 +174,7 @@ export default function ViolationList({ userId, baseUrl, onViewDetails, onOpenCr
               <table className="staff-table">
                 <thead>
                   <tr>
-                    <th>Violation ID</th>
+                    <th>ID</th>
                     <th>Type</th>
                     <th>Location (Stall)</th>
                     <th>Fine Amount</th>
@@ -187,11 +187,11 @@ export default function ViolationList({ userId, baseUrl, onViewDetails, onOpenCr
                 <tbody>
                   {violations.map((v) => (
                     <tr key={v.violationId}>
-                      <td><strong>VIO-{v.violationId}</strong></td>
+                      <td><strong>{v.violationId}</strong></td>
                       <td>{v.title}</td>
                       <td><span className="badge-stall">{v.stallCode || `ID: ${v.stallId}`}</span></td>
                       <td>{formatVnd(v.fineAmount)}</td>
-                      <td>Staff #{v.createdBy}</td>
+                      <td>Staff {v.createdBy}</td>
                       <td>{formatDate(v.createdAt)}</td>
                       <td>
                         <span className={`status-badge ${v.status?.toLowerCase() || 'pending'}`}>
