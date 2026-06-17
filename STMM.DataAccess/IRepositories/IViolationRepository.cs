@@ -25,5 +25,16 @@ namespace STMM.DataAccess.IRepositories
         Task<Violation?> GetViolationDetailsForManagerAsync(int id, CancellationToken ct = default);
 
         Task<bool> SimulateViolationAppealAsync(int violationId, CancellationToken ct = default);
+
+        Task<(IEnumerable<Violation> Items, int TotalCount)> GetViolationsForVendorPagedAsync(
+            List<int> stallIds,
+            string? status,
+            string? searchTerm,
+            bool sortDescending,
+            int pageNumber,
+            int pageSize,
+            CancellationToken ct = default);
+
+        Task<Violation?> GetViolationDetailForVendorAsync(int id, List<int> stallIds, CancellationToken ct = default);
     }
 }

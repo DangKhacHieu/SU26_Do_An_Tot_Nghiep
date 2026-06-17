@@ -25,6 +25,7 @@ namespace STMM.Business.Services
         public async Task<PagedResult<RequestDto>> GetRequestsForManagerAsync(RequestQueryParams queryParams, CancellationToken ct = default)
         {
             var (items, totalCount) = await _requestRepository.GetRequestsPagedAsync(
+                null, // vendorId
                 queryParams.Status,
                 queryParams.RequestType,
                 queryParams.SearchTerm,

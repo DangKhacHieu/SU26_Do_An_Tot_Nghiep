@@ -145,5 +145,62 @@ namespace STMM.DataAccess.Repositories
             await _context.SaveChangesAsync(ct);
             return true;
         }
+
+        public async Task<(IEnumerable<Violation> Items, int TotalCount)> GetViolationsForVendorPagedAsync(
+            List<int> stallIds,
+            string? status,
+            string? searchTerm,
+            bool sortDescending,
+            int pageNumber,
+            int pageSize,
+            CancellationToken ct = default)
+        {
+            var query = _context.Violations
+                .Include(v => v.Stall)
+                .Include(v => v.ViolationType)
+                .Include(v => v.CreatedByUser)
+                .Where(v => stallIds.Contains(v.StallId))
+                .AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(status))
+            {
+                var trimmedStatus = status.Trim();
+                query = query.Where(v => v.Status == trimmedStatus);
+            }
+
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                var term = searchTerm.Trim().ToLower();
+                query = query.Where(v => v.Title.ToLower().Contains(term)
+                                         || v.Description.ToLower().Contains(term)
+                                         || v.Stall.Code.ToLower().Contains(term)
+                                         || v.ViolationType.Name.ToLower().Contains(term));
+            }
+
+            var totalCount = await query.CountAsync(ct);
+
+            query = sortDescending
+                ? query.OrderByDescending(v => v.CreatedAt)
+                : query.OrderBy(v => v.CreatedAt);
+
+            var items = await query
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .AsNoTracking()
+                .ToListAsync(ct);
+
+            return (items, totalCount);
+        }
+
+        public async Task<Violation?> GetViolationDetailForVendorAsync(int id, List<int> stallIds, CancellationToken ct = default)
+        {
+            return await _context.Violations
+                .Include(v => v.Stall)
+                .Include(v => v.ViolationType)
+                .Include(v => v.CreatedByUser)
+                .Include(v => v.Requests)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(v => v.ViolationId == id && stallIds.Contains(v.StallId), ct);
+        }
     }
 }

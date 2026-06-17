@@ -8,6 +8,7 @@ namespace STMM.DataAccess.IRepositories
     public interface IRequestRepository : IBaseRepository<Request>
     {
         Task<(IEnumerable<Request> Items, int TotalCount)> GetRequestsPagedAsync(
+            int? vendorId,
             string? status,
             string? requestType,
             string? searchTerm,

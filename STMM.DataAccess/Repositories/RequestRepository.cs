@@ -16,6 +16,7 @@ namespace STMM.DataAccess.Repositories
         }
 
         public async Task<(IEnumerable<Request> Items, int TotalCount)> GetRequestsPagedAsync(
+            int? vendorId,
             string? status,
             string? requestType,
             string? searchTerm,
@@ -29,6 +30,11 @@ namespace STMM.DataAccess.Repositories
                 .Include(r => r.Vendor)
                     .ThenInclude(v => v.User)
                 .AsQueryable();
+
+            if (vendorId.HasValue)
+            {
+                query = query.Where(r => r.VendorId == vendorId.Value);
+            }
 
             if (!string.IsNullOrWhiteSpace(status))
             {

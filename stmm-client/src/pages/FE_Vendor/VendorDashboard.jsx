@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import "./VendorDashboard.css";
 import VendorServiceList from "../FE_Vendor/VendorServices/VendorServiceList";
 import VendorMyServices from "../FE_Vendor/VendorServices/VendorMyServices";
+import VendorRequestList from "./VendorRequests/VendorRequestList";
+import VendorViolationList from "./VendorViolations/VendorViolationList";
 import VendorProfile from "./VendorProfile";
 
 // Icons
@@ -178,7 +180,19 @@ function VendorDashboard({ user, onBack, onLogout }) {
             </div>
           )}
 
-          {activeMenu !== 'SERVICES' && activeMenu !== 'PROFILE' && (
+          {activeMenu === 'REQUESTS' && (
+            <div style={{ height: '100%' }}>
+              <VendorRequestList />
+            </div>
+          )}
+
+          {activeMenu === 'VIOLATIONS' && (
+            <div style={{ height: '100%' }}>
+              <VendorViolationList />
+            </div>
+          )}
+
+          {activeMenu !== 'SERVICES' && activeMenu !== 'PROFILE' && activeMenu !== 'REQUESTS' && activeMenu !== 'VIOLATIONS' && (
             <div style={{ color: '#888', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
               <h2>Chức năng {activeMenu} đang được phát triển.</h2>
             </div>
