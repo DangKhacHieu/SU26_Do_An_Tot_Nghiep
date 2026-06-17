@@ -10,6 +10,7 @@ using STMM.Business.DTOs.Area;
 using STMM.Business.DTOs.Stall;
 using STMM.Business.DTOs.BusinessCategory;
 using STMM.Business.DTOs.Contract;
+using STMM.Business.DTOs.Request;
 
 
 namespace STMM.Business.Mappers
@@ -192,6 +193,12 @@ namespace STMM.Business.Mappers
                 .ForMember(d => d.VendorBankName, o => o.MapFrom(s => s.Vendor.BankName));
 
             CreateMap<ContractFile, ContractFileDto>();
+
+            // Request mappings
+            CreateMap<Request, RequestDto>()
+                .ForMember(dest => dest.VendorName, opt => opt.MapFrom(src => src.Vendor != null && src.Vendor.User != null ? src.Vendor.User.Name : string.Empty))
+                .ForMember(dest => dest.BusinessName, opt => opt.MapFrom(src => src.Vendor != null ? src.Vendor.BusinessName : string.Empty))
+                .ForMember(dest => dest.StallCode, opt => opt.MapFrom(src => src.Stall != null ? src.Stall.Code : string.Empty));
         }
     }
 }

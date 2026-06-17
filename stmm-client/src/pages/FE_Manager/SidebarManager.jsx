@@ -107,6 +107,12 @@ const NAV_GROUPS = [
         icon: <IconContent />,
         childKeys: ['contract-form', 'contract-detail'],
       },
+      {
+        key: 'requests',
+        label: 'Quản lý Yêu cầu',
+        icon: <IconContent />,
+        childKeys: ['request-detail'],
+      },
     ],
   },
 ];

@@ -44,6 +44,8 @@ import ContractListManager from "./pages/FE_Manager/ContractListManager";
 import ContractDetailManager from "./pages/FE_Manager/ContractDetailManager";
 import ContractFormManager from "./pages/FE_Manager/ContractFormManager";
 import ProfileManager from "./pages/FE_Manager/ProfileManager";
+import RequestListManager from "./pages/FE_Manager/RequestListManager";
+import RequestDetailManager from "./pages/FE_Manager/RequestDetailManager";
 
 
 // FE Admin System Imports
@@ -113,6 +115,14 @@ const PAGE_TITLES = {
   "manager-profile": {
     title: "Thông tin cá nhân",
     sub: "Xem và cập nhật thông tin cá nhân hoặc thay đổi mật khẩu tài khoản.",
+  },
+  requests: {
+    title: "Quản lý Yêu cầu",
+    sub: "Xem và xử lý danh sách yêu cầu, kháng nghị từ tiểu thương.",
+  },
+  "request-detail": {
+    title: "Chi tiết Yêu cầu",
+    sub: "Xem thông tin chi tiết, báo giá và đánh giá của yêu cầu.",
   },
 
 
@@ -277,6 +287,20 @@ function App() {
           />
         );
 
+
+      case "requests":
+        return (
+          <RequestListManager navigate={navigateConsole} addToast={addToast} />
+        );
+
+      case "request-detail":
+        return (
+          <RequestDetailManager
+            requestId={currentUserId}
+            navigate={navigateConsole}
+            addToast={addToast}
+          />
+        );
 
       case "users":
         return (
