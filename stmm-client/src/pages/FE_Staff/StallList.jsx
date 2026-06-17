@@ -314,7 +314,7 @@ export default function StallList({ baseUrl, userId, onShowNotification, onViewM
           prefilledStallId={activeStallId}
           onClose={closeModal}
           onSuccess={(newViolation) => 
-            handleModalSuccess(`Successfully reported violation VIO-${newViolation.violationId} for stall ${activeStallCode}`)
+            handleModalSuccess(`Successfully reported violation ${newViolation.violationId} for stall ${activeStallCode}`)
           }
         />
       )}
