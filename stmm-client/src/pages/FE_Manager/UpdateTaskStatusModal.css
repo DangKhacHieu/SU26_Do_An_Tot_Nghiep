@@ -1,0 +1,134 @@
+/* UpdateTaskStatusModal.css */
+
+.status-current-badge-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #f8fafc;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  margin-bottom: 12px;
+}
+
+.status-current-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+  letter-spacing: 0.5px;
+}
+
+.status-badge-val {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 6px;
+  letter-spacing: 0.3px;
+}
+
+.status-badge-val.status-pending {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.status-badge-val.status-pendingapproval {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.status-badge-val.status-in_progress {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.status-badge-val.status-completed {
+  background: #d1fae5;
+  color: #047857;
+}
+
+.status-badge-val.status-cancelled {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.status-no-transitions-msg {
+  font-size: 13.5px;
+  color: #dc2626;
+  background: #fef2f2;
+  border: 1px solid #fee2e2;
+  padding: 12px 16px;
+  border-radius: 8px;
+  text-align: center;
+  line-height: 1.5;
+}
+
+.flat-radio-buttons-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.flat-status-option {
+  display: flex;
+  align-items: center;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  cursor: pointer;
+  background: #ffffff;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.flat-status-option:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.flat-status-option.is-active {
+  background: #eff6ff;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 1px #3b82f6;
+}
+
+.flat-radio-input-hidden {
+  display: none;
+}
+
+.flat-radio-circle {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #cbd5e1;
+  border-radius: 50%;
+  margin-right: 12px;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.flat-status-option.is-active .flat-radio-circle {
+  border-color: #2563eb;
+}
+
+.flat-status-option.is-active .flat-radio-circle::after {
+  content: "";
+  width: 8px;
+  height: 8px;
+  background: #2563eb;
+  border-radius: 50%;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.flat-radio-label-text {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.flat-status-option.is-active .flat-radio-label-text {
+  color: #1e40af;
+}

@@ -169,7 +169,7 @@ export default function IssueList({ userId, baseUrl, onViewDetails, onOpenCreate
               <table className="staff-table">
                 <thead>
                   <tr>
-                    <th>Issue ID</th>
+                    <th>ID</th>
                     <th>Issue Title</th>
                     <th>Location</th>
                     <th>Status</th>
@@ -181,7 +181,7 @@ export default function IssueList({ userId, baseUrl, onViewDetails, onOpenCreate
                 <tbody>
                   {issues.map((item) => (
                     <tr key={item.issueId}>
-                      <td><strong>ISS-{item.issueId}</strong></td>
+                      <td><strong>{item.issueId}</strong></td>
                       <td>{item.title}</td>
                       <td><span className="badge-stall">{item.stallCode || `ID: ${item.stallId}`}</span></td>
                       <td>
@@ -189,7 +189,7 @@ export default function IssueList({ userId, baseUrl, onViewDetails, onOpenCreate
                           {item.status || 'Reported'}
                         </span>
                       </td>
-                      <td>{item.createdByName || `Staff #${item.createdByUserId}`}</td>
+                      <td>{item.createdByName || `Staff ${item.createdByUserId}`}</td>
                       <td>{formatDate(item.createdAt)}</td>
                       <td>
                         <button 

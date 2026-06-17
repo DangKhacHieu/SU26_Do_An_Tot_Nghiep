@@ -26,6 +26,8 @@ import ContentFormManager from './pages/FE_Manager/ContentFormManager';
 import ContentDetailManager from './pages/FE_Manager/ContentDetailManager';
 import FaqListManager from './pages/FE_Manager/FaqListManager';
 import FaqFormManager from './pages/FE_Manager/FaqFormManager';
+import TaskListManager from './pages/FE_Manager/TaskListManager';
+import TaskDetailManager from './pages/FE_Manager/TaskDetailManager';
 
 // Admin System Imports
 import SidebarAdminSystem from './pages/FE_AdminSystem/SidebarAdminSystem';
@@ -38,31 +40,33 @@ import './App.css';
 
 const PAGE_TITLES = {
   dashboard: { title: 'Tổng quan hệ thống', sub: 'Thống kê tổng hợp và trạng thái hoạt động của MHMS.' },
-  users:     { title: 'Quản lý Tài khoản', sub: 'Danh sách, phân quyền và quản trị tài khoản thành viên.' },
-  form:      { title: 'Đăng ký / Chỉnh sửa Tài khoản', sub: 'Nhập đầy đủ thông tin để tạo hoặc cập nhật tài khoản.' },
-  detail:    { title: 'Chi tiết Tài khoản', sub: 'Thông tin đầy đủ và lịch sử hoạt động của tài khoản.' },
-  content:   { title: 'Quản lý Tin tức & Thông báo', sub: 'Quản lý các bài viết trên trang chủ và thông báo theo vai trò.' },
+  users: { title: 'Quản lý Tài khoản', sub: 'Danh sách, phân quyền và quản trị tài khoản thành viên.' },
+  form: { title: 'Đăng ký / Chỉnh sửa Tài khoản', sub: 'Nhập đầy đủ thông tin để tạo hoặc cập nhật tài khoản.' },
+  detail: { title: 'Chi tiết Tài khoản', sub: 'Thông tin đầy đủ và lịch sử hoạt động của tài khoản.' },
+  content: { title: 'Quản lý Tin tức & Thông báo', sub: 'Quản lý các bài viết trên trang chủ và thông báo theo vai trò.' },
   'content-form': { title: 'Tạo / Cập nhật Tin tức & Thông báo', sub: 'Nhập nội dung tiêu đề, phân loại và cấu hình gửi.' },
   'content-detail': { title: 'Chi tiết Tin tức & Thông báo', sub: 'Xem trước nội dung chi tiết bài viết hoặc thông báo đã gửi.' },
-  faqs:      { title: 'Quản lý Câu hỏi thường gặp', sub: 'Xem, cập nhật, tạo mới danh sách FAQs hệ thống.' },
+  faqs: { title: 'Quản lý Câu hỏi thường gặp', sub: 'Xem, cập nhật, tạo mới danh sách FAQs hệ thống.' },
   'faq-form': { title: 'Tạo / Cập nhật FAQ', sub: 'Thêm hoặc chỉnh sửa thông tin câu hỏi thường gặp.' },
-  
+  tasks: { title: 'Tasks Management', sub: 'Monitor, assign, and track all operational tasks.' },
+  'task-details': { title: 'Task Details', sub: 'Full view of task summary, technical details, and log timeline.' },
+
   // Admin System Titles
   'admin-dashboard': { title: 'Tổng quan hệ thống (Admin)', sub: 'Thống kê tổng hợp và quản trị toàn hệ thống.' },
-  'admin-users':     { title: 'Quản lý Tài khoản (Admin)', sub: 'Danh sách và quản trị tài khoản toàn hệ thống.' },
+  'admin-users': { title: 'Quản lý Tài khoản (Admin)', sub: 'Danh sách và quản trị tài khoản toàn hệ thống.' },
   'admin-user-form': { title: 'Đăng ký / Chỉnh sửa Tài khoản (Admin)', sub: 'Nhập đầy đủ thông tin để tạo hoặc cập nhật tài khoản.' },
   'admin-user-detail': { title: 'Chi tiết Tài khoản (Admin)', sub: 'Thông tin đầy đủ và lịch sử hoạt động của tài khoản.' },
 };
 
 const STAFF_PAGE_TITLES = {
   dashboard: { title: 'Staff Dashboard', sub: 'Welcome back! Here is your daily overview.' },
-  tasks:     { title: 'Daily Tasks', sub: 'View and update your assigned repair and maintenance tasks.' },
+  tasks: { title: 'Daily Tasks', sub: 'View and update your assigned repair and maintenance tasks.' },
   'task-details': { title: 'Task Details', sub: 'Review task requirements, submit materials or report completion.' },
-  meters:    { title: 'Stalls Utility Meters', sub: 'Digitize and record electric and water meter readings.' },
+  meters: { title: 'Stalls Utility Meters', sub: 'Digitize and record electric and water meter readings.' },
   'meter-details': { title: 'Meter Details', sub: 'Detailed history and serial number tracking for utility meters.' },
   violations: { title: 'Violations Log', sub: 'Report and manage merchant rule compliance records.' },
   'violation-details': { title: 'Violation Details', sub: 'Full audit of logged merchant violation report.' },
-  issues:    { title: 'Infrastructure Issues', sub: 'Report and monitor facilities incidents.' },
+  issues: { title: 'Infrastructure Issues', sub: 'Report and monitor facilities incidents.' },
   'issue-details': { title: 'Issue Details', sub: 'Detailed breakdown of facilities issue and repair status.' },
   'stall-list': { title: 'Stalls Directory', sub: 'Track stalls operations, debts, and invoice payments.' },
   'stall-invoices': { title: 'Invoice Details', sub: 'View service fee breakdown and record cash collection.' }
@@ -93,11 +97,11 @@ function App() {
   const [selectedViolationId, setSelectedViolationId] = useState(null);
   const [selectedTaskId, setSelectedTaskId] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  
+
   // Issue state
   const [selectedIssueId, setSelectedIssueId] = useState(null);
   const [showCreateIssueModal, setShowCreateIssueModal] = useState(false);
-  
+
   // Meter readings state
   const [selectedStallIdForMeters, setSelectedStallIdForMeters] = useState(1);
   const [selectedMeterIdForDetail, setSelectedMeterIdForDetail] = useState(null);
@@ -109,7 +113,7 @@ function App() {
 
   // Developer configuration testing tools
   const [userId, setUserId] = useState(1);
-  const [baseUrl, setBaseUrl] = useState(import.meta.env.VITE_API_URL || 'http://localhost:5056');
+  const [baseUrl, setBaseUrl] = useState((import.meta.env.VITE_API_URL || 'http://localhost:5056').replace(/\/api\/?$/, ''));
   const [notification, setNotification] = useState(null);
 
   const handleShowNotification = (message, type = 'success') => {
@@ -126,7 +130,7 @@ function App() {
 
   const handleCreateSuccess = (newViolation) => {
     setShowCreateModal(false);
-    handleShowNotification(`Successfully logged Violation: VIO-${newViolation.violationId}`);
+    handleShowNotification(`Successfully logged Violation: ${newViolation.violationId}`);
     // Force reload violation list by resetting view to violations
     if (currentStaffView === 'violations') {
       setCurrentStaffView('temp');
@@ -143,7 +147,7 @@ function App() {
 
   const handleCreateIssueSuccess = (newIssue) => {
     setShowCreateIssueModal(false);
-    handleShowNotification(`Successfully logged Issue: ISS-${newIssue.issueId}`);
+    handleShowNotification(`Successfully logged Issue: ${newIssue.issueId}`);
     // Force reload issue list by resetting view to issues
     if (currentStaffView === 'issues') {
       setCurrentStaffView('temp');
@@ -157,22 +161,24 @@ function App() {
   const renderPage = () => {
     switch (currentPage) {
       case 'dashboard': return <DashboardManager addToast={addToast} navigate={navigate} />;
-      case 'users':     return <UserListManager navigate={navigate} addToast={addToast} />;
-      case 'form':      return <UserFormManager userId={currentUserId} navigate={navigate} addToast={addToast} />;
-      case 'detail':    return <UserDetailManager userId={currentUserId} navigate={navigate} addToast={addToast} />;
-      case 'content':   return <ContentListManager navigate={navigate} addToast={addToast} />;
+      case 'users': return <UserListManager navigate={navigate} addToast={addToast} />;
+      case 'form': return <UserFormManager userId={currentUserId} navigate={navigate} addToast={addToast} />;
+      case 'detail': return <UserDetailManager userId={currentUserId} navigate={navigate} addToast={addToast} />;
+      case 'content': return <ContentListManager navigate={navigate} addToast={addToast} />;
       case 'content-form': return <ContentFormManager contentId={currentUserId} navigate={navigate} addToast={addToast} />;
       case 'content-detail': return <ContentDetailManager contentId={currentUserId} navigate={navigate} addToast={addToast} />;
-      case 'faqs':      return <FaqListManager navigate={navigate} addToast={addToast} />;
-      case 'faq-form':  return <FaqFormManager faqId={currentUserId} navigate={navigate} addToast={addToast} />;
-      
+      case 'faqs': return <FaqListManager navigate={navigate} addToast={addToast} />;
+      case 'faq-form': return <FaqFormManager faqId={currentUserId} navigate={navigate} addToast={addToast} />;
+      case 'tasks': return <TaskListManager userId={userId} baseUrl={baseUrl} navigate={navigate} addToast={addToast} />;
+      case 'task-details': return <TaskDetailManager taskId={currentUserId} userId={userId} baseUrl={baseUrl} onBack={() => navigate('tasks')} addToast={addToast} />;
+
       // Admin System Pages
       case 'admin-dashboard': return <DashboardAdminSystem addToast={addToast} navigate={navigate} />;
-      case 'admin-users':     return <UserListAdminSystem navigate={navigate} addToast={addToast} />;
+      case 'admin-users': return <UserListAdminSystem navigate={navigate} addToast={addToast} />;
       case 'admin-user-form': return <UserFormAdminSystem userId={currentUserId} navigate={navigate} addToast={addToast} />;
       case 'admin-user-detail': return <UserDetailAdminSystem userId={currentUserId} navigate={navigate} addToast={addToast} />;
 
-      default:          return <DashboardManager addToast={addToast} navigate={navigate} />;
+      default: return <DashboardManager addToast={addToast} navigate={navigate} />;
     }
   };
 
@@ -243,28 +249,28 @@ function App() {
             <div className="dev-inputs-section">
               <div className="dev-input-group">
                 <label>API Base URL:</label>
-                <input 
-                  type="text" 
-                  value={baseUrl} 
-                  onChange={(e) => setBaseUrl(e.target.value)} 
+                <input
+                  type="text"
+                  value={baseUrl}
+                  onChange={(e) => setBaseUrl(e.target.value)}
                   placeholder="e.g. http://localhost:5056"
                 />
               </div>
               <div className="dev-input-group">
                 <label>Current Staff ID:</label>
-                <input 
-                  type="number" 
-                  value={userId} 
-                  onChange={(e) => setUserId(parseInt(e.target.value) || 1)} 
+                <input
+                  type="number"
+                  value={userId}
+                  onChange={(e) => setUserId(parseInt(e.target.value) || 1)}
                   min="1"
                 />
               </div>
               <div className="dev-input-group">
                 <label>Stall ID for Meters:</label>
-                <input 
-                  type="number" 
-                  value={selectedStallIdForMeters} 
-                  onChange={(e) => setSelectedStallIdForMeters(parseInt(e.target.value) || 1)} 
+                <input
+                  type="number"
+                  value={selectedStallIdForMeters}
+                  onChange={(e) => setSelectedStallIdForMeters(parseInt(e.target.value) || 1)}
                   min="1"
                 />
               </div>
@@ -310,9 +316,9 @@ function App() {
 
             <div className="main-content-scroll">
               {currentStaffView === 'violations' && (
-                <ViolationList 
-                  userId={userId} 
-                  baseUrl={baseUrl} 
+                <ViolationList
+                  userId={userId}
+                  baseUrl={baseUrl}
                   onViewDetails={handleViewDetails}
                   onOpenCreateModal={() => setShowCreateModal(true)}
                 />
@@ -392,9 +398,9 @@ function App() {
               )}
 
               {currentStaffView === 'issues' && (
-                <IssueList 
-                  userId={userId} 
-                  baseUrl={baseUrl} 
+                <IssueList
+                  userId={userId}
+                  baseUrl={baseUrl}
                   onViewDetails={handleViewIssueDetails}
                   onOpenCreateModal={() => setShowCreateIssueModal(true)}
                 />
@@ -410,7 +416,7 @@ function App() {
               )}
 
               {currentStaffView === 'stall-list' && (
-                <StallList 
+                <StallList
                   baseUrl={baseUrl}
                   userId={userId}
                   onShowNotification={handleShowNotification}
@@ -436,7 +442,7 @@ function App() {
                   onShowNotification={handleShowNotification}
                 />
               )}
-              
+
               {currentStaffView === 'temp' && <div className="loading-state">Loading...</div>}
             </div>
           </main>

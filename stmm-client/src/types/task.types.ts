@@ -65,3 +65,8 @@ export interface UtilityStallChecklistDto {
   stallStatus: string;
   hasReadingThisMonth: boolean;
 }
+
+export interface AssignTaskRequest {
+  staffUserId: number;
+}
+

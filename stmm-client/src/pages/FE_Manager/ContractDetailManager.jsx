@@ -283,7 +283,7 @@ export default function ContractDetailManager({ contractId, navigate, addToast }
           {/* Card 1: Contract Details */}
           <div className="detail-card">
             <div className="card-header">
-              <h3>HỢP ĐỒNG #{String(contract.contractId).padStart(4, "0")}</h3>
+              <h3>HỢP ĐỒNG {contract.contractId}</h3>
               {renderStatusBadge(contract.status)}
             </div>
             <div className="card-content">

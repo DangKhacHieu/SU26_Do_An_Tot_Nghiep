@@ -100,6 +100,12 @@ const NAV_GROUPS = [
         icon: <IconContent />,
         childKeys: ['contract-form', 'contract-detail'],
       },
+      {
+        key: 'tasks',
+        label: 'Tasks Management',
+        icon: <IconContent />,
+        childKeys: ['task-details'],
+      },
     ],
   },
 ];

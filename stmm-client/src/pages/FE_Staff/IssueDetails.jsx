@@ -66,7 +66,7 @@ export default function IssueDetails({ issueId, userId, baseUrl, onBack }) {
       </div>
 
       <div className="details-header">
-        <h1 className="main-title">ISSUE DETAILS: ISS-{issue.issueId}</h1>
+        <h1 className="main-title">ISSUE DETAILS: {issue.issueId}</h1>
         <button className="btn-secondary-outline" onClick={onBack}>
           &larr; Back to List
         </button>
@@ -95,7 +95,7 @@ export default function IssueDetails({ issueId, userId, baseUrl, onBack }) {
           <div className="info-row">
             <div className="info-block">
               <span className="info-label">REPORTED BY</span>
-              <span className="info-value">{issue.createdByName || `Staff #${issue.createdByUserId}`}</span>
+              <span className="info-value">{issue.createdByName || `Staff ${issue.createdByUserId}`}</span>
             </div>
 
             <div className="info-block">
@@ -121,7 +121,7 @@ export default function IssueDetails({ issueId, userId, baseUrl, onBack }) {
             {issue.assignedTaskId ? (
               <div>
                 <p style={{ margin: '0 0 8px 0' }}>
-                  <strong>Task ID:</strong> TASK-{issue.assignedTaskId}
+                  <strong>Task ID:</strong> {issue.assignedTaskId}
                 </p>
                 <p style={{ margin: '0 0 8px 0' }}>
                   <strong>Status:</strong>{' '}

@@ -228,7 +228,7 @@ export default function UserDetailManager({ userId, navigate, addToast }) {
           {/* Identity */}
           <div className="udetail-identity">
             <h2 className="udetail-fullname">{user.name}</h2>
-            <p className="udetail-uid">ID tài khoản: #{user.userId}</p>
+            <p className="udetail-uid">ID tài khoản: {user.userId}</p>
             <div className="udetail-badges">
               <span className="udetail-badge-role" style={{ color: roleCfg.color, background: roleCfg.bg }}>
                 {roleCfg.label}

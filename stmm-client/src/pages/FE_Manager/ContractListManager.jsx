@@ -133,7 +133,7 @@ export default function ContractListManager({ navigate, addToast }) {
             <tbody>
               {contracts.map((c) => (
                 <tr key={c.contractId} className="table-row-hover">
-                  <td><strong>#{String(c.contractId).padStart(4, "0")}</strong></td>
+                  <td><strong>{c.contractId}</strong></td>
                   <td><span className="stall-code-pill">{c.stallCode}</span></td>
                   <td>{c.areaName}</td>
                   <td>

@@ -410,5 +410,38 @@ namespace STMM.Business.Services
                 HasReadingThisMonth = r.HasReadingThisMonth
             }).ToList();
         }
+
+        /// <inheritdoc />
+        public async Task<TaskDto> AssignTaskAsync(int taskId, int staffUserId, CancellationToken ct = default)
+        {
+            var task = await _staffTaskRepository.GetTaskByIdWithRelationsAsync(taskId, ct);
+            if (task == null)
+            {
+                throw new NotFoundException($"Task with ID {taskId} not found.");
+            }
+
+            var isActiveStaff = await _userRepository.IsActiveStaffAsync(staffUserId, ct);
+            if (!isActiveStaff)
+            {
+                throw new NotFoundException($"Staff user with ID {staffUserId} not found or is inactive.");
+            }
+
+            task.AssignedToUserId = staffUserId;
+            _staffTaskRepository.Update(task);
+            await _staffTaskRepository.SaveChangesAsync(ct);
+
+            // Send notification to the new Staff user
+            await _notificationService.CreateAsync(new CreateNotificationRequest
+            {
+                Title = "Task Assigned / Reassigned",
+                Content = $"You have been assigned the task: \"{task.Title}\"",
+                NotiType = "System",
+                CreatedByUserId = staffUserId,
+                TargetUserId = staffUserId
+            }, ct);
+
+            var updatedTask = await _staffTaskRepository.GetTaskByIdWithRelationsAsync(taskId, ct);
+            return _mapper.Map<TaskDto>(updatedTask!);
+        }
     }
 }

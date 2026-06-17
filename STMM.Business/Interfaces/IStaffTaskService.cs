@@ -13,6 +13,7 @@ namespace STMM.Business.Interfaces
         Task<TaskDto> GetTaskByIdAsync(int taskId, CancellationToken ct = default);
         Task<TaskDto> CreateTaskAsync(int managerUserId, CreateTaskRequest req, CancellationToken ct = default);
         Task<TaskDto> UpdateTaskStatusAsync(int taskId, UpdateTaskStatusRequest req, CancellationToken ct = default);
+        Task<TaskDto> AssignTaskAsync(int taskId, int staffUserId, CancellationToken ct = default);
 
         // Staff APIs
         Task<PagedResult<TaskSummaryDto>> GetTasksForStaffAsync(int staffUserId, TaskQueryParams q, CancellationToken ct = default);
