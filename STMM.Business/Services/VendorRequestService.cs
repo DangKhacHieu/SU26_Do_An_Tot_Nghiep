@@ -72,8 +72,7 @@ namespace STMM.Business.Services
 
             if (dto.RequestType == "ViolationAppeal" && dto.ViolationId.HasValue)
             {
-                var stallIds = contracts.Select(c => c.StallId).ToList();
-                var vendorViolation = await _violationRepository.GetViolationDetailForVendorAsync(dto.ViolationId.Value, stallIds);
+                var vendorViolation = await _violationRepository.GetViolationDetailForVendorAsync(dto.ViolationId.Value, vendorId);
 
                 if (vendorViolation == null)
                 {

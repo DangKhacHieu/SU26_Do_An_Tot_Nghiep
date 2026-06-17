@@ -26,28 +26,10 @@ namespace STMM.Business.Services
             _mapper = mapper;
         }
 
-        private async Task<List<int>> GetVendorStallIdsAsync(int vendorId, CancellationToken ct)
-        {
-            var contracts = await _contractRepository.FindAsync(c => c.VendorId == vendorId && c.IsDeleted != true && c.Status != "Terminated" && c.Status != "Expired", ct);
-            return contracts.Select(c => c.StallId).Distinct().ToList();
-        }
-
         public async Task<PagedResult<ViolationDto>> GetMyViolationsAsync(int vendorId, ViolationQueryParams queryParams, CancellationToken ct = default)
         {
-            var stallIds = await GetVendorStallIdsAsync(vendorId, ct);
-            if (!stallIds.Any())
-            {
-                return new PagedResult<ViolationDto>
-                {
-                    Items = new List<ViolationDto>(),
-                    TotalCount = 0,
-                    PageNumber = queryParams.PageNumber,
-                    PageSize = queryParams.PageSize
-                };
-            }
-
             var (items, totalCount) = await _violationRepository.GetViolationsForVendorPagedAsync(
-                stallIds,
+                vendorId,
                 queryParams.Status,
                 queryParams.SearchTerm,
                 queryParams.SortDescending,
@@ -68,13 +50,7 @@ namespace STMM.Business.Services
 
         public async Task<ViolationDto?> GetViolationDetailAsync(int vendorId, int violationId, CancellationToken ct = default)
         {
-            var stallIds = await GetVendorStallIdsAsync(vendorId, ct);
-            if (!stallIds.Any())
-            {
-                return null;
-            }
-
-            var violation = await _violationRepository.GetViolationDetailForVendorAsync(violationId, stallIds, ct);
+            var violation = await _violationRepository.GetViolationDetailForVendorAsync(violationId, vendorId, ct);
             if (violation == null)
             {
                 return null;

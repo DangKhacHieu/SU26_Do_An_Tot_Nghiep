@@ -147,7 +147,7 @@ namespace STMM.DataAccess.Repositories
         }
 
         public async Task<(IEnumerable<Violation> Items, int TotalCount)> GetViolationsForVendorPagedAsync(
-            List<int> stallIds,
+            int vendorId,
             string? status,
             string? searchTerm,
             bool sortDescending,
@@ -155,11 +155,19 @@ namespace STMM.DataAccess.Repositories
             int pageSize,
             CancellationToken ct = default)
         {
+            var vendorContracts = _context.Contracts
+                .Where(c => c.VendorId == vendorId && c.IsDeleted != true);
+
             var query = _context.Violations
                 .Include(v => v.Stall)
                 .Include(v => v.ViolationType)
                 .Include(v => v.CreatedByUser)
-                .Where(v => stallIds.Contains(v.StallId))
+                .Where(v => vendorContracts.Any(c => 
+                    c.StallId == v.StallId &&
+                    v.CreatedAt != null && 
+                    c.StartDate <= DateOnly.FromDateTime(v.CreatedAt.Value) &&
+                    c.EndDate >= DateOnly.FromDateTime(v.CreatedAt.Value)
+                ))
                 .AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(status))
@@ -192,15 +200,24 @@ namespace STMM.DataAccess.Repositories
             return (items, totalCount);
         }
 
-        public async Task<Violation?> GetViolationDetailForVendorAsync(int id, List<int> stallIds, CancellationToken ct = default)
+        public async Task<Violation?> GetViolationDetailForVendorAsync(int id, int vendorId, CancellationToken ct = default)
         {
+            var vendorContracts = _context.Contracts
+                .Where(c => c.VendorId == vendorId && c.IsDeleted != true);
+
             return await _context.Violations
                 .Include(v => v.Stall)
                 .Include(v => v.ViolationType)
                 .Include(v => v.CreatedByUser)
                 .Include(v => v.Requests)
                 .AsNoTracking()
-                .FirstOrDefaultAsync(v => v.ViolationId == id && stallIds.Contains(v.StallId), ct);
+                .FirstOrDefaultAsync(v => v.ViolationId == id && 
+                    vendorContracts.Any(c => 
+                        c.StallId == v.StallId &&
+                        v.CreatedAt != null && 
+                        c.StartDate <= DateOnly.FromDateTime(v.CreatedAt.Value) &&
+                        c.EndDate >= DateOnly.FromDateTime(v.CreatedAt.Value)
+                    ), ct);
         }
     }
 }

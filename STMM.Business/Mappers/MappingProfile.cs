@@ -39,7 +39,9 @@ namespace STMM.Business.Mappers
             // Violation mappings
             CreateMap<Violation, ViolationDto>()
                 .ForMember(dest => dest.CreatedBy, opt => opt.MapFrom(src => src.CreatedByUserId))
-                .ForMember(dest => dest.StallCode, opt => opt.MapFrom(src => src.Stall != null ? src.Stall.Code : string.Empty));
+                .ForMember(dest => dest.CreatedByName, opt => opt.MapFrom(src => src.CreatedByUser != null ? src.CreatedByUser.Name : string.Empty))
+                .ForMember(dest => dest.StallCode, opt => opt.MapFrom(src => src.Stall != null ? src.Stall.Code : string.Empty))
+                .ForMember(dest => dest.ViolationTypeName, opt => opt.MapFrom(src => src.ViolationType != null ? src.ViolationType.Name : string.Empty));
 
             CreateMap<CreateViolationRequest, Violation>()
                 .ForMember(dest => dest.ViolationId, opt => opt.Ignore())
