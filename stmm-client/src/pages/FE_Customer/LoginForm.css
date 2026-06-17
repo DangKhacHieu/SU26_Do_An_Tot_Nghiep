@@ -17,10 +17,9 @@
   grid-template-columns: 0.95fr 1.05fr;
   border-radius: 38px;
   overflow: hidden;
-  background: rgba(255, 255, 255, 0.68);
+  background: #ffffff; /* Solid white background for high contrast */
   border: 1px solid rgba(137, 152, 109, 0.22);
   box-shadow: 0 30px 90px rgba(31, 42, 27, 0.14);
-  backdrop-filter: blur(22px);
 }
 
 .auth-modern-left {
@@ -198,9 +197,9 @@
 }
 
 .modern-input-group label {
-  color: #1d2818;
-  font-size: 13px;
-  font-weight: 900;
+  color: #0f172a; /* Deep outstanding charcoal */
+  font-size: 13.5px;
+  font-weight: 700;
 }
 
 .modern-input {
@@ -208,17 +207,17 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  border: 1px solid rgba(137, 152, 109, 0.25);
-  background: rgba(255, 255, 255, 0.74);
+  border: 1px solid #cbd5e1;
+  background: #f8fafc; /* Premium solid off-white background */
   border-radius: 20px;
   padding: 0 16px;
   transition: 0.22s ease;
 }
 
 .modern-input:focus-within {
-  border-color: rgba(137, 152, 109, 0.8);
+  border-color: #89986d;
   background: white;
-  box-shadow: 0 0 0 5px rgba(197, 216, 157, 0.28);
+  box-shadow: 0 0 0 5px rgba(137, 152, 109, 0.15);
 }
 
 .modern-input span {
@@ -232,13 +231,13 @@
   border: none;
   outline: none;
   background: transparent;
-  color: #1d2818;
-  font-size: 14px;
+  color: #0f172a; /* Deep outstanding charcoal */
+  font-size: 14.5px;
   font-weight: 600;
 }
 
 .modern-input input::placeholder {
-  color: #8a9582;
+  color: #94a3b8; /* Clear visible placeholder */
   font-weight: 500;
 }
 

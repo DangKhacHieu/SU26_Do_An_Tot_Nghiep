@@ -116,7 +116,7 @@ const NAV_GROUPS = [
 ];
 
 // ─── Component ────────────────────────────────────────────────────────────────
-export default function SidebarStaff({ currentView, setView }) {
+export default function SidebarStaff({ currentView, setView, user, onLogout }) {
   const isActive = (item) =>
     item.key === currentView ||
     (item.childKeys && item.childKeys.includes(currentView));
@@ -153,13 +153,77 @@ export default function SidebarStaff({ currentView, setView }) {
         ))}
       </div>
 
-      {/* Footer: current user info */}
-      <div className="staff-sidebar-footer">
-        <div className="staff-user-avatar">S</div>
-        <div className="staff-user-info">
-          <span className="staff-user-name">Staff</span>
-          <span className="staff-user-role">Nhân viên</span>
+      {/* Footer: current user info & logout */}
+      <div className="staff-sidebar-footer" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div 
+          onClick={() => setView('profile')}
+          style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '10px', 
+            width: '100%',
+            cursor: 'pointer',
+            padding: '6px',
+            borderRadius: '8px',
+            transition: 'background-color 0.15s ease',
+            backgroundColor: currentView === 'profile' ? 'rgba(59, 130, 246, 0.18)' : 'transparent'
+          }}
+          onMouseEnter={(e) => {
+            if (currentView !== 'profile') {
+              e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (currentView !== 'profile') {
+              e.currentTarget.style.backgroundColor = 'transparent';
+            }
+          }}
+        >
+          <div className="staff-user-avatar" style={{ minWidth: '32px' }}>
+            {user?.name ? user.name.substring(0, 1).toUpperCase() : 'S'}
+          </div>
+          <div className="staff-user-info" style={{ flexGrow: 1, minWidth: 0 }}>
+            <span className="staff-user-name" style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>
+              {user?.name || 'Staff'}
+            </span>
+            <span className="staff-user-role">Nhân viên</span>
+          </div>
         </div>
+        {onLogout && (
+          <button 
+            className="staff-menu-item logout-btn" 
+            onClick={onLogout}
+            style={{ 
+              marginTop: '5px',
+              border: 'none',
+              background: 'transparent',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '6px 12px',
+              width: '100%',
+              borderRadius: '6px',
+              color: '#ef4444',
+              cursor: 'pointer',
+              fontWeight: '500',
+              fontSize: '13px',
+              transition: 'background 0.2s, color 0.2s'
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.background = '#fef2f2';
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.background = 'transparent';
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+            Đăng xuất
+          </button>
+        )}
       </div>
     </aside>
   );

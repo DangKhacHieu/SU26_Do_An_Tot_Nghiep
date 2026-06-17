@@ -61,13 +61,9 @@ export default function IssueDetails({ issueId, userId, baseUrl, onBack }) {
 
   return (
     <div className="violation-details-container">
-      <div className="breadcrumb-path">
-        <span>Dashboard</span> &gt; <span>Issues</span> &gt; <span className="active-path">Issue Details</span>
-      </div>
-
-      <div className="details-header">
-        <h1 className="main-title">ISSUE DETAILS: {issue.issueId}</h1>
-        <button className="btn-secondary-outline" onClick={onBack}>
+      <div className="details-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <h2 style={{ fontSize: '18px', fontWeight: '700', margin: 0, color: 'var(--text-main)' }}>ISSUE DETAILS: {issue.issueId}</h2>
+        <button className="btn-secondary" onClick={onBack}>
           &larr; Back to List
         </button>
       </div>

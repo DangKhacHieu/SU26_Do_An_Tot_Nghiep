@@ -51,17 +51,6 @@ export default function MeterReadingHistory({ stallId, baseUrl, userId, onViewMe
 
   return (
     <div className="violation-list-container">
-      <div className="breadcrumb-path">
-        <span>Dashboard</span> &gt; <span>Stalls</span> &gt; <span className="active-path">Meter History</span>
-      </div>
-
-      <div className="section-header">
-        <div>
-          <h1 className="main-title">Meter Reading History (Stall ID: {stallId})</h1>
-          <p className="subtitle">Displaying utility readings recorded over the last 6 months.</p>
-        </div>
-      </div>
-
       {/* Toolbar: Filters + CTA */}
       <div className="toolbar">
         <div className="toolbar-left">

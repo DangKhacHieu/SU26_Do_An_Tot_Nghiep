@@ -108,16 +108,7 @@ export default function StallList({ baseUrl, userId, onShowNotification, onViewM
 
   return (
     <div className="stall-list-page">
-      <div className="breadcrumb-path">
-        <span>Dashboard</span> &gt; <span className="active-path">Stalls Checklist</span>
-      </div>
 
-      <div className="section-header">
-        <div>
-          <h1 className="main-title">🏪 Stall Checklist</h1>
-          <p className="subtitle">View and manage stalls requiring utility readings or debt collection.</p>
-        </div>
-      </div>
 
       {/* Toolbar: Search + Filters */}
       <div className="toolbar">

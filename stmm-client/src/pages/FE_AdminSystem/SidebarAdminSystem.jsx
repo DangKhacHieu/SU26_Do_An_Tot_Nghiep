@@ -52,7 +52,7 @@ const NAV_GROUPS = [
   },
 ];
 
-export default function SidebarAdminSystem({ currentPage, navigate }) {
+export default function SidebarAdminSystem({ currentPage, navigate, user, onLogout }) {
   const isActive = (item) =>
     item.key === currentPage ||
     (item.childKeys && item.childKeys.includes(currentPage));
@@ -89,11 +89,46 @@ export default function SidebarAdminSystem({ currentPage, navigate }) {
 
       {/* Footer: current user info */}
       <div className="sidebar-footer">
-        <div className="user-avatar admin-avatar">A</div>
-        <div className="user-info">
-          <span className="user-name">System Admin</span>
-          <span className="user-role">Quản trị tối cao</span>
+        <div className="user-avatar admin-avatar">
+          {user?.name ? user.name[0].toUpperCase() : 'A'}
         </div>
+        <div className="user-info" style={{ flexGrow: 1 }}>
+          <span className="user-name">{user?.name || 'System Admin'}</span>
+          <span className="user-role">{user?.roleName || 'Quản trị tối cao'}</span>
+        </div>
+        {onLogout && (
+          <button 
+            onClick={onLogout}
+            className="logout-icon-btn"
+            title="Đăng xuất"
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#94a3b8',
+              cursor: 'pointer',
+              padding: '6px',
+              borderRadius: '6px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'all 0.15s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = '#ef4444';
+              e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.08)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = '#94a3b8';
+              e.currentTarget.style.backgroundColor = 'transparent';
+            }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+          </button>
+        )}
       </div>
     </aside>
   );

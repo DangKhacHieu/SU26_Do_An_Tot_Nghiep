@@ -16,7 +16,7 @@ const IconGrid = () => (
     <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" />
     <rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" />
   </svg>
-);
+); 
 
 const IconUsers = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -42,6 +42,13 @@ const IconFaq = () => (
     <circle cx="12" cy="12" r="10" />
     <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
     <line x1="12" y1="17" x2="12.01" y2="17" />
+  </svg>
+);
+
+const IconProfile = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+    <circle cx="12" cy="7" r="4" />
   </svg>
 );
 
@@ -112,7 +119,7 @@ const NAV_GROUPS = [
 
 
 // ─── Component ────────────────────────────────────────────────────────────────
-export default function SidebarManager({ currentPage, navigate }) {
+export default function SidebarManager({ currentPage, navigate, user, onLogout }) {
   const isActive = (item) =>
     item.key === currentPage ||
     (item.childKeys && item.childKeys.includes(currentPage));
@@ -149,11 +156,75 @@ export default function SidebarManager({ currentPage, navigate }) {
 
       {/* Footer: current user info */}
       <div className="sidebar-footer">
-        <div className="user-avatar">M</div>
-        <div className="user-info">
-          <span className="user-name">Manager</span>
-          <span className="user-role">Quản trị viên</span>
+        <div 
+          className={`user-profile-summary ${currentPage === 'manager-profile' ? 'active' : ''}`}
+          onClick={() => navigate('manager-profile')}
+          title="Xem hồ sơ cá nhân"
+          style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '10px', 
+            flexGrow: 1, 
+            cursor: 'pointer',
+            padding: '6px',
+            borderRadius: '8px',
+            transition: 'background-color 0.15s ease'
+          }}
+          onMouseEnter={(e) => {
+            if (currentPage !== 'manager-profile') {
+              e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (currentPage !== 'manager-profile') {
+              e.currentTarget.style.backgroundColor = 'transparent';
+            }
+          }}
+        >
+          <div className="user-avatar">
+            {user?.name ? user.name[0].toUpperCase() : 'M'}
+          </div>
+          <div className="user-info">
+            <span className="user-name">{user?.name || 'Manager'}</span>
+            <span className="user-role">{user?.roleName || 'Quản trị viên'}</span>
+          </div>
         </div>
+        {onLogout && (
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              onLogout();
+            }}
+            className="logout-icon-btn"
+            title="Đăng xuất"
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#94a3b8',
+              cursor: 'pointer',
+              padding: '6px',
+              borderRadius: '6px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'all 0.15s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = '#ef4444';
+              e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.08)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = '#94a3b8';
+              e.currentTarget.style.backgroundColor = 'transparent';
+            }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+          </button>
+        )}
       </div>
     </aside>
   );

@@ -84,15 +84,8 @@ export default function StallInvoiceDetail({ stallId, stallCode, baseUrl, userId
 
   return (
     <div className="stall-invoice-detail-page">
-      <div className="breadcrumb-path">
-        <span>Dashboard</span> &gt; <span>Stalls Checklist</span> &gt; <span className="active-path">Invoice Details</span>
-      </div>
-
-      <div className="section-header">
-        <div>
-          <h1 className="main-title">📄 Invoices - Stall {stallCode}</h1>
-          <p className="subtitle">View service fees breakdown and record cash payments.</p>
-        </div>
+      <div className="details-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <h2 style={{ fontSize: '18px', fontWeight: '700', margin: 0, color: 'var(--text-main)' }}>📄 INVOICES - STALL {stallCode}</h2>
         <button className="btn-secondary-outline" onClick={onBack}>
           &larr; Back
         </button>

@@ -129,16 +129,6 @@ export default function TaskList({ userId, baseUrl, onViewDetails }) {
 
   return (
     <div className="task-list-container">
-      <div className="breadcrumb-path">
-        <span>Dashboard</span> &gt; <span className="active-path">Daily Tasks</span>
-      </div>
-
-      <div className="section-header">
-        <div>
-          <h1 className="main-title">Daily Task List</h1>
-          <p className="subtitle">View and manage assigned daily tasks.</p>
-        </div>
-      </div>
 
       {/* Toolbar: Search + Filters + CTA */}
       <div className="toolbar">
@@ -255,8 +245,8 @@ export default function TaskList({ userId, baseUrl, onViewDetails }) {
                           {getStatusLabel(task.status)}
                         </span>
                       </td>
-                      <td className="date-cell">{formatDate(task.createdAt)}</td>
-                      <td className="date-cell">{formatDate(task.completedAt)}</td>
+                      <td className="task-date-cell">{formatDate(task.createdAt)}</td>
+                      <td className="task-date-cell">{formatDate(task.completedAt)}</td>
                       <td style={{ textAlign: 'center' }}>
                         <button 
                           onClick={() => onViewDetails(task.taskId)} 

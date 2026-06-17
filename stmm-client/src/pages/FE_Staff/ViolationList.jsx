@@ -88,16 +88,6 @@ export default function ViolationList({ userId, baseUrl, onViewDetails, onOpenCr
 
   return (
     <div className="violation-list-container">
-      <div className="breadcrumb-path">
-        <span>Dashboard</span> &gt; <span className="active-path">Violations</span>
-      </div>
-
-      <div className="section-header">
-        <div>
-          <h1 className="main-title">Violation List</h1>
-          <p className="subtitle">Manage and track reported violations.</p>
-        </div>
-      </div>
 
       {/* Toolbar: Search + Filters + CTA */}
       <div className="toolbar">

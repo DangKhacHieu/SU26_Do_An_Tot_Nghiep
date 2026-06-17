@@ -116,6 +116,7 @@ builder.Services.AddControllers()
     {
         option.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
         option.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.Never;
+        option.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
     });
 
 // 4. CORS Policy (Cho phép React Client kết nối)
