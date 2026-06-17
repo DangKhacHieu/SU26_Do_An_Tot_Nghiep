@@ -55,5 +55,18 @@ namespace STMM.Business.Services
 
             return _mapper.Map<RequestDto>(request);
         }
+
+        public async Task<RequestDto> ResolveViolationAppealAsync(int requestId, bool approve, CancellationToken ct = default)
+        {
+            var request = await _requestRepository.ApproveOrRejectAppealAsync(requestId, approve, ct);
+
+            if (request == null)
+            {
+                throw new NotFoundException($"Violation appeal request with ID {requestId} was not found or is not a ViolationAppeal.");
+            }
+
+            var requestWithRelations = await _requestRepository.GetRequestWithRelationsAsync(requestId, ct);
+            return _mapper.Map<RequestDto>(requestWithRelations!);
+        }
     }
 }

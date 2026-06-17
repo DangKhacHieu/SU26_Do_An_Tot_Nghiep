@@ -9,5 +9,6 @@ namespace STMM.Business.Interfaces
     {
         Task<PagedResult<RequestDto>> GetRequestsForManagerAsync(RequestQueryParams queryParams, CancellationToken ct = default);
         Task<RequestDto> GetRequestByIdForManagerAsync(int id, CancellationToken ct = default);
+        Task<RequestDto> ResolveViolationAppealAsync(int requestId, bool approve, CancellationToken ct = default);
     }
 }

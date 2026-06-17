@@ -3,6 +3,18 @@ import './RequestDetailManager.css';
 
 const API_BASE = "http://localhost:5056/api/manager/requests";
 
+const IconCheck = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="20 6 9 17 4 12"/>
+  </svg>
+);
+
+const IconX = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+  </svg>
+);
+
 const TYPE_META = {
   FacilityIssue:   { label: 'Sự cố hạ tầng',      cls: 'type-facility'  },
   ViolationAppeal: { label: 'Kháng nghị vi phạm',  cls: 'type-violation' },
@@ -61,6 +73,7 @@ const IconCalendar = () => (
 export default function RequestDetailManager({ requestId, navigate, addToast }) {
   const [request, setRequest] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (requestId) fetchRequestDetail();
@@ -76,6 +89,22 @@ export default function RequestDetailManager({ requestId, navigate, addToast }) 
       addToast('Không thể tải chi tiết yêu cầu.', 'error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleResolveAppeal = async (approve) => {
+    setSubmitting(true);
+    try {
+      const res = await fetch(`${API_BASE}/${requestId}/resolve-appeal?approve=${approve}`, {
+        method: 'POST',
+      });
+      if (!res.ok) throw new Error();
+      addToast(approve ? 'Đã phê duyệt chấp nhận kháng nghị.' : 'Đã bác bỏ kháng nghị.', 'success');
+      await fetchRequestDetail();
+    } catch {
+      addToast('Thao tác thất bại. Vui lòng thử lại.', 'error');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -244,6 +273,68 @@ export default function RequestDetailManager({ requestId, navigate, addToast }) 
                   <div className="rd-quote-text">{request.quotationText}</div>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Action section for Violation Appeal */}
+          {request.requestType === 'ViolationAppeal' && request.status === 'Pending' && (
+            <div className="rd-card rd-action-card" style={{ borderLeft: '4px solid #8b5cf6', background: '#faf5ff' }}>
+              <div className="rd-card-header" style={{ color: '#7c3aed', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <IconInfo />
+                <span style={{ fontWeight: '700' }}>Xử lý Kháng nghị Vi phạm</span>
+              </div>
+              <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
+                <button
+                  disabled={submitting}
+                  onClick={() => handleResolveAppeal(true)}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    padding: '10px 18px',
+                    fontSize: '0.88rem',
+                    fontWeight: '600',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: submitting ? 'not-allowed' : 'pointer',
+                    flex: 1,
+                    background: '#10b981',
+                    color: '#ffffff',
+                    boxShadow: '0 2px 4px rgba(16, 185, 129, 0.15)',
+                    transition: 'all 0.15s ease'
+                  }}
+                  onMouseEnter={(e) => { if(!submitting) e.currentTarget.style.backgroundColor = '#059669'; }}
+                  onMouseLeave={(e) => { if(!submitting) e.currentTarget.style.backgroundColor = '#10b981'; }}
+                >
+                  <IconCheck /> Chấp nhận kháng nghị
+                </button>
+                <button
+                  disabled={submitting}
+                  onClick={() => handleResolveAppeal(false)}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    padding: '10px 18px',
+                    fontSize: '0.88rem',
+                    fontWeight: '600',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: submitting ? 'not-allowed' : 'pointer',
+                    flex: 1,
+                    background: '#ef4444',
+                    color: '#ffffff',
+                    boxShadow: '0 2px 4px rgba(239, 68, 68, 0.15)',
+                    transition: 'all 0.15s ease'
+                  }}
+                  onMouseEnter={(e) => { if(!submitting) e.currentTarget.style.backgroundColor = '#dc2626'; }}
+                  onMouseLeave={(e) => { if(!submitting) e.currentTarget.style.backgroundColor = '#ef4444'; }}
+                >
+                  <IconX /> Bác bỏ kháng nghị
+                </button>
+              </div>
             </div>
           )}
         </div>

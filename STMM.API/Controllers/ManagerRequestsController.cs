@@ -40,5 +40,18 @@ namespace STMM.API.Controllers
             var result = await _requestService.GetRequestByIdForManagerAsync(id, ct);
             return Ok(result);
         }
+
+        /// <summary>
+        /// UC-xx: Resolve Violation Appeal — Manager phê duyệt hoặc bác bỏ kháng nghị vi phạm.
+        /// </summary>
+        [HttpPost("{id}/resolve-appeal")]
+        public async Task<IActionResult> ResolveAppeal(
+            int id,
+            [FromQuery] bool approve,
+            CancellationToken ct)
+        {
+            var result = await _requestService.ResolveViolationAppealAsync(id, approve, ct);
+            return Ok(result);
+        }
     }
 }

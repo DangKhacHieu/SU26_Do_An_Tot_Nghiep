@@ -76,5 +76,29 @@ namespace STMM.DataAccess.Repositories
                 .AsNoTracking()
                 .FirstOrDefaultAsync(r => r.RequestId == requestId, ct);
         }
+
+        public async Task<Request?> ApproveOrRejectAppealAsync(int requestId, bool isApproved, CancellationToken ct = default)
+        {
+            var request = await _context.Requests
+                .Include(r => r.Violation)
+                .FirstOrDefaultAsync(r => r.RequestId == requestId, ct);
+
+            if (request == null || request.RequestType != "ViolationAppeal")
+            {
+                return null;
+            }
+
+            request.Status = isApproved ? "Approved" : "Rejected";
+            request.UpdatedAt = DateTime.UtcNow;
+
+            if (request.Violation != null)
+            {
+                request.Violation.Status = isApproved ? "Approved" : "Rejected";
+                request.Violation.UpdatedAt = DateTime.UtcNow;
+            }
+
+            await _context.SaveChangesAsync(ct);
+            return request;
+        }
     }
 }

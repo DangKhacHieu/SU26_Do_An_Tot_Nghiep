@@ -46,6 +46,8 @@ import ContractFormManager from "./pages/FE_Manager/ContractFormManager";
 import ProfileManager from "./pages/FE_Manager/ProfileManager";
 import RequestListManager from "./pages/FE_Manager/RequestListManager";
 import RequestDetailManager from "./pages/FE_Manager/RequestDetailManager";
+import ViolationListManager from "./pages/FE_Manager/ViolationListManager";
+import ViolationDetailsManager from "./pages/FE_Manager/ViolationDetailsManager";
 
 
 // FE Admin System Imports
@@ -123,6 +125,14 @@ const PAGE_TITLES = {
   "request-detail": {
     title: "Chi tiết Yêu cầu",
     sub: "Xem thông tin chi tiết, báo giá và đánh giá của yêu cầu.",
+  },
+  violations: {
+    title: "Danh sách Biên bản Vi phạm",
+    sub: "Quản lý và giải quyết các biên bản vi phạm của quầy sạp.",
+  },
+  "violation-details": {
+    title: "Chi tiết Biên bản Vi phạm",
+    sub: "Xem thông tin chi tiết và xử lý kháng nghị của biên bản vi phạm.",
   },
 
 
@@ -297,6 +307,20 @@ function App() {
         return (
           <RequestDetailManager
             requestId={currentUserId}
+            navigate={navigateConsole}
+            addToast={addToast}
+          />
+        );
+
+      case "violations":
+        return (
+          <ViolationListManager navigate={navigateConsole} addToast={addToast} />
+        );
+
+      case "violation-details":
+        return (
+          <ViolationDetailsManager
+            violationId={currentUserId}
             navigate={navigateConsole}
             addToast={addToast}
           />
