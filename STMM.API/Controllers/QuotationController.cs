@@ -1,6 +1,8 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using STMM.Business.DTOs.Quotation;
 using STMM.Business.Interfaces;
+using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -8,6 +10,7 @@ namespace STMM.API.Controllers
 {
     [ApiController]
     [Route("api/staff/tasks/{taskId}/[controller]")]
+    [Authorize(Roles = "Staff")]
     public class QuotationController : ControllerBase
     {
         private readonly IQuotationService _quotationService;
@@ -15,6 +18,16 @@ namespace STMM.API.Controllers
         public QuotationController(IQuotationService quotationService)
         {
             _quotationService = quotationService;
+        }
+
+        private int GetUserId()
+        {
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
+            {
+                throw new System.UnauthorizedAccessException("User ID not found in token.");
+            }
+            return userId;
         }
 
         /// <summary>
@@ -26,6 +39,7 @@ namespace STMM.API.Controllers
             [FromQuery] int userId,
             CancellationToken ct)
         {
+            userId = GetUserId();
             var result = await _quotationService.GetQuotationAsync(taskId, userId, ct);
             return Ok(result);
         }
@@ -40,6 +54,7 @@ namespace STMM.API.Controllers
             [FromBody] AddMaterialRequest request,
             CancellationToken ct)
         {
+            userId = GetUserId();
             var result = await _quotationService.AddMaterialAsync(taskId, userId, request, ct);
             return Ok(result);
         }
@@ -54,6 +69,7 @@ namespace STMM.API.Controllers
             [FromQuery] int userId,
             CancellationToken ct)
         {
+            userId = GetUserId();
             var result = await _quotationService.RemoveMaterialAsync(taskId, materialId, userId, ct);
             return Ok(result);
         }
@@ -67,6 +83,7 @@ namespace STMM.API.Controllers
             [FromQuery] int userId,
             CancellationToken ct)
         {
+            userId = GetUserId();
             var result = await _quotationService.SubmitQuotationAsync(taskId, userId, ct);
             return Ok(result);
         }

@@ -1,6 +1,8 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using STMM.Business.DTOs.Issue;
 using STMM.Business.Interfaces;
+using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -8,6 +10,7 @@ namespace STMM.API.Controllers
 {
     [ApiController]
     [Route("api/staff/issues")]
+    [Authorize(Roles = "Staff")]
     public class IssuesController : ControllerBase
     {
         private readonly IIssueService _issueService;
@@ -15,6 +18,16 @@ namespace STMM.API.Controllers
         public IssuesController(IIssueService issueService)
         {
             _issueService = issueService;
+        }
+
+        private int GetUserId()
+        {
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
+            {
+                throw new System.UnauthorizedAccessException("User ID not found in token.");
+            }
+            return userId;
         }
 
         /// <summary>
@@ -26,6 +39,7 @@ namespace STMM.API.Controllers
             [FromQuery] IssueQueryParams queryParams,
             CancellationToken ct)
         {
+            userId = GetUserId();
             var result = await _issueService.GetIssuesAsync(userId, queryParams, ct);
             return Ok(result);
         }
@@ -39,6 +53,7 @@ namespace STMM.API.Controllers
             [FromQuery] int userId,
             CancellationToken ct)
         {
+            userId = GetUserId();
             var result = await _issueService.GetIssueByIdAsync(id, userId, ct);
             return Ok(result);
         }
@@ -52,6 +67,7 @@ namespace STMM.API.Controllers
             [FromBody] CreateIssueRequest request,
             CancellationToken ct)
         {
+            userId = GetUserId();
             var result = await _issueService.CreateIssueAsync(userId, request, ct);
             return CreatedAtAction(nameof(GetIssueById), new { id = result.IssueId, userId }, result);
         }
@@ -66,6 +82,7 @@ namespace STMM.API.Controllers
             [FromBody] UpdateIssueStatusRequest request,
             CancellationToken ct)
         {
+            userId = GetUserId();
             var result = await _issueService.UpdateIssueStatusAsync(userId, id, request, ct);
             return Ok(result);
         }
