@@ -28,6 +28,7 @@ namespace STMM.Business.Services
         private readonly IMapper _mapper;
         private readonly INotificationService _notificationService;
         private readonly IValidator<ReceiveCashPaymentRequest> _paymentValidator;
+        private readonly IEmailService _emailService;
 
         public BillingService(
             IInvoiceRepository invoiceRepository,
@@ -40,7 +41,8 @@ namespace STMM.Business.Services
             IRequestRepository requestRepository,
             IMapper mapper,
             INotificationService notificationService,
-            IValidator<ReceiveCashPaymentRequest> paymentValidator)
+            IValidator<ReceiveCashPaymentRequest> paymentValidator,
+            IEmailService emailService)
         {
             _invoiceRepository = invoiceRepository;
             _paymentRepository = paymentRepository;
@@ -53,6 +55,7 @@ namespace STMM.Business.Services
             _mapper = mapper;
             _notificationService = notificationService;
             _paymentValidator = paymentValidator;
+            _emailService = emailService;
         }
 
         /// <inheritdoc />
@@ -657,7 +660,7 @@ namespace STMM.Business.Services
         {
             var stall = await _contractRepository.Query()
                 .Where(c => c.StallId == request.StallId && c.Status == "Active")
-                .Select(c => new { c.Stall.Code, c.Vendor.UserId })
+                .Select(c => new { c.Stall.Code, c.Vendor.UserId, Email = c.Vendor.User.Email, Name = c.Vendor.User.Name })
                 .FirstOrDefaultAsync(ct);
 
             if (stall == null)
@@ -683,6 +686,7 @@ namespace STMM.Business.Services
                 message = $"Ban quản lý thông báo: Sạp {stall.Code} hiện đang có tổng nợ phí chưa thanh toán là {totalDebt:#,##0} VNĐ. Kính đề nghị Quý khách thanh toán sớm nhất để tránh bị gián đoạn dịch vụ.";
             }
 
+            // 1. Send in-app notification
             await _notificationService.CreateAsync(new CreateNotificationRequest
             {
                 Title = $"Nhắc nhở nợ phí sạp {stall.Code}",
@@ -691,6 +695,27 @@ namespace STMM.Business.Services
                 CreatedByUserId = senderUserId,
                 TargetUserId = stall.UserId
             }, ct);
+
+            // 2. Send email notification if vendor has an email
+            if (!string.IsNullOrWhiteSpace(stall.Email))
+            {
+                var emailBody = $@"
+<div style=""font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;"">
+    <div style=""text-align: center; margin-bottom: 20px;"">
+        <h2 style=""color: #d32f2f; margin: 0;"">Smart Market (STMM)</h2>
+        <p style=""color: #666; font-size: 14px; margin: 5px 0 0 0;"">Hệ thống quản lý chợ thông minh</p>
+    </div>
+    <div style=""background-color: #fff9c4; padding: 20px; border-radius: 6px; border-left: 4px solid #fbc02d; margin-bottom: 20px;"">
+        <p style=""margin-top: 0; font-size: 16px;"">Kính gửi Ông/Bà: <strong>{stall.Name}</strong> (Tiểu thương sạp <strong>{stall.Code}</strong>),</p>
+        <p style=""line-height: 1.6; font-size: 14px; color: #333;"">{message}</p>
+        <p style=""color: #666; font-size: 12px; margin-top: 20px;"">Nếu đã thanh toán, vui lòng bỏ qua email này hoặc gửi đối soát trên trang cá nhân.</p>
+    </div>
+    <hr style=""border: none; border-top: 1px solid #eee; margin: 20px 0;"" />
+    <p style=""color: #999; font-size: 11px; text-align: center; margin: 0;"">Đây là email tự động từ hệ thống STMM, vui lòng không trả lời email này.</p>
+</div>";
+
+                await _emailService.SendEmailAsync(stall.Email, $"[BQL STMM] Thông báo nhắc nợ phí sạp {stall.Code}", emailBody, ct);
+            }
 
             return true;
         }
