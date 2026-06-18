@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using STMM.Business.Interfaces;
 using System.Threading;
@@ -7,6 +8,7 @@ namespace STMM.API.Controllers
 {
     [ApiController]
     [Route("api/meters")]
+    [Authorize(Roles = "Staff")]
     public class MetersController : ControllerBase
     {
         private readonly IMeterReadingService _service;
