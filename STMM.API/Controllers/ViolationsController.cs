@@ -63,5 +63,40 @@ namespace STMM.API.Controllers
             var result = await _violationService.GetViolationTypesAsync(ct);
             return Ok(result);
         }
+
+        /// <summary>
+        /// UC-xx: View Violations List for Manager — Manager xem tất cả vi phạm.
+        /// </summary>
+        [HttpGet("~/api/manager/violations")]
+        public async Task<IActionResult> GetViolationsForManager(
+            [FromQuery] ViolationQueryParams queryParams,
+            CancellationToken ct)
+        {
+            var result = await _violationService.GetViolationsForManagerAsync(queryParams, ct);
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// UC-xx: View Violation Details for Manager — Manager xem chi tiết vi phạm.
+        /// </summary>
+        [HttpGet("~/api/manager/violations/{id:int}")]
+        public async Task<IActionResult> GetViolationByIdForManager(
+            int id,
+            CancellationToken ct)
+        {
+            var result = await _violationService.GetViolationByIdForManagerAsync(id, ct);
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// Mock/Simulate creating an appeal request for a violation (for demo/testing purposes)
+        /// </summary>
+        [HttpPost("~/api/manager/violations/{id:int}/simulate-appeal")]
+        public async Task<IActionResult> SimulateAppeal(int id, CancellationToken ct)
+        {
+            var result = await _violationService.SimulateViolationAppealAsync(id, ct);
+            if (!result) return BadRequest(new { message = "Biên bản vi phạm này đã được kháng nghị trước đó hoặc không tồn tại." });
+            return Ok(new { message = "Simulated appeal created successfully." });
+        }
     }
 }

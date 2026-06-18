@@ -9,5 +9,8 @@ namespace STMM.Business.Interfaces
         Task<ViolationDto> GetViolationByIdAsync(int id, int userId, CancellationToken ct = default);
         Task<ViolationDto> CreateViolationAsync(int userId, CreateViolationRequest request, CancellationToken ct = default);
         Task<IEnumerable<ViolationTypeDto>> GetViolationTypesAsync(CancellationToken ct = default);
+        Task<PagedResult<ViolationDto>> GetViolationsForManagerAsync(ViolationQueryParams queryParams, CancellationToken ct = default);
+        Task<ViolationDto> GetViolationByIdForManagerAsync(int id, CancellationToken ct = default);
+        Task<bool> SimulateViolationAppealAsync(int violationId, CancellationToken ct = default);
     }
 }

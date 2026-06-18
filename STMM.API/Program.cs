@@ -12,20 +12,24 @@ using STMM.API.Middleware;
 using System.Text.Json.Serialization;
 using System.IO;
 
-// Load .env file if it exists in the current directory or parent solution directory
+// Load .env file by traversing up the directory tree to find it
 var currentDir = Directory.GetCurrentDirectory();
-var dotenvPath = Path.Combine(currentDir, ".env");
-if (!File.Exists(dotenvPath))
+string? dotenvPath = null;
+var dir = new DirectoryInfo(currentDir);
+while (dir != null)
 {
-    var parentDir = Directory.GetParent(currentDir)?.FullName;
-    if (parentDir != null)
+    var testPath = Path.Combine(dir.FullName, ".env");
+    if (File.Exists(testPath))
     {
-        dotenvPath = Path.Combine(parentDir, ".env");
+        dotenvPath = testPath;
+        break;
     }
+    dir = dir.Parent;
 }
 
-if (File.Exists(dotenvPath))
+if (dotenvPath != null)
 {
+    Console.WriteLine($"[INFO] Loaded configuration from env file: {dotenvPath}");
     foreach (var line in File.ReadAllLines(dotenvPath))
     {
         if (string.IsNullOrWhiteSpace(line) || line.StartsWith("#")) continue;
@@ -38,8 +42,20 @@ if (File.Exists(dotenvPath))
         }
     }
 }
+else
+{
+    Console.WriteLine("[WARN] No .env file found in directory tree.");
+}
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Explicitly override configuration with programmatic environment variables if they exist
+var envConnection = Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection");
+if (!string.IsNullOrEmpty(envConnection))
+{
+    builder.Configuration["ConnectionStrings:DefaultConnection"] = envConnection;
+    Console.WriteLine("[INFO] Database connection string successfully overridden from environment variables.");
+}
 
 // Register AppDbContext
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -108,6 +124,9 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IBusinessCategoryService, BusinessCategoryService>();
 builder.Services.AddScoped<IContractService, ContractService>();
+builder.Services.AddScoped<IRequestService, RequestService>();
+builder.Services.AddScoped<IVendorRequestService, VendorRequestService>();
+builder.Services.AddScoped<IVendorViolationService, VendorViolationService>();
 
 
 // 1. Controllers & JSON Options

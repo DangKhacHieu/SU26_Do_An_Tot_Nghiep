@@ -58,6 +58,12 @@ import VendorDashboard from "./pages/FE_Vendor/VendorDashboard.jsx";
 import './App.css';
 import './AppDashboard.css';
 
+// FE Manager Requests & Violations Imports
+import RequestListManager from "./pages/FE_Manager/RequestListManager";
+import RequestDetailManager from "./pages/FE_Manager/RequestDetailManager";
+import ViolationListManager from "./pages/FE_Manager/ViolationListManager";
+import ViolationDetailsManager from "./pages/FE_Manager/ViolationDetailsManager";
+
 const PAGE_TITLES = {
   dashboard: {
     title: "Tổng quan hệ thống",
@@ -126,6 +132,22 @@ const PAGE_TITLES = {
   "task-details": {
     title: "Task Details",
     sub: "Full view of task summary, technical details, and log timeline.",
+  },
+  requests: {
+    title: "Quản lý Yêu cầu",
+    sub: "Xem và xử lý danh sách yêu cầu, kháng nghị từ tiểu thương.",
+  },
+  "request-detail": {
+    title: "Chi tiết Yêu cầu",
+    sub: "Xem thông tin chi tiết, báo giá và đánh giá của yêu cầu.",
+  },
+  violations: {
+    title: "Danh sách Biên bản Vi phạm",
+    sub: "Quản lý và giải quyết các biên bản vi phạm của quầy sạp.",
+  },
+  "violation-details": {
+    title: "Chi tiết Biên bản Vi phạm",
+    sub: "Xem thông tin chi tiết và xử lý kháng nghị của biên bản vi phạm.",
   },
 
   // Admin System Titles
@@ -350,6 +372,26 @@ function App() {
         return <ContractDetailManager contractId={currentUserId} navigate={navigate} addToast={addToast} />;
       case 'users':
         return <UserListManager navigate={navigate} addToast={addToast} />;
+      case "requests":
+        return <RequestListManager navigate={navigate} addToast={addToast} />;
+      case "request-detail":
+        return (
+          <RequestDetailManager
+            requestId={currentUserId}
+            navigate={navigate}
+            addToast={addToast}
+          />
+        );
+      case "violations":
+        return <ViolationListManager navigate={navigate} addToast={addToast} />;
+      case "violation-details":
+        return (
+          <ViolationDetailsManager
+            violationId={currentUserId}
+            navigate={navigate}
+            addToast={addToast}
+          />
+        );
       case 'form':
         return <UserFormManager userId={currentUserId} navigate={navigate} addToast={addToast} />;
       case 'detail':
