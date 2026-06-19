@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './TaskListManager.css';
 import CreateTaskModal from './CreateTaskModal';
-import AssignStaffModal from './AssignStaffModal';
-import UpdateTaskStatusModal from './UpdateTaskStatusModal';
 
 /* ── Inline Icons ── */
 const IconSearch = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>;
@@ -26,8 +24,6 @@ export default function TaskListManager({ userId, baseUrl, navigate, addToast })
 
   // Modals state
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [selectedTaskForAssign, setSelectedTaskForAssign] = useState(null);
-  const [selectedTaskForStatus, setSelectedTaskForStatus] = useState(null);
 
   // Debounce search input
   useEffect(() => {
@@ -248,28 +244,6 @@ export default function TaskListManager({ userId, baseUrl, navigate, addToast })
                         >
                           <IconEye />
                         </button>
-                        
-                        {/* Assign staff is available for non-completed / non-cancelled tasks */}
-                        {task.status !== 'Completed' && task.status !== 'Cancelled' && (
-                          <button 
-                            className="btn-icon edit" 
-                            title="Reassign Staff"
-                            onClick={() => setSelectedTaskForAssign(task)}
-                          >
-                            <IconUser />
-                          </button>
-                        )}
-
-                        {/* Status updates is available for valid transitions */}
-                        {task.status !== 'Completed' && task.status !== 'Cancelled' && (
-                          <button 
-                            className="btn-icon edit" 
-                            title="Update Status"
-                            onClick={() => setSelectedTaskForStatus(task)}
-                          >
-                            <IconEditStatus />
-                          </button>
-                        )}
                       </td>
                     </tr>
                   );
@@ -311,34 +285,6 @@ export default function TaskListManager({ userId, baseUrl, navigate, addToast })
           onClose={() => setShowCreateModal(false)}
           onSuccess={() => {
             setShowCreateModal(false);
-            fetchTasks();
-          }}
-          addToast={addToast}
-        />
-      )}
-
-      {selectedTaskForAssign && (
-        <AssignStaffModal
-          taskId={selectedTaskForAssign.taskId}
-          currentStaffId={selectedTaskForAssign.assignedToUserId}
-          baseUrl={baseUrl}
-          onClose={() => setSelectedTaskForAssign(null)}
-          onSuccess={() => {
-            setSelectedTaskForAssign(null);
-            fetchTasks();
-          }}
-          addToast={addToast}
-        />
-      )}
-
-      {selectedTaskForStatus && (
-        <UpdateTaskStatusModal
-          taskId={selectedTaskForStatus.taskId}
-          currentStatus={selectedTaskForStatus.status}
-          baseUrl={baseUrl}
-          onClose={() => setSelectedTaskForStatus(null)}
-          onSuccess={() => {
-            setSelectedTaskForStatus(null);
             fetchTasks();
           }}
           addToast={addToast}

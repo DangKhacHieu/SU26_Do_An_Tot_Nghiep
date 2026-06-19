@@ -8,6 +8,12 @@ export default function CreateTaskModal({ userId, baseUrl, onClose, onSuccess, a
   const [assignedToUserId, setAssignedToUserId] = useState('');
   const [areaId, setAreaId] = useState('');
 
+  // Link to Request states
+  const [linkToRequest, setLinkToRequest] = useState(false);
+  const [requests, setRequests] = useState([]);
+  const [requestId, setRequestId] = useState('');
+  const [loadingRequests, setLoadingRequests] = useState(false);
+
   // Dropdowns lists
   const [staffs, setStaffs] = useState([]);
   const [areas, setAreas] = useState([]);
@@ -58,6 +64,29 @@ export default function CreateTaskModal({ userId, baseUrl, onClose, onSuccess, a
     fetchAreas();
   }, [baseUrl]);
 
+  // Load pending requests when linkToRequest is checked
+  useEffect(() => {
+    if (linkToRequest && requests.length === 0) {
+      const fetchRequests = async () => {
+        setLoadingRequests(true);
+        try {
+          const res = await fetch(`${baseUrl}/api/manager/requests?status=Pending&requestType=FacilityIssue&pageSize=100`);
+          if (res.ok) {
+            const data = await res.json();
+            setRequests(data.items || data.Items || []);
+          } else {
+            addToast('Cannot load pending requests list.', 'error');
+          }
+        } catch (err) {
+          console.error('Error fetching requests:', err);
+        } finally {
+          setLoadingRequests(false);
+        }
+      };
+      fetchRequests();
+    }
+  }, [linkToRequest, baseUrl, requests.length]);
+
   const validate = () => {
     const errors = {};
     if (!title.trim()) {
@@ -72,6 +101,10 @@ export default function CreateTaskModal({ userId, baseUrl, onClose, onSuccess, a
 
     if (taskType === 'UtilityReading' && !areaId) {
       errors.areaId = 'Please select a market area for utility reading.';
+    }
+
+    if (linkToRequest && (taskType === 'Repair' || taskType === 'Maintenance') && !requestId) {
+      errors.requestId = 'Please select a customer request to link.';
     }
 
     setFormErrors(errors);
@@ -90,7 +123,7 @@ export default function CreateTaskModal({ userId, baseUrl, onClose, onSuccess, a
       title: title.trim(),
       description: description.trim() || null,
       areaId: taskType === 'UtilityReading' ? parseInt(areaId) : null,
-      requestId: null,
+      requestId: (linkToRequest && (taskType === 'Repair' || taskType === 'Maintenance') && requestId) ? parseInt(requestId) : null,
       issueId: null
     };
 
@@ -139,6 +172,8 @@ export default function CreateTaskModal({ userId, baseUrl, onClose, onSuccess, a
                 onChange={(e) => {
                   setTaskType(e.target.value);
                   setAreaId('');
+                  setLinkToRequest(false);
+                  setRequestId('');
                   setFormErrors({});
                 }}
                 disabled={submitting}
@@ -146,9 +181,70 @@ export default function CreateTaskModal({ userId, baseUrl, onClose, onSuccess, a
                 <option value="Repair">Repair</option>
                 <option value="Maintenance">Maintenance</option>
                 <option value="UtilityReading">Utility Reading</option>
-                <option value="CashCollection">Cash Collection</option>
               </select>
             </div>
+
+            {/* Link to Request (Only for Repair or Maintenance tasks) */}
+            {(taskType === 'Repair' || taskType === 'Maintenance') && (
+              <div style={{ marginBottom: '16px', display: 'flex', flexDirection: 'column' }}>
+                <label 
+                  style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '10px', 
+                    cursor: 'pointer', 
+                    fontWeight: '700', 
+                    fontSize: '12px', 
+                    color: '#475569',
+                    userSelect: 'none',
+                    letterSpacing: '0.5px',
+                    margin: '0',
+                    padding: '4px 0'
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={linkToRequest}
+                    onChange={(e) => {
+                      setLinkToRequest(e.target.checked);
+                      if (!e.target.checked) setRequestId('');
+                    }}
+                    disabled={submitting}
+                    style={{
+                      width: '16px',
+                      height: '16px',
+                      margin: '0',
+                      flexShrink: 0,
+                      cursor: 'pointer',
+                      accentColor: '#2563eb'
+                    }}
+                  />
+                  LINK THIS TASK TO A CUSTOMER REQUEST
+                </label>
+
+                {linkToRequest && (
+                  <div style={{ marginTop: '10px', paddingLeft: '18px', borderLeft: '3px solid #2563eb' }}>
+                    <label className="form-label required-field">SELECT REQUEST</label>
+                    <select
+                      className={`form-control ${formErrors.requestId ? 'is-error' : ''}`}
+                      value={requestId}
+                      onChange={(e) => setRequestId(e.target.value)}
+                      disabled={loadingRequests || submitting}
+                      style={{ marginTop: '4px' }}
+                    >
+                      <option value="">-- Select Pending Request --</option>
+                      {requests.map(r => (
+                        <option key={r.requestId} value={r.requestId}>
+                          #REQ-{r.requestId}: {r.title} ({r.stallCode ? `Stall ${r.stallCode}` : 'No Stall'})
+                        </option>
+                      ))}
+                    </select>
+                    {loadingRequests && <span className="helper-text">Loading requests...</span>}
+                    {formErrors.requestId && <span className="modal-confirm-hint" style={{ color: 'var(--color-danger)' }}>{formErrors.requestId}</span>}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Title */}
             <div className="form-group" style={{ marginBottom: '14px' }}>
@@ -177,7 +273,6 @@ export default function CreateTaskModal({ userId, baseUrl, onClose, onSuccess, a
                 style={{ resize: 'none' }}
               />
             </div>
-
 
             {/* Assigned Staff */}
             <div className="form-group" style={{ marginBottom: '14px' }}>

@@ -409,7 +409,7 @@ function App() {
       case 'tasks':
         return <TaskListManager userId={userId} baseUrl={baseUrl} navigate={navigate} addToast={addToast} />;
       case 'task-details':
-        return <TaskDetailManager taskId={currentUserId} userId={userId} baseUrl={baseUrl} onBack={() => navigate('tasks')} addToast={addToast} />;
+        return <TaskDetailManager taskId={currentUserId} userId={userId} baseUrl={baseUrl} onBack={() => navigate('tasks')} addToast={addToast} navigate={navigate} />;
 
       // Admin System Pages
       case 'admin-dashboard':
@@ -669,6 +669,7 @@ function App() {
                   baseUrl={baseUrl}
                   onBack={() => setCurrentStaffView('tasks')}
                   onShowNotification={handleShowNotification}
+                  onViewIssueDetails={handleViewIssueDetails}
                 />
               )}
 

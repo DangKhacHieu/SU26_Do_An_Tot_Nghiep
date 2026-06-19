@@ -218,6 +218,11 @@ namespace STMM.Business.Services
             var oldStatus = task.Status ?? "Pending";
             var newStatus = req.NewStatus;
 
+            if (oldStatus == "PendingApproval" && task.RequestId.HasValue)
+            {
+                throw new BadRequestException("Báo giá của tác vụ liên kết với Yêu cầu sửa chữa (Request) phải do Vendor phê duyệt trực tuyến.");
+            }
+
             bool isValid = false;
             if (oldStatus == "Pending" && newStatus == "Cancelled") isValid = true;
             else if (oldStatus == "PendingApproval" && newStatus == "In_Progress") isValid = true;

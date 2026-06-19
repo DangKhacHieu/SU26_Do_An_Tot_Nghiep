@@ -18,6 +18,15 @@ export default function QuotationPanel({ taskId, userId, baseUrl, taskStatus, in
   const [submittingMaterial, setSubmittingMaterial] = useState(false);
   const [submittingQuotation, setSubmittingQuotation] = useState(false);
 
+  // Custom Confirm Modal state
+  const [confirmModal, setConfirmModal] = useState({ 
+    isOpen: false, 
+    type: 'primary', 
+    title: '', 
+    message: '', 
+    onConfirm: null 
+  });
+
   // Fetch quotation from backend in Edit Mode
   const fetchQuotation = async () => {
     setLoading(true);
@@ -78,15 +87,15 @@ export default function QuotationPanel({ taskId, userId, baseUrl, taskStatus, in
   const handleAddMaterial = async (e) => {
     e.preventDefault();
     if (!selectedCatalogId) {
-      alert('Please select a material from the catalog.');
+      onShowNotification('Please select a material from the catalog.', 'error');
       return;
     }
     if (quantity <= 0) {
-      alert('Quantity must be greater than 0.');
+      onShowNotification('Quantity must be greater than 0.', 'error');
       return;
     }
     if (isCustomPriceRequired && (!customUnitPrice || parseFloat(customUnitPrice) <= 0)) {
-      alert('Please enter a valid unit price for the custom item.');
+      onShowNotification('Please enter a valid unit price for the custom item.', 'error');
       return;
     }
 
@@ -119,17 +128,13 @@ export default function QuotationPanel({ taskId, userId, baseUrl, taskStatus, in
       setCustomUnitPrice('');
       onShowNotification('Material added successfully.', 'success');
     } catch (err) {
-      alert(err.message);
+      onShowNotification(err.message, 'error');
     } finally {
       setSubmittingMaterial(false);
     }
   };
 
-  const handleRemoveMaterial = async (materialId) => {
-    if (!window.confirm('Are you sure you want to remove this material from the quotation?')) {
-      return;
-    }
-
+  const executeRemoveMaterial = async (materialId) => {
     try {
       const response = await fetch(`${baseUrl}/api/staff/tasks/${taskId}/quotation/${materialId}?userId=${userId}`, {
         method: 'DELETE'
@@ -143,20 +148,21 @@ export default function QuotationPanel({ taskId, userId, baseUrl, taskStatus, in
       await fetchQuotation();
       onShowNotification('Material removed successfully.', 'success');
     } catch (err) {
-      alert(err.message);
+      onShowNotification(err.message, 'error');
     }
   };
 
-  const handleSubmitQuotation = async () => {
-    if (quotation.materials.length === 0) {
-      alert('The quotation must contain at least one material item before submission.');
-      return;
-    }
+  const handleRemoveMaterial = (materialId) => {
+    setConfirmModal({
+      isOpen: true,
+      type: 'danger',
+      title: 'Xác nhận xóa vật tư',
+      message: 'Bạn có chắc chắn muốn xóa vật tư này khỏi bảng báo giá không?',
+      onConfirm: () => executeRemoveMaterial(materialId)
+    });
+  };
 
-    if (!window.confirm('After submission, you will not be able to modify the materials list. Confirm submit?')) {
-      return;
-    }
-
+  const executeSubmitQuotation = async () => {
     setSubmittingQuotation(true);
     try {
       const response = await fetch(`${baseUrl}/api/staff/tasks/${taskId}/submit-quotation?userId=${userId}`, {
@@ -171,10 +177,25 @@ export default function QuotationPanel({ taskId, userId, baseUrl, taskStatus, in
       onShowNotification('Quotation has been submitted for approval successfully!', 'success');
       onRefreshTask(); // Reload the whole task details to show read-only mode and status update
     } catch (err) {
-      alert(err.message);
+      onShowNotification(err.message, 'error');
     } finally {
       setSubmittingQuotation(false);
     }
+  };
+
+  const handleSubmitQuotation = () => {
+    if (quotation.materials.length === 0) {
+      onShowNotification('The quotation must contain at least one material item before submission.', 'error');
+      return;
+    }
+
+    setConfirmModal({
+      isOpen: true,
+      type: 'primary',
+      title: 'Gửi duyệt báo giá',
+      message: 'Sau khi gửi, bạn sẽ không thể chỉnh sửa danh mục vật tư này nữa. Bạn có chắc chắn muốn gửi báo giá không?',
+      onConfirm: () => executeSubmitQuotation()
+    });
   };
 
   const formatVnd = (amount) => {
@@ -321,6 +342,45 @@ export default function QuotationPanel({ taskId, userId, baseUrl, taskStatus, in
               )}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Custom Confirmation Modal */}
+      {confirmModal.isOpen && (
+        <div className="custom-confirm-overlay">
+          <div className="custom-confirm-modal">
+            <div className="custom-confirm-header">
+              <h4>{confirmModal.title}</h4>
+            </div>
+            <div className="custom-confirm-body">
+              <p>{confirmModal.message}</p>
+            </div>
+            <div className="custom-confirm-actions">
+              <button 
+                type="button" 
+                className="btn-secondary" 
+                onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+              >
+                HỦY
+              </button>
+              <button 
+                type="button" 
+                className="btn-primary-dark" 
+                style={{ 
+                  backgroundColor: confirmModal.type === 'danger' ? '#ef4444' : 'var(--primary-color)',
+                  borderColor: confirmModal.type === 'danger' ? '#ef4444' : 'var(--primary-color)',
+                  padding: '8px 16px',
+                  fontSize: '13px'
+                }}
+                onClick={() => {
+                  if (confirmModal.onConfirm) confirmModal.onConfirm();
+                  setConfirmModal(prev => ({ ...prev, isOpen: false }));
+                }}
+              >
+                XÁC NHẬN
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

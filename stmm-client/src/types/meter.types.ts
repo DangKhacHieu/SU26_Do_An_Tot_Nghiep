@@ -7,6 +7,7 @@ export interface MeterDto {
   installedAt: string | null;
   isActive: boolean | null;
   lastReadingValue: number | null;
+  lastReadingImageUrl?: string | null;
 }
 
 export interface MeterReadingDto {
@@ -29,6 +30,7 @@ export interface CreateMeterReadingRequest {
   newValue: number;
   recordedAt: string;
   imageUrl: string;
+  isReplaced?: boolean;
 }
 
 export interface MeterReadingQueryParams {

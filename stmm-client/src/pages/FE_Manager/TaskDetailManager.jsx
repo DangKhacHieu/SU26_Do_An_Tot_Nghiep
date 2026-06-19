@@ -8,7 +8,7 @@ const IconBack = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="non
 const IconUser = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>;
 const IconEditStatus = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>;
 
-export default function TaskDetailManager({ taskId, userId, baseUrl, onBack, addToast }) {
+export default function TaskDetailManager({ taskId, userId, baseUrl, onBack, addToast, navigate }) {
   const [task, setTask] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -84,8 +84,8 @@ export default function TaskDetailManager({ taskId, userId, baseUrl, onBack, add
   };
 
   const formatCurrency = (val) => {
-    if (val === undefined || val === null) return '$0.00';
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val);
+    if (val === undefined || val === null) return '0 VNĐ';
+    return new Intl.NumberFormat('vi-VN').format(val) + ' VNĐ';
   };
 
 
@@ -106,13 +106,31 @@ export default function TaskDetailManager({ taskId, userId, baseUrl, onBack, add
               <button className="btn-secondary" onClick={() => setShowAssignModal(true)}>
                 <IconUser /> REASSIGN STAFF
               </button>
-              <button className="btn-primary" onClick={() => setShowStatusModal(true)}>
-                <IconEditStatus /> UPDATE STATUS
-              </button>
+              {!(task.status === 'PendingApproval' && task.requestId) && (
+                <button className="btn-primary" onClick={() => setShowStatusModal(true)}>
+                  <IconEditStatus /> UPDATE STATUS
+                </button>
+              )}
             </>
           )}
         </div>
       </div>
+
+      {task.status === 'PendingApproval' && task.requestId && (
+        <div className="manager-quotation-pending-vendor-warning">
+          <span className="warning-icon">⚠️</span>
+          <span className="warning-text">
+            Báo giá vật tư của tác vụ này đang chờ Vendor (Tiểu thương) của Yêu cầu{' '}
+            <span 
+              className="warning-link"
+              onClick={() => navigate('request-detail', task.requestId)}
+            >
+              #REQ-{task.requestId}
+            </span>{' '}
+            phê duyệt trực tuyến. Manager không thể duyệt trực tiếp tại đây.
+          </span>
+        </div>
+      )}
 
       <div className="detail-grid">
         {/* ── LEFT COLUMN: TECHNICAL SPECS ── */}
@@ -138,6 +156,18 @@ export default function TaskDetailManager({ taskId, userId, baseUrl, onBack, add
                 <span className="summary-label">COORDINATOR</span>
                 <span className="summary-val">System Manager</span>
               </div>
+              {task.requestId && (
+                <div className="summary-field">
+                  <span className="summary-label">LINKED CUSTOMER REQUEST</span>
+                  <span 
+                    className="summary-val text-bold" 
+                    style={{ color: '#2563eb', cursor: 'pointer', textDecoration: 'underline' }}
+                    onClick={() => navigate('request-detail', task.requestId)}
+                  >
+                    #REQ-{task.requestId}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -148,70 +178,74 @@ export default function TaskDetailManager({ taskId, userId, baseUrl, onBack, add
           </div>
 
           {/* Quotation Materials */}
-          <div className="spec-card">
-            <h3 className="spec-title">REQUIRED MATERIALS & QUOTATION</h3>
-            {(!task.materials || task.materials.length === 0) ? (
-              <div className="materials-empty-state">
-                No spare parts or materials have been registered for this task.
-              </div>
-            ) : (
-              <div className="table-responsive">
-                <table className="materials-table">
-                  <thead>
-                    <tr>
-                      <th>Spare Part / Item Name</th>
-                      <th style={{ textAlign: 'center' }}>Qty</th>
-                      <th style={{ textAlign: 'right' }}>Unit Price</th>
-                      <th style={{ textAlign: 'right' }}>Total Amount</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {task.materials.map((m) => (
-                      <tr key={m.id}>
-                        <td className="material-name-td">{m.itemName}</td>
-                        <td style={{ textAlign: 'center' }}>{m.quantity}</td>
-                        <td style={{ textAlign: 'right' }}>{formatCurrency(m.unitPrice)}</td>
-                        <td style={{ textAlign: 'right', fontWeight: '600' }}>{formatCurrency(m.amount)}</td>
+          {(task.taskType === 'Repair' || task.taskType === 'Maintenance') && (
+            <div className="spec-card">
+              <h3 className="spec-title">REQUIRED MATERIALS & QUOTATION</h3>
+              {(!task.materials || task.materials.length === 0) ? (
+                <div className="materials-empty-state">
+                  No spare parts or materials have been registered for this task.
+                </div>
+              ) : (
+                <div className="table-responsive">
+                  <table className="materials-table">
+                    <thead>
+                      <tr>
+                        <th>Spare Part / Item Name</th>
+                        <th style={{ textAlign: 'center' }}>Qty</th>
+                        <th style={{ textAlign: 'right' }}>Unit Price</th>
+                        <th style={{ textAlign: 'right' }}>Total Amount</th>
                       </tr>
-                    ))}
-                    <tr className="materials-total-row">
-                      <td colSpan="3" style={{ textAlign: 'right', fontWeight: '700' }}>SUBTOTAL:</td>
-                      <td style={{ textAlign: 'right', fontWeight: '800', color: 'var(--color-primary, #2563eb)' }}>
-                        {formatCurrency(materialsTotal)}
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
+                    </thead>
+                    <tbody>
+                      {task.materials.map((m) => (
+                        <tr key={m.id}>
+                          <td className="material-name-td">{m.itemName}</td>
+                          <td style={{ textAlign: 'center' }}>{m.quantity}</td>
+                          <td style={{ textAlign: 'right' }}>{formatCurrency(m.unitPrice)}</td>
+                          <td style={{ textAlign: 'right', fontWeight: '600' }}>{formatCurrency(m.amount)}</td>
+                        </tr>
+                      ))}
+                      <tr className="materials-total-row">
+                        <td colSpan="3" style={{ textAlign: 'right', fontWeight: '700' }}>SUBTOTAL:</td>
+                        <td style={{ textAlign: 'right', fontWeight: '800', color: 'var(--color-primary, #2563eb)' }}>
+                          {formatCurrency(materialsTotal)}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Evidence Photos */}
-          <div className="spec-card">
-            <h3 className="spec-title">EVIDENCE CAPTURES</h3>
-            <div className="evidence-photos-grid">
-              <div className="evidence-photo-box">
-                <span className="evidence-photo-label">BEFORE TASK REPAIR</span>
-                {task.imageBeforeUrl ? (
-                  <img src={task.imageBeforeUrl} alt="Before Repair Evidence" className="evidence-img" />
-                ) : (
-                  <div className="evidence-photo-placeholder">
-                    <span>No pre-repair photograph uploaded.</span>
-                  </div>
-                )}
-              </div>
-              <div className="evidence-photo-box">
-                <span className="evidence-photo-label">AFTER TASK COMPLETION</span>
-                {task.imageAfterUrl ? (
-                  <img src={task.imageAfterUrl} alt="After Repair Evidence" className="evidence-img" />
-                ) : (
-                  <div className="evidence-photo-placeholder">
-                    <span>No completion certificate photograph uploaded.</span>
-                  </div>
-                )}
+          {(task.taskType === 'Repair' || task.taskType === 'Maintenance') && (
+            <div className="spec-card">
+              <h3 className="spec-title">EVIDENCE CAPTURES</h3>
+              <div className="evidence-photos-grid">
+                <div className="evidence-photo-box">
+                  <span className="evidence-photo-label">BEFORE TASK REPAIR</span>
+                  {task.imageBeforeUrl ? (
+                    <img src={task.imageBeforeUrl} alt="Before Repair Evidence" className="evidence-img" />
+                  ) : (
+                    <div className="evidence-photo-placeholder">
+                      <span>No pre-repair photograph uploaded.</span>
+                    </div>
+                  )}
+                </div>
+                <div className="evidence-photo-box">
+                  <span className="evidence-photo-label">AFTER TASK COMPLETION</span>
+                  {task.imageAfterUrl ? (
+                    <img src={task.imageAfterUrl} alt="After Repair Evidence" className="evidence-img" />
+                  ) : (
+                    <div className="evidence-photo-placeholder">
+                      <span>No completion certificate photograph uploaded.</span>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* ── RIGHT COLUMN: WORKFLOW STATUS & HISTORY ── */}
@@ -226,11 +260,11 @@ export default function TaskDetailManager({ taskId, userId, baseUrl, onBack, add
             
             <div className="assignee-card-small">
               <div className="assignee-avatar-small">
-                {task.assignedToName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
+                {task.assignedToName ? task.assignedToName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : '??'}
               </div>
               <div className="assignee-details-small">
                 <span className="assignee-role-label">ASSIGNED STAFF MEMBER</span>
-                <span className="assignee-name-val">{task.assignedToName}</span>
+                <span className="assignee-name-val">{task.assignedToName || 'Unassigned'}</span>
               </div>
             </div>
 
@@ -266,7 +300,7 @@ export default function TaskDetailManager({ taskId, userId, baseUrl, onBack, add
                   <span className="timeline-date">{formatDate(task.createdAt)}</span>
                   <span className="timeline-event-title">Staff Member Assigned</span>
                   <p className="timeline-event-desc">
-                    Assigned coordination authority and execution to <strong>{task.assignedToName}</strong>.
+                    Assigned coordination authority and execution to <strong>{task.assignedToName || 'Unassigned'}</strong>.
                   </p>
                 </div>
               </div>
@@ -277,9 +311,17 @@ export default function TaskDetailManager({ taskId, userId, baseUrl, onBack, add
                   <div className="timeline-badge"></div>
                   <div className="timeline-content">
                     <span className="timeline-date">{formatDate(task.completedAt)}</span>
-                    <span className="timeline-event-title">Task Repair Completed</span>
+                    <span className="timeline-event-title">
+                      {task.taskType === 'UtilityReading' ? 'Meter Readings Completed' : 'Task Repair Completed'}
+                    </span>
                     <p className="timeline-event-desc">
-                      Marked as successfully completed by field staff.
+                      {task.completionNotes ? (
+                        <>
+                          <strong>Staff Note:</strong> "{task.completionNotes}"
+                        </>
+                      ) : (
+                        "Marked as successfully completed by field staff."
+                      )}
                     </p>
                   </div>
                 </div>

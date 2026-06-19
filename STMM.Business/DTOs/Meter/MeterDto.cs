@@ -10,5 +10,6 @@ namespace STMM.Business.DTOs.Meter
         public string? InstalledAt { get; set; }
         public bool? IsActive { get; set; }
         public double? LastReadingValue { get; set; }
+        public string? LastReadingImageUrl { get; set; }
     }
 }

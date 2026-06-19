@@ -1,7 +1,7 @@
 import React from 'react';
 import { TASK_STATUS, TASK_TYPE } from '../../../constants/taskEnums';
 
-export default function TaskInfoCard({ task }) {
+export default function TaskInfoCard({ task, onViewIssueDetails }) {
   const formatDate = (dateString) => {
     if (!dateString) return 'Pending completion';
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -117,7 +117,13 @@ export default function TaskInfoCard({ task }) {
         {task.issueId && (
           <div className="info-item">
             <span className="info-label">Linked Issue:</span>
-            <span className="info-value font-monospace">{task.issueId}</span>
+            <span 
+              className="info-value font-monospace" 
+              style={{ color: '#2563eb', cursor: 'pointer', textDecoration: 'underline', fontWeight: 'bold' }}
+              onClick={() => onViewIssueDetails && onViewIssueDetails(task.issueId)}
+            >
+              #ISSUE-{task.issueId}
+            </span>
           </div>
         )}
       </div>

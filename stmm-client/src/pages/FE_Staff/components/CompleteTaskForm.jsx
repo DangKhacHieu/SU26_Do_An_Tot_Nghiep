@@ -1,7 +1,23 @@
 import React, { useState, useRef } from 'react';
 import { TASK_TYPE } from '../../../constants/taskEnums';
 
-export default function CompleteTaskForm({ task, userId, baseUrl, onRefreshTask, onShowNotification }) {
+const parseErrorMessage = (rawError) => {
+  if (!rawError) return "Có lỗi xảy ra, vui lòng thử lại.";
+  try {
+    const parsed = JSON.parse(rawError);
+    return parsed.detail || parsed.title || rawError;
+  } catch {
+    try {
+      return JSON.parse(`"${rawError}"`);
+    } catch {
+      return rawError.replace(/\\u([0-9a-fA-F]{4})/g, (match, grp) => 
+        String.fromCharCode(parseInt(grp, 16))
+      );
+    }
+  }
+};
+
+export default function CompleteTaskForm({ task, userId, baseUrl, onRefreshTask, onShowNotification, utilityProgress }) {
   const [completionNotes, setCompletionNotes] = useState('');
   
   // Image Before states
@@ -32,6 +48,9 @@ export default function CompleteTaskForm({ task, userId, baseUrl, onRefreshTask,
   // Required for Repair and Maintenance
   const isImageAfterRequired = 
     task.taskType === TASK_TYPE.REPAIR || task.taskType === TASK_TYPE.MAINTENANCE;
+
+  const isUtilityReading = task.taskType === TASK_TYPE.UTILITY_READING;
+  const isChecklistIncomplete = isUtilityReading && utilityProgress && utilityProgress.total > 0 && utilityProgress.completed < utilityProgress.total;
 
   // Drag handlers for Before Photo
   const handleDragBefore = (e) => {
@@ -151,6 +170,16 @@ export default function CompleteTaskForm({ task, userId, baseUrl, onRefreshTask,
       return;
     }
 
+    if (task.taskType === TASK_TYPE.REPAIR && !completionNotes.trim()) {
+      setSubmitError('Vui lòng nhập ghi chú bàn giao/kết quả sửa chữa trước khi hoàn thành tác vụ.');
+      return;
+    }
+
+    if (isChecklistIncomplete) {
+      setSubmitError('Vui lòng ghi chỉ số cho toàn bộ sạp trước khi hoàn thành tác vụ.');
+      return;
+    }
+
     setLoading(true);
 
     // Auto-fill placeholder for UtilityReading/CashCollection since backend validator requires it
@@ -183,7 +212,7 @@ export default function CompleteTaskForm({ task, userId, baseUrl, onRefreshTask,
       onShowNotification('Task completion reported successfully!', 'success');
       onRefreshTask();
     } catch (err) {
-      setSubmitError(err.message);
+      setSubmitError(parseErrorMessage(err.message));
     } finally {
       setLoading(false);
     }
@@ -312,11 +341,43 @@ export default function CompleteTaskForm({ task, userId, baseUrl, onRefreshTask,
           )}
         </div>
 
+        {/* Progress Bar for Utility Reading Checklist */}
+        {isUtilityReading && utilityProgress && utilityProgress.total > 0 && (
+          <div className="utility-completion-progress" style={{ marginTop: '16px', marginBottom: '16px' }}>
+            <div className="progress-info" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: '13px', fontWeight: '600' }}>
+              <span style={{ color: '#475569' }}>Tiến độ đo chỉ số sạp:</span>
+              <span style={{ color: isChecklistIncomplete ? '#b45309' : '#166534' }}>
+                {utilityProgress.completed} / {utilityProgress.total} Sạp ({Math.round((utilityProgress.completed / utilityProgress.total) * 100)}%)
+              </span>
+            </div>
+            <div className="progress-bar-container" style={{ width: '100%', height: '8px', backgroundColor: '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
+              <div 
+                className="progress-bar-fill" 
+                style={{ 
+                  width: `${(utilityProgress.completed / utilityProgress.total) * 100}%`, 
+                  height: '100%', 
+                  backgroundColor: isChecklistIncomplete ? '#f59e0b' : '#10b981',
+                  transition: 'width 0.3s ease' 
+                }} 
+              />
+            </div>
+            {isChecklistIncomplete && (
+              <div className="warning-alert" style={{ marginTop: '12px', fontSize: '12px', backgroundColor: '#fffbeb', color: '#b45309', border: '1px solid #fef3c7', padding: '8px 12px', borderRadius: '6px', lineHeight: '1.4' }}>
+                ⚠️ <strong>Cảnh báo:</strong> Vui lòng hoàn thành ghi chỉ số cho tất cả {utilityProgress.total} sạp trong khu vực trước khi gửi báo cáo hoàn tất tác vụ.
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Completion Notes */}
         <div className="form-group" style={{ marginTop: '16px' }}>
-          <label className="form-label">Completion Notes (Optional)</label>
+          <label className={`form-label ${task.taskType === TASK_TYPE.REPAIR ? 'required-field' : ''}`}>
+            {task.taskType === TASK_TYPE.REPAIR ? 'Completion Notes (Required)' : 'Completion Notes (Optional)'}
+          </label>
           <textarea
-            placeholder="Enter details of completion, quality notes, or parts used if any..."
+            placeholder={task.taskType === TASK_TYPE.REPAIR 
+              ? "Vui lòng nhập ghi chú bàn giao/kết quả sửa chữa..." 
+              : "Enter details of completion, quality notes, or parts used if any..."}
             value={completionNotes}
             onChange={(e) => setCompletionNotes(e.target.value)}
             rows="3"
@@ -327,7 +388,7 @@ export default function CompleteTaskForm({ task, userId, baseUrl, onRefreshTask,
         <div className="form-actions" style={{ marginTop: '20px', justifyContent: 'flex-end' }}>
           <button 
             type="submit" 
-            disabled={loading || uploadingBefore || uploadingAfter}
+            disabled={loading || uploadingBefore || uploadingAfter || isChecklistIncomplete}
             className="btn-primary-dark submit-completion-btn"
             style={{ width: 'auto', padding: '10px 24px' }}
           >
