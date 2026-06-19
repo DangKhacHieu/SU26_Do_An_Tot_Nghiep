@@ -29,7 +29,7 @@ export default function IssueDetails({ issueId, userId, baseUrl, onBack }) {
 
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString('vi-VN', {
+    return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
@@ -38,7 +38,7 @@ export default function IssueDetails({ issueId, userId, baseUrl, onBack }) {
 
   const formatTime = (dateString) => {
     if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleTimeString('vi-VN', {
+    return new Date(dateString).toLocaleTimeString('en-US', {
       hour: '2-digit',
       minute: '2-digit',
       second: '2-digit'
@@ -61,13 +61,9 @@ export default function IssueDetails({ issueId, userId, baseUrl, onBack }) {
 
   return (
     <div className="violation-details-container">
-      <div className="breadcrumb-path">
-        <span>Dashboard</span> &gt; <span>Issues</span> &gt; <span className="active-path">Issue Details</span>
-      </div>
-
-      <div className="details-header">
-        <h1 className="main-title">ISSUE DETAILS: ISS-{issue.issueId}</h1>
-        <button className="btn-secondary-outline" onClick={onBack}>
+      <div className="details-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <h2 style={{ fontSize: '18px', fontWeight: '700', margin: 0, color: 'var(--text-main)' }}>ISSUE DETAILS: {issue.issueId}</h2>
+        <button className="btn-secondary" onClick={onBack}>
           &larr; Back to List
         </button>
       </div>
@@ -95,7 +91,7 @@ export default function IssueDetails({ issueId, userId, baseUrl, onBack }) {
           <div className="info-row">
             <div className="info-block">
               <span className="info-label">REPORTED BY</span>
-              <span className="info-value">{issue.createdByName || `Staff #${issue.createdByUserId}`}</span>
+              <span className="info-value">{issue.createdByName || `Staff ${issue.createdByUserId}`}</span>
             </div>
 
             <div className="info-block">
@@ -121,7 +117,7 @@ export default function IssueDetails({ issueId, userId, baseUrl, onBack }) {
             {issue.assignedTaskId ? (
               <div>
                 <p style={{ margin: '0 0 8px 0' }}>
-                  <strong>Task ID:</strong> TASK-{issue.assignedTaskId}
+                  <strong>Task ID:</strong> {issue.assignedTaskId}
                 </p>
                 <p style={{ margin: '0 0 8px 0' }}>
                   <strong>Status:</strong>{' '}

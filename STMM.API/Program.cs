@@ -12,20 +12,24 @@ using STMM.API.Middleware;
 using System.Text.Json.Serialization;
 using System.IO;
 
-// Load .env file if it exists in the current directory or parent solution directory
+// Load .env file by traversing up the directory tree to find it
 var currentDir = Directory.GetCurrentDirectory();
-var dotenvPath = Path.Combine(currentDir, ".env");
-if (!File.Exists(dotenvPath))
+string? dotenvPath = null;
+var dir = new DirectoryInfo(currentDir);
+while (dir != null)
 {
-    var parentDir = Directory.GetParent(currentDir)?.FullName;
-    if (parentDir != null)
+    var testPath = Path.Combine(dir.FullName, ".env");
+    if (File.Exists(testPath))
     {
-        dotenvPath = Path.Combine(parentDir, ".env");
+        dotenvPath = testPath;
+        break;
     }
+    dir = dir.Parent;
 }
 
-if (File.Exists(dotenvPath))
+if (dotenvPath != null)
 {
+    Console.WriteLine($"[INFO] Loaded configuration from env file: {dotenvPath}");
     foreach (var line in File.ReadAllLines(dotenvPath))
     {
         if (string.IsNullOrWhiteSpace(line) || line.StartsWith("#")) continue;
@@ -38,8 +42,20 @@ if (File.Exists(dotenvPath))
         }
     }
 }
+else
+{
+    Console.WriteLine("[WARN] No .env file found in directory tree.");
+}
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Explicitly override configuration with programmatic environment variables if they exist
+var envConnection = Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection");
+if (!string.IsNullOrEmpty(envConnection))
+{
+    builder.Configuration["ConnectionStrings:DefaultConnection"] = envConnection;
+    Console.WriteLine("[INFO] Database connection string successfully overridden from environment variables.");
+}
 
 // Register AppDbContext
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -98,6 +114,7 @@ builder.Services.AddScoped<IStaffTaskService, StaffTaskService>();
 builder.Services.AddScoped<IQuotationService, QuotationService>();
 builder.Services.AddScoped<IMeterReadingService, MeterReadingService>();
 builder.Services.AddScoped<IFileStorageService, CloudinaryStorageService>();
+builder.Services.AddScoped<IVendorServiceManagement, VendorServiceManagement>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IFaqService, FaqService>();
 builder.Services.AddScoped<IContentService, ContentService>();
@@ -105,6 +122,11 @@ builder.Services.AddScoped<IAreaService, AreaService>();
 builder.Services.AddScoped<IStallService, StallService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<IBusinessCategoryService, BusinessCategoryService>();
+builder.Services.AddScoped<IContractService, ContractService>();
+builder.Services.AddScoped<IRequestService, RequestService>();
+builder.Services.AddScoped<IVendorRequestService, VendorRequestService>();
+builder.Services.AddScoped<IVendorViolationService, VendorViolationService>();
 builder.Services.AddScoped<IMarketService, MarketService>();
 builder.Services.AddScoped<IReviewService, ReviewService>();
 
@@ -115,6 +137,7 @@ builder.Services.AddControllers()
     {
         option.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
         option.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.Never;
+        option.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
     });
 
 // 4. CORS Policy (Cho phép React Client kết nối)

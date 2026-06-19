@@ -26,3 +26,6 @@ yarn-error.log*
 # IDE
 .idea/
 .fake
+
+# Test project (Local execution only)
+STMM.Tests/

@@ -22,5 +22,6 @@ namespace STMM.Business.DTOs.Stall
         // Navigation properties simplified
         public string? AreaName { get; set; }
         public string? CategoryName { get; set; }
+        public string? TenantName { get; set; }
     }
 }

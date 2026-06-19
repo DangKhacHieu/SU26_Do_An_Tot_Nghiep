@@ -117,6 +117,24 @@ namespace STMM.Business.Services
             };
         }
 
+        /// <inheritdoc />
+        public async Task<List<UnpaidInvoiceSummaryDto>> GetUnpaidInvoicesByStallAsync(int stallId, CancellationToken ct = default)
+        {
+            var invoices = await _invoiceRepository.GetUnpaidInvoicesByStallAsync(stallId, ct);
+            return invoices.Select(i => new UnpaidInvoiceSummaryDto
+            {
+                InvoiceId = i.InvoiceId,
+                Month = i.Month,
+                Year = i.Year,
+                TotalAmount = i.TotalAmount,
+                DueDate = i.DueDate,
+                FeeTypeSummary = string.Join(", ", i.InvoiceDetails
+                    .Select(d => d.FeeType?.Name)
+                    .Where(name => !string.IsNullOrEmpty(name))
+                    .Distinct())
+            }).ToList();
+        }
+
         /// <summary>
         /// Manual mapping — tránh phức tạp AutoMapper cho nested multi-level relations.
         /// </summary>

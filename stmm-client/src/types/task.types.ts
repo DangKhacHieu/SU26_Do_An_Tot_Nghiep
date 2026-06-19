@@ -58,3 +58,15 @@ export interface TaskQueryParams {
   assignedToUserId?: number;
   search?: string;
 }
+
+export interface UtilityStallChecklistDto {
+  stallId: number;
+  stallCode: string;
+  stallStatus: string;
+  hasReadingThisMonth: boolean;
+}
+
+export interface AssignTaskRequest {
+  staffUserId: number;
+}
+

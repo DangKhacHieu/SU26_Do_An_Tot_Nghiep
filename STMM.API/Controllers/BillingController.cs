@@ -1,11 +1,14 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using STMM.Business.DTOs.Billing;
 using STMM.Business.Interfaces;
+using System.Security.Claims;
 
 namespace STMM.API.Controllers
 {
     [ApiController]
     [Route("api/staff/billing")]
+    [Authorize(Roles = "Staff")]
     public class BillingController : ControllerBase
     {
         private readonly IBillingService _billingService;
@@ -13,6 +16,16 @@ namespace STMM.API.Controllers
         public BillingController(IBillingService billingService)
         {
             _billingService = billingService;
+        }
+
+        private int GetUserId()
+        {
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
+            {
+                throw new System.UnauthorizedAccessException("User ID not found in token.");
+            }
+            return userId;
         }
 
         /// <summary>
@@ -37,7 +50,18 @@ namespace STMM.API.Controllers
             [FromBody] ReceiveCashPaymentRequest request,
             CancellationToken ct)
         {
+            userId = GetUserId();
             var result = await _billingService.ReceiveCashPaymentAsync(userId, request, ct);
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// Get list of unpaid invoices for a specific stall (to choose for cash payment).
+        /// </summary>
+        [HttpGet("invoices/stall/{stallId}/unpaid")]
+        public async Task<IActionResult> GetUnpaidInvoicesByStall(int stallId, CancellationToken ct)
+        {
+            var result = await _billingService.GetUnpaidInvoicesByStallAsync(stallId, ct);
             return Ok(result);
         }
     }

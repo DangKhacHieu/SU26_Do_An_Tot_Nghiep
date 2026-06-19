@@ -104,7 +104,7 @@ export default function ContentDetailManager({ contentId, navigate, addToast }) 
           <div className="meta-author-time">
             <span>Được đăng lúc: <strong>{formatDate(content.createdAt)}</strong></span>
             <span className="bullet-dot" />
-            <span>Mã bản ghi: #CON{content.notiId}</span>
+            <span>Mã bản ghi: {content.notiId}</span>
           </div>
         </div>
 

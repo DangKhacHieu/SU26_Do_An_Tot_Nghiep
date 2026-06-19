@@ -49,12 +49,8 @@ export default function MeterDetail({ meterId, baseUrl, onBack }) {
 
   return (
     <div className="violation-details-container">
-      <div className="breadcrumb-path">
-        <span>Dashboard</span> &gt; <span>Stalls</span> &gt; <span>Meter History</span> &gt; <span className="active-path">Meter Details</span>
-      </div>
-
-      <div className="details-header">
-        <h1 className="main-title">METER DETAILS: {meter.serialNumber}</h1>
+      <div className="details-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <h2 style={{ fontSize: '18px', fontWeight: '700', margin: 0, color: 'var(--text-main)' }}>METER DETAILS: {meter.serialNumber}</h2>
         <button className="btn-secondary-outline" onClick={onBack}>
           &larr; Back to History
         </button>

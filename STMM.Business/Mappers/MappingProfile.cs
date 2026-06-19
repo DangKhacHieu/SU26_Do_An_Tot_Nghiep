@@ -8,6 +8,10 @@ using STMM.Business.DTOs.Meter;
 using STMM.Business.DTOs.Task;
 using STMM.Business.DTOs.Area;
 using STMM.Business.DTOs.Stall;
+using STMM.Business.DTOs.BusinessCategory;
+using STMM.Business.DTOs.Contract;
+using STMM.Business.DTOs.Request;
+
 using STMM.Business.DTOs.Market;
 using STMM.Business.DTOs.Review;
 
@@ -17,10 +21,29 @@ namespace STMM.Business.Mappers
     {
         public MappingProfile()
         {
+            // BusinessCategory mappings
+            CreateMap<BusinessCategory, BusinessCategoryDto>()
+                .ForMember(dest => dest.StallsCount, opt => opt.Ignore())
+                .ForMember(dest => dest.AreasCount, opt => opt.Ignore());
+
+            CreateMap<CreateBusinessCategoryRequest, BusinessCategory>()
+                .ForMember(dest => dest.CategoryId, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.Areas, opt => opt.Ignore())
+                .ForMember(dest => dest.Stalls, opt => opt.Ignore());
+
+            CreateMap<UpdateBusinessCategoryRequest, BusinessCategory>()
+                .ForMember(dest => dest.CategoryId, opt => opt.Ignore())
+                .ForMember(dest => dest.Code, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.Areas, opt => opt.Ignore())
+                .ForMember(dest => dest.Stalls, opt => opt.Ignore());
             // Violation mappings
             CreateMap<Violation, ViolationDto>()
                 .ForMember(dest => dest.CreatedBy, opt => opt.MapFrom(src => src.CreatedByUserId))
-                .ForMember(dest => dest.StallCode, opt => opt.MapFrom(src => src.Stall != null ? src.Stall.Code : string.Empty));
+                .ForMember(dest => dest.CreatedByName, opt => opt.MapFrom(src => src.CreatedByUser != null ? src.CreatedByUser.Name : string.Empty))
+                .ForMember(dest => dest.StallCode, opt => opt.MapFrom(src => src.Stall != null ? src.Stall.Code : string.Empty))
+                .ForMember(dest => dest.ViolationTypeName, opt => opt.MapFrom(src => src.ViolationType != null ? src.ViolationType.Name : string.Empty));
 
             CreateMap<CreateViolationRequest, Violation>()
                 .ForMember(dest => dest.ViolationId, opt => opt.Ignore())
@@ -74,7 +97,8 @@ namespace STMM.Business.Mappers
                 .ForMember(dest => dest.RoleName, opt => opt.MapFrom(src => src.Role != null ? src.Role.Name : string.Empty));
             CreateMap<User, UserDetailDto>()
                 .ForMember(dest => dest.RoleName, opt => opt.MapFrom(src => src.Role != null ? src.Role.Name : string.Empty))
-                .ForMember(dest => dest.RoleDescription, opt => opt.MapFrom(src => src.Role != null ? src.Role.Description : string.Empty));
+                .ForMember(dest => dest.RoleDescription, opt => opt.MapFrom(src => src.Role != null ? src.Role.Description : string.Empty))
+                .ForMember(dest => dest.BusinessName, opt => opt.MapFrom(src => src.Vendor != null ? src.Vendor.BusinessName : string.Empty));
 
             // FAQ mappings
             CreateMap<Faq, STMM.Business.DTOs.Faq.FaqDto>();
@@ -134,7 +158,6 @@ namespace STMM.Business.Mappers
             CreateMap<UpdateStallDto, Stall>()
                 .ForMember(dest => dest.StallId, opt => opt.Ignore())
                 .ForMember(dest => dest.AreaId, opt => opt.Ignore())
-                .ForMember(dest => dest.Status, opt => opt.Ignore())
                 .ForMember(dest => dest.MapX, opt => opt.Ignore())
                 .ForMember(dest => dest.MapY, opt => opt.Ignore())
                 .ForMember(dest => dest.Width, opt => opt.Ignore())
@@ -156,6 +179,30 @@ namespace STMM.Business.Mappers
 
             // Notification mappings
             CreateMap<Notification, NotificationDto>();
+
+            // Contract mappings
+            CreateMap<Contract, ContractDto>()
+                .ForMember(d => d.StallCode, o => o.MapFrom(s => s.Stall.Code))
+                .ForMember(d => d.StallSize, o => o.MapFrom(s => s.Stall.Size))
+                .ForMember(d => d.AreaName, o => o.MapFrom(s => s.Stall.Area.Name))
+                .ForMember(d => d.MarketName, o => o.MapFrom(s => s.Stall.Area.Market.MarketName))
+                .ForMember(d => d.VendorName, o => o.MapFrom(s => s.Vendor.User.Name))
+                .ForMember(d => d.VendorEmail, o => o.MapFrom(s => s.Vendor.User.Email))
+                .ForMember(d => d.VendorPhone, o => o.MapFrom(s => s.Vendor.User.Phone))
+                .ForMember(d => d.VendorCccd, o => o.MapFrom(s => s.Vendor.User.Cccd))
+                .ForMember(d => d.VendorAddress, o => o.MapFrom(s => s.Vendor.Address))
+                .ForMember(d => d.VendorTaxCode, o => o.MapFrom(s => s.Vendor.TaxCode))
+                .ForMember(d => d.VendorBusinessName, o => o.MapFrom(s => s.Vendor.BusinessName))
+                .ForMember(d => d.VendorBankAccount, o => o.MapFrom(s => s.Vendor.BankAccount))
+                .ForMember(d => d.VendorBankName, o => o.MapFrom(s => s.Vendor.BankName));
+
+            CreateMap<ContractFile, ContractFileDto>();
+
+            // Request mappings
+            CreateMap<Request, RequestDto>()
+                .ForMember(dest => dest.VendorName, opt => opt.MapFrom(src => src.Vendor != null && src.Vendor.User != null ? src.Vendor.User.Name : string.Empty))
+                .ForMember(dest => dest.BusinessName, opt => opt.MapFrom(src => src.Vendor != null ? src.Vendor.BusinessName : string.Empty))
+                .ForMember(dest => dest.StallCode, opt => opt.MapFrom(src => src.Stall != null ? src.Stall.Code : string.Empty));
 
             // Market mappings
             CreateMap<Market, MarketDto>()
@@ -188,3 +235,4 @@ namespace STMM.Business.Mappers
         }
     }
 }
+

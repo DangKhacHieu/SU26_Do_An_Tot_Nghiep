@@ -135,5 +135,43 @@ namespace STMM.Business.Services
 
             return _mapper.Map<IEnumerable<ViolationTypeDto>>(types);
         }
+
+        public async Task<PagedResult<ViolationDto>> GetViolationsForManagerAsync(
+            ViolationQueryParams queryParams, CancellationToken ct = default)
+        {
+            var (items, totalCount) = await _violationRepository.GetViolationsPagedForManagerAsync(
+                queryParams.Status,
+                queryParams.SearchTerm,
+                queryParams.SortDescending,
+                queryParams.PageNumber,
+                queryParams.PageSize,
+                ct);
+
+            return new PagedResult<ViolationDto>
+            {
+                Items = _mapper.Map<IEnumerable<ViolationDto>>(items),
+                TotalCount = totalCount,
+                PageNumber = queryParams.PageNumber,
+                PageSize = queryParams.PageSize
+            };
+        }
+
+        public async Task<ViolationDto> GetViolationByIdForManagerAsync(
+            int id, CancellationToken ct = default)
+        {
+            var violation = await _violationRepository.GetViolationDetailsForManagerAsync(id, ct);
+
+            if (violation == null)
+            {
+                throw new NotFoundException($"Violation with ID {id} not found.");
+            }
+
+            return _mapper.Map<ViolationDto>(violation);
+        }
+
+        public async Task<bool> SimulateViolationAppealAsync(int violationId, CancellationToken ct = default)
+        {
+            return await _violationRepository.SimulateViolationAppealAsync(violationId, ct);
+        }
     }
 }

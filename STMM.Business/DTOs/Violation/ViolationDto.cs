@@ -6,8 +6,10 @@ namespace STMM.Business.DTOs.Violation
         public int StallId { get; set; }
         public string StallCode { get; set; } = string.Empty;
         public int CreatedBy { get; set; }
+        public string CreatedByName { get; set; } = string.Empty;
         public string Title { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
+        public string ViolationTypeName { get; set; } = string.Empty;
         public string ImageUrl { get; set; } = string.Empty;
         public decimal FineAmount { get; set; }
         public string Status { get; set; } = string.Empty;

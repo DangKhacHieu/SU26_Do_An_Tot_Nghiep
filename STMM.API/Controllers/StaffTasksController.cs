@@ -1,6 +1,8 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using STMM.Business.DTOs.Task;
 using STMM.Business.Interfaces;
+using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -8,6 +10,7 @@ namespace STMM.API.Controllers
 {
     [ApiController]
     [Route("api/staff/tasks")]
+    [Authorize(Roles = "Staff")]
     public class StaffTasksController : ControllerBase
     {
         private readonly IStaffTaskService _staffTaskService;
@@ -17,12 +20,23 @@ namespace STMM.API.Controllers
             _staffTaskService = staffTaskService;
         }
 
+        private int GetUserId()
+        {
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
+            {
+                throw new System.UnauthorizedAccessException("User ID not found in token.");
+            }
+            return userId;
+        }
+
         [HttpGet]
         public async Task<IActionResult> GetMyTasks(
             [FromQuery] int userId, // staffUserId
             [FromQuery] TaskQueryParams queryParams,
             CancellationToken ct)
         {
+            userId = GetUserId();
             var result = await _staffTaskService.GetTasksForStaffAsync(userId, queryParams, ct);
             return Ok(result);
         }
@@ -33,6 +47,7 @@ namespace STMM.API.Controllers
             [FromQuery] int userId, // staffUserId (can be used for auth check in service)
             CancellationToken ct)
         {
+            userId = GetUserId();
             var result = await _staffTaskService.GetTaskByIdAsync(id, ct);
             // Verify that the task is assigned to this staff user
             if (result.AssignedToUserId != userId)
@@ -48,6 +63,7 @@ namespace STMM.API.Controllers
             [FromQuery] int userId, // staffUserId
             CancellationToken ct)
         {
+            userId = GetUserId();
             var result = await _staffTaskService.GetStallsForUtilityTaskAsync(id, userId, ct);
             return Ok(result);
         }
@@ -59,6 +75,7 @@ namespace STMM.API.Controllers
             [FromBody] CompleteTaskRequest request,
             CancellationToken ct)
         {
+            userId = GetUserId();
             var result = await _staffTaskService.CompleteTaskAsync(userId, id, request, ct);
             return Ok(result);
         }

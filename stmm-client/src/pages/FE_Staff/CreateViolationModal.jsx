@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './CreateViolationModal.css';
 
-export default function CreateViolationModal({ userId, baseUrl, onClose, onSuccess }) {
+export default function CreateViolationModal({ userId, baseUrl, onClose, onSuccess, prefilledStallId }) {
   const [violationTypes, setViolationTypes] = useState([]);
   const [stalls, setStalls] = useState([]);
   
   // Form fields
   const [violationTypeId, setViolationTypeId] = useState('');
-  const [stallId, setStallId] = useState('');
+  const [stallId, setStallId] = useState(prefilledStallId ? prefilledStallId.toString() : '');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [fineAmount, setFineAmount] = useState('');

@@ -18,5 +18,6 @@ namespace STMM.Business.Interfaces
         Task<IEnumerable<UserDto>> GetAdminUsersAsync(string? roleName, string? search, CancellationToken ct = default);
         Task<IEnumerable<RoleDto>> GetAdminRolesAsync(CancellationToken ct = default);
         Task<UserDto> ResetPasswordAsync(int id, string newPassword, CancellationToken ct = default);
+        Task<bool> ChangePasswordAsync(int userId, ChangePasswordRequest request, CancellationToken ct = default);
     }
 }

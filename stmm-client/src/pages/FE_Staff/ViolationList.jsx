@@ -77,7 +77,7 @@ export default function ViolationList({ userId, baseUrl, onViewDetails, onOpenCr
 
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString('vi-VN', {
+    return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
@@ -88,35 +88,26 @@ export default function ViolationList({ userId, baseUrl, onViewDetails, onOpenCr
 
   return (
     <div className="violation-list-container">
-      <div className="breadcrumb-path">
-        <span>Dashboard</span> &gt; <span className="active-path">Violations</span>
-      </div>
 
-      <div className="section-header">
-        <div>
-          <h1 className="main-title">Violation List</h1>
-          <p className="subtitle">Manage and track reported violations.</p>
-        </div>
-        <button className="btn-primary report-btn" onClick={onOpenCreateModal}>
-          + Report Violation
-        </button>
-      </div>
-
-      {/* Filter and Search Bar */}
-      <form onSubmit={handleSearchSubmit} className="filters-wrapper">
-        <div className="search-box">
-          <span className="search-icon">🔍</span>
-          <input
-            type="text"
-            placeholder="Search ID, Stall Code, or Description..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="filter-input"
-          />
-        </div>
-        
-        <div className="filter-group">
-          <label className="filter-label">Status:</label>
+      {/* Toolbar: Search + Filters + CTA */}
+      <div className="toolbar">
+        <div className="toolbar-left">
+          <form onSubmit={handleSearchSubmit} className="search-wrap">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input
+              type="text"
+              className="search-input"
+              placeholder="Search ID, Stall Code, or Description..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            {searchQuery && (
+              <button type="button" className="search-clear" onClick={() => setSearchQuery('')} title="Clear">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+              </button>
+            )}
+          </form>
+          
           <select 
             value={statusFilter} 
             onChange={(e) => { setStatusFilter(e.target.value); setPageNumber(1); }}
@@ -128,10 +119,7 @@ export default function ViolationList({ userId, baseUrl, onViewDetails, onOpenCr
             <option value="Rejected">Rejected</option>
             <option value="Finalized">Finalized</option>
           </select>
-        </div>
 
-        <div className="filter-group">
-          <label className="filter-label">Sort:</label>
           <select 
             value={sortDescending ? "desc" : "asc"} 
             onChange={(e) => { setSortDescending(e.target.value === "desc"); setPageNumber(1); }}
@@ -140,15 +128,20 @@ export default function ViolationList({ userId, baseUrl, onViewDetails, onOpenCr
             <option value="desc">Newest First</option>
             <option value="asc">Oldest First</option>
           </select>
+
+          {(searchQuery || statusFilter || !sortDescending) && (
+            <button type="button" className="btn-filter-clear" onClick={handleResetFilters}>
+              Clear Filters
+            </button>
+          )}
         </div>
 
-        <button type="submit" className="btn-secondary">Search</button>
-        <button type="button" className="btn-secondary-outline" onClick={handleResetFilters}>
-          Clear
+        <button className="btn-primary" onClick={onOpenCreateModal}>
+          + Report Violation
         </button>
-      </form>
+      </div>
 
-      {/* Content Table */}
+      {/* Content Table card */}
       {loading ? (
         <div className="loading-state">Loading violations...</div>
       ) : error ? (
@@ -162,46 +155,52 @@ export default function ViolationList({ userId, baseUrl, onViewDetails, onOpenCr
         </div>
       ) : (
         <>
-          <div className="table-responsive">
-            <table className="violation-table">
-              <thead>
-                <tr>
-                  <th>Violation ID</th>
-                  <th>Type</th>
-                  <th>Location (Stall)</th>
-                  <th>Fine Amount</th>
-                  <th>Reported By</th>
-                  <th>Date</th>
-                  <th>Status</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {violations.map((v) => (
-                  <tr key={v.violationId}>
-                    <td><strong>VIO-{v.violationId}</strong></td>
-                    <td>{v.title}</td>
-                    <td><span className="badge-stall">{v.stallCode || `ID: ${v.stallId}`}</span></td>
-                    <td>{formatVnd(v.fineAmount)}</td>
-                    <td>Staff #{v.createdBy}</td>
-                    <td>{formatDate(v.createdAt)}</td>
-                    <td>
-                      <span className={`status-badge ${v.status?.toLowerCase() || 'pending'}`}>
-                        {v.status || 'Pending'}
-                      </span>
-                    </td>
-                    <td>
-                      <button 
-                        className="btn-link" 
-                        onClick={() => onViewDetails(v.violationId)}
-                      >
-                        View Details
-                      </button>
-                    </td>
+          <div className="table-card">
+            <div className="table-card-header">
+              <span className="table-card-title">Violations</span>
+              <span className="table-count-badge">{totalCount} violations</span>
+            </div>
+            <div className="table-responsive">
+              <table className="staff-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Type</th>
+                    <th>Location (Stall)</th>
+                    <th>Fine Amount</th>
+                    <th>Reported By</th>
+                    <th>Date</th>
+                    <th>Status</th>
+                    <th>Action</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {violations.map((v) => (
+                    <tr key={v.violationId}>
+                      <td><strong>{v.violationId}</strong></td>
+                      <td>{v.title}</td>
+                      <td><span className="badge-stall">{v.stallCode || `ID: ${v.stallId}`}</span></td>
+                      <td>{formatVnd(v.fineAmount)}</td>
+                      <td>Staff {v.createdBy}</td>
+                      <td>{formatDate(v.createdAt)}</td>
+                      <td>
+                        <span className={`status-badge ${v.status?.toLowerCase() || 'pending'}`}>
+                          {v.status || 'Pending'}
+                        </span>
+                      </td>
+                      <td>
+                        <button 
+                          className="btn-link" 
+                          onClick={() => onViewDetails(v.violationId)}
+                        >
+                          View Details
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
 
           {/* Pagination Controls */}

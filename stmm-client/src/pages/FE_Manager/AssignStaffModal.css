@@ -1,0 +1,141 @@
+/* AssignStaffModal.css */
+
+.search-input-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.search-clear-btn {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: #94a3b8;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+}
+
+.search-clear-btn:hover {
+  color: #475569;
+}
+
+.staff-list-container {
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  max-height: 260px;
+  overflow-y: auto;
+  background: #f8fafc;
+  margin-top: 8px;
+}
+
+.staff-loading-state,
+.staff-empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 32px 16px;
+  color: #64748b;
+  font-size: 13.5px;
+  text-align: center;
+}
+
+.mini-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #cbd5e1;
+  border-top-color: #2563eb;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.staff-radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+}
+
+.staff-radio-item {
+  display: flex;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  transition: all 0.2s ease;
+  position: relative;
+  user-select: none;
+}
+
+.staff-radio-item:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.staff-radio-item.is-selected {
+  background: #eff6ff;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 1px #3b82f6;
+}
+
+.staff-radio-input {
+  margin-right: 12px;
+  accent-color: #2563eb;
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+}
+
+.staff-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  color: #1e40af;
+  font-weight: 700;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-right: 12px;
+  border: 1px solid #bfdbfe;
+}
+
+.staff-radio-item.is-selected .staff-avatar {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  color: #ffffff;
+  border-color: #2563eb;
+}
+
+.staff-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.staff-name {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.staff-email {
+  font-size: 11.5px;
+  color: #64748b;
+}
+
+.selection-indicator {
+  color: #2563eb;
+  display: flex;
+  align-items: center;
+  margin-left: 8px;
+}

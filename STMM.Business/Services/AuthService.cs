@@ -29,7 +29,7 @@ namespace STMM.Business.Services
         private readonly IMapper _mapper;
         private readonly IValidator<LoginRequest> _loginValidator;
         private readonly IValidator<RegisterRequest> _registerValidator;
-        private readonly IValidator<ChangePasswordRequest> _changePasswordValidator;
+        private readonly IValidator<STMM.Business.DTOs.Auth.ChangePasswordRequest> _changePasswordValidator;
         private readonly IConfiguration _configuration;
         private readonly IEmailService _emailService;
         private readonly IMemoryCache _cache;
@@ -40,7 +40,7 @@ namespace STMM.Business.Services
             IMapper mapper,
             IValidator<LoginRequest> loginValidator,
             IValidator<RegisterRequest> registerValidator,
-            IValidator<ChangePasswordRequest> changePasswordValidator,
+            IValidator<STMM.Business.DTOs.Auth.ChangePasswordRequest> changePasswordValidator,
             IConfiguration configuration,
             IEmailService emailService,
             IMemoryCache cache)
@@ -99,7 +99,7 @@ namespace STMM.Business.Services
                 Phone = user.Phone,
                 RoleId = user.RoleId,
                 RoleName = roleName,
-                Status = user.Status
+                Status = user.Status ?? string.Empty
             };
 
             return new LoginResponse
@@ -455,7 +455,7 @@ namespace STMM.Business.Services
                     Phone = user.Phone,
                     RoleId = user.RoleId,
                     RoleName = roleName,
-                    Status = user.Status
+                    Status = user.Status ?? string.Empty
                 };
 
                 return new LoginResponse
@@ -664,7 +664,7 @@ namespace STMM.Business.Services
                 Phone = user.Phone,
                 RoleId = user.RoleId,
                 RoleName = roleName,
-                Status = user.Status
+                Status = user.Status ?? string.Empty
             };
 
             return new LoginResponse
@@ -676,7 +676,7 @@ namespace STMM.Business.Services
             };
         }
 
-        public async Task ChangePasswordAsync(int userId, ChangePasswordRequest request, CancellationToken ct = default)
+        public async Task ChangePasswordAsync(int userId, STMM.Business.DTOs.Auth.ChangePasswordRequest request, CancellationToken ct = default)
         {
             var validationResult = await _changePasswordValidator.ValidateAsync(request, ct);
             if (!validationResult.IsValid)

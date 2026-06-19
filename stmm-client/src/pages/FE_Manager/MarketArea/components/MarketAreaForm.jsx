@@ -2,13 +2,16 @@ import React, { useState, useEffect } from 'react';
 import styles from './MarketAreaForm.module.css';
 import { getAllCategories } from '../api/categoryApi';
 
-const MarketAreaForm = ({ initialData, onSave, onCancel }) => {
+const MarketAreaForm = ({ initialData, onSave, onCancel, existingAreas = [] }) => {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    categoryName: ''
+    categoryName: '',
+    width: 200,
+    height: 150
   });
   const [categories, setCategories] = useState([]);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchCats = async () => {
@@ -27,13 +30,17 @@ const MarketAreaForm = ({ initialData, onSave, onCancel }) => {
       setFormData({
         name: initialData.name || '',
         description: initialData.description || '',
-        categoryName: initialData.categoryName || ''
+        categoryName: initialData.categoryName || '',
+        width: (initialData.maxX !== null && initialData.minX !== null) ? (initialData.maxX - initialData.minX) : 200,
+        height: (initialData.maxY !== null && initialData.minY !== null) ? (initialData.maxY - initialData.minY) : 150
       });
     } else {
       setFormData({
         name: '',
         description: '',
-        categoryName: ''
+        categoryName: '',
+        width: 200,
+        height: 150
       });
     }
   }, [initialData]);
@@ -44,7 +51,33 @@ const MarketAreaForm = ({ initialData, onSave, onCancel }) => {
   };
 
   const handleSave = () => {
-    onSave(formData);
+    if (!formData.name.trim()) {
+        setError('Tên khu vực không được để trống.');
+        return;
+    }
+    
+    // Check for duplicate name
+    const isDuplicate = existingAreas.some(a => 
+        a.name.toLowerCase() === formData.name.trim().toLowerCase() && 
+        a.areaId !== initialData?.areaId
+    );
+    if (isDuplicate) {
+        setError('Tên khu vực đã tồn tại! Vui lòng chọn tên khác.');
+        return;
+    }
+
+    if (formData.width < 50 || formData.height < 50) {
+        setError('Kích thước chiều rộng và chiều dài phải lớn hơn 50px.');
+        return;
+    }
+
+    setError(null);
+    onSave({
+        ...formData,
+        name: formData.name.trim(),
+        width: parseInt(formData.width) || 200,
+        height: parseInt(formData.height) || 150
+    });
   };
 
   return (
@@ -52,34 +85,63 @@ const MarketAreaForm = ({ initialData, onSave, onCancel }) => {
       <div className={styles.panel}>
         <div className={styles.section}>
           <h2 className={styles.title}>
-            <span>✎</span> {initialData ? 'EDIT_AREA' : 'NEW_AREA'}
+            <span>{initialData ? '✎' : '+'}</span> {initialData ? 'SỬA KHU VỰC' : 'THÊM KHU VỰC'}
           </h2>
           <button onClick={onCancel} style={{position: 'absolute', top: 24, right: 24, background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 20}}>&times;</button>
           
+          {error && <div style={{background: '#ffe4e6', color: '#e11d48', padding: '10px', borderRadius: '6px', marginBottom: '16px', fontSize: '14px', fontWeight: 'bold'}}>{error}</div>}
+          
           <div className={styles.formGroup}>
-            <label>AREA NAME</label>
+            <label>TÊN KHU VỰC <span style={{color: 'red'}}>*</span></label>
             <input 
               className={styles.input} 
               type="text" 
               name="name"
               value={formData.name}
               onChange={handleChange}
-              placeholder="e.g. North Plaza Central" 
+              placeholder="VD: Khu A, Khu Ẩm Thực..." 
             />
           </div>
 
           <div className={styles.formGroup}>
-            <label>DESCRIPTION</label>
+            <label>MÔ TẢ</label>
             <textarea 
               className={styles.textarea} 
               name="description"
               value={formData.description}
               onChange={handleChange}
-              placeholder="Brief technical summary..."></textarea>
+              placeholder="Nhập mô tả ngắn gọn..."></textarea>
+          </div>
+
+          <div style={{display: 'flex', gap: '12px'}}>
+              <div className={styles.formGroup} style={{flex: 1}}>
+                <label>CHIỀU RỘNG (px) <span style={{color: 'red'}}>*</span></label>
+                <input 
+                  className={styles.input} 
+                  type="number" 
+                  name="width"
+                  value={formData.width}
+                  onChange={handleChange}
+                  min="50"
+                  placeholder="VD: 200" 
+                />
+              </div>
+              <div className={styles.formGroup} style={{flex: 1}}>
+                <label>CHIỀU DÀI (px) <span style={{color: 'red'}}>*</span></label>
+                <input 
+                  className={styles.input} 
+                  type="number" 
+                  name="height"
+                  value={formData.height}
+                  onChange={handleChange}
+                  min="50"
+                  placeholder="VD: 150" 
+                />
+              </div>
           </div>
 
           <div className={styles.formGroup}>
-            <label>CATEGORY NAME</label>
+            <label>NGÀNH HÀNG</label>
             <input 
               className={styles.input} 
               type="text" 
@@ -87,7 +149,7 @@ const MarketAreaForm = ({ initialData, onSave, onCancel }) => {
               value={formData.categoryName}
               onChange={handleChange}
               list="area-category-suggestions"
-              placeholder="e.g., Food Court, General Retail..." 
+              placeholder="VD: Thực phẩm, Thời trang..." 
               autoComplete="off"
             />
             <datalist id="area-category-suggestions">
@@ -99,8 +161,8 @@ const MarketAreaForm = ({ initialData, onSave, onCancel }) => {
         </div>
 
         <div className={styles.actions}>
-          <button className={styles.btnPrimary} onClick={handleSave}>SAVE_SCHEMA</button>
-          <button className={styles.btnSecondary} onClick={onCancel}>CANCEL</button>
+          <button className={styles.btnPrimary} onClick={handleSave}>LƯU THÔNG TIN</button>
+          <button className={styles.btnSecondary} onClick={onCancel}>HỦY BỎ</button>
         </div>
       </div>
     </div>
