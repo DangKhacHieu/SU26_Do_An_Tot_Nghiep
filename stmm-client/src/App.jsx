@@ -258,16 +258,14 @@ function App() {
   useEffect(() => {
     if (user) {
       const role = user.roleName?.toLowerCase();
-      if (role === "admin" && !path.startsWith("/admin/")) {
+      const isAdmin = role === "admin" || role === "systemadmin" || role?.includes("admin");
+      if (isAdmin && !path.startsWith("/admin/")) {
         navigatePath("/admin/dashboard", true);
       } else if (role === "manager" && !path.startsWith("/manager/")) {
         navigatePath("/manager/dashboard", true);
       } else if (role === "staff" && !path.startsWith("/staff/")) {
         navigatePath("/staff/dashboard", true);
-      } else if (
-        (role === "customer" || role === "vendor") &&
-        ["/login", "/register", "/forgot-password"].includes(path)
-      ) {
+      } else if ((role === "customer" || role === "vendor") && ["/login", "/register", "/forgot-password"].includes(path)) {
         navigatePath("/", true);
       }
     }
@@ -1098,6 +1096,29 @@ function App() {
   // =========================
   // Main Routes
   // =========================
+  // Synchronous route guards to prevent rendering customer pages for console roles (admin, manager, staff)
+  if (user) {
+    const role = user.roleName?.toLowerCase();
+    const isAdmin = role === "admin" || role === "systemadmin" || role?.includes("admin");
+    const isManager = role === "manager";
+    const isStaff = role === "staff";
+
+    if (isAdmin && !path.startsWith("/admin/")) {
+      return <div className="loading-state">Đang chuyển hướng đến trang Admin...</div>;
+    }
+    if (isManager && !path.startsWith("/manager/")) {
+      return <div className="loading-state">Đang chuyển hướng đến trang Manager...</div>;
+    }
+    if (isStaff && !path.startsWith("/staff/")) {
+      return <div className="loading-state">Đang chuyển hướng đến trang Nhân viên...</div>;
+    }
+    
+    // Prevent logged-in users from seeing auth pages
+    if ((role === "customer" || role === "vendor") && ["/login", "/register", "/forgot-password"].includes(path)) {
+      return <div className="loading-state">Đang chuyển hướng...</div>;
+    }
+  }
+
   if (path === "/login") {
     return (
       <LoginForm

@@ -480,7 +480,7 @@ namespace STMM.Business.Services
             {
                 "systemadmin" => "/admin/dashboard",
                 "customer" => "/",
-                "vendor" => "/vendor/dashboard",
+                "vendor" => "/",
                 "staff" => "/staff/dashboard",
                 "manager" => "/manager/dashboard",
                 _ => "/"
