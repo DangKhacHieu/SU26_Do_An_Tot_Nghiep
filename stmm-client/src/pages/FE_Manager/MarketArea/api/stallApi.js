@@ -2,6 +2,11 @@ import axios from 'axios';
 
 const API_BASE_URL = 'http://localhost:5056/api/stalls';
 
+export const getAllStalls = async () => {
+    const response = await axios.get(API_BASE_URL);
+    return response.data;
+};
+
 export const getAllStallsByAreaId = async (areaId) => {
     const response = await axios.get(`${API_BASE_URL}/area/${areaId}`);
     return response.data;

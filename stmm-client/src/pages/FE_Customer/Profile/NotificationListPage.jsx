@@ -1,14 +1,36 @@
 import { useEffect, useState } from "react";
-import Header from "../Header";
-import Footer from "../Footer";
+import Header from "../Layout/Header";
+import Footer from "../Layout/Footer";
 import notificationService from "../../../services/notificationService";
 import "./NotificationListPage.css";
+
+function TrashIcon() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <polyline points="3 6 5 6 21 6"></polyline>
+      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+      <line x1="10" y1="11" x2="10" y2="17"></line>
+      <line x1="14" y1="11" x2="14" y2="17"></line>
+    </svg>
+  );
+}
 
 export default function NotificationListPage({
   user,
   onBack,
   onGoToLogin,
   onGoToProfile,
+  onGoToStallsMap,
   onLogout,
 }) {
   const [notifications, setNotifications] = useState([]);
@@ -54,6 +76,33 @@ export default function NotificationListPage({
     }
   };
 
+  const handleDeleteNotification = async (e, item) => {
+    e.stopPropagation(); // Prevents selection overlay from popping up
+    if (window.confirm("Bạn có chắc chắn muốn xóa thông báo này?")) {
+      try {
+        await notificationService.deleteNotification(item.notiId);
+        setNotifications((prev) => prev.filter((n) => n.notiId !== item.notiId));
+        if (selectedNoti && selectedNoti.notiId === item.notiId) {
+          setSelectedNoti(null);
+        }
+      } catch (err) {
+        console.error("Lỗi khi xóa thông báo:", err);
+        alert(err instanceof Error ? err.message : "Xóa thông báo thất bại");
+      }
+    }
+  };
+
+  const handleMarkAllAsRead = async () => {
+    if (!user || !user.userId) return;
+    try {
+      await notificationService.markAllAsRead(user.userId, user.roleName);
+      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+    } catch (err) {
+      console.error("Lỗi khi đánh dấu tất cả đã đọc:", err);
+      alert(err instanceof Error ? err.message : "Đánh dấu tất cả đã đọc thất bại");
+    }
+  };
+
   const filteredNotifications = notifications.filter((item) => {
     // Status filter
     if (filter === "unread" && item.isRead) return false;
@@ -70,6 +119,8 @@ export default function NotificationListPage({
     return true;
   });
 
+  const hasUnread = notifications.some((n) => !n.isRead);
+
   if (!user) {
     return (
       <>
@@ -77,6 +128,7 @@ export default function NotificationListPage({
           user={user}
           onGoToLogin={onGoToLogin}
           onGoToProfile={onGoToProfile}
+          onGoToStallsMap={onGoToStallsMap}
           onLogout={onLogout}
         />
         <main className="noti-list-page empty-page">
@@ -98,6 +150,7 @@ export default function NotificationListPage({
         user={user}
         onGoToLogin={onGoToLogin}
         onGoToProfile={onGoToProfile}
+        onGoToStallsMap={onGoToStallsMap}
         onLogout={onLogout}
       />
       <main className="noti-list-page">
@@ -116,27 +169,37 @@ export default function NotificationListPage({
           </div>
 
           <div className="noti-filter-bar">
-            <div className="noti-status-filters">
+            <div className="noti-filter-left">
+              <div className="noti-status-filters">
+                <button
+                  type="button"
+                  className={`filter-btn ${filter === "all" ? "active" : ""}`}
+                  onClick={() => setFilter("all")}
+                >
+                  Tất cả ({notifications.length})
+                </button>
+                <button
+                  type="button"
+                  className={`filter-btn ${filter === "unread" ? "active" : ""}`}
+                  onClick={() => setFilter("unread")}
+                >
+                  Chưa đọc ({notifications.filter(n => !n.isRead).length})
+                </button>
+                <button
+                  type="button"
+                  className={`filter-btn ${filter === "read" ? "active" : ""}`}
+                  onClick={() => setFilter("read")}
+                >
+                  Đã đọc ({notifications.filter(n => n.isRead).length})
+                </button>
+              </div>
               <button
                 type="button"
-                className={`filter-btn ${filter === "all" ? "active" : ""}`}
-                onClick={() => setFilter("all")}
+                className="mark-all-read-btn"
+                onClick={handleMarkAllAsRead}
+                disabled={!hasUnread}
               >
-                Tất cả ({notifications.length})
-              </button>
-              <button
-                type="button"
-                className={`filter-btn ${filter === "unread" ? "active" : ""}`}
-                onClick={() => setFilter("unread")}
-              >
-                Chưa đọc ({notifications.filter(n => !n.isRead).length})
-              </button>
-              <button
-                type="button"
-                className={`filter-btn ${filter === "read" ? "active" : ""}`}
-                onClick={() => setFilter("read")}
-              >
-                Đã đọc ({notifications.filter(n => n.isRead).length})
+                Đánh dấu tất cả đã đọc
               </button>
             </div>
 
@@ -171,22 +234,32 @@ export default function NotificationListPage({
                           {!item.isRead && <span className="noti-unread-dot"></span>}
                           <h3 className="noti-title">{item.title}</h3>
                         </div>
-                        {item.notiType && (
-                          <span className={`noti-badge-tag ${item.notiType.toLowerCase()}`}>
-                            {item.notiType}
-                          </span>
-                        )}
+                        <div className="noti-item-actions">
+                          {item.notiType && (
+                            <span className={`noti-badge-tag ${item.notiType.toLowerCase()}`}>
+                              {item.notiType}
+                            </span>
+                          )}
+                          <button
+                            type="button"
+                            className="noti-delete-btn"
+                            onClick={(e) => handleDeleteNotification(e, item)}
+                            title="Xóa thông báo"
+                          >
+                            <TrashIcon />
+                          </button>
+                        </div>
                       </div>
                       <p className="noti-content-preview">{item.content}</p>
                       <span className="noti-time-stamp">
                         Nhận lúc: {item.createdAt
                           ? new Date(item.createdAt).toLocaleString("vi-VN", {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                              day: "2-digit",
-                              month: "2-digit",
-                              year: "numeric",
-                            })
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            day: "2-digit",
+                            month: "2-digit",
+                            year: "numeric",
+                          })
                           : ""}
                       </span>
                     </div>
@@ -215,9 +288,19 @@ export default function NotificationListPage({
               <span className="noti-modal-time">
                 Nhận lúc: {selectedNoti.createdAt ? new Date(selectedNoti.createdAt).toLocaleString("vi-VN") : ""}
               </span>
-              <button className="noti-modal-btn" onClick={() => setSelectedNoti(null)}>
-                Đóng
-              </button>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  className="noti-modal-btn noti-modal-delete-btn"
+                  onClick={(e) => {
+                    handleDeleteNotification(e, selectedNoti);
+                  }}
+                >
+                  Xóa
+                </button>
+                <button className="noti-modal-btn" onClick={() => setSelectedNoti(null)}>
+                  Đóng
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -227,3 +310,5 @@ export default function NotificationListPage({
     </>
   );
 }
+
+

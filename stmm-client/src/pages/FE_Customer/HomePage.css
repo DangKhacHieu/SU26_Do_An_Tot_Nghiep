@@ -487,3 +487,338 @@
   padding: 22px;
 }
 }
+
+/* Featured Stall Card styles */
+.hero-feature-card.clickable {
+  cursor: pointer;
+}
+
+.feature-details-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 18px 0;
+}
+
+.feature-details-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 18px;
+  border-radius: 16px;
+  background: rgba(247, 249, 240, 0.75);
+  border: 1px solid rgba(137, 152, 109, 0.08);
+  font-size: 14px;
+  color: #4d5a43;
+}
+
+.feature-details-row span:last-child {
+  font-weight: 700;
+  color: #1c2417;
+}
+
+.feature-action {
+  margin-top: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 14px;
+  background: #1d2818;
+  color: white;
+  font-weight: 700;
+  font-size: 14.5px;
+  border-radius: 18px;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 12px rgba(29, 40, 24, 0.15);
+}
+
+.hero-feature-card:hover .feature-action {
+  background: #2e7d32;
+  box-shadow: 0 6px 20px rgba(46, 125, 50, 0.25);
+  transform: translateY(-1px);
+}
+
+/* Markets Directory Section */
+.markets-directory-section {
+  width: min(1200px, calc(100% - 40px));
+  margin: 64px auto 0;
+}
+
+.markets-loading-container, .markets-empty-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
+  background: white;
+  border-radius: 24px;
+  border: 1px solid rgba(137, 152, 109, 0.12);
+  color: #55664d;
+}
+
+.loading-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3.5px solid rgba(46, 125, 50, 0.1);
+  border-radius: 50%;
+  border-top-color: #2e7d32;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 12px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.markets-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 28px;
+  margin-top: 32px;
+}
+
+.market-card {
+  position: relative;
+  background: white;
+  border-radius: 28px;
+  border: 1px solid rgba(137, 152, 109, 0.14);
+  box-shadow: 0 16px 36px rgba(31, 42, 27, 0.04);
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 250px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+.market-card:hover {
+  transform: translateY(-6px);
+  border-color: rgba(46, 125, 50, 0.25);
+  box-shadow: 0 24px 48px rgba(46, 125, 50, 0.08);
+}
+
+.market-card-badge {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  background: rgba(46, 125, 50, 0.1);
+  color: #2e7d32;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 999px;
+  text-transform: uppercase;
+}
+
+.market-card-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.market-card-icon-wrapper {
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  background: #f0f5eb;
+  color: #2e7d32;
+  display: grid;
+  place-items: center;
+}
+
+.market-card-header h3 {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 800;
+  color: #1d2818;
+}
+
+.market-card-body {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.market-address {
+  font-size: 13.5px;
+  color: #6b755d;
+  line-height: 1.5;
+  margin: 0 0 18px 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.market-address svg {
+  flex-shrink: 0;
+  margin-top: 3px;
+  color: #8fa085;
+}
+
+.market-card-stats-row {
+  display: flex;
+  gap: 12px;
+}
+
+.stat-pill {
+  background: #f7f9f0;
+  border: 1px solid rgba(137, 152, 109, 0.08);
+  font-size: 12.5px;
+  color: #55664d;
+  padding: 8px 14px;
+  border-radius: 12px;
+  font-weight: 500;
+}
+
+.stat-pill strong {
+  color: #1d2818;
+  font-weight: 700;
+}
+
+.market-action-btn {
+  width: 100%;
+  border: none;
+  background: #f4f6f1;
+  color: #4f5f45;
+  font-weight: 700;
+  font-size: 13.5px;
+  padding: 12px 18px;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.market-card:hover .market-action-btn {
+  background: #1d2818;
+  color: white;
+}
+
+.market-action-btn:hover {
+  background: #2e7d32 !important;
+  color: white !important;
+}
+
+/* Portal Benefits Section */
+.portal-benefits-section {
+  width: min(1200px, calc(100% - 40px));
+  margin: 72px auto 0;
+}
+
+.benefits-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 32px;
+  margin-top: 36px;
+}
+
+.benefit-panel {
+  background: white;
+  border-radius: 32px;
+  border: 1px solid rgba(137, 152, 109, 0.12);
+  box-shadow: 0 16px 40px rgba(17, 22, 15, 0.04);
+  padding: 36px;
+  position: relative;
+  overflow: hidden;
+}
+
+.benefit-panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 6px;
+}
+
+.shopper-panel::before {
+  background: linear-gradient(90deg, #81c784, #2e7d32);
+}
+
+.merchant-panel::before {
+  background: linear-gradient(90deg, #4dd0e1, #00838f);
+}
+
+.panel-badge {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  padding: 6px 12px;
+  border-radius: 8px;
+  width: fit-content;
+  margin-bottom: 18px;
+}
+
+.panel-badge.shopper {
+  background: rgba(46, 125, 50, 0.08);
+  color: #2e7d32;
+}
+
+.panel-badge.merchant {
+  background: rgba(0, 131, 143, 0.08);
+  color: #00838f;
+}
+
+.benefit-panel h3 {
+  margin: 0 0 8px 0;
+  font-size: 24px;
+  font-weight: 800;
+  color: #1d2818;
+}
+
+.panel-desc {
+  font-size: 14.5px;
+  color: #6b755d;
+  margin: 0 0 28px 0;
+}
+
+.benefit-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.benefit-list li {
+  display: flex;
+  gap: 16px;
+}
+
+.benefit-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #f7f9f0;
+  display: grid;
+  place-items: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.benefit-list strong {
+  display: block;
+  font-size: 14.5px;
+  color: #1d2818;
+  margin-bottom: 4px;
+}
+
+.benefit-list span {
+  font-size: 13px;
+  color: #6b755d;
+  line-height: 1.5;
+  display: block;
+}
+
+@media (max-width: 900px) {
+  .benefits-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+

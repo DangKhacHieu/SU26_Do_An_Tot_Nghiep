@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import authService from "../../services/authService";
+import authService from "../../../services/authService";
 import "./ForgotPasswordForm.css";
 
 export default function ForgotPasswordForm({ onBack, onGoToLogin }) {

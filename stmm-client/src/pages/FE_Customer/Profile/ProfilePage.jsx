@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import Header from "../Header";
-import Footer from "../Footer";
+import Header from "../Layout/Header";
+import Footer from "../Layout/Footer";
 import notificationService from "../../../services/notificationService";
 import "./ProfilePage.css";
 
@@ -23,6 +23,7 @@ export default function ProfilePage({
   onGoToEditProfile,
   onGoToChangePassword,
   onGoToNotifications,
+  onGoToStallsMap,
   onLogout,
 }) {
   const [notifications, setNotifications] = useState([]);
@@ -70,6 +71,8 @@ export default function ProfilePage({
           user={user}
           onGoToLogin={onGoToLogin}
           onGoToProfile={onGoToProfile}
+          onGoToNotifications={onGoToNotifications}
+          onGoToStallsMap={onGoToStallsMap}
           onLogout={onLogout}
         />
         <main className="profile-page profile-page-empty">
@@ -98,6 +101,8 @@ export default function ProfilePage({
         user={user}
         onGoToLogin={onGoToLogin}
         onGoToProfile={onGoToProfile}
+        onGoToNotifications={onGoToNotifications}
+        onGoToStallsMap={onGoToStallsMap}
         onLogout={onLogout}
       />
       <main className="profile-page">

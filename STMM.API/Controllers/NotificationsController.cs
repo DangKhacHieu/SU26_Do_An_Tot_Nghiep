@@ -40,5 +40,28 @@ namespace STMM.API.Controllers
             await _notificationService.MarkAsReadAsync(notiId, ct);
             return NoContent();
         }
+
+        /// <summary>
+        /// Đánh dấu tất cả thông báo của người dùng là đã đọc
+        /// </summary>
+        [HttpPut("read-all")]
+        public async Task<IActionResult> MarkAllAsRead(
+            [FromQuery] int userId,
+            [FromQuery] string? roleName,
+            CancellationToken ct)
+        {
+            await _notificationService.MarkAllAsReadAsync(userId, roleName, ct);
+            return NoContent();
+        }
+
+        /// <summary>
+        /// Xóa thông báo
+        /// </summary>
+        [HttpDelete("{notiId}")]
+        public async Task<IActionResult> Delete([FromRoute] int notiId, CancellationToken ct)
+        {
+            await _notificationService.DeleteAsync(notiId, ct);
+            return NoContent();
+        }
     }
 }

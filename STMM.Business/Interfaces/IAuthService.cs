@@ -15,5 +15,6 @@ namespace STMM.Business.Interfaces
         Task ResetPasswordAsync(ResetPasswordRequest request, CancellationToken ct = default);
         Task<LoginResponse> RefreshTokenAsync(RefreshTokenRequest request, CancellationToken ct = default);
         Task<LoginResponse> LoginWithGoogleAsync(GoogleLoginRequest request, CancellationToken ct = default);
+        Task ChangePasswordAsync(int userId, ChangePasswordRequest request, CancellationToken ct = default);
     }
 }

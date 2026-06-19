@@ -12,6 +12,8 @@ using STMM.Business.DTOs.BusinessCategory;
 using STMM.Business.DTOs.Contract;
 using STMM.Business.DTOs.Request;
 
+using STMM.Business.DTOs.Market;
+using STMM.Business.DTOs.Review;
 
 namespace STMM.Business.Mappers
 {
@@ -201,6 +203,35 @@ namespace STMM.Business.Mappers
                 .ForMember(dest => dest.VendorName, opt => opt.MapFrom(src => src.Vendor != null && src.Vendor.User != null ? src.Vendor.User.Name : string.Empty))
                 .ForMember(dest => dest.BusinessName, opt => opt.MapFrom(src => src.Vendor != null ? src.Vendor.BusinessName : string.Empty))
                 .ForMember(dest => dest.StallCode, opt => opt.MapFrom(src => src.Stall != null ? src.Stall.Code : string.Empty));
+
+            // Market mappings
+            CreateMap<Market, MarketDto>()
+                .ForMember(dest => dest.AreasCount, opt => opt.MapFrom(src => src.Areas.Count(a => a.IsDeleted != true)))
+                .ForMember(dest => dest.StallsCount, opt => opt.MapFrom(src => src.Areas.Where(a => a.IsDeleted != true).SelectMany(a => a.Stalls).Count(s => s.IsDeleted != true)));
+
+            CreateMap<Market, MarketMapDto>();
+            CreateMap<Area, AreaMapDto>()
+                .ForMember(dest => dest.CategoryName, opt => opt.MapFrom(src => src.Category != null ? src.Category.Name : null));
+            CreateMap<Stall, StallMapDto>()
+                .ForMember(dest => dest.AreaName, opt => opt.MapFrom(src => src.Area != null ? src.Area.Name : null))
+                .ForMember(dest => dest.CategoryName, opt => opt.MapFrom(src => src.Category != null ? src.Category.Name : null))
+                .ForMember(dest => dest.BusinessName, opt => opt.MapFrom(src => src.Contracts.Where(c => c.Status == "Active" && c.IsDeleted != true).Select(c => c.Vendor.BusinessName).FirstOrDefault()));
+
+            // Review mappings
+            CreateMap<Review, ReviewDto>()
+                .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => src.User != null ? src.User.Name : string.Empty));
+
+            CreateMap<CreateReviewRequest, Review>()
+                .ForMember(dest => dest.ReviewId, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.Stall, opt => opt.Ignore())
+                .ForMember(dest => dest.User, opt => opt.Ignore());
+
+            // Stall highest-rated mapping
+            CreateMap<Stall, HighestRatedStallDto>()
+                .ForMember(dest => dest.AreaName, opt => opt.MapFrom(src => src.Area != null ? src.Area.Name : string.Empty))
+                .ForMember(dest => dest.CategoryName, opt => opt.MapFrom(src => src.Category != null ? src.Category.Name : string.Empty))
+                .ForMember(dest => dest.AverageRating, opt => opt.Ignore());
         }
     }
 }

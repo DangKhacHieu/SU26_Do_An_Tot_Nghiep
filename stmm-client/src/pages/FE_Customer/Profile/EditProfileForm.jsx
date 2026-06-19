@@ -1,6 +1,6 @@
 import { useState } from "react";
-import Header from "../Header";
-import Footer from "../Footer";
+import Header from "../Layout/Header";
+import Footer from "../Layout/Footer";
 import userService from "../../../services/userService";
 import "./EditProfileForm.css";
 
@@ -9,6 +9,8 @@ export default function EditProfileForm({
   onBack,
   onGoToLogin,
   onGoToProfile,
+  onGoToNotifications,
+  onGoToStallsMap,
   onLogout,
   onProfileUpdated,
 }) {
@@ -60,6 +62,8 @@ export default function EditProfileForm({
         user={user}
         onGoToLogin={onGoToLogin}
         onGoToProfile={onGoToProfile}
+        onGoToNotifications={onGoToNotifications}
+        onGoToStallsMap={onGoToStallsMap}
         onLogout={onLogout}
       />
       <main className="edit-profile-page">

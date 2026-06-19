@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import authService from "../../services/authService";
+import authService from "../../../services/authService";
 import "./RegisterForm.css";
 
 export default function RegisterForm({ onBack, onGoToLogin, onRegistered }) {

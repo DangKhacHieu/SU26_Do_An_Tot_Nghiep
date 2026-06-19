@@ -364,7 +364,7 @@ namespace STMM.Business.Services
             return _mapper.Map<UserDto>(user);
         }
 
-        public async Task<bool> ChangePasswordAsync(int userId, ChangePasswordRequest request, CancellationToken ct = default)
+        public async Task<bool> ChangePasswordAsync(int userId, STMM.Business.DTOs.User.ChangePasswordRequest request, CancellationToken ct = default)
         {
             if (request.NewPassword != request.ConfirmPassword)
             {

@@ -127,6 +127,8 @@ builder.Services.AddScoped<IContractService, ContractService>();
 builder.Services.AddScoped<IRequestService, RequestService>();
 builder.Services.AddScoped<IVendorRequestService, VendorRequestService>();
 builder.Services.AddScoped<IVendorViolationService, VendorViolationService>();
+builder.Services.AddScoped<IMarketService, MarketService>();
+builder.Services.AddScoped<IReviewService, ReviewService>();
 
 
 // 1. Controllers & JSON Options

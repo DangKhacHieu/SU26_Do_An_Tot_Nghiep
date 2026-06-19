@@ -262,3 +262,71 @@
     gap: 6px;
   }
 }
+
+.noti-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.noti-delete-btn {
+  background: transparent;
+  border: none;
+  color: #8b967f;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.noti-delete-btn:hover {
+  background: #f1f3f0;
+  color: #b82c2c;
+}
+
+.noti-modal-delete-btn {
+  background: #fef2f2 !important;
+  color: #b82c2c !important;
+  border: 1px solid #fda5a5 !important;
+}
+
+.noti-modal-delete-btn:hover {
+  background: #fee2e2 !important;
+}
+
+.noti-filter-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.mark-all-read-btn {
+  border: 1px solid #2e7d32;
+  background: transparent;
+  padding: 8px 16px;
+  border-radius: 14px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #2e7d32;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mark-all-read-btn:hover:not(:disabled) {
+  background: #2e7d32;
+  color: white;
+  box-shadow: 0 4px 12px rgba(46, 125, 50, 0.2);
+}
+
+.mark-all-read-btn:disabled {
+  border-color: #cbd5c5;
+  color: #8fa085;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+

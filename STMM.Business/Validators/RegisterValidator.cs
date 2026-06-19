@@ -19,8 +19,10 @@ namespace STMM.Business.Validators
                 .MaximumLength(255).WithMessage("Email không được vượt quá 255 ký tự");
 
             RuleFor(x => x.Password)
+                .Cascade(CascadeMode.Stop)
                 .NotEmpty().WithMessage("Mật khẩu không được để trống")
-                .MinimumLength(6).WithMessage("Mật khẩu phải ít nhất 6 ký tự");
+                .Matches(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9]).{8,12}$")
+                .WithMessage("Mật khẩu phải từ 8-12 ký tự, bao gồm chữ hoa, chữ thường, số và ký tự đặc biệt");
 
             RuleFor(x => x.Phone)
                 .Cascade(CascadeMode.Stop)
