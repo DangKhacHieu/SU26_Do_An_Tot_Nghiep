@@ -125,13 +125,15 @@ export default function MarketMapPage({
     });
   }
 
-  // Filter stalls based on search query (code or category name)
+  // Filter stalls based on search query (code, category name, or business name)
   const suggestions = searchQuery.trim()
     ? allStalls.filter(
         (s) =>
           (s.code && s.code.toLowerCase().includes(searchQuery.toLowerCase())) ||
           (s.categoryName &&
-            s.categoryName.toLowerCase().includes(searchQuery.toLowerCase()))
+            s.categoryName.toLowerCase().includes(searchQuery.toLowerCase())) ||
+          (s.businessName &&
+            s.businessName.toLowerCase().includes(searchQuery.toLowerCase()))
       )
     : [];
 
@@ -246,7 +248,7 @@ export default function MarketMapPage({
                         onClick={() => handleSuggestionClick(stall)}
                       >
                         <div className="suggestion-info">
-                          <strong>Sạp {stall.code}</strong>
+                          <strong>{stall.businessName ? `${stall.businessName} (Sạp ${stall.code})` : `Sạp ${stall.code}`}</strong>
                           <span>{stall.categoryName || "Chưa có ngành hàng"}</span>
                         </div>
                         <span className="suggestion-area">{stall.areaName}</span>
@@ -333,12 +335,10 @@ export default function MarketMapPage({
                                     )}`,
                                   }}
                                   onClick={() => handleStallClick(stall, area)}
-                                  title={`Sạp: ${stall.code} (${getStatusLabel(
-                                    stall.status
-                                  )})`}
+                                  title={stall.businessName ? `Sạp: ${stall.code} - ${stall.businessName} (${getStatusLabel(stall.status)})` : `Sạp: ${stall.code} (${getStatusLabel(stall.status)})`}
                                 >
                                   <span className="stall-label-text">
-                                    {stall.code}
+                                    {stall.businessName || stall.code}
                                   </span>
                                 </div>
                               );
@@ -371,7 +371,12 @@ export default function MarketMapPage({
                     </span>
                   </div>
 
-                  <h2>Sạp {selectedStall.code}</h2>
+                  <h2>{selectedStall.businessName || `Sạp ${selectedStall.code}`}</h2>
+                  {selectedStall.businessName && (
+                    <p className="drawer-code-info" style={{ margin: 0, fontSize: "14px", color: "#617157" }}>
+                      Số hiệu sạp: <strong>{selectedStall.code}</strong>
+                    </p>
+                  )}
                   <p className="drawer-area-info">
                     Thuộc phân khu: <strong>{selectedStall.areaName}</strong>
                   </p>

@@ -43,5 +43,6 @@ namespace STMM.Business.DTOs.Market
         public double? Rotation { get; set; }
         public string? SvgPath { get; set; }
         public DateOnly? FireInsuranceExpiry { get; set; }
+        public string? BusinessName { get; set; }
     }
 }

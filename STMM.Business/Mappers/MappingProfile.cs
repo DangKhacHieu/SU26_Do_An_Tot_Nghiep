@@ -167,7 +167,8 @@ namespace STMM.Business.Mappers
                 .ForMember(dest => dest.CategoryName, opt => opt.MapFrom(src => src.Category != null ? src.Category.Name : null));
             CreateMap<Stall, StallMapDto>()
                 .ForMember(dest => dest.AreaName, opt => opt.MapFrom(src => src.Area != null ? src.Area.Name : null))
-                .ForMember(dest => dest.CategoryName, opt => opt.MapFrom(src => src.Category != null ? src.Category.Name : null));
+                .ForMember(dest => dest.CategoryName, opt => opt.MapFrom(src => src.Category != null ? src.Category.Name : null))
+                .ForMember(dest => dest.BusinessName, opt => opt.MapFrom(src => src.Contracts.Where(c => c.Status == "Active" && c.IsDeleted != true).Select(c => c.Vendor.BusinessName).FirstOrDefault()));
 
             // Review mappings
             CreateMap<Review, ReviewDto>()

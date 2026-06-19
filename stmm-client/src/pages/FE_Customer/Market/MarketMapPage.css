@@ -408,10 +408,17 @@
 }
 
 .stall-label-text {
-  font-size: 10.5px;
+  font-size: 9px;
   font-weight: 800;
   color: #1d2818;
   user-select: none;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: 100%;
+  padding: 0 4px;
+  box-sizing: border-box;
 }
 
 /* Stalls background coloring options */

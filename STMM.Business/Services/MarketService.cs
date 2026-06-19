@@ -42,6 +42,10 @@ namespace STMM.Business.Services
                 .Include(m => m.Areas.Where(a => a.IsDeleted != true))
                     .ThenInclude(a => a.Stalls.Where(s => s.IsDeleted != true))
                         .ThenInclude(s => s.Category)
+                .Include(m => m.Areas.Where(a => a.IsDeleted != true))
+                    .ThenInclude(a => a.Stalls.Where(s => s.IsDeleted != true))
+                        .ThenInclude(s => s.Contracts.Where(c => c.Status == "Active" && c.IsDeleted != true))
+                            .ThenInclude(c => c.Vendor)
                 .FirstOrDefaultAsync(m => m.MarketId == marketId && m.IsDeleted != true);
 
             if (market == null) return null;

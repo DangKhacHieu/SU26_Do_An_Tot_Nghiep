@@ -16,8 +16,6 @@ import StallDetailPage from "./pages/FE_Customer/Market/StallDetailPage.jsx";
 
 import authService from "./services/authService";
 
-import VendorDashboard from "./pages/FE_Customer/VendorDashboard.jsx";
-
 // FE Staff Imports
 import ViolationList from "./pages/FE_Staff/ViolationList";
 import ViolationDetails from "./pages/FE_Staff/ViolationDetails";
@@ -114,8 +112,12 @@ function App() {
   const [search, setSearch] = useState(window.location.search);
   const [user, setUser] = useState(authService.getUser());
 
-  const navigatePath = (to) => {
-    window.history.pushState({}, "", to);
+  const navigatePath = (to, replace = false) => {
+    if (replace) {
+      window.history.replaceState({}, "", to);
+    } else {
+      window.history.pushState({}, "", to);
+    }
     setPath(to.split("?")[0]);
     setSearch(to.includes("?") ? to.substring(to.indexOf("?")) : "");
   };
@@ -136,18 +138,34 @@ function App() {
     };
   }, []);
 
+  // Auto-redirect console roles (admin, manager, staff) to their respective dashboards if they try to access customer pages or auth pages
+  useEffect(() => {
+    if (user) {
+      const role = user.roleName?.toLowerCase();
+      if (role === "admin" && !path.startsWith("/admin/")) {
+        navigatePath("/admin/dashboard", true);
+      } else if (role === "manager" && !path.startsWith("/manager/")) {
+        navigatePath("/manager/dashboard", true);
+      } else if (role === "staff" && !path.startsWith("/staff/")) {
+        navigatePath("/staff/dashboard", true);
+      } else if ((role === "customer" || role === "vendor") && ["/login", "/register", "/forgot-password"].includes(path)) {
+        navigatePath("/", true);
+      }
+    }
+  }, [user, path]);
+
   const handleLoginSuccess = (loginResult) => {
     const loginUser = loginResult?.user || null;
     const redirectPath = loginResult?.redirectUrl || "/";
 
     setUser(loginUser);
-    navigatePath(redirectPath);
+    navigatePath(redirectPath, true); // Clean up the login entry in the history stack
   };
 
   const handleLogout = () => {
     authService.logout();
     setUser(null);
-    navigatePath("/");
+    navigatePath("/", true); // Clean up the session entry in the history stack
   };
 
   // =========================
@@ -1026,16 +1044,6 @@ function App() {
 
   if (path === "/staff/dashboard") {
     return renderStaffConsole();
-  }
-
-  if (path === "/vendor/dashboard") {
-    return (
-      <VendorDashboard
-        user={user}
-        onBack={() => navigatePath("/")}
-        onLogout={handleLogout}
-      />
-    );
   }
 
   return (
