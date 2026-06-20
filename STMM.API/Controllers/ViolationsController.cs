@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 using STMM.Business.DTOs.Violation;
 using STMM.Business.Interfaces;
 using System.Security.Claims;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace STMM.API.Controllers
 {
@@ -92,6 +94,18 @@ namespace STMM.API.Controllers
             return Ok(result);
         }
 
+        // --- ACCOUNTANT / GENERAL ADDITIONS ---
+
+        /// <summary>
+        /// Lấy toàn bộ danh sách biên bản vi phạm của toàn hệ thống (tra cứu nộp phạt).
+        /// </summary>
+        [HttpGet("all")]
+        public async Task<IActionResult> GetAllViolations(CancellationToken ct)
+        {
+            var result = await _violationService.GetAllViolationsAsync(ct);
+            return Ok(result);
+        }
+
         /// <summary>
         /// UC-xx: View Violation Details for Manager — Manager xem chi tiết vi phạm.
         /// </summary>
@@ -105,6 +119,16 @@ namespace STMM.API.Controllers
         }
 
         /// <summary>
+        /// Lấy toàn bộ danh mục Loại vi phạm (kèm cả loại đã ẩn).
+        /// </summary>
+        [HttpGet("types/all")]
+        public async Task<IActionResult> GetAllViolationTypes(CancellationToken ct)
+        {
+            var result = await _violationService.GetAllViolationTypesWithInactiveAsync(ct);
+            return Ok(result);
+        }
+
+        /// <summary>
         /// Mock/Simulate creating an appeal request for a violation (for demo/testing purposes)
         /// </summary>
         [HttpPost("~/api/manager/violations/{id:int}/simulate-appeal")]
@@ -113,6 +137,36 @@ namespace STMM.API.Controllers
             var result = await _violationService.SimulateViolationAppealAsync(id, ct);
             if (!result) return BadRequest(new { message = "Biên bản vi phạm này đã được kháng nghị trước đó hoặc không tồn tại." });
             return Ok(new { message = "Simulated appeal created successfully." });
+        }
+
+        /// <summary>
+        /// Tạo loại vi phạm mới.
+        /// </summary>
+        [HttpPost("types")]
+        public async Task<IActionResult> CreateViolationType([FromBody] CreateViolationTypeRequest request, CancellationToken ct)
+        {
+            var result = await _violationService.CreateViolationTypeAsync(request, ct);
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// Cập nhật loại vi phạm.
+        /// </summary>
+        [HttpPut("types/{id}")]
+        public async Task<IActionResult> UpdateViolationType(int id, [FromBody] UpdateViolationTypeRequest request, CancellationToken ct)
+        {
+            var result = await _violationService.UpdateViolationTypeAsync(id, request, ct);
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// Xóa (Ẩn hoạt động) loại vi phạm.
+        /// </summary>
+        [HttpDelete("types/{id}")]
+        public async Task<IActionResult> DeleteViolationType(int id, CancellationToken ct)
+        {
+            var result = await _violationService.DeleteViolationTypeAsync(id, ct);
+            return Ok(result);
         }
     }
 }

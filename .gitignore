@@ -8,10 +8,12 @@ obj/
 .vs/
 
 # Secrets
+.env
 secrets.json
 appsettings.*.json
 !appsettings.json
 !appsettings.Development.json
+
 
 # Node / React
 node_modules/

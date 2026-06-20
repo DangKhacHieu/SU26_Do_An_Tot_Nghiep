@@ -1,4 +1,25 @@
 import React, { useState, useEffect } from "react";
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import "./App.css";
+import "./AppDashboard.css";
+import "./pages/FE_Staff/FE_Staff.css";
+
+// FE Customer / Auth Imports
+import HomePage from "./pages/FE_Customer/HomePage.jsx";
+import LoginForm from "./pages/FE_Customer/Auth/LoginForm.jsx";
+import RegisterForm from "./pages/FE_Customer/Auth/RegisterForm.jsx";
+import ForgotPasswordForm from "./pages/FE_Customer/Auth/ForgotPasswordForm.jsx";
+import ProfilePage from "./pages/FE_Customer/Profile/ProfilePage.jsx";
+import ChangePasswordForm from "./pages/FE_Customer/Profile/ChangePasswordForm.jsx";
+import EditProfileForm from "./pages/FE_Customer/Profile/EditProfileForm.jsx";
+import NotificationListPage from "./pages/FE_Customer/Profile/NotificationListPage.jsx";
+import MarketMapPage from "./pages/FE_Customer/Market/MarketMapPage.jsx";
+import StallDetailPage from "./pages/FE_Customer/Market/StallDetailPage.jsx";
+
+import authService from "./services/authService";
+import VendorDashboard from "./pages/FE_Vendor/VendorDashboard.jsx";
+
+// FE Staff Imports
 import ViolationList from "./pages/FE_Staff/ViolationList";
 import ViolationDetails from "./pages/FE_Staff/ViolationDetails";
 import CreateViolationModal from "./pages/FE_Staff/CreateViolationModal";
@@ -14,7 +35,6 @@ import TaskList from "./pages/FE_Staff/TaskList";
 import TaskDetail from "./pages/FE_Staff/TaskDetail";
 import SidebarStaff from "./pages/FE_Staff/SidebarStaff";
 import ProfileStaff from "./pages/FE_Staff/ProfileStaff";
-import "./pages/FE_Staff/FE_Staff.css";
 
 // FE Manager Imports
 import SidebarManager from "./pages/FE_Manager/SidebarManager";
@@ -35,37 +55,44 @@ import ContractListManager from "./pages/FE_Manager/ContractListManager";
 import ContractDetailManager from "./pages/FE_Manager/ContractDetailManager";
 import ContractFormManager from "./pages/FE_Manager/ContractFormManager";
 import ProfileManager from "./pages/FE_Manager/ProfileManager";
+import RequestListManager from "./pages/FE_Manager/RequestListManager";
+import RequestDetailManager from "./pages/FE_Manager/RequestDetailManager";
+import ViolationListManager from "./pages/FE_Manager/ViolationListManager";
+import ViolationDetailsManager from "./pages/FE_Manager/ViolationDetailsManager";
 
-// Admin System Imports
+// FE Admin System Imports
 import SidebarAdminSystem from "./pages/FE_AdminSystem/SidebarAdminSystem";
 import DashboardAdminSystem from "./pages/FE_AdminSystem/DashboardAdminSystem";
 import UserListAdminSystem from "./pages/FE_AdminSystem/UserListAdminSystem";
 import UserFormAdminSystem from "./pages/FE_AdminSystem/UserFormAdminSystem";
 import UserDetailAdminSystem from "./pages/FE_AdminSystem/UserDetailAdminSystem";
 
-// FE Customer / Auth Imports
-import HomePage from "./pages/FE_Customer/HomePage.jsx";
-import LoginForm from "./pages/FE_Customer/Auth/LoginForm.jsx";
-import RegisterForm from "./pages/FE_Customer/Auth/RegisterForm.jsx";
-import ForgotPasswordForm from "./pages/FE_Customer/Auth/ForgotPasswordForm.jsx";
-import ProfilePage from "./pages/FE_Customer/Profile/ProfilePage.jsx";
-import ChangePasswordForm from "./pages/FE_Customer/Profile/ChangePasswordForm.jsx";
-import EditProfileForm from "./pages/FE_Customer/Profile/EditProfileForm.jsx";
-import NotificationListPage from "./pages/FE_Customer/Profile/NotificationListPage.jsx";
-import MarketMapPage from "./pages/FE_Customer/Market/MarketMapPage.jsx";
-import StallDetailPage from "./pages/FE_Customer/Market/StallDetailPage.jsx";
+// Accountant Layout & Pages
+import AccountantLayout from './components/layout/AccountantLayout';
+import Dashboard from './pages/accountant/Dashboard';
+import FinancialConfig from './pages/accountant/FinancialConfig';
+import PeriodicInvoices from './pages/accountant/PeriodicInvoices';
+import ViolationsPenalties from './pages/accountant/ViolationsPenalties';
+import RepairPrice from './pages/accountant/RepairPrice';
+import PaymentVerification from './pages/accountant/PaymentVerification';
+import ProfileManagement from './pages/accountant/ProfileManagement';
 
-import authService from "./services/authService";
-import VendorDashboard from "./pages/FE_Vendor/VendorDashboard.jsx";
-
-import "./App.css";
-import "./AppDashboard.css";
-
-// FE Manager Requests & Violations Imports
-import RequestListManager from "./pages/FE_Manager/RequestListManager";
-import RequestDetailManager from "./pages/FE_Manager/RequestDetailManager";
-import ViolationListManager from "./pages/FE_Manager/ViolationListManager";
-import ViolationDetailsManager from "./pages/FE_Manager/ViolationDetailsManager";
+// Guard components
+function ProtectedRoute({ allowedRoles }) {
+  const userStr = localStorage.getItem('user');
+  if (!userStr) {
+    return <Navigate to="/login" replace />;
+  }
+  try {
+    const user = JSON.parse(userStr);
+    if (allowedRoles && !allowedRoles.includes(user.roleName)) {
+      return <Navigate to="/" replace />;
+    }
+  } catch (e) {
+    return <Navigate to="/login" replace />;
+  }
+  return <Outlet />;
+}
 
 const PAGE_TITLES = {
   dashboard: {
@@ -223,17 +250,53 @@ const STAFF_PAGE_TITLES = {
   },
 };
 
-function App() {
+function StallDetailWrapper({ user, onLogout, navigatePath }) {
+  const { id } = useParams();
+  const stallId = parseInt(id) || 0;
+  return (
+    <StallDetailPage
+      user={user}
+      stallId={stallId}
+      onBack={() => navigatePath("/stalls-map")}
+      onGoToLogin={() => navigatePath("/login")}
+      onGoToProfile={() => navigatePath("/profile")}
+      onGoToNotifications={() => navigatePath("/notifications")}
+      onGoToStallsMap={(mid) =>
+        navigatePath(mid ? "/stalls-map?marketId=" + mid : "/stalls-map")
+      }
+      onLogout={onLogout}
+    />
+  );
+}
+
+function MarketMapWrapper({ user, onLogout, navigatePath }) {
+  const [searchParams] = useSearchParams();
+  const marketId = parseInt(searchParams.get("marketId")) || 1;
+  return (
+    <MarketMapPage
+      user={user}
+      marketId={marketId}
+      onBack={() => navigatePath("/")}
+      onGoToLogin={() => navigatePath("/login")}
+      onGoToProfile={() => navigatePath("/profile")}
+      onGoToNotifications={() => navigatePath("/notifications")}
+      onGoToStallsMap={(mid) =>
+        navigatePath(mid ? "/stalls-map?marketId=" + mid : "/stalls-map")
+      }
+      onGoToStallDetail={(id) => navigatePath("/stalls/" + id)}
+      onLogout={onLogout}
+    />
+  );
+}
+
+function AppContent() {
+  const routerNavigate = useNavigate();
   const [path, setPath] = useState(window.location.pathname);
   const [search, setSearch] = useState(window.location.search);
   const [user, setUser] = useState(authService.getUser());
 
   const navigatePath = (to, replace = false) => {
-    if (replace) {
-      window.history.replaceState({}, "", to);
-    } else {
-      window.history.pushState({}, "", to);
-    }
+    routerNavigate(to, { replace });
     setPath(to.split("?")[0]);
     setSearch(to.includes("?") ? to.substring(to.indexOf("?")) : "");
   };
@@ -1006,6 +1069,7 @@ function App() {
               handleShowNotification(
                 `Successfully recorded reading: ${newReading.newValue} for meter ${newReading.meterSerialNumber}`,
               );
+
               if (currentStaffView === "meters") {
                 setCurrentStaffView("temp");
                 setTimeout(() => setCurrentStaffView("meters"), 10);
@@ -1018,7 +1082,7 @@ function App() {
   };
 
   // =========================
-  // Main Routes
+  // Main Routes Rendering
   // =========================
   // Synchronous route guards to prevent rendering customer pages for console roles (admin, manager, staff)
   if (user) {
@@ -1043,182 +1107,162 @@ function App() {
     }
   }
 
-  if (path === "/login") {
-    return (
-      <LoginForm
-        onBack={() => navigatePath("/")}
-        onGoToRegister={() => navigatePath("/register")}
-        onGoToForgotPassword={() => navigatePath("/forgot-password")}
-        onLoginSuccess={handleLoginSuccess}
-      />
-    );
-  }
-
-  if (path === "/forgot-password") {
-    return (
-      <ForgotPasswordForm
-        onBack={() => navigatePath("/login")}
-        onGoToLogin={() => navigatePath("/login")}
-      />
-    );
-  }
-
-  if (path === "/register") {
-    return (
-      <RegisterForm
-        onBack={() => navigatePath("/")}
-        onGoToLogin={() => navigatePath("/login")}
-        onRegistered={(loginResult) => {
-          const loginUser = loginResult?.user || loginResult || null;
-          const redirectPath = loginResult?.redirectUrl || "/";
-
-          if (loginUser) {
-            setUser(loginUser);
-          }
-
-          navigatePath(redirectPath);
-        }}
-      />
-    );
-  }
-
-  if (path === "/profile") {
-    return (
-      <ProfilePage
-        user={user}
-        onBack={() => navigatePath("/")}
-        onGoToLogin={() => navigatePath("/login")}
-        onGoToProfile={() => navigatePath("/profile")}
-        onGoToEditProfile={() => navigatePath("/edit-profile")}
-        onGoToChangePassword={() => navigatePath("/change-password")}
-        onGoToNotifications={() => navigatePath("/notifications")}
-        onGoToStallsMap={(mid) =>
-          navigatePath(mid ? "/stalls-map?marketId=" + mid : "/stalls-map")
-        }
-        onLogout={handleLogout}
-      />
-    );
-  }
-
-  if (path === "/notifications") {
-    return (
-      <NotificationListPage
-        user={user}
-        onBack={() => navigatePath("/")}
-        onGoToLogin={() => navigatePath("/login")}
-        onGoToProfile={() => navigatePath("/profile")}
-        onGoToStallsMap={(mid) =>
-          navigatePath(mid ? "/stalls-map?marketId=" + mid : "/stalls-map")
-        }
-        onLogout={handleLogout}
-      />
-    );
-  }
-
-  if (path === "/stalls-map") {
-    const params = new URLSearchParams(window.location.search);
-    const marketId = parseInt(params.get("marketId")) || 1;
-    return (
-      <MarketMapPage
-        user={user}
-        marketId={marketId}
-        onBack={() => navigatePath("/")}
-        onGoToLogin={() => navigatePath("/login")}
-        onGoToProfile={() => navigatePath("/profile")}
-        onGoToNotifications={() => navigatePath("/notifications")}
-        onGoToStallsMap={(mid) =>
-          navigatePath(mid ? "/stalls-map?marketId=" + mid : "/stalls-map")
-        }
-        onGoToStallDetail={(id) => navigatePath("/stalls/" + id)}
-        onLogout={handleLogout}
-      />
-    );
-  }
-
-  if (path.startsWith("/stalls/")) {
-    const segments = path.split("/");
-    const stallIdStr = segments[segments.length - 1];
-    const stallId = parseInt(stallIdStr) || 0;
-    return (
-      <StallDetailPage
-        user={user}
-        stallId={stallId}
-        onBack={() => navigatePath("/stalls-map")}
-        onGoToLogin={() => navigatePath("/login")}
-        onGoToProfile={() => navigatePath("/profile")}
-        onGoToNotifications={() => navigatePath("/notifications")}
-        onGoToStallsMap={(mid) =>
-          navigatePath(mid ? "/stalls-map?marketId=" + mid : "/stalls-map")
-        }
-        onLogout={handleLogout}
-      />
-    );
-  }
-
-  if (path === "/change-password") {
-    return (
-      <ChangePasswordForm
-        user={user}
-        onBack={() => navigatePath("/profile")}
-        onGoToLogin={() => navigatePath("/login")}
-        onGoToProfile={() => navigatePath("/profile")}
-        onGoToNotifications={() => navigatePath("/notifications")}
-        onGoToStallsMap={(mid) =>
-          navigatePath(mid ? "/stalls-map?marketId=" + mid : "/stalls-map")
-        }
-        onLogout={handleLogout}
-        onPasswordChanged={() => navigatePath("/profile")}
-      />
-    );
-  }
-
-  if (path === "/edit-profile") {
-    return (
-      <EditProfileForm
-        user={user}
-        onBack={() => navigatePath("/profile")}
-        onGoToLogin={() => navigatePath("/login")}
-        onGoToProfile={() => navigatePath("/profile")}
-        onGoToNotifications={() => navigatePath("/notifications")}
-        onGoToStallsMap={(mid) =>
-          navigatePath(mid ? "/stalls-map?marketId=" + mid : "/stalls-map")
-        }
-        onLogout={handleLogout}
-        onProfileUpdated={(updatedUser) => {
-          setUser(updatedUser);
-          navigatePath("/profile");
-        }}
-      />
-    );
-  }
-
-  if (path.startsWith("/admin")) {
-    return renderManagerOrAdminConsole();
-  }
-
-  if (path.startsWith("/manager")) {
-    return renderManagerOrAdminConsole();
-  }
-
-  if (path === "/staff/dashboard") {
-    return renderStaffConsole();
-  }
-
   return (
-    <HomePage
-      user={user}
-      onGoToLogin={() => navigatePath("/login")}
-      onGoToRegister={() => navigatePath("/register")}
-      onGoToProfile={() => navigatePath("/profile")}
-      onGoToChangePassword={() => navigatePath("/change-password")}
-      onGoToNotifications={() => navigatePath("/notifications")}
-      onGoToStallsMap={(mid) =>
-        navigatePath(mid ? "/stalls-map?marketId=" + mid : "/stalls-map")
-      }
-      onGoToStallDetail={(id) => navigatePath("/stalls/" + id)}
-      onLogout={handleLogout}
-    />
+    <Routes>
+      {/* 1. Public Auth Routing */}
+      <Route path="/login" element={
+        <LoginForm
+          onBack={() => navigatePath("/")}
+          onGoToRegister={() => navigatePath("/register")}
+          onGoToForgotPassword={() => navigatePath("/forgot-password")}
+          onLoginSuccess={handleLoginSuccess}
+        />
+      } />
+
+      <Route path="/forgot-password" element={
+        <ForgotPasswordForm
+          onBack={() => navigatePath("/login")}
+          onGoToLogin={() => navigatePath("/login")}
+        />
+      } />
+
+      <Route path="/register" element={
+        <RegisterForm
+          onBack={() => navigatePath("/")}
+          onGoToLogin={() => navigatePath("/login")}
+          onRegistered={(loginResult) => {
+            const loginUser = loginResult?.user || loginResult || null;
+            const redirectPath = loginResult?.redirectUrl || "/";
+
+            if (loginUser) {
+              setUser(loginUser);
+            }
+            navigatePath(redirectPath);
+          }}
+        />
+      } />
+
+      {/* 2. Customer Profile Routing */}
+      <Route path="/profile" element={
+        <ProfilePage
+          user={user}
+          onBack={() => navigatePath("/")}
+          onGoToLogin={() => navigatePath("/login")}
+          onGoToProfile={() => navigatePath("/profile")}
+          onGoToEditProfile={() => navigatePath("/edit-profile")}
+          onGoToChangePassword={() => navigatePath("/change-password")}
+          onGoToNotifications={() => navigatePath("/notifications")}
+          onGoToStallsMap={(mid) =>
+            navigatePath(mid ? "/stalls-map?marketId=" + mid : "/stalls-map")
+          }
+          onLogout={handleLogout}
+        />
+      } />
+
+      <Route path="/notifications" element={
+        <NotificationListPage
+          user={user}
+          onBack={() => navigatePath("/")}
+          onGoToLogin={() => navigatePath("/login")}
+          onGoToProfile={() => navigatePath("/profile")}
+          onGoToStallsMap={(mid) =>
+            navigatePath(mid ? "/stalls-map?marketId=" + mid : "/stalls-map")
+          }
+          onLogout={handleLogout}
+        />
+      } />
+
+      <Route path="/change-password" element={
+        <ChangePasswordForm
+          user={user}
+          onBack={() => navigatePath("/profile")}
+          onGoToLogin={() => navigatePath("/login")}
+          onGoToProfile={() => navigatePath("/profile")}
+          onGoToNotifications={() => navigatePath("/notifications")}
+          onGoToStallsMap={(mid) =>
+            navigatePath(mid ? "/stalls-map?marketId=" + mid : "/stalls-map")
+          }
+          onLogout={handleLogout}
+          onPasswordChanged={() => navigatePath("/profile")}
+        />
+      } />
+
+      <Route path="/edit-profile" element={
+        <EditProfileForm
+          user={user}
+          onBack={() => navigatePath("/profile")}
+          onGoToLogin={() => navigatePath("/login")}
+          onGoToProfile={() => navigatePath("/profile")}
+          onGoToNotifications={() => navigatePath("/notifications")}
+          onGoToStallsMap={(mid) =>
+            navigatePath(mid ? "/stalls-map?marketId=" + mid : "/stalls-map")
+          }
+          onLogout={handleLogout}
+          onProfileUpdated={(updatedUser) => {
+            setUser(updatedUser);
+            navigatePath("/profile");
+          }}
+        />
+      } />
+
+      {/* Map & Stall Details Routing */}
+      <Route path="/stalls-map" element={<MarketMapWrapper user={user} onLogout={handleLogout} navigatePath={navigatePath} />} />
+      <Route path="/stalls/:id" element={<StallDetailWrapper user={user} onLogout={handleLogout} navigatePath={navigatePath} />} />
+
+      {/* 3. Admin & Manager & Staff & Vendor Console Routes */}
+      <Route path="/admin/dashboard" element={renderManagerOrAdminConsole()} />
+      <Route path="/manager/dashboard" element={renderManagerOrAdminConsole()} />
+      <Route path="/staff/dashboard" element={renderStaffConsole()} />
+      
+      <Route path="/vendor/dashboard" element={
+        <VendorDashboard
+          user={user}
+          onBack={() => navigatePath("/")}
+          onLogout={handleLogout}
+        />
+      } />
+
+      {/* 4. Protected Accountant Portal Routing */}
+      <Route element={<ProtectedRoute allowedRoles={["Accountant"]} />}>
+        <Route path="/accountant" element={<AccountantLayout />}>
+          <Route index element={<Navigate to="dashboard" replace />} />
+          <Route path="dashboard" element={<Dashboard />} />
+          <Route path="financial-config" element={<FinancialConfig />} />
+          <Route path="periodic-invoices" element={<PeriodicInvoices />} />
+          <Route path="violations-penalties" element={<ViolationsPenalties />} />
+          <Route path="repair-price" element={<RepairPrice />} />
+          <Route path="payment-verification" element={<PaymentVerification />} />
+          <Route path="profile-management" element={<ProfileManagement />} />
+        </Route>
+      </Route>
+
+      {/* 5. Default Public Homepage */}
+      <Route path="/" element={
+        <HomePage
+          user={user}
+          onGoToLogin={() => navigatePath("/login")}
+          onGoToRegister={() => navigatePath("/register")}
+          onGoToProfile={() => navigatePath("/profile")}
+          onGoToChangePassword={() => navigatePath("/change-password")}
+          onGoToNotifications={() => navigatePath("/notifications")}
+          onGoToStallsMap={(mid) =>
+            navigatePath(mid ? "/stalls-map?marketId=" + mid : "/stalls-map")
+          }
+          onGoToStallDetail={(id) => navigatePath("/stalls/" + id)}
+          onLogout={handleLogout}
+        />
+      } />
+
+      {/* Catch-all fallback redirect to home */}
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 }
 
-export default App;
+export default function App() {
+  return (
+    <BrowserRouter>
+      <AppContent />
+    </BrowserRouter>
+  );
+}

@@ -1,3 +1,6 @@
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using STMM.Business.DTOs.Billing;
 
 namespace STMM.Business.Interfaces
@@ -19,5 +22,60 @@ namespace STMM.Business.Interfaces
         /// Get list of unpaid invoices for a specific stall.
         /// </summary>
         Task<List<UnpaidInvoiceSummaryDto>> GetUnpaidInvoicesByStallAsync(int stallId, CancellationToken ct = default);
+
+        /// <summary>
+        /// Get a list of invoices with filters for Month, Year, Status, and search term.
+        /// </summary>
+        Task<IEnumerable<InvoiceDto>> GetInvoicesAsync(int? month, int? year, string? status, string? search, CancellationToken ct = default);
+
+        /// <summary>
+        /// Bulk approves invoices and transitions their status from Draft to Unpaid (Issued).
+        /// </summary>
+        Task<bool> BulkApproveInvoicesAsync(BulkApproveInvoicesRequest request, CancellationToken ct = default);
+
+        /// <summary>
+        /// Creates a manual ad-hoc invoice (e.g. fines, asset compensation, liquidation fees) for a stall.
+        /// </summary>
+        Task<InvoiceDto> CreateAdHocInvoiceAsync(CreateAdHocInvoiceRequest request, CancellationToken ct = default);
+
+        /// <summary>
+        /// Adjusts or back-fills a meter reading and automatically updates/recalculates the corresponding invoice.
+        /// </summary>
+        Task<bool> AdjustMeterReadingAsync(int creatorUserId, MeterReadingAdjustmentRequest request, CancellationToken ct = default);
+
+        /// <summary>
+        /// Retrieves list of payments pending verification (invoice status: Pending Confirmation) or recently approved (Paid).
+        /// </summary>
+        Task<IEnumerable<PaymentVerificationDto>> GetPendingPaymentsAsync(CancellationToken ct = default);
+
+        /// <summary>
+        /// Confirms or rejects a payment request.
+        /// </summary>
+        Task<bool> VerifyPaymentAsync(int paymentId, VerifyPaymentRequest request, int accountantUserId, CancellationToken ct = default);
+
+        /// <summary>
+        /// Retrieves debt summary across all stalls.
+        /// </summary>
+        Task<IEnumerable<DebtOfStallDto>> GetStallsDebtListAsync(string? search, CancellationToken ct = default);
+
+        /// <summary>
+        /// Retrieves detailed unpaid invoices and violations for a specific stall.
+        /// </summary>
+        Task<StallDebtDetailDto> GetStallDebtDetailsAsync(int stallId, CancellationToken ct = default);
+
+        /// <summary>
+        /// Sends a debt notification reminder to the vendor of a stall.
+        /// </summary>
+        Task<bool> SendDebtReminderAsync(SendDebtNotificationRequest request, int senderUserId, CancellationToken ct = default);
+
+        /// <summary>
+        /// Retrieves invoice disputes from Requests.
+        /// </summary>
+        Task<IEnumerable<DisputeResolutionDto>> GetInvoiceDisputesAsync(CancellationToken ct = default);
+
+        /// <summary>
+        /// Resolves an invoice dispute request (Approve/Reject).
+        /// </summary>
+        Task<bool> ResolveInvoiceDisputeAsync(int requestId, ResolveDisputeRequest request, int accountantUserId, CancellationToken ct = default);
     }
 }

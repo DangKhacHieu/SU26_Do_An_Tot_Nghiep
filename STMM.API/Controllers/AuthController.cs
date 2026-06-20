@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
 using STMM.Business.DTOs.Auth;
 using STMM.Business.Interfaces;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace STMM.API.Controllers
 {
