@@ -148,6 +148,7 @@ namespace STMM.DataAccess.Repositories
 
         public async Task<(IEnumerable<Violation> Items, int TotalCount)> GetViolationsForVendorPagedAsync(
             int vendorId,
+            int? stallId,
             string? status,
             string? searchTerm,
             bool sortDescending,
@@ -169,6 +170,11 @@ namespace STMM.DataAccess.Repositories
                     c.EndDate >= DateOnly.FromDateTime(v.CreatedAt.Value)
                 ))
                 .AsQueryable();
+
+            if (stallId.HasValue)
+            {
+                query = query.Where(v => v.StallId == stallId.Value);
+            }
 
             if (!string.IsNullOrWhiteSpace(status))
             {

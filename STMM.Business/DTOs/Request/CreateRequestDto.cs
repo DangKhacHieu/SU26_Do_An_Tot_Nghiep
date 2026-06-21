@@ -10,5 +10,6 @@ namespace STMM.Business.DTOs.Request
         public int? InvoiceId { get; set; }
         public string Title { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
+        public string? ImageUrl { get; set; }
     }
 }

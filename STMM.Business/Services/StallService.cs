@@ -132,6 +132,27 @@ namespace STMM.Business.Services
             _context.Stalls.Add(stall);
             await _context.SaveChangesAsync();
 
+            // Auto-create Electricity and Water meters
+            var electricityMeter = new Meter
+            {
+                StallId = stall.StallId,
+                Type = "Electricity",
+                SerialNumber = "E-" + stall.Code,
+                IsActive = true,
+                InstalledAt = DateOnly.FromDateTime(DateTime.UtcNow)
+            };
+            var waterMeter = new Meter
+            {
+                StallId = stall.StallId,
+                Type = "Water",
+                SerialNumber = "W-" + stall.Code,
+                IsActive = true,
+                InstalledAt = DateOnly.FromDateTime(DateTime.UtcNow)
+            };
+
+            _context.Meters.AddRange(electricityMeter, waterMeter);
+            await _context.SaveChangesAsync();
+
             return await GetStallByIdAsync(stall.StallId) ?? _mapper.Map<StallDto>(stall);
         }
 

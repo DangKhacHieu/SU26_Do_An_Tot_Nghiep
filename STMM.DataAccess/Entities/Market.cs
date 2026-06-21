@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace STMM.DataAccess.Entities;
@@ -32,6 +32,11 @@ public partial class Market
     /// Đánh dấu xóa mềm
     /// </summary>
     public bool? IsDeleted { get; set; }
+
+    /// <summary>
+    /// Diện tích (size)
+    /// </summary>
+    public double? Size { get; set; }
 
     public virtual ICollection<Area> Areas { get; set; } = new List<Area>();
 }
