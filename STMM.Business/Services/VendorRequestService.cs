@@ -39,6 +39,7 @@ namespace STMM.Business.Services
         {
             var (items, totalCount) = await _requestRepository.GetRequestsPagedAsync(
                 vendorId,
+                queryParams.StallId,
                 queryParams.Status,
                 queryParams.RequestType,
                 queryParams.SearchTerm,
@@ -110,6 +111,7 @@ namespace STMM.Business.Services
                 InvoiceId = dto.InvoiceId,
                 Title = dto.Title,
                 Description = dto.Description,
+                ImageUrl = dto.ImageUrl,
                 Status = "Pending",
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow

@@ -30,6 +30,7 @@ namespace STMM.Business.Services
         {
             var (items, totalCount) = await _violationRepository.GetViolationsForVendorPagedAsync(
                 vendorId,
+                queryParams.StallId,
                 queryParams.Status,
                 queryParams.SearchTerm,
                 queryParams.SortDescending,

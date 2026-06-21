@@ -338,7 +338,9 @@ function AppContent() {
         navigatePath("/manager/dashboard", true);
       } else if (role === "staff" && !path.startsWith("/staff/")) {
         navigatePath("/staff/dashboard", true);
-      } else if ((role === "customer" || role === "vendor") && ["/login", "/register", "/forgot-password"].includes(path)) {
+      } else if (role === "vendor" && ["/login", "/register", "/forgot-password"].includes(path)) {
+        navigatePath("/vendor/dashboard", true);
+      } else if (role === "customer" && ["/login", "/register", "/forgot-password"].includes(path)) {
         navigatePath("/", true);
       }
     }
@@ -346,7 +348,11 @@ function AppContent() {
 
   const handleLoginSuccess = (loginResult) => {
     const loginUser = loginResult?.user || null;
-    const redirectPath = loginResult?.redirectUrl || "/";
+    let redirectPath = loginResult?.redirectUrl || "/";
+
+    if (loginUser?.roleName?.toLowerCase() === "vendor" && redirectPath === "/") {
+      redirectPath = "/vendor/dashboard";
+    }
 
     setUser(loginUser);
     navigatePath(redirectPath, true); // Clean up the login entry in the history stack
@@ -1243,13 +1249,16 @@ function AppContent() {
       <Route path="/manager/dashboard" element={renderManagerOrAdminConsole()} />
       <Route path="/staff/dashboard" element={renderStaffConsole()} />
       
-      <Route path="/vendor/dashboard" element={
-        <VendorDashboard
-          user={user}
-          onBack={() => navigatePath("/")}
-          onLogout={handleLogout}
-        />
-      } />
+      {/* Vendor Portal Route */}
+      <Route element={<ProtectedRoute allowedRoles={["Vendor"]} />}>
+        <Route path="/vendor/dashboard" element={
+          <VendorDashboard
+            user={user}
+            onBack={() => navigatePath("/")}
+            onLogout={handleLogout}
+          />
+        } />
+      </Route>
 
       {/* 4. Protected Accountant Portal Routing */}
       <Route element={<ProtectedRoute allowedRoles={["Accountant"]} />}>
