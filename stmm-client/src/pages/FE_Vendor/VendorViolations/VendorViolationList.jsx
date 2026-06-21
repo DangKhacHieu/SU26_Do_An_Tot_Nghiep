@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import VendorViolationDetail from './VendorViolationDetail';
 
-const VendorViolationList = () => {
+const VendorViolationList = ({ stallId }) => {
     const [violations, setViolations] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -27,6 +27,7 @@ const VendorViolationList = () => {
                 params: {
                     searchTerm: searchTerm,
                     status: statusFilter === 'All' ? null : statusFilter,
+                    stallId: stallId === 'ALL' ? null : stallId,
                     pageNumber: pageNumber,
                     pageSize: pageSize
                 }
@@ -43,13 +44,13 @@ const VendorViolationList = () => {
 
     useEffect(() => {
         setPageNumber(1);
-    }, [searchTerm, statusFilter]);
+    }, [searchTerm, statusFilter, stallId]);
 
     useEffect(() => {
         if (viewMode === 'LIST') {
             fetchViolations();
         }
-    }, [searchTerm, statusFilter, viewMode, pageNumber]);
+    }, [searchTerm, statusFilter, stallId, viewMode, pageNumber]);
 
     const handleViewDetail = (id) => {
         setSelectedViolationId(id);

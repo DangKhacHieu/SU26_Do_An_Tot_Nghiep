@@ -118,6 +118,9 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Name)
                 .HasComment("Tên khu vực (VD: \"Khu A - Thực phẩm\")")
                 .HasColumnName("name");
+            entity.Property(e => e.Size)
+                .HasComment("Diện tích")
+                .HasColumnName("size");
 
             entity.HasOne(d => d.Category).WithMany(p => p.Areas)
                 .HasForeignKey(d => d.CategoryId)
@@ -518,6 +521,9 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.MarketName)
                 .HasComment("Tên chợ")
                 .HasColumnName("market_name");
+            entity.Property(e => e.Size)
+                .HasComment("Diện tích")
+                .HasColumnName("size");
         });
 
         modelBuilder.Entity<Meter>(entity =>
@@ -754,6 +760,9 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Description)
                 .HasComment("Mô tả chi tiết")
                 .HasColumnName("description");
+            entity.Property(e => e.ImageUrl)
+                .HasComment("Hình ảnh minh chứng đính kèm")
+                .HasColumnName("image_url");
             entity.Property(e => e.InvoiceId)
                 .HasComment("Điền nếu Kháng nghị hóa đơn")
                 .HasColumnName("invoice_id");
