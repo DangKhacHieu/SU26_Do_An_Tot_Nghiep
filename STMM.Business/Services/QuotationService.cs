@@ -114,9 +114,11 @@ namespace STMM.Business.Services
             return BuildQuotationSummary(task, updatedMaterials);
         }
 
+        private static readonly HashSet<string> ValidPaidByValues = new(StringComparer.OrdinalIgnoreCase) { "Market", "Vendor" };
+
         /// <inheritdoc />
         public async Task<TaskDto> SubmitQuotationAsync(
-            int taskId, int staffUserId, CancellationToken ct = default)
+            int taskId, int staffUserId, string paidBy, CancellationToken ct = default)
         {
             var task = await _taskRepository.GetTaskByIdWithRelationsAsync(taskId, ct);
             if (task == null)
@@ -126,6 +128,12 @@ namespace STMM.Business.Services
 
             EnsureAssignedToStaff(task, staffUserId);
             EnsureTaskIsPending(task, "submit quotation for");
+
+            if (string.IsNullOrWhiteSpace(paidBy) || !ValidPaidByValues.Contains(paidBy))
+            {
+                throw new BadRequestException(
+                    "Vui lòng chọn bên chịu phí: 'Market' (BQL) hoặc 'Vendor' (Tiểu thương).");
+            }
 
             var materials = await _materialRepository.GetByTaskIdAsync(taskId, ct);
             if (!materials.Any())
@@ -138,10 +146,21 @@ namespace STMM.Business.Services
             task.ActualCost = totalCost;
             task.Status = "PendingApproval";
 
+            if (task.Request != null)
+            {
+                task.Request.Status = "Quoted";
+                task.Request.PaidBy = paidBy;
+                task.Request.QuotationAmount = totalCost;
+                
+                var materialLines = materials.Select(m => $"- {m.ItemName}: {m.Quantity} x {m.UnitPrice:#,##0} VNĐ = {m.Amount:#,##0} VNĐ");
+                task.Request.QuotationText = string.Join("\n", materialLines);
+                task.Request.UpdatedAt = DateTime.UtcNow;
+            }
+
             _taskRepository.Update(task);
             await _taskRepository.SaveChangesAsync(ct);
 
-            await NotifyManagerAsync(task, totalCost, staffUserId, ct);
+            await NotifyQuotationSubmittedAsync(task, totalCost, staffUserId, paidBy, ct);
 
             var updatedTask = await _taskRepository.GetTaskByIdWithRelationsAsync(taskId, ct);
             return _mapper.Map<TaskDto>(updatedTask!);
@@ -231,17 +250,33 @@ namespace STMM.Business.Services
             };
         }
 
-        private async Task NotifyManagerAsync(
-            StaffTask task, decimal totalCost, int staffUserId, CancellationToken ct)
+        private async Task NotifyQuotationSubmittedAsync(
+            StaffTask task, decimal totalCost, int staffUserId, string paidBy, CancellationToken ct)
         {
-            await _notificationService.CreateAsync(new CreateNotificationRequest
+            if (paidBy == "Market")
             {
-                Title = "Quotation Awaiting Approval",
-                Content = $"Task \"{task.Title}\" has a quotation of {totalCost:#,##0} VNĐ awaiting your approval.",
-                NotiType = "System",
-                CreatedByUserId = staffUserId,
-                TargetRole = "Manager"
-            }, ct);
+                // BQL chịu phí → thông báo Manager duyệt ngân sách
+                await _notificationService.CreateAsync(new CreateNotificationRequest
+                {
+                    Title = "Báo giá cần duyệt (BQL chịu phí)",
+                    Content = $"Task \"{task.Title}\" có báo giá {totalCost:#,##0} VNĐ — BQL chịu phí, cần Manager duyệt.",
+                    NotiType = "System",
+                    CreatedByUserId = staffUserId,
+                    TargetRole = "Manager"
+                }, ct);
+            }
+            else
+            {
+                // Tiểu thương chịu phí → thông báo Manager biết + Vendor duyệt
+                await _notificationService.CreateAsync(new CreateNotificationRequest
+                {
+                    Title = "Báo giá đã gửi cho Tiểu thương",
+                    Content = $"Task \"{task.Title}\" có báo giá {totalCost:#,##0} VNĐ — đã gửi cho Tiểu thương duyệt.",
+                    NotiType = "System",
+                    CreatedByUserId = staffUserId,
+                    TargetRole = "Manager"
+                }, ct);
+            }
         }
 
         private static MaterialLineDto MapMaterialToLineDto(TaskMaterial material)

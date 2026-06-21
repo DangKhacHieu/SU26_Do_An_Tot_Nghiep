@@ -83,6 +83,7 @@ namespace STMM.Business.Mappers
             CreateMap<StaffTask, TaskDto>()
                 .ForMember(dest => dest.AssignedToName, opt => opt.MapFrom(src => src.AssignedToUser != null ? src.AssignedToUser.Name : string.Empty))
                 .ForMember(dest => dest.AreaName, opt => opt.MapFrom(src => src.Area != null ? src.Area.Name : string.Empty))
+                .ForMember(dest => dest.RequestPaidBy, opt => opt.MapFrom(src => src.Request != null ? src.Request.PaidBy : null))
                 .ForMember(dest => dest.Materials, opt => opt.MapFrom(src => src.TaskMaterials));
 
             CreateMap<StaffTask, TaskSummaryDto>()

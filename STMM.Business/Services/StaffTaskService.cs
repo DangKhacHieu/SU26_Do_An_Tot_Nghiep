@@ -220,7 +220,20 @@ namespace STMM.Business.Services
 
             if (oldStatus == "PendingApproval" && task.RequestId.HasValue)
             {
-                throw new BadRequestException("Báo giá của tác vụ liên kết với Yêu cầu sửa chữa (Request) phải do Vendor phê duyệt trực tuyến.");
+                var request = await _requestRepository.GetByIdAsync(task.RequestId.Value, ct);
+                if (request == null || request.PaidBy != "Market")
+                {
+                    throw new BadRequestException("Báo giá của tác vụ liên kết với Yêu cầu sửa chữa (Request) phải do Vendor phê duyệt trực tuyến.");
+                }
+
+                if (newStatus == "In_Progress")
+                {
+                    request.IsQuoteApproved = true;
+                    request.Status = "Approved";
+                    request.QuotationAmount = task.ActualCost;
+                    request.UpdatedAt = DateTime.UtcNow;
+                    _requestRepository.Update(request);
+                }
             }
 
             bool isValid = false;
@@ -253,6 +266,11 @@ namespace STMM.Business.Services
                     if (request != null)
                     {
                         request.Status = "Rejected";
+                        if (oldStatus == "PendingApproval")
+                        {
+                            request.IsQuoteApproved = false;
+                        }
+                        request.UpdatedAt = DateTime.UtcNow;
                         _requestRepository.Update(request);
                     }
                 }

@@ -106,7 +106,7 @@ export default function TaskDetailManager({ taskId, userId, baseUrl, onBack, add
               <button className="btn-secondary" onClick={() => setShowAssignModal(true)}>
                 <IconUser /> REASSIGN STAFF
               </button>
-              {!(task.status === 'PendingApproval' && task.requestId) && (
+              {!(task.status === 'PendingApproval' && task.requestId && task.requestPaidBy !== 'Market') && (
                 <button className="btn-primary" onClick={() => setShowStatusModal(true)}>
                   <IconEditStatus /> UPDATE STATUS
                 </button>
@@ -117,17 +117,60 @@ export default function TaskDetailManager({ taskId, userId, baseUrl, onBack, add
       </div>
 
       {task.status === 'PendingApproval' && task.requestId && (
-        <div className="manager-quotation-pending-vendor-warning">
-          <span className="warning-icon">⚠️</span>
+        <div className="manager-quotation-pending-warning"
+             style={{
+               display: 'flex',
+               alignItems: 'center',
+               gap: '12px',
+               padding: '14px 20px',
+               borderRadius: '8px',
+               marginBottom: '24px',
+               fontSize: '0.88rem',
+               lineHeight: '1.5',
+               background: task.requestPaidBy === 'Market' ? '#e6fffa' : '#fff9db',
+               border: task.requestPaidBy === 'Market' ? '1px solid #319795' : '1px solid #f59f00',
+               color: task.requestPaidBy === 'Market' ? '#234e52' : '#663c00'
+             }}>
+          <span className="warning-icon" style={{ fontSize: '1.25rem' }}>{task.requestPaidBy === 'Market' ? 'ℹ️' : '⚠️'}</span>
           <span className="warning-text">
-            Báo giá vật tư của tác vụ này đang chờ Vendor (Tiểu thương) của Yêu cầu{' '}
-            <span 
-              className="warning-link"
-              onClick={() => navigate('request-detail', task.requestId)}
-            >
-              #REQ-{task.requestId}
-            </span>{' '}
-            phê duyệt trực tuyến. Manager không thể duyệt trực tiếp tại đây.
+            {task.requestPaidBy === 'Market' ? (
+              <>
+                Báo giá vật tư của tác vụ này do <strong>Ban quản lý (Chợ chịu ngân sách)</strong> chi trả.
+                Bạn có thể bấm nút <strong>UPDATE STATUS</strong> để duyệt/từ chối thi công trực tiếp, hoặc{' '}
+                <span 
+                  className="warning-link"
+                  style={{ color: '#2b6cb0', cursor: 'pointer', textDecoration: 'underline', fontWeight: 'bold' }}
+                  onClick={() => navigate('request-detail', task.requestId)}
+                >
+                  Click vào đây để chuyển sang trang chi tiết Yêu cầu #REQ-{task.requestId}
+                </span>{' '}
+                để duyệt báo giá.
+              </>
+            ) : task.requestPaidBy === 'Vendor' ? (
+              <>
+                Báo giá vật tư của tác vụ này đang chờ <strong>Vendor (Tiểu thương)</strong> của Yêu cầu{' '}
+                <span 
+                  className="warning-link"
+                  style={{ color: '#2b6cb0', cursor: 'pointer', textDecoration: 'underline', fontWeight: 'bold' }}
+                  onClick={() => navigate('request-detail', task.requestId)}
+                >
+                  #REQ-{task.requestId}
+                </span>{' '}
+                phê duyệt trực tuyến. Bạn không thể duyệt trực tiếp tại đây.
+              </>
+            ) : (
+              <>
+                Báo giá vật tư của tác vụ này chưa được phân định bên chi trả chi phí. Vui lòng{' '}
+                <span 
+                  className="warning-link"
+                  style={{ color: '#2b6cb0', cursor: 'pointer', textDecoration: 'underline', fontWeight: 'bold' }}
+                  onClick={() => navigate('request-detail', task.requestId)}
+                >
+                  Click vào đây để chuyển sang trang chi tiết Yêu cầu #REQ-{task.requestId}
+                </span>{' '}
+                để chọn bên chi trả (BQL hoặc Tiểu thương) và phê duyệt báo giá.
+              </>
+            )}
           </span>
         </div>
       )}

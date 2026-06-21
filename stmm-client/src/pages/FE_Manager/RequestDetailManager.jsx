@@ -84,7 +84,8 @@ export default function RequestDetailManager({ requestId, navigate, addToast }) 
     try {
       const res = await fetch(`${API_BASE}/${requestId}`);
       if (!res.ok) throw new Error();
-      setRequest(await res.json());
+      const data = await res.json();
+      setRequest(data);
     } catch {
       addToast('Không thể tải chi tiết yêu cầu.', 'error');
     } finally {
@@ -103,6 +104,25 @@ export default function RequestDetailManager({ requestId, navigate, addToast }) 
       await fetchRequestDetail();
     } catch {
       addToast('Thao tác thất bại. Vui lòng thử lại.', 'error');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleResolveQuote = async (approve) => {
+    setSubmitting(true);
+    try {
+      const res = await fetch(`${API_BASE}/${requestId}/resolve-quote?approve=${approve}`, {
+        method: 'POST',
+      });
+      if (!res.ok) {
+        const errData = await res.text();
+        throw new Error(errData || 'Thao tác thất bại.');
+      }
+      addToast(approve ? 'Đã phê duyệt báo giá và cập nhật trạng thái thi công.' : 'Đã từ chối báo giá.', 'success');
+      await fetchRequestDetail();
+    } catch (err) {
+      addToast(err.message || 'Thao tác thất bại. Vui lòng thử lại.', 'error');
     } finally {
       setSubmitting(false);
     }
@@ -334,6 +354,93 @@ export default function RequestDetailManager({ requestId, navigate, addToast }) 
                 >
                   <IconX /> Bác bỏ kháng nghị
                 </button>
+              </div>
+            </div>
+          )}
+
+          {/* Action section for FacilityIssue Quotation Approval — BQL chịu phí */}
+          {request.requestType === 'FacilityIssue' && request.status === 'Quoted' && request.isQuoteApproved === null && request.paidBy === 'Market' && (
+            <div className="rd-card rd-action-card" style={{ borderLeft: '4px solid #3b82f6', background: '#f0f9ff' }}>
+              <div className="rd-card-header" style={{ color: '#1d4ed8', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <IconTool />
+                <span style={{ fontWeight: '700' }}>Phê duyệt Báo giá sửa chữa (BQL chịu phí)</span>
+              </div>
+              
+              <div style={{ marginTop: '16px' }}>
+                <p style={{ margin: '0 0 16px 0', fontSize: '0.88rem', color: '#4b5563', lineHeight: '1.5' }}>
+                  Nhân viên đã khảo sát và xác định <strong>BQL chịu phí</strong> cho yêu cầu sửa chữa này.
+                  Vui lòng xem xét báo giá và phê duyệt hoặc từ chối chi phí từ ngân sách chợ.
+                </p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
+                  <button
+                    disabled={submitting}
+                    onClick={() => handleResolveQuote(true)}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      padding: '10px 18px',
+                      fontSize: '0.88rem',
+                      fontWeight: '600',
+                      border: 'none',
+                      borderRadius: '8px',
+                      cursor: submitting ? 'not-allowed' : 'pointer',
+                      flex: 1,
+                      background: '#10b981',
+                      color: '#ffffff',
+                      boxShadow: '0 2px 4px rgba(16, 185, 129, 0.15)',
+                      transition: 'all 0.15s ease'
+                    }}
+                    onMouseEnter={(e) => { if(!submitting) e.currentTarget.style.backgroundColor = '#059669'; }}
+                    onMouseLeave={(e) => { if(!submitting) e.currentTarget.style.backgroundColor = '#10b981'; }}
+                  >
+                    <IconCheck /> Duyệt báo giá
+                  </button>
+
+                  <button
+                    disabled={submitting}
+                    onClick={() => handleResolveQuote(false)}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      padding: '10px 18px',
+                      fontSize: '0.88rem',
+                      fontWeight: '600',
+                      border: 'none',
+                      borderRadius: '8px',
+                      cursor: submitting ? 'not-allowed' : 'pointer',
+                      flex: 1,
+                      background: '#ef4444',
+                      color: '#ffffff',
+                      boxShadow: '0 2px 4px rgba(239, 68, 68, 0.15)',
+                      transition: 'all 0.15s ease'
+                    }}
+                    onMouseEnter={(e) => { if(!submitting) e.currentTarget.style.backgroundColor = '#dc2626'; }}
+                    onMouseLeave={(e) => { if(!submitting) e.currentTarget.style.backgroundColor = '#ef4444'; }}
+                  >
+                    <IconX /> Từ chối báo giá
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Info banner for FacilityIssue — Tiểu thương chịu phí → chờ Vendor duyệt */}
+          {request.requestType === 'FacilityIssue' && request.status === 'Quoted' && request.isQuoteApproved === null && request.paidBy === 'Vendor' && (
+            <div className="rd-card rd-action-card" style={{ borderLeft: '4px solid #f59e0b', background: '#fffbeb' }}>
+              <div className="rd-card-header" style={{ color: '#b45309', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <IconInfo />
+                <span style={{ fontWeight: '700' }}>Đang chờ Tiểu thương duyệt báo giá</span>
+              </div>
+              <div style={{ marginTop: '12px' }}>
+                <p style={{ margin: 0, fontSize: '0.88rem', color: '#92400e', lineHeight: '1.6' }}>
+                  Nhân viên đã khảo sát và xác định <strong>Tiểu thương chịu phí</strong> cho yêu cầu này.
+                  Báo giá đã được gửi cho tiểu thương để xem xét và phê duyệt trên portal của họ.
+                  Khi tiểu thương duyệt, trạng thái sẽ tự động cập nhật.
+                </p>
               </div>
             </div>
           )}
