@@ -67,5 +67,38 @@ namespace STMM.DataAccess.Repositories
             return await _context.Issues
                 .AnyAsync(i => i.IssueId == issueId && i.CreatedByUserId == staffUserId, ct);
         }
+
+        public async Task<(IEnumerable<Issue> Items, int TotalCount)> GetIssuesForManagerPagedAsync(
+            string? status,
+            bool sortDescending,
+            int pageNumber,
+            int pageSize,
+            CancellationToken ct = default)
+        {
+            var query = _context.Issues
+                .Include(i => i.Stall)
+                .Include(i => i.CreatedByUser)
+                .Include(i => i.StaffTasks)
+                .AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(status))
+            {
+                query = query.Where(i => i.Status == status);
+            }
+
+            var totalCount = await query.CountAsync(ct);
+
+            query = sortDescending
+                ? query.OrderByDescending(i => i.CreatedAt)
+                : query.OrderBy(i => i.CreatedAt);
+
+            var items = await query
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .AsNoTracking()
+                .ToListAsync(ct);
+
+            return (items, totalCount);
+        }
     }
 }

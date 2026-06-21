@@ -28,6 +28,7 @@ namespace STMM.DataAccess.IRepositories
 
         Task<(IEnumerable<Violation> Items, int TotalCount)> GetViolationsForVendorPagedAsync(
             int vendorId,
+            int? stallId,
             string? status,
             string? searchTerm,
             bool sortDescending,

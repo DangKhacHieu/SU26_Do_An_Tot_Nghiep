@@ -34,6 +34,11 @@ public partial class Area
     public string? Description { get; set; }
 
     /// <summary>
+    /// Diện tích (size)
+    /// </summary>
+    public double? Size { get; set; }
+
+    /// <summary>
     /// Tọa độ góc trái dưới trên Floor Map
     /// </summary>
     public double? MinX { get; set; }

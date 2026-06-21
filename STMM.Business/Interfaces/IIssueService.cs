@@ -9,5 +9,7 @@ namespace STMM.Business.Interfaces
         Task<IssueDto> GetIssueByIdAsync(int issueId, int staffUserId, CancellationToken ct = default);
         Task<IssueDto> CreateIssueAsync(int staffUserId, CreateIssueRequest request, CancellationToken ct = default);
         Task<IssueDto> UpdateIssueStatusAsync(int staffUserId, int issueId, UpdateIssueStatusRequest request, CancellationToken ct = default);
+        Task<PagedResult<IssueDto>> GetIssuesForManagerAsync(IssueQueryParams queryParams, CancellationToken ct = default);
+        Task<IssueDto> GetIssueByIdForManagerAsync(int issueId, CancellationToken ct = default);
     }
 }

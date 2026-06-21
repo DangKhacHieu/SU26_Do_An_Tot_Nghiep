@@ -26,6 +26,7 @@ namespace STMM.Business.Services
         {
             var (items, totalCount) = await _requestRepository.GetRequestsPagedAsync(
                 null, // vendorId
+                queryParams.StallId, // stallId
                 queryParams.Status,
                 queryParams.RequestType,
                 queryParams.SearchTerm,

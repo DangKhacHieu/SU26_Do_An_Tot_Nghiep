@@ -133,6 +133,12 @@ const NAV_GROUPS = [
         icon: <IconAlert />,
         childKeys: ['violation-details'],
       },
+      {
+        key: 'issues',
+        label: 'Quản lý Sự cố',
+        icon: <IconAlert />,
+        childKeys: ['issue-details'],
+      },
     ],
   },
 ];

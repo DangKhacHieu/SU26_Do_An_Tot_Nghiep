@@ -60,6 +60,8 @@ import RequestListManager from "./pages/FE_Manager/RequestListManager";
 import RequestDetailManager from "./pages/FE_Manager/RequestDetailManager";
 import ViolationListManager from "./pages/FE_Manager/ViolationListManager";
 import ViolationDetailsManager from "./pages/FE_Manager/ViolationDetailsManager";
+import IssueListManager from "./pages/FE_Manager/IssueListManager";
+import IssueDetailManager from "./pages/FE_Manager/IssueDetailManager";
 
 // FE Admin System Imports
 import SidebarAdminSystem from "./pages/FE_AdminSystem/SidebarAdminSystem";
@@ -179,6 +181,14 @@ const PAGE_TITLES = {
   "violation-details": {
     title: "Chi tiết Biên bản Vi phạm",
     sub: "Xem thông tin chi tiết và xử lý kháng nghị của biên bản vi phạm.",
+  },
+  issues: {
+    title: "Quản lý Sự cố Hạ tầng",
+    sub: "Xem và xử lý danh sách sự cố báo cáo từ sạp hàng.",
+  },
+  "issue-details": {
+    title: "Chi tiết Sự cố Hạ tầng",
+    sub: "Chi tiết sự cố và thông tin xử lý/bàn giao tác vụ sửa chữa.",
   },
 
   // Admin System Titles
@@ -329,7 +339,9 @@ function AppContent() {
         navigatePath("/manager/dashboard", true);
       } else if (role === "staff" && !path.startsWith("/staff/")) {
         navigatePath("/staff/dashboard", true);
-      } else if ((role === "customer" || role === "vendor") && ["/login", "/register", "/forgot-password"].includes(path)) {
+      } else if (role === "vendor" && ["/login", "/register", "/forgot-password"].includes(path)) {
+        navigatePath("/vendor/dashboard", true);
+      } else if (role === "customer" && ["/login", "/register", "/forgot-password"].includes(path)) {
         navigatePath("/", true);
       }
     }
@@ -337,7 +349,11 @@ function AppContent() {
 
   const handleLoginSuccess = (loginResult) => {
     const loginUser = loginResult?.user || null;
-    const redirectPath = loginResult?.redirectUrl || "/";
+    let redirectPath = loginResult?.redirectUrl || "/";
+
+    if (loginUser?.roleName?.toLowerCase() === "vendor" && redirectPath === "/") {
+      redirectPath = "/vendor/dashboard";
+    }
 
     setUser(loginUser);
     navigatePath(redirectPath, true); // Clean up the login entry in the history stack
@@ -541,6 +557,25 @@ function AppContent() {
         return (
           <ViolationDetailsManager
             violationId={currentUserId}
+            navigate={navigate}
+            addToast={addToast}
+          />
+        );
+      case "issues":
+        return (
+          <IssueListManager
+            userId={userId}
+            baseUrl={baseUrl}
+            navigate={navigate}
+            addToast={addToast}
+          />
+        );
+      case "issue-details":
+        return (
+          <IssueDetailManager
+            issueId={currentUserId}
+            userId={userId}
+            baseUrl={baseUrl}
             navigate={navigate}
             addToast={addToast}
           />
@@ -1231,13 +1266,16 @@ function AppContent() {
       <Route path="/manager/dashboard" element={renderManagerOrAdminConsole()} />
       <Route path="/staff/dashboard" element={renderStaffConsole()} />
       
-      <Route path="/vendor/dashboard" element={
-        <VendorDashboard
-          user={user}
-          onBack={() => navigatePath("/")}
-          onLogout={handleLogout}
-        />
-      } />
+      {/* Vendor Portal Route */}
+      <Route element={<ProtectedRoute allowedRoles={["Vendor"]} />}>
+        <Route path="/vendor/dashboard" element={
+          <VendorDashboard
+            user={user}
+            onBack={() => navigatePath("/")}
+            onLogout={handleLogout}
+          />
+        } />
+      </Route>
 
       {/* 4. Protected Accountant Portal Routing */}
       <Route element={<ProtectedRoute allowedRoles={["Accountant"]} />}>

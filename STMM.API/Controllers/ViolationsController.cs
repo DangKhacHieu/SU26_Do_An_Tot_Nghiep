@@ -10,7 +10,7 @@ namespace STMM.API.Controllers
 {
     [ApiController]
     [Route("api/violations")]
-    [Authorize(Roles = "Staff")]
+    [Authorize]
     public class ViolationsController : ControllerBase
     {
         private readonly IViolationService _violationService;
@@ -34,6 +34,7 @@ namespace STMM.API.Controllers
         /// UC-54: View Violation List — Staff xem danh sách vi phạm do mình tạo.
         /// </summary>
         [HttpGet]
+        [Authorize(Roles = "Staff")]
         public async Task<IActionResult> GetViolations(
             [FromQuery] int userId,
             [FromQuery] ViolationQueryParams queryParams,
@@ -48,6 +49,7 @@ namespace STMM.API.Controllers
         /// UC-56: View Violation Details — Staff xem chi tiết một vi phạm.
         /// </summary>
         [HttpGet("{id}")]
+        [Authorize(Roles = "Staff")]
         public async Task<IActionResult> GetViolationById(
             int id,
             [FromQuery] int userId,
@@ -62,6 +64,7 @@ namespace STMM.API.Controllers
         /// UC-55: Create Violation Report — Staff lập biên bản vi phạm mới.
         /// </summary>
         [HttpPost]
+        [Authorize(Roles = "Staff")]
         public async Task<IActionResult> CreateViolation(
             [FromQuery] int userId,
             [FromBody] CreateViolationRequest request,
@@ -76,6 +79,7 @@ namespace STMM.API.Controllers
         /// Get Violation Types — Lấy danh sách loại vi phạm đang hoạt động.
         /// </summary>
         [HttpGet("types")]
+        [Authorize(Roles = "Staff,Manager,Accountant")]
         public async Task<IActionResult> GetViolationTypes(CancellationToken ct)
         {
             var result = await _violationService.GetViolationTypesAsync(ct);
@@ -86,6 +90,7 @@ namespace STMM.API.Controllers
         /// UC-xx: View Violations List for Manager — Manager xem tất cả vi phạm.
         /// </summary>
         [HttpGet("~/api/manager/violations")]
+        [Authorize(Roles = "Manager")]
         public async Task<IActionResult> GetViolationsForManager(
             [FromQuery] ViolationQueryParams queryParams,
             CancellationToken ct)
@@ -100,6 +105,7 @@ namespace STMM.API.Controllers
         /// Lấy toàn bộ danh sách biên bản vi phạm của toàn hệ thống (tra cứu nộp phạt).
         /// </summary>
         [HttpGet("all")]
+        [Authorize(Roles = "Accountant")]
         public async Task<IActionResult> GetAllViolations(CancellationToken ct)
         {
             var result = await _violationService.GetAllViolationsAsync(ct);
@@ -110,6 +116,7 @@ namespace STMM.API.Controllers
         /// UC-xx: View Violation Details for Manager — Manager xem chi tiết vi phạm.
         /// </summary>
         [HttpGet("~/api/manager/violations/{id:int}")]
+        [Authorize(Roles = "Manager")]
         public async Task<IActionResult> GetViolationByIdForManager(
             int id,
             CancellationToken ct)
@@ -122,6 +129,7 @@ namespace STMM.API.Controllers
         /// Lấy toàn bộ danh mục Loại vi phạm (kèm cả loại đã ẩn).
         /// </summary>
         [HttpGet("types/all")]
+        [Authorize(Roles = "Accountant")]
         public async Task<IActionResult> GetAllViolationTypes(CancellationToken ct)
         {
             var result = await _violationService.GetAllViolationTypesWithInactiveAsync(ct);
@@ -132,6 +140,7 @@ namespace STMM.API.Controllers
         /// Mock/Simulate creating an appeal request for a violation (for demo/testing purposes)
         /// </summary>
         [HttpPost("~/api/manager/violations/{id:int}/simulate-appeal")]
+        [Authorize(Roles = "Manager")]
         public async Task<IActionResult> SimulateAppeal(int id, CancellationToken ct)
         {
             var result = await _violationService.SimulateViolationAppealAsync(id, ct);
@@ -143,6 +152,7 @@ namespace STMM.API.Controllers
         /// Tạo loại vi phạm mới.
         /// </summary>
         [HttpPost("types")]
+        [Authorize(Roles = "Accountant")]
         public async Task<IActionResult> CreateViolationType([FromBody] CreateViolationTypeRequest request, CancellationToken ct)
         {
             var result = await _violationService.CreateViolationTypeAsync(request, ct);
@@ -153,6 +163,7 @@ namespace STMM.API.Controllers
         /// Cập nhật loại vi phạm.
         /// </summary>
         [HttpPut("types/{id}")]
+        [Authorize(Roles = "Accountant")]
         public async Task<IActionResult> UpdateViolationType(int id, [FromBody] UpdateViolationTypeRequest request, CancellationToken ct)
         {
             var result = await _violationService.UpdateViolationTypeAsync(id, request, ct);
@@ -163,6 +174,7 @@ namespace STMM.API.Controllers
         /// Xóa (Ẩn hoạt động) loại vi phạm.
         /// </summary>
         [HttpDelete("types/{id}")]
+        [Authorize(Roles = "Accountant")]
         public async Task<IActionResult> DeleteViolationType(int id, CancellationToken ct)
         {
             var result = await _violationService.DeleteViolationTypeAsync(id, ct);

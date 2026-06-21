@@ -15,6 +15,7 @@ namespace STMM.Business.DTOs.Request
         public int? InvoiceId { get; set; }
         public string Title { get; set; } = null!;
         public string Description { get; set; } = null!;
+        public string? ImageUrl { get; set; }
         public string? Status { get; set; }
         public string? QuotationText { get; set; }
         public decimal? QuotationAmount { get; set; }
