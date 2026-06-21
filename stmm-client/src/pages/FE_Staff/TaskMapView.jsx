@@ -130,7 +130,7 @@ export default function TaskMapView({ userId, baseUrl, onBack, onViewDetails }) 
   const getTaskStatusLabel = (status) => {
     switch (status) {
       case TASK_STATUS.PENDING: return "Pending";
-      case TASK_STATUS.PENDING_APPROVAL: return "Pending Quote Approval";
+      case TASK_STATUS.PENDING_APPROVAL: return "Pending Approval";
       case TASK_STATUS.IN_PROGRESS: return "In Progress";
       default: return status;
     }
@@ -197,9 +197,6 @@ export default function TaskMapView({ userId, baseUrl, onBack, onViewDetails }) 
       {/* Header controls */}
       <div className="map-view-header">
         <div className="header-left">
-          <button className="btn-back-link" id="btn-task-map-back" onClick={onBack}>
-            ← Back to List
-          </button>
           <h1>📍 Task Map View</h1>
         </div>
         <div className="header-right">
@@ -209,6 +206,9 @@ export default function TaskMapView({ userId, baseUrl, onBack, onViewDetails }) 
           <span className="summary-badge">
             🏪 Stalls with Tasks: <strong>{stallsWithTasksCount}</strong>
           </span>
+          <button className="btn-back-link" id="btn-task-map-back" onClick={onBack}>
+            ← Back to List
+          </button>
         </div>
       </div>
 

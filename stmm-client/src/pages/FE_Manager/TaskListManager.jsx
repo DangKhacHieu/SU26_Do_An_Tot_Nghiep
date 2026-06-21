@@ -101,15 +101,48 @@ export default function TaskListManager({ userId, baseUrl, navigate, addToast })
 
 
 
+  // SEO & metadata management
+  useEffect(() => {
+    const originalTitle = document.title;
+    document.title = "STMM - Quản lý Danh sách Tác vụ";
+
+    let metaDesc = document.querySelector('meta[name="description"]');
+    const originalDesc = metaDesc ? metaDesc.getAttribute("content") : "";
+
+    if (!metaDesc) {
+      metaDesc = document.createElement("meta");
+      metaDesc.name = "description";
+      document.head.appendChild(metaDesc);
+    }
+    metaDesc.setAttribute("content", "Trang quản lý, phân công và giám sát các tác vụ vận hành của ban quản lý STMM.");
+
+    return () => {
+      document.title = originalTitle;
+      if (metaDesc) {
+        if (originalDesc) {
+          metaDesc.setAttribute("content", originalDesc);
+        } else {
+          metaDesc.remove();
+        }
+      }
+    };
+  }, []);
+
   return (
-    <div className="task-manager-container">
+    <main className="task-manager-container" id="task-manager-main-view">
+      <header className="page-header" id="task-manager-page-header">
+        <h1>Operational Tasks Management</h1>
+        <p className="subtitle">Giám sát, phân công và cập nhật trạng thái các công việc vận hành</p>
+      </header>
+
       {/* ── Toolbar ── */}
-      <div className="toolbar">
+      <section className="toolbar-section" id="task-manager-toolbar-section">
         <div className="toolbar-left">
           <div className="search-wrap">
             <IconSearch />
             <input
               type="text"
+              id="input-manager-task-search"
               className="search-input"
               placeholder="Search by title or description..."
               value={searchQuery}
@@ -119,11 +152,18 @@ export default function TaskListManager({ userId, baseUrl, navigate, addToast })
               }}
             />
             {searchQuery && (
-              <button className="search-clear" onClick={() => setSearchQuery('')}>&times;</button>
+              <button 
+                id="btn-manager-task-search-clear"
+                className="search-clear" 
+                onClick={() => setSearchQuery('')}
+              >
+                &times;
+              </button>
             )}
           </div>
 
           <select
+            id="select-manager-task-type"
             className="filter-select"
             value={typeFilter}
             onChange={(e) => {
@@ -139,6 +179,7 @@ export default function TaskListManager({ userId, baseUrl, navigate, addToast })
           </select>
 
           <select
+            id="select-manager-task-status"
             className="filter-select"
             value={statusFilter}
             onChange={(e) => {
@@ -155,127 +196,141 @@ export default function TaskListManager({ userId, baseUrl, navigate, addToast })
           </select>
 
           {(searchQuery || typeFilter || statusFilter) && (
-            <button className="btn-filter-clear" onClick={handleClearFilters}>
+            <button 
+              id="btn-manager-task-reset-filters"
+              className="btn-filter-clear" 
+              onClick={handleClearFilters}
+            >
               Clear Filters
             </button>
           )}
         </div>
 
-        <button className="btn-primary" onClick={() => setShowCreateModal(true)}>
+        <button 
+          id="btn-manager-create-task"
+          className="btn-primary" 
+          onClick={() => setShowCreateModal(true)}
+        >
           <IconPlus /> CREATE TASK
         </button>
-      </div>
+      </section>
 
       {/* ── Table Card ── */}
-      <div className="table-card">
-        <div className="table-card-header">
-          <span className="table-card-title">Task Overview</span>
-          <span className="table-count-badge">{totalCount} Tasks</span>
-        </div>
+      <section className="table-section" id="task-manager-table-section">
+        <div className="table-card">
+          <div className="table-card-header">
+            <span className="table-card-title">Task Overview</span>
+            <span className="table-count-badge">{totalCount} Tasks</span>
+          </div>
 
-        <div className="table-responsive">
-          {loading ? (
-            <div className="state-empty">
-              <div className="spinner"></div>
-              <p className="state-empty-text">Loading operational tasks...</p>
-            </div>
-          ) : tasks.length === 0 ? (
-            <div className="state-empty">
-              <IconEmpty />
-              <p className="state-empty-text">No tasks found matching current filters.</p>
-            </div>
-          ) : (
-            <table className="cat-table">
-              <thead>
-                <tr>
-                  <th style={{ width: '60px', textAlign: 'center' }}>ID</th>
-                  <th>Task Label</th>
-                  <th>Task Type</th>
-                  <th>Created At</th>
-                  <th>Status</th>
-                  <th>Assigned Staff</th>
-                  <th style={{ width: '120px', textAlign: 'right' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {tasks.map((task) => {
-                  return (
-                    <tr 
-                      key={task.taskId} 
-                      className="task-row-clickable"
-                      onClick={() => navigate('task-details', task.taskId)}
-                    >
-                      <td className="row-no">#{task.taskId}</td>
-                      <td>
-                        <div className="task-title-cell">
-                          <span className="task-title-text">{task.title}</span>
-                          {task.description && (
-                            <span className="task-desc-hint">{task.description}</span>
-                          )}
-                        </div>
-                      </td>
-                      <td>
-                        <span className="task-type-badge">
-                          {formatTaskType(task.taskType)}
-                        </span>
-                        {task.areaName && (
-                          <span className="task-area-badge">
-                            Area: {task.areaName}
+          <div className="table-responsive">
+            {loading ? (
+              <div className="state-empty">
+                <div className="spinner"></div>
+                <p className="state-empty-text">Loading operational tasks...</p>
+              </div>
+            ) : tasks.length === 0 ? (
+              <div className="state-empty">
+                <IconEmpty />
+                <p className="state-empty-text">No tasks found matching current filters.</p>
+              </div>
+            ) : (
+              <table className="cat-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: '60px', textAlign: 'center' }}>ID</th>
+                    <th>Task Label</th>
+                    <th>Task Type</th>
+                    <th>Created At</th>
+                    <th>Status</th>
+                    <th>Assigned Staff</th>
+                    <th style={{ width: '120px', textAlign: 'right' }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {tasks.map((task) => {
+                    return (
+                      <tr 
+                        key={task.taskId} 
+                        id={`tr-manager-task-${task.taskId}`}
+                        className="task-row-clickable"
+                        onClick={() => navigate('task-details', task.taskId)}
+                      >
+                        <td className="row-no">#{task.taskId}</td>
+                        <td>
+                          <div className="task-title-cell">
+                            <span className="task-title-text">{task.title}</span>
+                            {task.description && (
+                              <span className="task-desc-hint">{task.description}</span>
+                            )}
+                          </div>
+                        </td>
+                        <td>
+                          <span className="task-type-badge">
+                            {formatTaskType(task.taskType)}
                           </span>
-                        )}
-                      </td>
-                      <td>{formatDate(task.createdAt)}</td>
-                      <td>
-                        <span className={`badge-status status-${task.status.toLowerCase()}`}>
-                          <span className="badge-dot"></span>
-                          {formatStatus(task.status)}
-                        </span>
-                      </td>
-                      <td>
-                        <div className="staff-assignee-cell">
-                          <span className="staff-name-text">{task.assignedToName}</span>
-                        </div>
-                      </td>
-                      <td className="actions-cell" onClick={(e) => e.stopPropagation()}>
-                        <button 
-                          className="btn-icon edit" 
-                          title="View Details"
-                          onClick={() => navigate('task-details', task.taskId)}
-                        >
-                          <IconEye />
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                          {task.areaName && (
+                            <span className="task-area-badge">
+                              Area: {task.areaName}
+                            </span>
+                          )}
+                        </td>
+                        <td>{formatDate(task.createdAt)}</td>
+                        <td>
+                          <span className={`badge-status status-${task.status.toLowerCase()}`}>
+                            <span className="badge-dot"></span>
+                            {formatStatus(task.status)}
+                          </span>
+                        </td>
+                        <td>
+                          <div className="staff-assignee-cell">
+                            <span className="staff-name-text">{task.assignedToName}</span>
+                          </div>
+                        </td>
+                        <td className="actions-cell" onClick={(e) => e.stopPropagation()}>
+                          <button 
+                            id={`btn-manager-view-details-${task.taskId}`}
+                            className="btn-icon edit" 
+                            title="View Details"
+                            onClick={() => navigate('task-details', task.taskId)}
+                          >
+                            <IconEye />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
+
+          {/* Pagination Footer */}
+          {totalPages > 1 && (
+            <div className="pagination-footer">
+              <button 
+                id="btn-manager-page-prev"
+                className="btn-secondary btn-pagination" 
+                disabled={pageNumber === 1}
+                onClick={() => setPageNumber(p => Math.max(1, p - 1))}
+              >
+                Previous
+              </button>
+              <span className="pagination-text">
+                Page {pageNumber} of {totalPages}
+              </span>
+              <button 
+                id="btn-manager-page-next"
+                className="btn-secondary btn-pagination" 
+                disabled={pageNumber === totalPages}
+                onClick={() => setPageNumber(p => Math.min(totalPages, p + 1))}
+              >
+                Next
+              </button>
+            </div>
           )}
         </div>
-
-        {/* Pagination Footer */}
-        {totalPages > 1 && (
-          <div className="pagination-footer">
-            <button 
-              className="btn-secondary btn-pagination" 
-              disabled={pageNumber === 1}
-              onClick={() => setPageNumber(p => Math.max(1, p - 1))}
-            >
-              Previous
-            </button>
-            <span className="pagination-text">
-              Page {pageNumber} of {totalPages}
-            </span>
-            <button 
-              className="btn-secondary btn-pagination" 
-              disabled={pageNumber === totalPages}
-              onClick={() => setPageNumber(p => Math.min(totalPages, p + 1))}
-            >
-              Next
-            </button>
-          </div>
-        )}
-      </div>
+      </section>
 
       {/* ── Modals ── */}
       {showCreateModal && (
@@ -290,6 +345,6 @@ export default function TaskListManager({ userId, baseUrl, navigate, addToast })
           addToast={addToast}
         />
       )}
-    </div>
+    </main>
   );
 }

@@ -20,6 +20,42 @@ export default function TaskDetailManager({ taskId, userId, baseUrl, onBack, add
     fetchTaskDetails();
   }, [baseUrl, taskId]);
 
+  // SEO & metadata management
+  useEffect(() => {
+    const originalTitle = document.title;
+    if (task) {
+      document.title = `STMM - Chi tiết Tác vụ #${task.taskId}`;
+    } else {
+      document.title = `STMM - Chi tiết Tác vụ`;
+    }
+
+    let metaDesc = document.querySelector('meta[name="description"]');
+    const originalDesc = metaDesc ? metaDesc.getAttribute("content") : "";
+
+    if (!metaDesc) {
+      metaDesc = document.createElement("meta");
+      metaDesc.name = "description";
+      document.head.appendChild(metaDesc);
+    }
+    
+    if (task) {
+      metaDesc.setAttribute("content", `Chi tiết kỹ thuật, tiến độ thực hiện và lịch sử hoạt động của tác vụ vận hành số #${task.taskId} tại hệ thống STMM.`);
+    } else {
+      metaDesc.setAttribute("content", "Trang xem chi tiết kỹ thuật và cập nhật phân công, trạng thái tác vụ vận hành STMM.");
+    }
+
+    return () => {
+      document.title = originalTitle;
+      if (metaDesc) {
+        if (originalDesc) {
+          metaDesc.setAttribute("content", originalDesc);
+        } else {
+          metaDesc.remove();
+        }
+      }
+    };
+  }, [task]);
+
   const fetchTaskDetails = async () => {
     setLoading(true);
     try {
@@ -94,27 +130,33 @@ export default function TaskDetailManager({ taskId, userId, baseUrl, onBack, add
   const materialsTotal = (task.materials || []).reduce((acc, m) => acc + (m.amount || 0), 0);
 
   return (
-    <div className="task-detail-container">
+    <main className="task-detail-container" id="task-detail-manager-main-view">
+      {/* ── Page Header ── */}
+      <header className="page-header" id="task-detail-manager-page-header">
+        <h1>Task Details: {task.title}</h1>
+        <p className="subtitle">Mã tác vụ: #{task.taskId} &bull; Loại: {formatTaskType(task.taskType)}</p>
+      </header>
+
       {/* ── Top Header Navbar ── */}
-      <div className="detail-action-bar">
-        <button className="btn-secondary back-btn" onClick={onBack}>
+      <nav className="detail-action-bar" id="task-detail-manager-action-bar">
+        <button id="btn-manager-detail-back" className="btn-secondary back-btn" onClick={onBack}>
           <IconBack /> BACK TO LIST
         </button>
         <div className="action-buttons-group">
           {task.status !== 'Completed' && task.status !== 'Cancelled' && (
             <>
-              <button className="btn-secondary" onClick={() => setShowAssignModal(true)}>
+              <button id="btn-manager-reassign-staff" className="btn-secondary" onClick={() => setShowAssignModal(true)}>
                 <IconUser /> REASSIGN STAFF
               </button>
               {!(task.status === 'PendingApproval' && task.requestId) && (
-                <button className="btn-primary" onClick={() => setShowStatusModal(true)}>
+                <button id="btn-manager-update-status" className="btn-primary" onClick={() => setShowStatusModal(true)}>
                   <IconEditStatus /> UPDATE STATUS
                 </button>
               )}
             </>
           )}
         </div>
-      </div>
+      </nav>
 
       {task.status === 'PendingApproval' && task.requestId && (
         <div className="manager-quotation-pending-vendor-warning">
@@ -122,6 +164,7 @@ export default function TaskDetailManager({ taskId, userId, baseUrl, onBack, add
           <span className="warning-text">
             Báo giá vật tư của tác vụ này đang chờ Vendor (Tiểu thương) của Yêu cầu{' '}
             <span 
+              id={`link-linked-request-warning-${task.requestId}`}
               className="warning-link"
               onClick={() => navigate('request-detail', task.requestId)}
             >
@@ -132,9 +175,9 @@ export default function TaskDetailManager({ taskId, userId, baseUrl, onBack, add
         </div>
       )}
 
-      <div className="detail-grid">
+      <section className="detail-grid" id="task-detail-manager-grid">
         {/* ── LEFT COLUMN: TECHNICAL SPECS ── */}
-        <div className="detail-left-column">
+        <section className="detail-left-column" id="task-detail-manager-left-col">
           {/* Summary Card */}
           <div className="spec-card">
             <h3 className="spec-title">TASK SPECIFICATIONS</h3>
@@ -160,6 +203,7 @@ export default function TaskDetailManager({ taskId, userId, baseUrl, onBack, add
                 <div className="summary-field">
                   <span className="summary-label">LINKED CUSTOMER REQUEST</span>
                   <span 
+                    id={`link-linked-request-${task.requestId}`}
                     className="summary-val text-bold" 
                     style={{ color: '#2563eb', cursor: 'pointer', textDecoration: 'underline' }}
                     onClick={() => navigate('request-detail', task.requestId)}
@@ -246,10 +290,10 @@ export default function TaskDetailManager({ taskId, userId, baseUrl, onBack, add
               </div>
             </div>
           )}
-        </div>
+        </section>
 
         {/* ── RIGHT COLUMN: WORKFLOW STATUS & HISTORY ── */}
-        <div className="detail-right-column">
+        <aside className="detail-right-column" id="task-detail-manager-right-col">
           {/* Current Status Badge Widget */}
           <div className="spec-card status-widget-card">
             <span className="status-widget-title">CURRENT OPERATION STATE</span>
@@ -342,8 +386,8 @@ export default function TaskDetailManager({ taskId, userId, baseUrl, onBack, add
 
             </div>
           </div>
-        </div>
-      </div>
+        </aside>
+      </section>
 
       {/* ── Modals ── */}
       {showAssignModal && (
@@ -373,6 +417,6 @@ export default function TaskDetailManager({ taskId, userId, baseUrl, onBack, add
           addToast={addToast}
         />
       )}
-    </div>
+    </main>
   );
 }

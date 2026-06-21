@@ -98,7 +98,7 @@ export default function TaskList({ userId, baseUrl, onViewDetails, onViewMap }) 
   const getStatusLabel = (status) => {
     switch (status) {
       case TASK_STATUS.PENDING: return 'Pending';
-      case TASK_STATUS.PENDING_APPROVAL: return 'Pending Quote Approval';
+      case TASK_STATUS.PENDING_APPROVAL: return 'Pending Approval';
       case TASK_STATUS.IN_PROGRESS: return 'In Progress';
       case TASK_STATUS.COMPLETED: return 'Completed';
       case TASK_STATUS.CANCELLED: return 'Cancelled';
@@ -127,29 +127,69 @@ export default function TaskList({ userId, baseUrl, onViewDetails, onViewMap }) 
     }
   };
 
+  // SEO & metadata management
+  useEffect(() => {
+    const originalTitle = document.title;
+    document.title = "STMM - Danh sách Tác vụ Nhân viên";
+
+    let metaDesc = document.querySelector('meta[name="description"]');
+    const originalDesc = metaDesc ? metaDesc.getAttribute("content") : "";
+
+    if (!metaDesc) {
+      metaDesc = document.createElement("meta");
+      metaDesc.name = "description";
+      document.head.appendChild(metaDesc);
+    }
+    metaDesc.setAttribute("content", "Danh sách tác vụ hàng ngày, quản lý sửa chữa và đối soát chỉ số của nhân viên hiện trường STMM.");
+
+    return () => {
+      document.title = originalTitle;
+      if (metaDesc) {
+        if (originalDesc) {
+          metaDesc.setAttribute("content", originalDesc);
+        } else {
+          metaDesc.remove();
+        }
+      }
+    };
+  }, []);
+
   return (
-    <div className="task-list-container">
+    <main className="task-list-container" id="task-list-main-view">
+      <header className="page-header" id="task-list-page-header">
+        <h1>Daily Tasks List</h1>
+        <p className="subtitle">Theo dõi, cập nhật tiến độ công việc và báo cáo kỹ thuật</p>
+      </header>
 
       {/* Toolbar: Search + Filters + CTA */}
-      <div className="toolbar">
+      <section className="toolbar-section" id="task-list-toolbar-section">
         <div className="toolbar-left">
-          <form onSubmit={handleSearchSubmit} className="search-wrap">
+          <form onSubmit={handleSearchSubmit} className="search-wrap" id="form-task-search">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             <input
               type="text"
+              id="input-task-search"
               className="search-input"
               placeholder="Search by title or description..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
             {searchQuery && (
-              <button type="button" className="search-clear" onClick={() => { setSearchQuery(''); setAppliedSearch(''); }} title="Clear">
+              <button 
+                type="button" 
+                id="btn-task-search-clear"
+                className="search-clear" 
+                onClick={() => { setSearchQuery(''); setAppliedSearch(''); }} 
+                title="Clear"
+              >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
               </button>
             )}
+            <button type="submit" style={{ display: 'none' }} id="btn-task-search-submit"></button>
           </form>
 
           <select 
+            id="select-task-type"
             value={typeFilter} 
             onChange={(e) => { setTypeFilter(e.target.value); setPageNumber(1); }}
             className="filter-select"
@@ -162,32 +202,39 @@ export default function TaskList({ userId, baseUrl, onViewDetails, onViewMap }) 
           </select>
 
           <select 
+            id="select-task-status"
             value={statusFilter} 
             onChange={(e) => { setStatusFilter(e.target.value); setPageNumber(1); }}
             className="filter-select"
           >
             <option value="">All Statuses</option>
             <option value={TASK_STATUS.PENDING}>Pending</option>
-            <option value={TASK_STATUS.PENDING_APPROVAL}>Pending Quote Approval</option>
+            <option value={TASK_STATUS.PENDING_APPROVAL}>Pending Approval</option>
             <option value={TASK_STATUS.IN_PROGRESS}>In Progress</option>
             <option value={TASK_STATUS.COMPLETED}>Completed</option>
             <option value={TASK_STATUS.CANCELLED}>Cancelled</option>
           </select>
 
           {(searchQuery || typeFilter || statusFilter) && (
-            <button type="button" className="btn-filter-clear" onClick={handleResetFilters}>
+            <button 
+              type="button" 
+              id="btn-task-reset-filters"
+              className="btn-filter-clear" 
+              onClick={handleResetFilters}
+            >
               Clear Filters
             </button>
           )}
         </div>
 
         <button 
-          className="btn-secondary map-view-btn"
+          id="btn-task-map-view"
+          className="map-view-btn"
           onClick={onViewMap}
         >
           📍 MAP VIEW
         </button>
-      </div>
+      </section>
 
       {/* Main Table card */}
       {loading ? (
@@ -197,7 +244,7 @@ export default function TaskList({ userId, baseUrl, onViewDetails, onViewMap }) 
       ) : error ? (
         <div className="error-state">
           <p className="error-message">⚠️ Error: {error}</p>
-          <button onClick={fetchTasks} className="btn-secondary">Retry</button>
+          <button onClick={fetchTasks} className="btn-secondary" id="btn-task-retry-fetch">Retry</button>
         </div>
       ) : tasks.length === 0 ? (
         <div className="empty-state">
@@ -206,14 +253,23 @@ export default function TaskList({ userId, baseUrl, onViewDetails, onViewMap }) 
           <p>You currently have no tasks assigned or matching the selected filters.</p>
         </div>
       ) : (
-        <>
+        <section className="table-section" id="task-list-table-section">
           <div className="table-card">
             <div className="table-card-header">
-              <span className="table-card-title">Daily Tasks</span>
+              <span className="table-card-title">Daily Tasks Table</span>
               <span className="table-count-badge">{totalCount} tasks</span>
             </div>
             <div className="table-responsive">
               <table className="staff-table">
+                <colgroup>
+                  <col style={{ width: '60px' }} />
+                  <col style={{ width: 'auto' }} />
+                  <col style={{ width: '130px' }} />
+                  <col style={{ width: '170px' }} />
+                  <col style={{ width: '160px' }} />
+                  <col style={{ width: '160px' }} />
+                  <col style={{ width: '120px' }} />
+                </colgroup>
                 <thead>
                   <tr>
                     <th>ID</th>
@@ -247,6 +303,7 @@ export default function TaskList({ userId, baseUrl, onViewDetails, onViewMap }) 
                       <td className="task-date-cell">{formatDate(task.completedAt)}</td>
                       <td style={{ textAlign: 'center' }}>
                         <button 
+                          id={`btn-view-details-${task.taskId}`}
                           onClick={() => onViewDetails(task.taskId)} 
                           className="btn-action-detail"
                         >
@@ -268,6 +325,7 @@ export default function TaskList({ userId, baseUrl, onViewDetails, onViewMap }) 
               </span>
               <div className="pagination-buttons">
                 <button
+                  id="btn-page-first"
                   disabled={pageNumber === 1}
                   onClick={() => setPageNumber(1)}
                   className="page-btn"
@@ -276,6 +334,7 @@ export default function TaskList({ userId, baseUrl, onViewDetails, onViewMap }) 
                   &laquo;
                 </button>
                 <button
+                  id="btn-page-prev"
                   disabled={pageNumber === 1}
                   onClick={() => setPageNumber(prev => prev - 1)}
                   className="page-btn"
@@ -287,6 +346,7 @@ export default function TaskList({ userId, baseUrl, onViewDetails, onViewMap }) 
                   Page {pageNumber} of {totalPages}
                 </span>
                 <button
+                  id="btn-page-next"
                   disabled={pageNumber === totalPages}
                   onClick={() => setPageNumber(prev => prev + 1)}
                   className="page-btn"
@@ -295,6 +355,7 @@ export default function TaskList({ userId, baseUrl, onViewDetails, onViewMap }) 
                   &rsaquo;
                 </button>
                 <button
+                  id="btn-page-last"
                   disabled={pageNumber === totalPages}
                   onClick={() => setPageNumber(totalPages)}
                   className="page-btn"
@@ -305,8 +366,9 @@ export default function TaskList({ userId, baseUrl, onViewDetails, onViewMap }) 
               </div>
             </div>
           )}
-        </>
+        </section>
       )}
-    </div>
+    </main>
   );
 }
+
