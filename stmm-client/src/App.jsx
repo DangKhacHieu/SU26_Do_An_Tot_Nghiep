@@ -59,6 +59,8 @@ import RequestListManager from "./pages/FE_Manager/RequestListManager";
 import RequestDetailManager from "./pages/FE_Manager/RequestDetailManager";
 import ViolationListManager from "./pages/FE_Manager/ViolationListManager";
 import ViolationDetailsManager from "./pages/FE_Manager/ViolationDetailsManager";
+import IssueListManager from "./pages/FE_Manager/IssueListManager";
+import IssueDetailManager from "./pages/FE_Manager/IssueDetailManager";
 
 // FE Admin System Imports
 import SidebarAdminSystem from "./pages/FE_AdminSystem/SidebarAdminSystem";
@@ -178,6 +180,14 @@ const PAGE_TITLES = {
   "violation-details": {
     title: "Chi tiết Biên bản Vi phạm",
     sub: "Xem thông tin chi tiết và xử lý kháng nghị của biên bản vi phạm.",
+  },
+  issues: {
+    title: "Quản lý Sự cố Hạ tầng",
+    sub: "Xem và xử lý danh sách sự cố báo cáo từ sạp hàng.",
+  },
+  "issue-details": {
+    title: "Chi tiết Sự cố Hạ tầng",
+    sub: "Chi tiết sự cố và thông tin xử lý/bàn giao tác vụ sửa chữa.",
   },
 
   // Admin System Titles
@@ -539,6 +549,25 @@ function AppContent() {
         return (
           <ViolationDetailsManager
             violationId={currentUserId}
+            navigate={navigate}
+            addToast={addToast}
+          />
+        );
+      case "issues":
+        return (
+          <IssueListManager
+            userId={userId}
+            baseUrl={baseUrl}
+            navigate={navigate}
+            addToast={addToast}
+          />
+        );
+      case "issue-details":
+        return (
+          <IssueDetailManager
+            issueId={currentUserId}
+            userId={userId}
+            baseUrl={baseUrl}
             navigate={navigate}
             addToast={addToast}
           />

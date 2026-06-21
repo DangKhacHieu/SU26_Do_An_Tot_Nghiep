@@ -198,6 +198,37 @@ namespace STMM.Business.Services
             return hasTask;
         }
 
+        public async Task<PagedResult<IssueDto>> GetIssuesForManagerAsync(
+            IssueQueryParams queryParams, CancellationToken ct = default)
+        {
+            var (items, totalCount) = await _issueRepository.GetIssuesForManagerPagedAsync(
+                queryParams.Status,
+                queryParams.SortDescending,
+                queryParams.PageNumber,
+                queryParams.PageSize,
+                ct);
+
+            return new PagedResult<IssueDto>
+            {
+                Items = items.Select(MapIssueToDto),
+                TotalCount = totalCount,
+                PageNumber = queryParams.PageNumber,
+                PageSize = queryParams.PageSize
+            };
+        }
+
+        public async Task<IssueDto> GetIssueByIdForManagerAsync(
+            int issueId, CancellationToken ct = default)
+        {
+            var issue = await _issueRepository.GetIssueWithRelationsAsync(issueId, tracking: false, ct);
+            if (issue == null)
+            {
+                throw new NotFoundException($"Issue with ID {issueId} not found.");
+            }
+
+            return MapIssueToDto(issue);
+        }
+
         private static IssueDto MapIssueToDto(Issue issue)
         {
             var assignedTask = issue.StaffTasks?.FirstOrDefault();

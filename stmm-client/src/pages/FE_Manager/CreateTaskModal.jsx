@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import './CreateTaskModal.css';
 
-export default function CreateTaskModal({ userId, baseUrl, onClose, onSuccess, addToast }) {
+export default function CreateTaskModal({ userId, baseUrl, onClose, onSuccess, addToast, preFilledIssueId = null, preFilledTitle = '', preFilledDescription = '' }) {
   const [taskType, setTaskType] = useState('Repair');
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
+  const [title, setTitle] = useState(preFilledTitle || '');
+  const [description, setDescription] = useState(preFilledDescription || '');
   const [assignedToUserId, setAssignedToUserId] = useState('');
   const [areaId, setAreaId] = useState('');
 
@@ -124,7 +124,7 @@ export default function CreateTaskModal({ userId, baseUrl, onClose, onSuccess, a
       description: description.trim() || null,
       areaId: taskType === 'UtilityReading' ? parseInt(areaId) : null,
       requestId: (linkToRequest && (taskType === 'Repair' || taskType === 'Maintenance') && requestId) ? parseInt(requestId) : null,
-      issueId: null
+      issueId: preFilledIssueId ? parseInt(preFilledIssueId) : null
     };
 
     try {
@@ -185,65 +185,76 @@ export default function CreateTaskModal({ userId, baseUrl, onClose, onSuccess, a
             </div>
 
             {/* Link to Request (Only for Repair or Maintenance tasks) */}
-            {(taskType === 'Repair' || taskType === 'Maintenance') && (
-              <div style={{ marginBottom: '16px', display: 'flex', flexDirection: 'column' }}>
-                <label 
-                  style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: '10px', 
-                    cursor: 'pointer', 
-                    fontWeight: '700', 
-                    fontSize: '12px', 
-                    color: '#475569',
-                    userSelect: 'none',
-                    letterSpacing: '0.5px',
-                    margin: '0',
-                    padding: '4px 0'
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={linkToRequest}
-                    onChange={(e) => {
-                      setLinkToRequest(e.target.checked);
-                      if (!e.target.checked) setRequestId('');
-                    }}
-                    disabled={submitting}
-                    style={{
-                      width: '16px',
-                      height: '16px',
-                      margin: '0',
-                      flexShrink: 0,
-                      cursor: 'pointer',
-                      accentColor: '#2563eb'
-                    }}
-                  />
-                  LINK THIS TASK TO A CUSTOMER REQUEST
-                </label>
-
-                {linkToRequest && (
-                  <div style={{ marginTop: '10px', paddingLeft: '18px', borderLeft: '3px solid #2563eb' }}>
-                    <label className="form-label required-field">SELECT REQUEST</label>
-                    <select
-                      className={`form-control ${formErrors.requestId ? 'is-error' : ''}`}
-                      value={requestId}
-                      onChange={(e) => setRequestId(e.target.value)}
-                      disabled={loadingRequests || submitting}
-                      style={{ marginTop: '4px' }}
-                    >
-                      <option value="">-- Select Pending Request --</option>
-                      {requests.map(r => (
-                        <option key={r.requestId} value={r.requestId}>
-                          #REQ-{r.requestId}: {r.title} ({r.stallCode ? `Stall ${r.stallCode}` : 'No Stall'})
-                        </option>
-                      ))}
-                    </select>
-                    {loadingRequests && <span className="helper-text">Loading requests...</span>}
-                    {formErrors.requestId && <span className="modal-confirm-hint" style={{ color: 'var(--color-danger)' }}>{formErrors.requestId}</span>}
-                  </div>
-                )}
+            {preFilledIssueId ? (
+              <div style={{ marginBottom: '16px', padding: '12px', border: '1px solid #bfdbfe', backgroundColor: '#eff6ff', borderRadius: '6px' }}>
+                <span style={{ fontSize: '11px', fontWeight: '700', color: '#1e40af', display: 'block', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  LINKED INFRASTRUCTURE ISSUE
+                </span>
+                <span style={{ fontSize: '14px', fontWeight: '600', color: '#1e3a8a', marginTop: '4px', display: 'inline-block' }}>
+                  📍 Issue ID: #{preFilledIssueId}
+                </span>
               </div>
+            ) : (
+              (taskType === 'Repair' || taskType === 'Maintenance') && (
+                <div style={{ marginBottom: '16px', display: 'flex', flexDirection: 'column' }}>
+                  <label 
+                    style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '10px', 
+                      cursor: 'pointer', 
+                      fontWeight: '700', 
+                      fontSize: '12px', 
+                      color: '#475569',
+                      userSelect: 'none',
+                      letterSpacing: '0.5px',
+                      margin: '0',
+                      padding: '4px 0'
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={linkToRequest}
+                      onChange={(e) => {
+                        setLinkToRequest(e.target.checked);
+                        if (!e.target.checked) setRequestId('');
+                      }}
+                      disabled={submitting}
+                      style={{
+                        width: '16px',
+                        height: '16px',
+                        margin: '0',
+                        flexShrink: 0,
+                        cursor: 'pointer',
+                        accentColor: '#2563eb'
+                      }}
+                    />
+                    LINK THIS TASK TO A CUSTOMER REQUEST
+                  </label>
+
+                  {linkToRequest && (
+                    <div style={{ marginTop: '10px', paddingLeft: '18px', borderLeft: '3px solid #2563eb' }}>
+                      <label className="form-label required-field">SELECT REQUEST</label>
+                      <select
+                        className={`form-control ${formErrors.requestId ? 'is-error' : ''}`}
+                        value={requestId}
+                        onChange={(e) => setRequestId(e.target.value)}
+                        disabled={loadingRequests || submitting}
+                        style={{ marginTop: '4px' }}
+                      >
+                        <option value="">-- Select Pending Request --</option>
+                        {requests.map(r => (
+                          <option key={r.requestId} value={r.requestId}>
+                            #REQ-{r.requestId}: {r.title} ({r.stallCode ? `Stall ${r.stallCode}` : 'No Stall'})
+                          </option>
+                        ))}
+                      </select>
+                      {loadingRequests && <span className="helper-text">Loading requests...</span>}
+                      {formErrors.requestId && <span className="modal-confirm-hint" style={{ color: 'var(--color-danger)' }}>{formErrors.requestId}</span>}
+                    </div>
+                  )}
+                </div>
+              )
             )}
 
             {/* Title */}
