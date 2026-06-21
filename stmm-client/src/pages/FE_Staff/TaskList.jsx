@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { TASK_STATUS, TASK_TYPE } from '../../constants/taskEnums';
 import './TaskList.css';
 
-export default function TaskList({ userId, baseUrl, onViewDetails }) {
+export default function TaskList({ userId, baseUrl, onViewDetails, onViewMap }) {
   const [tasks, setTasks] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
@@ -183,9 +183,7 @@ export default function TaskList({ userId, baseUrl, onViewDetails }) {
 
         <button 
           className="btn-secondary map-view-btn"
-          disabled 
-          title="Map view feature will be available in the next release"
-          style={{ cursor: 'not-allowed', opacity: 0.6 }}
+          onClick={onViewMap}
         >
           📍 MAP VIEW
         </button>
