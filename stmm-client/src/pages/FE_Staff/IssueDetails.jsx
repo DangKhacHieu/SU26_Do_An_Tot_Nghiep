@@ -7,6 +7,10 @@ export default function IssueDetails({ issueId, userId, baseUrl, onBack }) {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    document.title = "Issue Details - STMM Staff";
+  }, []);
+
+  useEffect(() => {
     const fetchDetails = async () => {
       setLoading(true);
       setError(null);
@@ -45,13 +49,16 @@ export default function IssueDetails({ issueId, userId, baseUrl, onBack }) {
     });
   };
 
-  if (loading) return <div className="loading-state">Loading issue details...</div>;
+  if (loading) return <main className="violation-details-container"><div className="loading-state">Loading issue details...</div></main>;
   
   if (error) return (
-    <div className="error-state">
-      <p className="error-message">Error: {error}</p>
-      <button className="btn-secondary" onClick={onBack}>Back to List</button>
-    </div>
+    <main className="violation-details-container" aria-labelledby="error-title">
+      <div className="error-state">
+        <h1 id="error-title">Error Loading Details</h1>
+        <p className="error-message">Error: {error}</p>
+        <button id="issue-detail-error-back-btn" className="btn-secondary" onClick={onBack}>Back to List</button>
+      </div>
+    </main>
   );
 
   if (!issue) return null;
@@ -60,10 +67,10 @@ export default function IssueDetails({ issueId, userId, baseUrl, onBack }) {
   const imageUrls = issue.imageUrl ? issue.imageUrl.split(';').map(u => u.trim()).filter(Boolean) : [];
 
   return (
-    <div className="violation-details-container">
+    <main className="violation-details-container" aria-labelledby="page-title">
       <div className="details-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h2 style={{ fontSize: '18px', fontWeight: '700', margin: 0, color: 'var(--text-main)' }}>ISSUE DETAILS: {issue.issueId}</h2>
-        <button className="btn-secondary" onClick={onBack}>
+        <h1 style={{ fontSize: '18px', fontWeight: '700', margin: 0, color: 'var(--text-main)' }} id="page-title">ISSUE DETAILS: {issue.issueId}</h1>
+        <button id="issue-detail-back-btn" className="btn-secondary" onClick={onBack}>
           &larr; Back to List
         </button>
       </div>
@@ -175,6 +182,6 @@ export default function IssueDetails({ issueId, userId, baseUrl, onBack }) {
       <div className="audit-footer" style={{ marginTop: '24px' }}>
         Logged by: {issue.createdByName || `Staff #${issue.createdByUserId}`} | Timestamp: {formatDate(issue.createdAt)} {formatTime(issue.createdAt)}
       </div>
-    </div>
+    </main>
   );
 }

@@ -55,6 +55,10 @@ export default function TaskList({ userId, baseUrl, onViewDetails }) {
   };
 
   useEffect(() => {
+    document.title = "Daily Tasks - STMM Staff";
+  }, []);
+
+  useEffect(() => {
     fetchTasks();
   }, [userId, pageNumber, statusFilter, typeFilter, appliedSearch]);
 
@@ -128,28 +132,29 @@ export default function TaskList({ userId, baseUrl, onViewDetails }) {
   };
 
   return (
-    <div className="task-list-container">
-
+    <main className="task-list-container" aria-labelledby="page-title">
       {/* Toolbar: Search + Filters + CTA */}
       <div className="toolbar">
         <div className="toolbar-left">
-          <form onSubmit={handleSearchSubmit} className="search-wrap">
+          <form onSubmit={handleSearchSubmit} className="search-wrap" id="task-search-form">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             <input
               type="text"
+              id="task-search-input"
               className="search-input"
               placeholder="Search by title or description..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
             {searchQuery && (
-              <button type="button" className="search-clear" onClick={() => { setSearchQuery(''); setAppliedSearch(''); }} title="Clear">
+              <button type="button" id="task-search-clear-btn" className="search-clear" onClick={() => { setSearchQuery(''); setAppliedSearch(''); }} title="Clear">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
               </button>
             )}
           </form>
 
           <select 
+            id="task-type-filter-select"
             value={typeFilter} 
             onChange={(e) => { setTypeFilter(e.target.value); setPageNumber(1); }}
             className="filter-select"
@@ -162,6 +167,7 @@ export default function TaskList({ userId, baseUrl, onViewDetails }) {
           </select>
 
           <select 
+            id="task-status-filter-select"
             value={statusFilter} 
             onChange={(e) => { setStatusFilter(e.target.value); setPageNumber(1); }}
             className="filter-select"
@@ -175,13 +181,14 @@ export default function TaskList({ userId, baseUrl, onViewDetails }) {
           </select>
 
           {(searchQuery || typeFilter || statusFilter) && (
-            <button type="button" className="btn-filter-clear" onClick={handleResetFilters}>
+            <button type="button" id="task-clear-filters-btn" className="btn-filter-clear" onClick={handleResetFilters}>
               Clear Filters
             </button>
           )}
         </div>
 
         <button 
+          id="task-map-view-btn"
           className="btn-secondary map-view-btn"
           disabled 
           title="Map view feature will be available in the next release"
@@ -194,24 +201,26 @@ export default function TaskList({ userId, baseUrl, onViewDetails }) {
       {/* Main Table card */}
       {loading ? (
         <div className="loading-state">
-          <span className="spinner"></span> Loading daily tasks...
+          <span className="spinner" aria-hidden="true"></span>
+          <p>Loading daily tasks...</p>
         </div>
       ) : error ? (
         <div className="error-state">
-          <p className="error-message">⚠️ Error: {error}</p>
-          <button onClick={fetchTasks} className="btn-secondary">Retry</button>
+          <span className="error-icon" aria-hidden="true">⚠️</span>
+          <p className="error-message">Error: {error}</p>
+          <button id="task-retry-btn" onClick={fetchTasks} className="btn-secondary">Retry</button>
         </div>
       ) : tasks.length === 0 ? (
         <div className="empty-state">
-          <span className="empty-icon">📋</span>
-          <h3>No Tasks Found</h3>
+          <span className="empty-icon" aria-hidden="true">📋</span>
+          <h2>No Tasks Found</h2>
           <p>You currently have no tasks assigned or matching the selected filters.</p>
         </div>
       ) : (
         <>
           <div className="table-card">
             <div className="table-card-header">
-              <span className="table-card-title">Daily Tasks</span>
+              <h1 className="table-card-title" id="page-title">Daily Tasks</h1>
               <span className="table-count-badge">{totalCount} tasks</span>
             </div>
             <div className="table-responsive">
@@ -249,6 +258,7 @@ export default function TaskList({ userId, baseUrl, onViewDetails }) {
                       <td className="task-date-cell">{formatDate(task.completedAt)}</td>
                       <td style={{ textAlign: 'center' }}>
                         <button 
+                          id={`view-task-details-btn-${task.taskId}`}
                           onClick={() => onViewDetails(task.taskId)} 
                           className="btn-action-detail"
                         >
@@ -270,6 +280,7 @@ export default function TaskList({ userId, baseUrl, onViewDetails }) {
               </span>
               <div className="pagination-buttons">
                 <button
+                  id="task-first-page-btn"
                   disabled={pageNumber === 1}
                   onClick={() => setPageNumber(1)}
                   className="page-btn"
@@ -278,6 +289,7 @@ export default function TaskList({ userId, baseUrl, onViewDetails }) {
                   &laquo;
                 </button>
                 <button
+                  id="task-prev-page-btn"
                   disabled={pageNumber === 1}
                   onClick={() => setPageNumber(prev => prev - 1)}
                   className="page-btn"
@@ -289,6 +301,7 @@ export default function TaskList({ userId, baseUrl, onViewDetails }) {
                   Page {pageNumber} of {totalPages}
                 </span>
                 <button
+                  id="task-next-page-btn"
                   disabled={pageNumber === totalPages}
                   onClick={() => setPageNumber(prev => prev + 1)}
                   className="page-btn"
@@ -297,6 +310,7 @@ export default function TaskList({ userId, baseUrl, onViewDetails }) {
                   &rsaquo;
                 </button>
                 <button
+                  id="task-last-page-btn"
                   disabled={pageNumber === totalPages}
                   onClick={() => setPageNumber(totalPages)}
                   className="page-btn"
@@ -309,6 +323,6 @@ export default function TaskList({ userId, baseUrl, onViewDetails }) {
           )}
         </>
       )}
-    </div>
+    </main>
   );
 }

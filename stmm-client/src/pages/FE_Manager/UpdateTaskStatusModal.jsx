@@ -17,7 +17,8 @@ export default function UpdateTaskStatusModal({ taskId, currentStatus, baseUrl, 
     allowedOptions.push({ value: 'Cancelled', label: 'Cancel Task' });
   } else if (oldStatus === 'PendingApproval') {
     allowedOptions.push({ value: 'In_Progress', label: 'Approve Quotation & Start' });
-    allowedOptions.push({ value: 'Cancelled', label: 'Reject Quotation & Cancel' });
+    allowedOptions.push({ value: 'Pending', label: 'Reject Quotation & Re-evaluate' });
+    allowedOptions.push({ value: 'Cancelled', label: 'Cancel Task' });
   } else if (oldStatus === 'In_Progress') {
     allowedOptions.push({ value: 'Cancelled', label: 'Cancel Task' });
   }
@@ -47,7 +48,14 @@ export default function UpdateTaskStatusModal({ taskId, currentStatus, baseUrl, 
         onSuccess(updatedTask);
       } else {
         const errText = await res.text();
-        addToast(errText || 'Failed to update task status.', 'error');
+        let errorMsg = 'Failed to update task status.';
+        try {
+          const errJson = JSON.parse(errText);
+          errorMsg = errJson.detail || errJson.message || errorMsg;
+        } catch (e) {
+          errorMsg = errText || errorMsg;
+        }
+        addToast(errorMsg, 'error');
       }
     } catch (err) {
       console.error('Error updating status:', err);

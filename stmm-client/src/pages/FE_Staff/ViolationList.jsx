@@ -55,6 +55,10 @@ export default function ViolationList({ userId, baseUrl, onViewDetails, onOpenCr
   };
 
   useEffect(() => {
+    document.title = "Violation Logs - STMM Staff";
+  }, []);
+
+  useEffect(() => {
     fetchViolations();
   }, [userId, pageNumber, statusFilter, sortDescending]);
 
@@ -87,28 +91,29 @@ export default function ViolationList({ userId, baseUrl, onViewDetails, onOpenCr
   };
 
   return (
-    <div className="violation-list-container">
-
+    <main className="violation-list-container" aria-labelledby="page-title">
       {/* Toolbar: Search + Filters + CTA */}
       <div className="toolbar">
         <div className="toolbar-left">
-          <form onSubmit={handleSearchSubmit} className="search-wrap">
+          <form onSubmit={handleSearchSubmit} className="search-wrap" id="violation-search-form">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             <input
               type="text"
+              id="violation-search-input"
               className="search-input"
               placeholder="Search ID, Stall Code, or Description..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
             {searchQuery && (
-              <button type="button" className="search-clear" onClick={() => setSearchQuery('')} title="Clear">
+              <button type="button" id="violation-search-clear-btn" className="search-clear" onClick={() => setSearchQuery('')} title="Clear">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
               </button>
             )}
           </form>
           
           <select 
+            id="violation-status-filter-select"
             value={statusFilter} 
             onChange={(e) => { setStatusFilter(e.target.value); setPageNumber(1); }}
             className="filter-select"
@@ -121,6 +126,7 @@ export default function ViolationList({ userId, baseUrl, onViewDetails, onOpenCr
           </select>
 
           <select 
+            id="violation-sort-select"
             value={sortDescending ? "desc" : "asc"} 
             onChange={(e) => { setSortDescending(e.target.value === "desc"); setPageNumber(1); }}
             className="filter-select"
@@ -130,34 +136,40 @@ export default function ViolationList({ userId, baseUrl, onViewDetails, onOpenCr
           </select>
 
           {(searchQuery || statusFilter || !sortDescending) && (
-            <button type="button" className="btn-filter-clear" onClick={handleResetFilters}>
+            <button type="button" id="violation-clear-filters-btn" className="btn-filter-clear" onClick={handleResetFilters}>
               Clear Filters
             </button>
           )}
         </div>
 
-        <button className="btn-primary" onClick={onOpenCreateModal}>
+        <button id="violation-report-new-btn" className="btn-primary" onClick={onOpenCreateModal}>
           + Report Violation
         </button>
       </div>
 
       {/* Content Table card */}
       {loading ? (
-        <div className="loading-state">Loading violations...</div>
+        <div className="loading-state">
+          <span className="spinner" aria-hidden="true"></span>
+          <p>Loading violations...</p>
+        </div>
       ) : error ? (
         <div className="error-state">
+          <span className="error-icon" aria-hidden="true">⚠️</span>
           <p className="error-message">Error: {error}</p>
-          <button className="btn-secondary" onClick={fetchViolations}>Retry</button>
+          <button id="violation-retry-btn" className="btn-secondary" onClick={fetchViolations}>Retry</button>
         </div>
       ) : violations.length === 0 ? (
         <div className="empty-state">
-          <p>No violations found.</p>
+          <span className="empty-icon" aria-hidden="true">⚠️</span>
+          <h2>No Violations Found</h2>
+          <p>You currently have no violations assigned or matching the selected filters.</p>
         </div>
       ) : (
         <>
           <div className="table-card">
             <div className="table-card-header">
-              <span className="table-card-title">Violations</span>
+              <h1 className="table-card-title" id="page-title">Violation Logs</h1>
               <span className="table-count-badge">{totalCount} violations</span>
             </div>
             <div className="table-responsive">
@@ -190,6 +202,7 @@ export default function ViolationList({ userId, baseUrl, onViewDetails, onOpenCr
                       </td>
                       <td>
                         <button 
+                          id={`view-violation-details-btn-${v.violationId}`}
                           className="btn-link" 
                           onClick={() => onViewDetails(v.violationId)}
                         >
@@ -210,6 +223,7 @@ export default function ViolationList({ userId, baseUrl, onViewDetails, onOpenCr
             </span>
             <div className="pagination-buttons">
               <button 
+                id="violation-prev-page-btn"
                 className="btn-page" 
                 onClick={() => setPageNumber(p => Math.max(p - 1, 1))}
                 disabled={pageNumber === 1}
@@ -219,6 +233,7 @@ export default function ViolationList({ userId, baseUrl, onViewDetails, onOpenCr
               
               {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
                 <button
+                  id={`violation-page-btn-${p}`}
                   key={p}
                   className={`btn-page ${pageNumber === p ? 'active' : ''}`}
                   onClick={() => setPageNumber(p)}
@@ -228,6 +243,7 @@ export default function ViolationList({ userId, baseUrl, onViewDetails, onOpenCr
               ))}
 
               <button 
+                id="violation-next-page-btn"
                 className="btn-page" 
                 onClick={() => setPageNumber(p => Math.min(p + 1, totalPages))}
                 disabled={pageNumber === totalPages}
@@ -238,6 +254,6 @@ export default function ViolationList({ userId, baseUrl, onViewDetails, onOpenCr
           </div>
         </>
       )}
-    </div>
+    </main>
   );
 }

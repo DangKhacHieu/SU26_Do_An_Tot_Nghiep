@@ -59,6 +59,10 @@ export default function StallInvoiceDetail({ stallId, stallCode, baseUrl, userId
   };
 
   useEffect(() => {
+    document.title = "Stall Invoices - STMM Staff";
+  }, []);
+
+  useEffect(() => {
     fetchUnpaidInvoices();
   }, [stallId, baseUrl]);
 
@@ -83,10 +87,10 @@ export default function StallInvoiceDetail({ stallId, stallCode, baseUrl, userId
   };
 
   return (
-    <div className="stall-invoice-detail-page">
+    <main className="stall-invoice-detail-page">
       <div className="details-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h2 style={{ fontSize: '18px', fontWeight: '700', margin: 0, color: 'var(--text-main)' }}>📄 INVOICES - STALL {stallCode}</h2>
-        <button className="btn-secondary-outline" onClick={onBack}>
+        <h1 style={{ fontSize: '18px', fontWeight: '700', margin: 0, color: 'var(--text-main)' }}>📄 INVOICES - STALL {stallCode}</h1>
+        <button id="invoice-back-btn" className="btn-secondary-outline" onClick={onBack}>
           &larr; Back
         </button>
       </div>
@@ -97,20 +101,27 @@ export default function StallInvoiceDetail({ stallId, stallCode, baseUrl, userId
           <h3 className="column-title">Unpaid Invoices ({unpaidInvoices.length})</h3>
 
           {loadingList ? (
-            <div className="loading-state">Loading invoices...</div>
+            <div className="loading-state">
+              <span className="spinner" aria-hidden="true"></span>
+              <p>Loading invoices...</p>
+            </div>
           ) : listError ? (
             <div className="error-state">
-              <span className="warning-text">⚠️ Error: {listError}</span>
-              <button className="btn-secondary font-sm mt-2" onClick={fetchUnpaidInvoices}>Retry</button>
+              <span className="error-icon" aria-hidden="true">⚠️</span>
+              <p className="error-message">Error: {listError}</p>
+              <button id="invoice-retry-btn" className="btn-secondary" onClick={fetchUnpaidInvoices}>Retry</button>
             </div>
           ) : unpaidInvoices.length === 0 ? (
-            <div className="invoice-empty-notice">
-              🎉 This stall has paid all invoices. No outstanding balance.
+            <div className="empty-state">
+              <span className="empty-icon" aria-hidden="true">🎉</span>
+              <h2>No Invoices Found</h2>
+              <p>This stall has paid all invoices. No outstanding balance.</p>
             </div>
           ) : (
             <div className="unpaid-invoices-scroll">
               {unpaidInvoices.map((inv) => (
                 <div 
+                  id={`invoice-summary-card-${inv.invoiceId}`}
                   key={inv.invoiceId}
                   className={`invoice-summary-card ${selectedInvoiceId === inv.invoiceId ? 'active' : ''}`}
                   onClick={() => setSelectedInvoiceId(inv.invoiceId)}
@@ -149,7 +160,7 @@ export default function StallInvoiceDetail({ stallId, stallCode, baseUrl, userId
                   </div>
                   <div className="header-total">
                     <span className="total-label">Total Amount</span>
-                    <h1 className="total-val">{invoiceDetail.totalAmount.toLocaleString('vi-VN')} VND</h1>
+                    <h2 className="total-val" style={{ margin: 0 }}>{invoiceDetail.totalAmount.toLocaleString('vi-VN')} VND</h2>
                   </div>
                 </div>
 
@@ -208,6 +219,7 @@ export default function StallInvoiceDetail({ stallId, stallCode, baseUrl, userId
                       <p>Are you collecting cash directly from the vendor on-site? Click the button on the right to record this payment.</p>
                     </div>
                     <button 
+                      id="collect-cash-btn"
                       className="btn-primary-dark action-pay-btn"
                       onClick={() => setShowCashModal(true)}
                     >
@@ -236,6 +248,6 @@ export default function StallInvoiceDetail({ stallId, stallCode, baseUrl, userId
           onSuccess={handlePaymentSuccess}
         />
       )}
-    </div>
+    </main>
   );
 }
