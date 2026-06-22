@@ -559,7 +559,7 @@ public partial class AppDbContext : DbContext
 
             entity.HasOne(d => d.Stall).WithMany(p => p.Meters)
                 .HasForeignKey(d => d.StallId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
+                .OnDelete(DeleteBehavior.SetNull)
                 .HasConstraintName("fk_meters_stalls");
         });
 
