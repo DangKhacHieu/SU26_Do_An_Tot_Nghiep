@@ -63,6 +63,16 @@ namespace STMM.Business.Services
             return dto;
         }
 
+        public async Task<IEnumerable<MeterDto>> GetUnassignedMetersAsync(string? type, CancellationToken ct = default)
+        {
+            var meters = await _meterRepo.FindAsync(m => m.StallId == null && m.IsActive == true);
+            if (!string.IsNullOrEmpty(type))
+            {
+                meters = meters.Where(m => m.Type == type);
+            }
+            return _mapper.Map<IEnumerable<MeterDto>>(meters);
+        }
+
         public async Task<IEnumerable<MeterDto>> GetMetersByStallIdAsync(int stallId, CancellationToken ct = default)
         {
             var meters = await _meterRepo.GetMetersByStallIdAsync(stallId, ct);

@@ -8,7 +8,7 @@ namespace STMM.API.Controllers
 {
     [ApiController]
     [Route("api/meters")]
-    [Authorize(Roles = "Staff")]
+    [Authorize(Roles = "Staff,Manager,Admin")]
     public class MetersController : ControllerBase
     {
         private readonly IMeterReadingService _service;
@@ -16,6 +16,17 @@ namespace STMM.API.Controllers
         public MetersController(IMeterReadingService service)
         {
             _service = service;
+        }
+
+        /// <summary>
+        /// Get all unassigned meters (StallId is null).
+        /// </summary>
+        [HttpGet("unassigned")]
+        [Authorize(Roles = "Admin,Manager,Staff")]
+        public async Task<IActionResult> GetUnassignedMeters([FromQuery] string? type, CancellationToken ct)
+        {
+            var result = await _service.GetUnassignedMetersAsync(type, ct);
+            return Ok(result);
         }
 
         /// <summary>
