@@ -155,7 +155,7 @@ export default function CreateTaskModal({ userId, baseUrl, onClose, onSuccess, a
       <div className="modal-box" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px' }}>
         <div className="modal-head">
           <h3>Create New Task</h3>
-          <button className="modal-close" onClick={onClose}>&times;</button>
+          <button id="btn-create-task-close" className="modal-close" onClick={onClose}>&times;</button>
         </div>
         <form onSubmit={handleSubmit}>
           <div className="modal-body">
@@ -167,6 +167,7 @@ export default function CreateTaskModal({ userId, baseUrl, onClose, onSuccess, a
             <div className="form-group" style={{ marginBottom: '14px' }}>
               <label className="form-label required-field">TASK TYPE</label>
               <select
+                id="select-create-task-type"
                 className="form-control"
                 value={taskType}
                 onChange={(e) => {
@@ -213,6 +214,7 @@ export default function CreateTaskModal({ userId, baseUrl, onClose, onSuccess, a
                     }}
                   >
                     <input
+                      id="checkbox-link-request"
                       type="checkbox"
                       checked={linkToRequest}
                       onChange={(e) => {
@@ -236,6 +238,7 @@ export default function CreateTaskModal({ userId, baseUrl, onClose, onSuccess, a
                     <div style={{ marginTop: '10px', paddingLeft: '18px', borderLeft: '3px solid #2563eb' }}>
                       <label className="form-label required-field">SELECT REQUEST</label>
                       <select
+                        id="select-create-task-request"
                         className={`form-control ${formErrors.requestId ? 'is-error' : ''}`}
                         value={requestId}
                         onChange={(e) => setRequestId(e.target.value)}
@@ -261,6 +264,7 @@ export default function CreateTaskModal({ userId, baseUrl, onClose, onSuccess, a
             <div className="form-group" style={{ marginBottom: '14px' }}>
               <label className="form-label required-field">TASK LABEL</label>
               <input
+                id="input-create-task-title"
                 type="text"
                 className={`form-control ${formErrors.title ? 'is-error' : ''}`}
                 placeholder="Enter task name or summary..."
@@ -275,6 +279,7 @@ export default function CreateTaskModal({ userId, baseUrl, onClose, onSuccess, a
             <div className="form-group" style={{ marginBottom: '14px' }}>
               <label className="form-label">OPERATIONAL DESCRIPTION</label>
               <textarea
+                id="textarea-create-task-desc"
                 className="form-control"
                 rows="4"
                 placeholder="Provide detailed technical constraints..."
@@ -289,6 +294,7 @@ export default function CreateTaskModal({ userId, baseUrl, onClose, onSuccess, a
             <div className="form-group" style={{ marginBottom: '14px' }}>
               <label className="form-label required-field">ASSIGN TO STAFF</label>
               <select
+                id="select-create-task-staff"
                 className={`form-control ${formErrors.assignedToUserId ? 'is-error' : ''}`}
                 value={assignedToUserId}
                 onChange={(e) => setAssignedToUserId(e.target.value)}
@@ -310,6 +316,7 @@ export default function CreateTaskModal({ userId, baseUrl, onClose, onSuccess, a
               <div className="form-group" style={{ marginBottom: '14px' }}>
                 <label className="form-label required-field">MARKET AREA</label>
                 <select
+                  id="select-create-task-area"
                   className={`form-control ${formErrors.areaId ? 'is-error' : ''}`}
                   value={areaId}
                   onChange={(e) => setAreaId(e.target.value)}
@@ -328,10 +335,10 @@ export default function CreateTaskModal({ userId, baseUrl, onClose, onSuccess, a
             )}
           </div>
           <div className="modal-foot">
-            <button type="button" className="btn-secondary" onClick={onClose} disabled={submitting}>
+            <button id="btn-create-task-cancel" type="button" className="btn-secondary" onClick={onClose} disabled={submitting}>
               CANCEL
             </button>
-            <button type="submit" className="btn-primary" disabled={submitting}>
+            <button id="btn-create-task-submit" type="submit" className="btn-primary" disabled={submitting}>
               {submitting ? 'CREATING...' : 'SAVE SUBMISSION'}
             </button>
           </div>

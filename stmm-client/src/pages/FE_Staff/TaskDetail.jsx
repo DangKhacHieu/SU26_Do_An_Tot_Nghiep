@@ -44,17 +44,45 @@ export default function TaskDetail({ taskId, userId, baseUrl, onBack, onShowNoti
     fetchTaskDetails();
   }, [taskId, userId]);
 
+  // SEO & metadata management
+  useEffect(() => {
+    if (!task) return;
+    const originalTitle = document.title;
+    document.title = `STMM - Chi tiết Tác vụ #${task.taskId}`;
+
+    let metaDesc = document.querySelector('meta[name="description"]');
+    const originalDesc = metaDesc ? metaDesc.getAttribute("content") : "";
+
+    if (!metaDesc) {
+      metaDesc = document.createElement("meta");
+      metaDesc.name = "description";
+      document.head.appendChild(metaDesc);
+    }
+    metaDesc.setAttribute("content", `Chi tiết tác vụ ${task.title}. Loại tác vụ: ${task.taskType}, trạng thái: ${task.status}.`);
+
+    return () => {
+      document.title = originalTitle;
+      if (metaDesc) {
+        if (originalDesc) {
+          metaDesc.setAttribute("content", originalDesc);
+        } else {
+          metaDesc.remove();
+        }
+      }
+    };
+  }, [task]);
+
   if (forbidden) {
     return (
-      <main className="task-detail-container" aria-labelledby="forbidden-title">
-        <div className="breadcrumb-path">
+      <main className="task-detail-container" id="task-detail-forbidden" aria-labelledby="forbidden-title">
+        <nav className="breadcrumb-path" id="breadcrumb-forbidden-nav">
           <span>Dashboard</span> &gt; <span>Daily Tasks</span> &gt; <span className="active-path">Access Error</span>
-        </div>
+        </nav>
         <div className="error-state">
           <span className="error-icon" style={{ fontSize: '48px' }}>🚫</span>
           <h1 id="forbidden-title">Access Denied</h1>
           <p className="error-message">You are not assigned to perform this task.</p>
-          <button id="forbidden-back-btn" onClick={onBack} className="btn-primary-dark">Back to List</button>
+          <button onClick={onBack} className="btn-primary-dark" id="btn-forbidden-back">Back to List</button>
         </div>
       </main>
     );
@@ -62,7 +90,7 @@ export default function TaskDetail({ taskId, userId, baseUrl, onBack, onShowNoti
 
   if (loading) {
     return (
-      <main className="task-detail-container" aria-labelledby="loading-title">
+      <main className="task-detail-container" id="task-detail-loading" aria-labelledby="loading-title">
         <h1 id="loading-title" className="sr-only">Loading Task Details</h1>
         <div className="loading-state">
           <span className="spinner"></span> Loading task details...
@@ -73,13 +101,13 @@ export default function TaskDetail({ taskId, userId, baseUrl, onBack, onShowNoti
 
   if (error || !task) {
     return (
-      <main className="task-detail-container" aria-labelledby="error-title">
+      <main className="task-detail-container" id="task-detail-error" aria-labelledby="error-title">
         <div className="error-state">
           <h1 id="error-title">An error occurred</h1>
           <p className="error-message">{error || 'Task data not found.'}</p>
           <div style={{ display: 'flex', gap: '10px' }}>
-            <button id="error-retry-btn" onClick={fetchTaskDetails} className="btn-primary-dark">Retry</button>
-            <button id="error-back-btn" onClick={onBack} className="btn-secondary">Back</button>
+            <button onClick={fetchTaskDetails} className="btn-primary-dark" id="btn-error-retry">Retry</button>
+            <button onClick={onBack} className="btn-secondary" id="btn-error-back">Back</button>
           </div>
         </div>
       </main>
@@ -103,29 +131,30 @@ export default function TaskDetail({ taskId, userId, baseUrl, onBack, onShowNoti
       }
     }
 
-    // Maintenance, UtilityReading, CashCollection -> hiện khi status === 'Pending' hoặc 'In_Progress'
     return task.status === TASK_STATUS.PENDING || task.status === TASK_STATUS.IN_PROGRESS;
   };
 
-  return (
-    <main className="task-detail-container" aria-labelledby="task-detail-title">
-      <div className="breadcrumb-path">
-        <span onClick={onBack} className="link-path" style={{ cursor: 'pointer' }}>Dashboard</span> &gt; 
-        <span onClick={onBack} className="link-path" style={{ cursor: 'pointer' }}> Daily Tasks</span> &gt; 
-        <span className="active-path"> Details {task.taskId}</span>
-      </div>
+  const hasRightColContent = (task.status === TASK_STATUS.COMPLETED && (task.imageBeforeUrl || task.imageAfterUrl)) || shouldShowCompleteForm();
 
-      <div className="section-header">
+  return (
+    <main className="task-detail-container" id="task-detail-main-view" aria-labelledby="task-detail-title">
+      <nav className="breadcrumb-path" id="breadcrumb-path-nav">
+        <span onClick={onBack} className="link-path" style={{ cursor: 'pointer' }} id="breadcrumb-dashboard">Dashboard</span> &gt; 
+        <span onClick={onBack} className="link-path" style={{ cursor: 'pointer' }} id="breadcrumb-tasks"> Daily Tasks</span> &gt; 
+        <span className="active-path" id="breadcrumb-details"> Details {task.taskId}</span>
+      </nav>
+
+      <header className="detail-header" id="task-detail-header">
         <div>
           <h1 className="main-title" id="task-detail-title">Task: {task.title}</h1>
-          <p className="subtitle">Stall/Area: {task.areaName || 'None'} | Type: {task.taskType}</p>
+          <p className="subtitle">Stall/Area: {task.areaName || 'Khu vực hạ tầng chung (Chợ)'} | Type: {task.taskType}</p>
         </div>
-        <button id="task-detail-back-btn" onClick={onBack} className="btn-secondary">
+        <button onClick={onBack} className="btn-secondary" id="btn-task-detail-back">
           &larr; Back to List
         </button>
-      </div>
+      </header>
 
-      <div className="detail-layout">
+      <section className={`detail-layout ${hasRightColContent ? 'two-cols' : 'one-col'}`} id="task-detail-layout-section">
         <div className="detail-left-col">
           {/* Task main read-only info card */}
           <TaskInfoCard task={task} onViewIssueDetails={onViewIssueDetails} />
@@ -155,7 +184,7 @@ export default function TaskDetail({ taskId, userId, baseUrl, onBack, onShowNoti
           )}
         </div>
 
-        <div className="detail-right-col">
+        <aside className="detail-right-col" id="task-detail-sidebar">
           {/* Read-only evidence preview if task is already completed */}
           {task.status === TASK_STATUS.COMPLETED && (task.imageBeforeUrl || task.imageAfterUrl) && (
             <div className="evidence-panel">
@@ -188,8 +217,8 @@ export default function TaskDetail({ taskId, userId, baseUrl, onBack, onShowNoti
               utilityProgress={task.taskType === TASK_TYPE.UTILITY_READING ? utilityProgress : null}
             />
           )}
-        </div>
-      </div>
+        </aside>
+      </section>
     </main>
   );
 }

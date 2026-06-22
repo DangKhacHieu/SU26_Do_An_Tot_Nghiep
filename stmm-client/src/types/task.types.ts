@@ -6,6 +6,8 @@ export interface TaskSummaryDto {
   issueId: number | null;
   areaId?: number | null;
   areaName?: string | null;
+  stallId?: number | null;
+  stallCode?: string | null;
   taskType: 'Repair' | 'Maintenance' | 'UtilityReading' | 'CashCollection';
   title: string;
   status: 'Pending' | 'PendingApproval' | 'In_Progress' | 'Completed' | 'Cancelled';

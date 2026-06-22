@@ -70,7 +70,7 @@ export default function UpdateTaskStatusModal({ taskId, currentStatus, baseUrl, 
       <div className="modal-box" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '440px' }}>
         <div className="modal-head">
           <h3>Update Task Status</h3>
-          <button className="modal-close" onClick={onClose}>&times;</button>
+          <button id="btn-status-close" className="modal-close" onClick={onClose}>&times;</button>
         </div>
         <form onSubmit={handleSubmit}>
           <div className="modal-body">
@@ -97,6 +97,7 @@ export default function UpdateTaskStatusModal({ taskId, currentStatus, baseUrl, 
                         className={`flat-status-option ${isSelected ? 'is-active' : ''}`}
                       >
                         <input
+                          id={`radio-status-${opt.value}`}
                           type="radio"
                           name="targetStatus"
                           value={opt.value}
@@ -118,6 +119,7 @@ export default function UpdateTaskStatusModal({ taskId, currentStatus, baseUrl, 
               <div className="form-group">
                 <label className="form-label">STATUS NOTES</label>
                 <textarea
+                  id="textarea-status-notes"
                   className="form-control"
                   rows="3"
                   placeholder="Provide reason for this status update..."
@@ -130,10 +132,11 @@ export default function UpdateTaskStatusModal({ taskId, currentStatus, baseUrl, 
             )}
           </div>
           <div className="modal-foot">
-            <button type="button" className="btn-secondary" onClick={onClose} disabled={submitting}>
+            <button id="btn-status-cancel" type="button" className="btn-secondary" onClick={onClose} disabled={submitting}>
               CANCEL
             </button>
             <button 
+              id="btn-status-submit"
               type="submit" 
               className="btn-primary" 
               disabled={submitting || allowedOptions.length === 0 || !newStatus}

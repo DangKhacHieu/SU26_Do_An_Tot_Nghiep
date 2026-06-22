@@ -33,6 +33,7 @@ import StallList from "./pages/FE_Staff/StallList";
 import StallInvoiceDetail from "./pages/FE_Staff/StallInvoiceDetail";
 import TaskList from "./pages/FE_Staff/TaskList";
 import TaskDetail from "./pages/FE_Staff/TaskDetail";
+import TaskMapView from "./pages/FE_Staff/TaskMapView";
 import SidebarStaff from "./pages/FE_Staff/SidebarStaff";
 import ProfileStaff from "./pages/FE_Staff/ProfileStaff";
 
@@ -426,6 +427,7 @@ function AppContent() {
   const [currentStaffView, setCurrentStaffView] = useState("dashboard");
   const [selectedViolationId, setSelectedViolationId] = useState(null);
   const [selectedTaskId, setSelectedTaskId] = useState(null);
+  const [taskViewOrigin, setTaskViewOrigin] = useState("tasks");
   const [showCreateModal, setShowCreateModal] = useState(false);
 
   // Issue state
@@ -995,6 +997,21 @@ function AppContent() {
                   baseUrl={baseUrl}
                   onViewDetails={(id) => {
                     setSelectedTaskId(id);
+                    setTaskViewOrigin("tasks");
+                    setCurrentStaffView("task-details");
+                  }}
+                  onViewMap={() => setCurrentStaffView("task-map")}
+                />
+              )}
+
+              {currentStaffView === "task-map" && (
+                <TaskMapView
+                  userId={userId}
+                  baseUrl={baseUrl}
+                  onBack={() => setCurrentStaffView("tasks")}
+                  onViewDetails={(id) => {
+                    setSelectedTaskId(id);
+                    setTaskViewOrigin("task-map");
                     setCurrentStaffView("task-details");
                   }}
                 />
@@ -1005,7 +1022,7 @@ function AppContent() {
                   taskId={selectedTaskId}
                   userId={userId}
                   baseUrl={baseUrl}
-                  onBack={() => setCurrentStaffView("tasks")}
+                  onBack={() => setCurrentStaffView(taskViewOrigin)}
                   onShowNotification={handleShowNotification}
                   onViewIssueDetails={handleViewIssueDetails}
                 />
