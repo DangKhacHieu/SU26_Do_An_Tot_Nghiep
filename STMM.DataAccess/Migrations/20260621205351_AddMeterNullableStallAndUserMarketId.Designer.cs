@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using STMM.DataAccess.Data;
@@ -11,9 +12,11 @@ using STMM.DataAccess.Data;
 namespace STMM.DataAccess.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260621205351_AddMeterNullableStallAndUserMarketId")]
+    partial class AddMeterNullableStallAndUserMarketId
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -689,11 +692,6 @@ namespace STMM.DataAccess.Migrations
                         .HasColumnName("is_active")
                         .HasComment("Công tơ còn hoạt động hay đã thay thế");
 
-                    b.Property<int>("MarketId")
-                        .HasColumnType("integer")
-                        .HasColumnName("market_id")
-                        .HasComment("Thuộc chợ nào");
-
                     b.Property<string>("SerialNumber")
                         .IsRequired()
                         .HasColumnType("text")
@@ -713,8 +711,6 @@ namespace STMM.DataAccess.Migrations
 
                     b.HasKey("MeterId")
                         .HasName("meters_pkey");
-
-                    b.HasIndex(new[] { "MarketId" }, "idx_meters_market_id");
 
                     b.HasIndex(new[] { "StallId" }, "idx_meters_stall_id");
 
@@ -2112,19 +2108,11 @@ namespace STMM.DataAccess.Migrations
 
             modelBuilder.Entity("STMM.DataAccess.Entities.Meter", b =>
                 {
-                    b.HasOne("STMM.DataAccess.Entities.Market", "Market")
-                        .WithMany("Meters")
-                        .HasForeignKey("MarketId")
-                        .IsRequired()
-                        .HasConstraintName("fk_meters_markets");
-
                     b.HasOne("STMM.DataAccess.Entities.Stall", "Stall")
                         .WithMany("Meters")
                         .HasForeignKey("StallId")
                         .OnDelete(DeleteBehavior.SetNull)
                         .HasConstraintName("fk_meters_stalls");
-
-                    b.Navigation("Market");
 
                     b.Navigation("Stall");
                 });
@@ -2461,8 +2449,6 @@ namespace STMM.DataAccess.Migrations
             modelBuilder.Entity("STMM.DataAccess.Entities.Market", b =>
                 {
                     b.Navigation("Areas");
-
-                    b.Navigation("Meters");
 
                     b.Navigation("Users");
                 });
