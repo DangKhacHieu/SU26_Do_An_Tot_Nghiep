@@ -559,7 +559,7 @@ public partial class AppDbContext : DbContext
 
             entity.HasOne(d => d.Stall).WithMany(p => p.Meters)
                 .HasForeignKey(d => d.StallId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
+                .OnDelete(DeleteBehavior.SetNull)
                 .HasConstraintName("fk_meters_stalls");
         });
 
@@ -1313,10 +1313,21 @@ public partial class AppDbContext : DbContext
                 .HasComment("Ngày giờ cập nhật gần nhất")
                 .HasColumnName("updated_at");
 
+            entity.Property(e => e.MarketId)
+                .HasComment("Thuộc chợ nào (nullable)")
+                .HasColumnName("market_id");
+
+            entity.HasIndex(e => e.MarketId, "idx_users_market_id");
+
             entity.HasOne(d => d.Role).WithMany(p => p.Users)
                 .HasForeignKey(d => d.RoleId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("fk_users_roles");
+
+            entity.HasOne(d => d.Market).WithMany(p => p.Users)
+                .HasForeignKey(d => d.MarketId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("fk_users_markets");
         });
 
         modelBuilder.Entity<Vendor>(entity =>

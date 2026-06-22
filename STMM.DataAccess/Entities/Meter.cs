@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace STMM.DataAccess.Entities;
@@ -14,9 +14,9 @@ public partial class Meter
     public int MeterId { get; set; }
 
     /// <summary>
-    /// Lắp đặt tại sạp nào
+    /// Lắp đặt tại sạp nào (nullable khi nằm trong kho)
     /// </summary>
-    public int StallId { get; set; }
+    public int? StallId { get; set; }
 
     /// <summary>
     /// Loại công tơ (Electricity, Water)
@@ -40,5 +40,5 @@ public partial class Meter
 
     public virtual ICollection<MeterReading> MeterReadings { get; set; } = new List<MeterReading>();
 
-    public virtual Stall Stall { get; set; } = null!;
+    public virtual Stall? Stall { get; set; }
 }

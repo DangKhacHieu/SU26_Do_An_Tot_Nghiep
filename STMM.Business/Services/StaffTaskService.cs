@@ -234,11 +234,19 @@ namespace STMM.Business.Services
                     request.UpdatedAt = DateTime.UtcNow;
                     _requestRepository.Update(request);
                 }
+                else if (newStatus == "Pending")
+                {
+                    request.IsQuoteApproved = false;
+                    request.Status = "Pending";
+                    request.UpdatedAt = DateTime.UtcNow;
+                    _requestRepository.Update(request);
+                }
             }
 
             bool isValid = false;
             if (oldStatus == "Pending" && newStatus == "Cancelled") isValid = true;
             else if (oldStatus == "PendingApproval" && newStatus == "In_Progress") isValid = true;
+            else if (oldStatus == "PendingApproval" && newStatus == "Pending") isValid = true;
             else if (oldStatus == "PendingApproval" && newStatus == "Cancelled") isValid = true;
             else if (oldStatus == "In_Progress" && newStatus == "Cancelled") isValid = true;
 
@@ -248,6 +256,18 @@ namespace STMM.Business.Services
             }
 
             task.Status = newStatus;
+
+            if (oldStatus == "PendingApproval" && newStatus == "Pending")
+            {
+                await _notificationService.CreateAsync(new CreateNotificationRequest
+                {
+                    Title = "Quotation Rejected",
+                    Content = $"Quotation for task \"{task.Title}\" has been rejected. Please update materials and resubmit.",
+                    NotiType = "System",
+                    CreatedByUserId = task.AssignedToUserId,
+                    TargetUserId = task.AssignedToUserId
+                }, ct);
+            }
 
             if (newStatus == "Cancelled")
             {

@@ -60,6 +60,15 @@ const IconAlert = () => (
   </svg>
 );
 
+const IconMeter = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="4" y="4" width="16" height="16" rx="2" />
+    <line x1="4" y1="10" x2="20" y2="10" />
+    <circle cx="12" cy="15" r="2" />
+    <line x1="12" y1="10" x2="12" y2="13" />
+  </svg>
+);
+
 // ─── Navigation structure ─────────────────────────────────────────────────────
 // Mỗi group có label và danh sách items.
 // Mỗi item: { key, label, icon, childKeys? }
@@ -138,6 +147,12 @@ const NAV_GROUPS = [
         label: 'Quản lý Sự cố',
         icon: <IconAlert />,
         childKeys: ['issue-details'],
+      },
+      {
+        key: 'meters',
+        label: 'Quản lý Công tơ',
+        icon: <IconMeter />,
+        childKeys: [],
       },
     ],
   },

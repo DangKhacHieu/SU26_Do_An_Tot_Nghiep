@@ -39,4 +39,6 @@ public partial class Market
     public double? Size { get; set; }
 
     public virtual ICollection<Area> Areas { get; set; } = new List<Area>();
+
+    public virtual ICollection<User> Users { get; set; } = new List<User>();
 }
