@@ -37,10 +37,6 @@ export default function MeterReadingHistory({ stallId, baseUrl, userId, onViewMe
   };
 
   useEffect(() => {
-    document.title = "Meter Reading History - STMM Staff";
-  }, []);
-
-  useEffect(() => {
     fetchReadings();
   }, [stallId, pageNumber, meterType]);
 
@@ -54,12 +50,11 @@ export default function MeterReadingHistory({ stallId, baseUrl, userId, onViewMe
   };
 
   return (
-    <main className="violation-list-container" aria-labelledby="page-title">
+    <div className="violation-list-container">
       {/* Toolbar: Filters + CTA */}
       <div className="toolbar">
         <div className="toolbar-left">
           <select
-            id="meter-type-filter-select"
             value={meterType}
             onChange={(e) => { setMeterType(e.target.value); setPageNumber(1); }}
             className="filter-select"
@@ -69,16 +64,16 @@ export default function MeterReadingHistory({ stallId, baseUrl, userId, onViewMe
             <option value="Water">Water (💧)</option>
           </select>
 
-          <button id="meter-refresh-btn" className="btn-secondary" onClick={fetchReadings} disabled={loading}>
+          <button className="btn-secondary" onClick={fetchReadings} disabled={loading}>
             Refresh
           </button>
         </div>
 
         <div style={{ display: 'flex', gap: '10px' }}>
-          <button id="meter-back-btn" className="btn-secondary-outline" onClick={onBack}>
+          <button className="btn-secondary-outline" onClick={onBack}>
             &larr; Back
           </button>
-          <button id="meter-record-btn" className="btn-primary" onClick={onOpenRecordModal}>
+          <button className="btn-primary" onClick={onOpenRecordModal}>
             + Record Reading
           </button>
         </div>
@@ -86,27 +81,21 @@ export default function MeterReadingHistory({ stallId, baseUrl, userId, onViewMe
 
       {/* Content Table card */}
       {loading ? (
-        <div className="loading-state">
-          <span className="spinner" aria-hidden="true"></span>
-          <p>Loading meter readings...</p>
-        </div>
+        <div className="loading-state">Loading history...</div>
       ) : error ? (
         <div className="error-state">
-          <span className="error-icon" aria-hidden="true">⚠️</span>
           <p className="error-message">Error: {error}</p>
-          <button id="meter-retry-btn" className="btn-secondary" onClick={fetchReadings}>Retry</button>
+          <button className="btn-secondary" onClick={fetchReadings}>Retry</button>
         </div>
       ) : readings.length === 0 ? (
         <div className="empty-state">
-          <span className="empty-icon" aria-hidden="true">📊</span>
-          <h2>No Meter Readings Found</h2>
-          <p>No meter readings recorded for this stall in the last 6 months or matching the selected filters.</p>
+          <p>No meter readings recorded for this stall in the last 6 months.</p>
         </div>
       ) : (
         <>
           <div className="table-card">
             <div className="table-card-header">
-              <h1 className="table-card-title" id="page-title">Meter Reading History</h1>
+              <span className="table-card-title">Meter Readings</span>
               <span className="table-count-badge">{totalCount} records</span>
             </div>
             <div className="table-responsive">
@@ -129,7 +118,6 @@ export default function MeterReadingHistory({ stallId, baseUrl, userId, onViewMe
                     <tr key={r.meterReadingId}>
                       <td>
                         <button 
-                          id={`meter-serial-link-${r.meterReadingId}`}
                           className="btn-link" 
                           onClick={() => onViewMeterDetail(r.meterId)}
                           style={{ fontWeight: 'bold', padding: 0 }}
@@ -150,7 +138,6 @@ export default function MeterReadingHistory({ stallId, baseUrl, userId, onViewMe
                       <td>
                         {r.imageUrl ? (
                           <a 
-                            id={`meter-image-link-${r.meterReadingId}`}
                             href={r.imageUrl} 
                             target="_blank" 
                             rel="noopener noreferrer"
@@ -165,7 +152,6 @@ export default function MeterReadingHistory({ stallId, baseUrl, userId, onViewMe
                       </td>
                       <td>
                         <button 
-                          id={`meter-info-btn-${r.meterReadingId}`}
                           className="btn-link" 
                           onClick={() => onViewMeterDetail(r.meterId)}
                         >
@@ -185,7 +171,6 @@ export default function MeterReadingHistory({ stallId, baseUrl, userId, onViewMe
             </span>
             <div className="pagination-buttons">
               <button
-                id="meter-prev-page-btn"
                 className="btn-page"
                 onClick={() => setPageNumber(p => Math.max(p - 1, 1))}
                 disabled={pageNumber === 1}
@@ -194,7 +179,6 @@ export default function MeterReadingHistory({ stallId, baseUrl, userId, onViewMe
               </button>
               {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
                 <button
-                  id={`meter-page-btn-${p}`}
                   key={p}
                   className={`btn-page ${pageNumber === p ? 'active' : ''}`}
                   onClick={() => setPageNumber(p)}
@@ -203,7 +187,6 @@ export default function MeterReadingHistory({ stallId, baseUrl, userId, onViewMe
                 </button>
               ))}
               <button
-                id="meter-next-page-btn"
                 className="btn-page"
                 onClick={() => setPageNumber(p => Math.min(p + 1, totalPages))}
                 disabled={pageNumber === totalPages}
@@ -214,6 +197,6 @@ export default function MeterReadingHistory({ stallId, baseUrl, userId, onViewMe
           </div>
         </>
       )}
-    </main>
+    </div>
   );
 }

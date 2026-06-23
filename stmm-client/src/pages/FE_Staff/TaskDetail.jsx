@@ -13,10 +13,6 @@ export default function TaskDetail({ taskId, userId, baseUrl, onBack, onShowNoti
   const [forbidden, setForbidden] = useState(false);
   const [utilityProgress, setUtilityProgress] = useState({ completed: 0, total: 0 });
 
-  useEffect(() => {
-    document.title = "Task Details - STMM Staff";
-  }, []);
-
   const fetchTaskDetails = async () => {
     setLoading(true);
     setError(null);
@@ -46,43 +42,42 @@ export default function TaskDetail({ taskId, userId, baseUrl, onBack, onShowNoti
 
   if (forbidden) {
     return (
-      <main className="task-detail-container" aria-labelledby="forbidden-title">
+      <div className="task-detail-container">
         <div className="breadcrumb-path">
           <span>Dashboard</span> &gt; <span>Daily Tasks</span> &gt; <span className="active-path">Access Error</span>
         </div>
         <div className="error-state">
           <span className="error-icon" style={{ fontSize: '48px' }}>🚫</span>
-          <h1 id="forbidden-title">Access Denied</h1>
+          <h3>Access Denied</h3>
           <p className="error-message">You are not assigned to perform this task.</p>
-          <button id="forbidden-back-btn" onClick={onBack} className="btn-primary-dark">Back to List</button>
+          <button onClick={onBack} className="btn-primary-dark">Back to List</button>
         </div>
-      </main>
+      </div>
     );
   }
 
   if (loading) {
     return (
-      <main className="task-detail-container" aria-labelledby="loading-title">
-        <h1 id="loading-title" className="sr-only">Loading Task Details</h1>
+      <div className="task-detail-container">
         <div className="loading-state">
           <span className="spinner"></span> Loading task details...
         </div>
-      </main>
+      </div>
     );
   }
 
   if (error || !task) {
     return (
-      <main className="task-detail-container" aria-labelledby="error-title">
+      <div className="task-detail-container">
         <div className="error-state">
-          <h1 id="error-title">An error occurred</h1>
+          <h3>An error occurred</h3>
           <p className="error-message">{error || 'Task data not found.'}</p>
           <div style={{ display: 'flex', gap: '10px' }}>
-            <button id="error-retry-btn" onClick={fetchTaskDetails} className="btn-primary-dark">Retry</button>
-            <button id="error-back-btn" onClick={onBack} className="btn-secondary">Back</button>
+            <button onClick={fetchTaskDetails} className="btn-primary-dark">Retry</button>
+            <button onClick={onBack} className="btn-secondary">Back</button>
           </div>
         </div>
-      </main>
+      </div>
     );
   }
 
@@ -108,7 +103,7 @@ export default function TaskDetail({ taskId, userId, baseUrl, onBack, onShowNoti
   };
 
   return (
-    <main className="task-detail-container" aria-labelledby="task-detail-title">
+    <div className="task-detail-container">
       <div className="breadcrumb-path">
         <span onClick={onBack} className="link-path" style={{ cursor: 'pointer' }}>Dashboard</span> &gt; 
         <span onClick={onBack} className="link-path" style={{ cursor: 'pointer' }}> Daily Tasks</span> &gt; 
@@ -117,10 +112,10 @@ export default function TaskDetail({ taskId, userId, baseUrl, onBack, onShowNoti
 
       <div className="section-header">
         <div>
-          <h1 className="main-title" id="task-detail-title">Task: {task.title}</h1>
+          <h1 className="main-title">Task: {task.title}</h1>
           <p className="subtitle">Stall/Area: {task.areaName || 'None'} | Type: {task.taskType}</p>
         </div>
-        <button id="task-detail-back-btn" onClick={onBack} className="btn-secondary">
+        <button onClick={onBack} className="btn-secondary">
           &larr; Back to List
         </button>
       </div>
@@ -190,6 +185,6 @@ export default function TaskDetail({ taskId, userId, baseUrl, onBack, onShowNoti
           )}
         </div>
       </div>
-    </main>
+    </div>
   );
 }

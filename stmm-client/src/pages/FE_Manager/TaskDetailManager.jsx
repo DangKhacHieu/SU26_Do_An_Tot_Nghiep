@@ -15,58 +15,6 @@ export default function TaskDetailManager({ taskId, userId, baseUrl, onBack, add
   // Modal triggers
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [showStatusModal, setShowStatusModal] = useState(false);
-  const [submittingQuote, setSubmittingQuote] = useState(false);
-  const [confirmModal, setConfirmModal] = useState({
-    isOpen: false,
-    type: 'primary',
-    title: '',
-    message: '',
-    onConfirm: null
-  });
-
-  const handleResolveQuote = (approve) => {
-    setConfirmModal({
-      isOpen: true,
-      type: approve ? 'primary' : 'danger',
-      title: approve ? 'Approve Quotation' : 'Reject Quotation',
-      message: approve 
-        ? 'Are you sure you want to APPROVE this quotation and start construction?' 
-        : 'Are you sure you want to REJECT this quotation and request staff to re-evaluate?',
-      onConfirm: () => executeResolveQuote(approve)
-    });
-  };
-
-  const executeResolveQuote = async (approve) => {
-    setSubmittingQuote(true);
-    try {
-      const res = await fetch(`${baseUrl}/api/manager/tasks/${taskId}/status`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ newStatus: approve ? 'In_Progress' : 'Pending' })
-      });
-
-      if (res.ok) {
-        addToast(approve ? 'Quotation approved successfully!' : 'Quotation rejected. Staff has been notified to re-evaluate.', 'success');
-        const updatedTask = await res.json();
-        setTask(updatedTask);
-      } else {
-        const errText = await res.text();
-        let errorMsg = 'Failed to update task status.';
-        try {
-          const errJson = JSON.parse(errText);
-          errorMsg = errJson.detail || errJson.message || errorMsg;
-        } catch (e) {
-          errorMsg = errText || errorMsg;
-        }
-        addToast(errorMsg, 'error');
-      }
-    } catch (err) {
-      console.error('Error resolving quotation:', err);
-      addToast('Network error resolving quotation.', 'error');
-    } finally {
-      setSubmittingQuote(false);
-    }
-  };
 
   useEffect(() => {
     fetchTaskDetails();
@@ -158,7 +106,7 @@ export default function TaskDetailManager({ taskId, userId, baseUrl, onBack, add
               <button className="btn-secondary" onClick={() => setShowAssignModal(true)}>
                 <IconUser /> REASSIGN STAFF
               </button>
-              {task.status !== 'PendingApproval' && (
+              {!(task.status === 'PendingApproval' && task.requestId && task.requestPaidBy !== 'Market') && (
                 <button className="btn-primary" onClick={() => setShowStatusModal(true)}>
                   <IconEditStatus /> UPDATE STATUS
                 </button>
@@ -371,70 +319,6 @@ export default function TaskDetailManager({ taskId, userId, baseUrl, onBack, add
             )}
           </div>
 
-          {task.status === 'PendingApproval' && (task.requestId === null || task.requestPaidBy === 'Market') && (
-            <div className="spec-card quotation-approval-widget" style={{ borderLeft: '4px solid #3b82f6', background: '#f0f9ff' }}>
-              <h3 className="spec-title" style={{ color: '#1d4ed8', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-                📁 MATERIAL QUOTATION APPROVAL (BQL)
-              </h3>
-              
-              <div style={{ fontSize: '0.88rem', color: '#4b5563', lineHeight: '1.5', marginBottom: '16px' }}>
-                {task.requestId ? (
-                  <p style={{ margin: 0 }}>
-                    Task linked to Request **#REQ-{task.requestId}**. Cost is covered by **Market Management** from market budget.
-                  </p>
-                ) : (
-                  <p style={{ margin: 0 }}>
-                    General market infrastructure maintenance task. Cost is covered by **Market Management** from market budget.
-                  </p>
-                )}
-                <p style={{ marginTop: '8px', marginBottom: 0 }}>
-                  Total estimated cost: <strong style={{ color: '#1d4ed8', fontSize: '1rem' }}>{formatCurrency(materialsTotal)}</strong>
-                </p>
-              </div>
-
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <button
-                  disabled={submittingQuote}
-                  onClick={() => handleResolveQuote(true)}
-                  style={{
-                    flex: 1,
-                    padding: '10px 14px',
-                    fontSize: '0.85rem',
-                    fontWeight: '600',
-                    border: 'none',
-                    borderRadius: '6px',
-                    background: '#10b981',
-                    color: '#fff',
-                    cursor: submittingQuote ? 'not-allowed' : 'pointer',
-                    boxShadow: '0 2px 4px rgba(16, 185, 129, 0.15)',
-                    transition: 'all 0.15s ease'
-                  }}
-                >
-                  {submittingQuote ? 'Processing...' : 'Approve Quotation'}
-                </button>
-                <button
-                  disabled={submittingQuote}
-                  onClick={() => handleResolveQuote(false)}
-                  style={{
-                    flex: 1,
-                    padding: '10px 14px',
-                    fontSize: '0.85rem',
-                    fontWeight: '600',
-                    border: 'none',
-                    borderRadius: '6px',
-                    background: '#ef4444',
-                    color: '#fff',
-                    cursor: submittingQuote ? 'not-allowed' : 'pointer',
-                    boxShadow: '0 2px 4px rgba(239, 68, 68, 0.15)',
-                    transition: 'all 0.15s ease'
-                  }}
-                >
-                  {submittingQuote ? 'Processing...' : 'Reject'}
-                </button>
-              </div>
-            </div>
-          )}
-
           {/* Dynamic Activity Timeline */}
           <div className="spec-card">
             <h3 className="spec-title">ACTIVITY HISTORY LOG</h3>
@@ -531,44 +415,6 @@ export default function TaskDetailManager({ taskId, userId, baseUrl, onBack, add
           }}
           addToast={addToast}
         />
-      )}
-
-      {/* Custom Confirmation Modal */}
-      {confirmModal.isOpen && (
-        <div className="modal-overlay" onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}>
-          <div className="modal-box" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '440px' }}>
-            <div className="modal-head">
-              <h3>{confirmModal.title}</h3>
-              <button className="modal-close" onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}>&times;</button>
-            </div>
-            <div className="modal-body" style={{ padding: '24px 20px', fontSize: '0.92rem', color: '#334155', lineHeight: '1.6', textAlign: 'left' }}>
-              {confirmModal.message}
-            </div>
-            <div className="modal-foot">
-              <button 
-                type="button" 
-                className="btn-secondary" 
-                onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
-              >
-                NO
-              </button>
-              <button 
-                type="button" 
-                className="btn-primary" 
-                style={{ 
-                  backgroundColor: confirmModal.type === 'danger' ? '#ef4444' : '',
-                  borderColor: confirmModal.type === 'danger' ? '#ef4444' : ''
-                }}
-                onClick={() => {
-                  if (confirmModal.onConfirm) confirmModal.onConfirm();
-                  setConfirmModal(prev => ({ ...prev, isOpen: false }));
-                }}
-              >
-                YES
-              </button>
-            </div>
-          </div>
-        </div>
       )}
     </div>
   );
