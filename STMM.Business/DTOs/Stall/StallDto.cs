@@ -23,5 +23,11 @@ namespace STMM.Business.DTOs.Stall
         public string? AreaName { get; set; }
         public string? CategoryName { get; set; }
         public string? TenantName { get; set; }
+
+        // Meter information
+        public string? ElectricityMeterSerial { get; set; }
+        public double? CurrentElectricityIndex { get; set; }
+        public string? WaterMeterSerial { get; set; }
+        public double? CurrentWaterIndex { get; set; }
     }
 }

@@ -10,6 +10,7 @@ namespace STMM.API.Controllers
 {
     [ApiController]
     [Route("api/meters")]
+    [Authorize(Roles = "Staff,Manager,Admin")]
     public class MetersController : ControllerBase
     {
         private readonly IMeterReadingService _readingService;

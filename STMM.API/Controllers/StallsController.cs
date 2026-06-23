@@ -49,8 +49,21 @@ namespace STMM.API.Controllers
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
             
-            var stall = await _stallService.CreateStallAsync(createStallDto);
-            return CreatedAtAction(nameof(GetStallById), new { id = stall.StallId }, stall);
+            try
+            {
+                var stall = await _stallService.CreateStallAsync(createStallDto);
+                return CreatedAtAction(nameof(GetStallById), new { id = stall.StallId }, stall);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                var innerMsg = ex.InnerException != null ? ex.InnerException.Message : "";
+                System.IO.File.AppendAllText("error_log.txt", $"{DateTime.Now}: {ex.ToString()}\n\n");
+                return StatusCode(500, new { title = ex.Message, details = $"{innerMsg}\n{ex.StackTrace}" });
+            }
         }
 
         [HttpPut("{id}")]
@@ -61,7 +74,12 @@ namespace STMM.API.Controllers
             try
             {
                 var stall = await _stallService.UpdateStallAsync(id, updateStallDto);
+                if (stall == null) return NotFound();
                 return Ok(stall);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
             }
             catch (KeyNotFoundException)
             {
@@ -80,6 +98,10 @@ namespace STMM.API.Controllers
             catch (KeyNotFoundException)
             {
                 return NotFound();
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
             }
         }
 

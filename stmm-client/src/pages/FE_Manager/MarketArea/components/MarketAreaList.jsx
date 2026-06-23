@@ -13,7 +13,7 @@ const MarketAreaList = () => {
   const [expandedAreas, setExpandedAreas] = useState([]);
   const [zoom, setZoom] = useState(1);
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
-  const [deleteError, setDeleteError] = useState(null);
+  const [errorMessage, setErrorMessage] = useState(null);
   const [deleteSuccess, setDeleteSuccess] = useState(null);
   const [infoArea, setInfoArea] = useState(null);
 
@@ -64,7 +64,7 @@ const MarketAreaList = () => {
     } catch (error) {
       console.error('Error deleting area:', error);
       setDeleteConfirmId(null);
-      setDeleteError('Không thể xóa khu vực này! Có thể bên trong khu vực đang có sạp được thuê.');
+      setErrorMessage('Không thể xóa khu vực này! Có thể bên trong khu vực đang có sạp được thuê.');
     }
   };
 
@@ -75,6 +75,7 @@ const MarketAreaList = () => {
           name: formData.name,
           description: formData.description,
           categoryName: formData.categoryName,
+          size: formData.size,
           minX: selectedArea.minX,
           minY: selectedArea.minY,
           maxX: selectedArea.minX !== null ? selectedArea.minX + formData.width : formData.width,
@@ -88,6 +89,7 @@ const MarketAreaList = () => {
           name: formData.name,
           description: formData.description,
           categoryName: formData.categoryName,
+          size: formData.size,
           marketId: 1, // default market for now
           minX: 24, // default starting X
           minY: 24, // default starting Y
@@ -110,7 +112,29 @@ const MarketAreaList = () => {
     );
   };
 
+  const [renderKey, setRenderKey] = useState(0);
 
+
+
+  // Helper to check collision between areas
+  const checkOverlap = (areaId, minX, minY, maxX, maxY) => {
+    return areas.some((a, index) => {
+      if (a.areaId === areaId) return false;
+      
+      const defaultX = (index % 4) * 200 + 24;
+      const defaultY = Math.floor(index / 4) * 160 + 24;
+
+      const aMinX = a.minX !== null ? a.minX : defaultX;
+      const aMinY = a.minY !== null ? a.minY : defaultY;
+      const aWidth = (a.maxX !== null && a.minX !== null) ? (a.maxX - a.minX) : 180;
+      const aHeight = (a.maxY !== null && a.minY !== null) ? (a.maxY - a.minY) : 140;
+      const aMaxX = aMinX + aWidth;
+      const aMaxY = aMinY + aHeight;
+
+      // AABB Collision logic
+      return minX < aMaxX && maxX > aMinX && minY < aMaxY && maxY > aMinY;
+    });
+  };
 
   // Drag and Drop handlers
   const handleDragStop = async (e, d, area) => {
@@ -121,11 +145,18 @@ const MarketAreaList = () => {
       const width = (area.maxX !== null && area.minX !== null) ? (area.maxX - area.minX) : 180;
       const height = (area.maxY !== null && area.minY !== null) ? (area.maxY - area.minY) : 140;
 
+      if (checkOverlap(area.areaId, d.x, d.y, d.x + width, d.y + height)) {
+          setErrorMessage('Không thể di chuyển: Khu vực này bị chồng lấp lên Khu vực khác!');
+          setRenderKey(prev => prev + 1); // Force Rnd to revert
+          return;
+      }
+
       const updateData = {
         name: area.name,
         description: area.description,
         categoryId: area.categoryId,
         categoryName: area.categoryName,
+        size: area.size,
         minX: d.x,
         minY: d.y,
         maxX: d.x + width,
@@ -138,6 +169,7 @@ const MarketAreaList = () => {
       await updateArea(area.areaId, updateData);
     } catch (error) {
       console.error('Error updating position:', error);
+      setErrorMessage('Có lỗi xảy ra khi lưu vị trí Khu vực.');
       fetchAreas(); // revert on error
     }
   };
@@ -146,12 +178,22 @@ const MarketAreaList = () => {
     try {
       const width = parseInt(ref.style.width, 10);
       const height = parseInt(ref.style.height, 10);
+      
+      if (checkOverlap(area.areaId, position.x, position.y, position.x + width, position.y + height)) {
+          setErrorMessage('Không thể thay đổi kích thước: Khu vực này bị chồng lấp lên Khu vực khác!');
+          setRenderKey(prev => prev + 1); // Force Rnd to revert
+          return;
+      }
+      
+      const PX_PER_M2 = 900;
+      const newSize = Math.round((width * height) / PX_PER_M2 * 100) / 100;
 
       const updateData = {
         name: area.name,
         description: area.description,
         categoryId: area.categoryId,
         categoryName: area.categoryName,
+        size: newSize,
         minX: position.x,
         minY: position.y,
         maxX: position.x + width,
@@ -164,6 +206,11 @@ const MarketAreaList = () => {
       await updateArea(area.areaId, updateData);
     } catch (error) {
       console.error('Error updating size:', error);
+      if (error.response?.data?.message) {
+          setErrorMessage(`Không thể thay đổi kích thước Khu vực: ${error.response.data.message}`);
+      } else {
+          setErrorMessage('Có lỗi xảy ra khi lưu kích thước Khu vực.');
+      }
       fetchAreas(); // revert on error
     }
   };
@@ -196,14 +243,14 @@ const MarketAreaList = () => {
         )}
 
         {/* Error Modal */}
-        {deleteError && (
+        {errorMessage && (
           <div style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', zIndex: 9999, display: 'flex', justifyContent: 'center', alignItems: 'center'}}>
-            <div style={{background: 'var(--bg-panel)', padding: '32px', borderRadius: '16px', minWidth: '400px', boxShadow: '0 10px 30px rgba(0,0,0,0.2)', textAlign: 'center'}}>
+            <div style={{background: 'var(--bg-panel)', padding: '32px', borderRadius: '16px', minWidth: '400px', maxWidth: '500px', boxShadow: '0 10px 30px rgba(0,0,0,0.2)', textAlign: 'center'}}>
               <div style={{fontSize: '48px', marginBottom: '16px'}}>⚠️</div>
-              <h3 style={{marginTop: 0, color: 'var(--danger, #ff4d4f)', fontSize: '24px'}}>Không thể xóa</h3>
-              <p style={{color: 'var(--text-secondary)', fontSize: '15px', lineHeight: '1.5'}}>{deleteError}</p>
+              <h3 style={{marginTop: 0, color: 'var(--danger, #ff4d4f)', fontSize: '24px'}}>Lỗi</h3>
+              <p style={{color: 'var(--text-secondary)', fontSize: '15px', lineHeight: '1.5'}}>{errorMessage}</p>
               <div style={{marginTop: 32}}>
-                <button onClick={() => setDeleteError(null)} style={{padding: '10px 32px', border: 'none', background: 'var(--color-primary)', color: 'white', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px', transition: 'all 0.2s'}}>Đóng</button>
+                <button onClick={() => setErrorMessage(null)} style={{padding: '10px 32px', border: 'none', background: 'var(--color-primary)', color: 'white', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px', transition: 'all 0.2s'}}>Đóng</button>
               </div>
             </div>
           </div>
@@ -272,9 +319,9 @@ const MarketAreaList = () => {
         </div>
 
         {/* Canvas / List Area */}
-        <div className={styles.canvasArea} style={{overflow: 'auto'}}>
-          <div className={styles.canvasContainer}>
-            <div className={styles.gridBg}>
+        <div className={styles.canvasArea}>
+          <div className={styles.canvasContainer} style={{ overflow: 'auto', flex: 1 }}>
+            <div className={styles.gridBg} style={{ minWidth: '4000px', minHeight: '4000px', width: '4000px', height: '4000px' }}>
               <div style={{ position: 'relative', width: '100%', height: '100%', transform: `scale(${zoom})`, transformOrigin: '0 0' }}>
                 
                 {/* 1. Interactive Area Map */}
@@ -289,7 +336,7 @@ const MarketAreaList = () => {
 
                   return (
                     <Rnd
-                      key={area.areaId}
+                      key={`${area.areaId}-${renderKey}`}
                       size={{ width, height }}
                       position={{ x, y }}
                       onDragStop={(e, d) => handleDragStop(e, d, area)}
