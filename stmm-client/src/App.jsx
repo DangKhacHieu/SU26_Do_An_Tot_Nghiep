@@ -61,6 +61,7 @@ import ViolationListManager from "./pages/FE_Manager/ViolationListManager";
 import ViolationDetailsManager from "./pages/FE_Manager/ViolationDetailsManager";
 import IssueListManager from "./pages/FE_Manager/IssueListManager";
 import IssueDetailManager from "./pages/FE_Manager/IssueDetailManager";
+import MeterManagement from "./pages/FE_Manager/MeterManagement";
 
 // FE Admin System Imports
 import SidebarAdminSystem from "./pages/FE_AdminSystem/SidebarAdminSystem";
@@ -188,6 +189,11 @@ const PAGE_TITLES = {
   "issue-details": {
     title: "Chi tiết Sự cố Hạ tầng",
     sub: "Chi tiết sự cố và thông tin xử lý/bàn giao tác vụ sửa chữa.",
+  },
+
+  meters: {
+    title: "Quản lý Công tơ",
+    sub: "Quản lý kho công tơ Điện/Nước khả dụng trong cùng chợ để tạo sạp.",
   },
 
   // Admin System Titles
@@ -578,6 +584,8 @@ function AppContent() {
             addToast={addToast}
           />
         );
+      case "meters":
+        return <MeterManagement navigate={navigate} addToast={addToast} />;
       case "form":
         return (
           <UserFormManager
