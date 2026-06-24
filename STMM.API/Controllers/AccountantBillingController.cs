@@ -26,9 +26,10 @@ namespace STMM.API.Controllers
             [FromQuery] int? year,
             [FromQuery] string? status,
             [FromQuery] string? search,
+            [FromQuery] int? userId,
             CancellationToken ct)
         {
-            var result = await _billingService.GetInvoicesAsync(month, year, status, search, ct);
+            var result = await _billingService.GetInvoicesAsync(month, year, status, search, userId, ct);
             return Ok(result);
         }
 

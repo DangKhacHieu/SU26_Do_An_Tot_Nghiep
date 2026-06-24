@@ -35,6 +35,7 @@ namespace STMM.Tests.Services
         private readonly Mock<INotificationService> _notificationServiceMock;
         private readonly Mock<IValidator<ReceiveCashPaymentRequest>> _validatorMock;
         private readonly Mock<IEmailService> _emailServiceMock;
+        private readonly Mock<IUserRepository> _userRepoMock;
         private readonly IMapper _mapper;
         private readonly BillingService _service;
 
@@ -51,6 +52,7 @@ namespace STMM.Tests.Services
             _notificationServiceMock = new Mock<INotificationService>();
             _validatorMock = new Mock<IValidator<ReceiveCashPaymentRequest>>();
             _emailServiceMock = new Mock<IEmailService>();
+            _userRepoMock = new Mock<IUserRepository>();
 
             var mapperConfig = new MapperConfiguration(cfg =>
             {
@@ -70,7 +72,8 @@ namespace STMM.Tests.Services
                 _mapper,
                 _notificationServiceMock.Object,
                 _validatorMock.Object,
-                _emailServiceMock.Object);
+                _emailServiceMock.Object,
+                _userRepoMock.Object);
         }
 
         [Fact]

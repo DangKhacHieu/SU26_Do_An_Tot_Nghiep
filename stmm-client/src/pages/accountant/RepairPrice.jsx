@@ -31,6 +31,15 @@ export default function RepairPrice() {
   const [selectedItem, setSelectedItem] = useState(null);
   const [formState, setFormState] = useState({ itemName: '', unit: 'Cái', price: 0, description: '', isActive: true });
 
+  const [pricesPage, setPricesPage] = useState(1);
+  const [usedPage, setUsedPage] = useState(1);
+  const itemsPerPage = 5;
+
+  useEffect(() => {
+    setPricesPage(1);
+    setUsedPage(1);
+  }, [searchTerm, activeTab]);
+
   const showNotification = (type, message) => {
     setNotification({ type, message });
     setTimeout(() => setNotification(null), 4000);
@@ -109,9 +118,6 @@ export default function RepairPrice() {
           <p className="page-subtitle">Thiết lập đơn giá sửa chữa kỹ thuật và xem nhật ký vật tư đã cấp phát.</p>
         </div>
         <div className="page-actions">
-          <button className="btn btn-secondary btn-icon" onClick={loadData} title="Làm mới">
-            <RefreshCw size={15} />
-          </button>
           {activeTab === 'prices' && (
             <button className="btn btn-primary" onClick={() => { setSelectedItem(null); setFormState({ itemName: '', unit: 'Cái', price: 0, description: '', isActive: true }); setActiveModal('add'); }}>
               <Plus size={15} /> Thêm hạng mục
@@ -186,7 +192,7 @@ export default function RepairPrice() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredPrices.length > 0 ? filteredPrices.map(item => {
+                  {filteredPrices.length > 0 ? filteredPrices.slice((pricesPage - 1) * itemsPerPage, pricesPage * itemsPerPage).map(item => {
                     const catBadge = getCategoryBadge(item.itemName);
                     return (
                       <tr key={item.repairPriceId} style={{ opacity: item.isActive ? 1 : 0.55 }}>
@@ -218,6 +224,38 @@ export default function RepairPrice() {
                   )}
                 </tbody>
               </table>
+              {filteredPrices.length > itemsPerPage && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, padding: '16px' }}>
+                  <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+                    Hiển thị {((pricesPage - 1) * itemsPerPage) + 1} - {Math.min(pricesPage * itemsPerPage, filteredPrices.length)} trong tổng số {filteredPrices.length} hạng mục
+                  </span>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button 
+                      className="btn btn-secondary btn-sm" 
+                      onClick={() => setPricesPage(prev => Math.max(prev - 1, 1))} 
+                      disabled={pricesPage === 1}
+                    >
+                      Trước
+                    </button>
+                    {Array.from({ length: Math.ceil(filteredPrices.length / itemsPerPage) }, (_, i) => i + 1).map(page => (
+                      <button 
+                        key={page} 
+                        className={`btn btn-sm ${pricesPage === page ? 'btn-primary' : 'btn-secondary'}`}
+                        onClick={() => setPricesPage(page)}
+                      >
+                        {page}
+                      </button>
+                    ))}
+                    <button 
+                      className="btn btn-secondary btn-sm" 
+                      onClick={() => setPricesPage(prev => Math.min(prev + 1, Math.ceil(filteredPrices.length / itemsPerPage)))} 
+                      disabled={pricesPage === Math.ceil(filteredPrices.length / itemsPerPage)}
+                    >
+                      Sau
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -238,7 +276,7 @@ export default function RepairPrice() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredUsed.length > 0 ? filteredUsed.map(tool => (
+                  {filteredUsed.length > 0 ? filteredUsed.slice((usedPage - 1) * itemsPerPage, usedPage * itemsPerPage).map(tool => (
                     <tr key={tool.id}>
                       <td><span style={{ fontFamily: 'monospace', fontSize: 12.5, color: 'var(--text-muted)' }}>#{tool.id}</span></td>
                       <td><strong style={{ fontSize: 13 }}>{tool.taskTitle}</strong></td>
@@ -254,6 +292,38 @@ export default function RepairPrice() {
                   )}
                 </tbody>
               </table>
+              {filteredUsed.length > itemsPerPage && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, padding: '16px' }}>
+                  <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+                    Hiển thị {((usedPage - 1) * itemsPerPage) + 1} - {Math.min(usedPage * itemsPerPage, filteredUsed.length)} trong tổng số {filteredUsed.length} lượt cấp phát
+                  </span>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button 
+                      className="btn btn-secondary btn-sm" 
+                      onClick={() => setUsedPage(prev => Math.max(prev - 1, 1))} 
+                      disabled={usedPage === 1}
+                    >
+                      Trước
+                    </button>
+                    {Array.from({ length: Math.ceil(filteredUsed.length / itemsPerPage) }, (_, i) => i + 1).map(page => (
+                      <button 
+                        key={page} 
+                        className={`btn btn-sm ${usedPage === page ? 'btn-primary' : 'btn-secondary'}`}
+                        onClick={() => setUsedPage(page)}
+                      >
+                        {page}
+                      </button>
+                    ))}
+                    <button 
+                      className="btn btn-secondary btn-sm" 
+                      onClick={() => setUsedPage(prev => Math.min(prev + 1, Math.ceil(filteredUsed.length / itemsPerPage)))} 
+                      disabled={usedPage === Math.ceil(filteredUsed.length / itemsPerPage)}
+                    >
+                      Sau
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </>

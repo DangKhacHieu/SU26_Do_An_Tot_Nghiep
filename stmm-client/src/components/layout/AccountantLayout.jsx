@@ -224,15 +224,7 @@ export default function AccountantLayout() {
             </div>
           </div>
 
-          {/* Center: Search */}
-          <div className="header-search">
-            <Search size={15} className="header-search-icon" />
-            <input
-              type="text"
-              className="header-search-input"
-              placeholder="Tìm kiếm nhanh..."
-            />
-          </div>
+          {/* Center: Search (Removed) */}
 
           {/* Right: Controls */}
           <div className="header-controls">
@@ -286,7 +278,7 @@ export default function AccountantLayout() {
             {/* User Profile */}
             <div
               className="user-profile-header"
-              onClick={() => navigate('/profile-management')}
+              onClick={() => navigate('/accountant/profile-management')}
             >
               <img src={currentUser.avatar} alt={currentUser.name} className="user-avatar" />
               <div className="user-info-text">

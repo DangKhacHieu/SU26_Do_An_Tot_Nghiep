@@ -123,7 +123,8 @@ namespace STMM.Business.Services
                 Phone = user.Phone,
                 RoleId = user.RoleId,
                 RoleName = roleName,
-                Status = user.Status ?? string.Empty
+                Status = user.Status ?? string.Empty,
+                MarketId = user.MarketId
             };
 
             return new LoginResponse
@@ -292,7 +293,8 @@ namespace STMM.Business.Services
                 Phone = user.Phone,
                 RoleId = user.RoleId,
                 RoleName = customerRole.Name,
-                Status = user.Status
+                Status = user.Status,
+                MarketId = user.MarketId
             };
 
             return new LoginResponse
@@ -479,7 +481,8 @@ namespace STMM.Business.Services
                     Phone = user.Phone,
                     RoleId = user.RoleId,
                     RoleName = roleName,
-                    Status = user.Status ?? string.Empty
+                    Status = user.Status ?? string.Empty,
+                    MarketId = user.MarketId
                 };
 
                 return new LoginResponse
@@ -687,7 +690,8 @@ namespace STMM.Business.Services
                 Phone = user.Phone,
                 RoleId = user.RoleId,
                 RoleName = roleName,
-                Status = user.Status ?? string.Empty
+                Status = user.Status ?? string.Empty,
+                MarketId = user.MarketId
             };
 
             return new LoginResponse

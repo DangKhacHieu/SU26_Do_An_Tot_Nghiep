@@ -19,7 +19,7 @@ namespace STMM.Business.Interfaces
         Task<bool> SimulateViolationAppealAsync(int violationId, CancellationToken ct = default);
         
         // General query for Accountant role (all violations across the system)
-        Task<IEnumerable<ViolationDto>> GetAllViolationsAsync(CancellationToken ct = default);
+        Task<IEnumerable<ViolationDto>> GetAllViolationsAsync(int? accountantUserId = null, CancellationToken ct = default);
 
         // CRUD for Violation Types
         Task<IEnumerable<ViolationTypeDto>> GetAllViolationTypesWithInactiveAsync(CancellationToken ct = default);

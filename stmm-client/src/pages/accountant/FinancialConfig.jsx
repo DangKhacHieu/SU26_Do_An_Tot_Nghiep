@@ -26,6 +26,10 @@ export default function FinancialConfig() {
   const [electricTiers, setElectricTiers] = useState([]);
   const [waterTiers, setWaterTiers] = useState([]);
   
+  const [feeTypesPage, setFeeTypesPage] = useState(1);
+  const [servicesPage, setServicesPage] = useState(1);
+  const itemsPerPage = 5;
+  
   const [loading, setLoading] = useState(true);
   const [isMock, setIsMock] = useState(false);
 
@@ -344,15 +348,7 @@ export default function FinancialConfig() {
             Thiết lập hệ thống biểu phí dịch vụ, hóa đơn, và biểu giá điện nước hình bậc thang.
           </p>
         </div>
-        <div className="page-actions">
-          <button
-            className="btn btn-secondary btn-icon"
-            onClick={loadAllConfigData}
-            title="Làm mới cấu hình"
-          >
-            <RefreshCw size={16} />
-          </button>
-        </div>
+        <div className="page-actions"></div>
       </div>
 
       {/* Mock Mode Alert */}
@@ -674,7 +670,7 @@ export default function FinancialConfig() {
                   </tr>
                 </thead>
                 <tbody>
-                  {feeTypes.map(f => (
+                  {feeTypes.slice((feeTypesPage - 1) * itemsPerPage, feeTypesPage * itemsPerPage).map(f => (
                     <tr key={f.feeTypeId}>
                       <td>
                         <span className="badge badge-primary" style={{ fontFamily: 'monospace' }}>
@@ -718,6 +714,38 @@ export default function FinancialConfig() {
                   ))}
                 </tbody>
               </table>
+              {feeTypes.length > itemsPerPage && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 }}>
+                  <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+                    Hiển thị {((feeTypesPage - 1) * itemsPerPage) + 1} - {Math.min(feeTypesPage * itemsPerPage, feeTypes.length)} trong tổng số {feeTypes.length} loại phí
+                  </span>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button 
+                      className="btn btn-secondary btn-sm" 
+                      onClick={() => setFeeTypesPage(prev => Math.max(prev - 1, 1))} 
+                      disabled={feeTypesPage === 1}
+                    >
+                      Trước
+                    </button>
+                    {Array.from({ length: Math.ceil(feeTypes.length / itemsPerPage) }, (_, i) => i + 1).map(page => (
+                      <button 
+                        key={page} 
+                        className={`btn btn-sm ${feeTypesPage === page ? 'btn-primary' : 'btn-secondary'}`}
+                        onClick={() => setFeeTypesPage(page)}
+                      >
+                        {page}
+                      </button>
+                    ))}
+                    <button 
+                      className="btn btn-secondary btn-sm" 
+                      onClick={() => setFeeTypesPage(prev => Math.min(prev + 1, Math.ceil(feeTypes.length / itemsPerPage)))} 
+                      disabled={feeTypesPage === Math.ceil(feeTypes.length / itemsPerPage)}
+                    >
+                      Sau
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -758,7 +786,7 @@ export default function FinancialConfig() {
                   </tr>
                 </thead>
                 <tbody>
-                  {services.map(s => (
+                  {services.slice((servicesPage - 1) * itemsPerPage, servicesPage * itemsPerPage).map(s => (
                     <tr key={s.serviceId}>
                       <td style={{ fontWeight: '700', color: 'var(--text-title)' }}>{s.name}</td>
                       <td>
@@ -803,6 +831,38 @@ export default function FinancialConfig() {
                   ))}
                 </tbody>
               </table>
+              {services.length > itemsPerPage && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 }}>
+                  <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+                    Hiển thị {((servicesPage - 1) * itemsPerPage) + 1} - {Math.min(servicesPage * itemsPerPage, services.length)} trong tổng số {services.length} dịch vụ
+                  </span>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button 
+                      className="btn btn-secondary btn-sm" 
+                      onClick={() => setServicesPage(prev => Math.max(prev - 1, 1))} 
+                      disabled={servicesPage === 1}
+                    >
+                      Trước
+                    </button>
+                    {Array.from({ length: Math.ceil(services.length / itemsPerPage) }, (_, i) => i + 1).map(page => (
+                      <button 
+                        key={page} 
+                        className={`btn btn-sm ${servicesPage === page ? 'btn-primary' : 'btn-secondary'}`}
+                        onClick={() => setServicesPage(page)}
+                      >
+                        {page}
+                      </button>
+                    ))}
+                    <button 
+                      className="btn btn-secondary btn-sm" 
+                      onClick={() => setServicesPage(prev => Math.min(prev + 1, Math.ceil(services.length / itemsPerPage)))} 
+                      disabled={servicesPage === Math.ceil(services.length / itemsPerPage)}
+                    >
+                      Sau
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

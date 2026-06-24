@@ -29,6 +29,7 @@ namespace STMM.Business.Services
         private readonly INotificationService _notificationService;
         private readonly IValidator<ReceiveCashPaymentRequest> _paymentValidator;
         private readonly IEmailService _emailService;
+        private readonly IUserRepository _userRepository;
 
         public BillingService(
             IInvoiceRepository invoiceRepository,
@@ -42,7 +43,8 @@ namespace STMM.Business.Services
             IMapper mapper,
             INotificationService notificationService,
             IValidator<ReceiveCashPaymentRequest> paymentValidator,
-            IEmailService emailService)
+            IEmailService emailService,
+            IUserRepository userRepository)
         {
             _invoiceRepository = invoiceRepository;
             _paymentRepository = paymentRepository;
@@ -56,6 +58,7 @@ namespace STMM.Business.Services
             _notificationService = notificationService;
             _paymentValidator = paymentValidator;
             _emailService = emailService;
+            _userRepository = userRepository;
         }
 
         /// <inheritdoc />
@@ -163,7 +166,7 @@ namespace STMM.Business.Services
         }
 
         /// <inheritdoc />
-        public async Task<IEnumerable<InvoiceDto>> GetInvoicesAsync(int? month, int? year, string? status, string? search, CancellationToken ct = default)
+        public async Task<IEnumerable<InvoiceDto>> GetInvoicesAsync(int? month, int? year, string? status, string? search, int? accountantUserId = null, CancellationToken ct = default)
         {
             var query = _invoiceRepository.Query()
                 .Include(i => i.Contract)
@@ -172,6 +175,15 @@ namespace STMM.Business.Services
                     .ThenInclude(c => c.Vendor)
                         .ThenInclude(v => v.User)
                 .Where(i => i.IsDeleted != true);
+
+            if (accountantUserId.HasValue)
+            {
+                var user = await _userRepository.GetByIdAsync(accountantUserId.Value, ct);
+                if (user?.MarketId != null)
+                {
+                    query = query.Where(i => i.Contract.Stall.Area.MarketId == user.MarketId);
+                }
+            }
 
             if (month.HasValue && month.Value > 0)
             {
@@ -425,16 +437,27 @@ namespace STMM.Business.Services
         }
 
         /// <inheritdoc />
-        public async Task<IEnumerable<PaymentVerificationDto>> GetPendingPaymentsAsync(CancellationToken ct = default)
+        public async Task<IEnumerable<PaymentVerificationDto>> GetPendingPaymentsAsync(int? accountantUserId = null, CancellationToken ct = default)
         {
-            var payments = await _paymentRepository.Query()
+            IQueryable<Payment> query = _paymentRepository.Query()
                 .Include(p => p.Invoice)
                     .ThenInclude(i => i.Contract)
                         .ThenInclude(c => c.Stall)
                 .Include(p => p.Invoice)
                     .ThenInclude(i => i.Contract)
                         .ThenInclude(c => c.Vendor)
-                            .ThenInclude(v => v.User)
+                            .ThenInclude(v => v.User);
+
+            if (accountantUserId.HasValue)
+            {
+                var user = await _userRepository.GetByIdAsync(accountantUserId.Value, ct);
+                if (user?.MarketId != null)
+                {
+                    query = query.Where(p => p.Invoice.Contract.Stall.Area.MarketId == user.MarketId);
+                }
+            }
+
+            var payments = await query
                 .OrderByDescending(p => p.PaidAt)
                 .ToListAsync(ct);
 
@@ -521,11 +544,22 @@ namespace STMM.Business.Services
         }
 
         /// <inheritdoc />
-        public async Task<IEnumerable<DebtOfStallDto>> GetStallsDebtListAsync(string? search, CancellationToken ct = default)
+        public async Task<IEnumerable<DebtOfStallDto>> GetStallsDebtListAsync(string? search, int? accountantUserId = null, CancellationToken ct = default)
         {
-            var stalls = await _contractRepository.Query()
+            var query = _contractRepository.Query()
                 .Select(c => c.Stall)
-                .Distinct()
+                .Distinct();
+
+            if (accountantUserId.HasValue)
+            {
+                var user = await _userRepository.GetByIdAsync(accountantUserId.Value, ct);
+                if (user?.MarketId != null)
+                {
+                    query = query.Where(s => s.Area.MarketId == user.MarketId);
+                }
+            }
+
+            var stalls = await query
                 .Include(s => s.Contracts)
                     .ThenInclude(c => c.Vendor)
                         .ThenInclude(v => v.User)
@@ -739,14 +773,25 @@ namespace STMM.Business.Services
         }
 
         /// <inheritdoc />
-        public async Task<IEnumerable<DisputeResolutionDto>> GetInvoiceDisputesAsync(CancellationToken ct = default)
+        public async Task<IEnumerable<DisputeResolutionDto>> GetInvoiceDisputesAsync(int? accountantUserId = null, CancellationToken ct = default)
         {
-            var disputes = await _requestRepository.Query()
+            var query = _requestRepository.Query()
                 .Include(r => r.Invoice)
                 .Include(r => r.Stall)
                 .Include(r => r.Vendor)
                     .ThenInclude(v => v.User)
-                .Where(r => r.RequestType == "InvoiceDispute")
+                .Where(r => r.RequestType == "InvoiceDispute");
+
+            if (accountantUserId.HasValue)
+            {
+                var user = await _userRepository.GetByIdAsync(accountantUserId.Value, ct);
+                if (user?.MarketId != null)
+                {
+                    query = query.Where(r => r.Stall.Area.MarketId == user.MarketId);
+                }
+            }
+
+            var disputes = await query
                 .OrderByDescending(r => r.CreatedAt)
                 .ToListAsync(ct);
 
