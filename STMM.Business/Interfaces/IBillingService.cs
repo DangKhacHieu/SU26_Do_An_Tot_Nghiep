@@ -77,5 +77,10 @@ namespace STMM.Business.Interfaces
         /// Resolves an invoice dispute request (Approve/Reject).
         /// </summary>
         Task<bool> ResolveInvoiceDisputeAsync(int requestId, ResolveDisputeRequest request, int accountantUserId, CancellationToken ct = default);
+
+        /// <summary>
+        /// Tự động lập hóa đơn nháp kỳ hàng tháng cho tất cả các sạp có hợp đồng hoạt động và phí dịch vụ đăng ký tương ứng.
+        /// </summary>
+        Task<int> AutoGenerateMonthlyInvoicesAsync(int month, int year, CancellationToken ct = default);
     }
 }

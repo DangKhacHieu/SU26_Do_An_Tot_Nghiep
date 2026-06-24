@@ -111,6 +111,7 @@ export default function FinancialConfig() {
   const getMockSys = () => [
     { configId: 1, configKey: 'invoice_due_days', configValue: '15', description: 'Số ngày hạn thanh toán hóa đơn kể từ lúc phát hành' },
     { configId: 2, configKey: 'vat_rate', configValue: '10', description: 'Thuế giá trị gia tăng (%)' },
+    { configId: 3, configKey: 'auto_invoice_day', configValue: '5', description: 'Ngày trong tháng tự động khởi tạo hóa đơn của các sạp (1-28)' },
   ];
 
   const getMockElectricTiers = () => [
@@ -1119,13 +1120,38 @@ export default function FinancialConfig() {
 
                 <div>
                   <label className="form-label">Giá trị thiết lập <span style={{ color: 'var(--danger)' }}>*</span></label>
-                  <input
-                    className="form-input"
-                    type="text"
-                    required
-                    value={sysForm.configValue}
-                    onChange={e => setSysForm({ ...sysForm, configValue: e.target.value })}
-                  />
+                  {sysForm.configKey === 'auto_invoice_day' ? (
+                    <select
+                      className="form-select"
+                      style={{
+                        width: '100%',
+                        height: '42px',
+                        padding: '0 14px',
+                        borderRadius: 'var(--radius-md)',
+                        border: '1px solid var(--border)',
+                        backgroundColor: 'var(--bg-card)',
+                        color: 'var(--text-main)',
+                        fontSize: '14px',
+                        outline: 'none',
+                        transition: 'border-color 0.2s ease',
+                      }}
+                      required
+                      value={sysForm.configValue}
+                      onChange={e => setSysForm({ ...sysForm, configValue: e.target.value })}
+                    >
+                      {Array.from({ length: 28 }, (_, i) => i + 1).map(day => (
+                        <option key={day} value={String(day)}>Ngày {day} hàng tháng</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      className="form-input"
+                      type="text"
+                      required
+                      value={sysForm.configValue}
+                      onChange={e => setSysForm({ ...sysForm, configValue: e.target.value })}
+                    />
+                  )}
                 </div>
               </div>
               <div className="modal-footer">

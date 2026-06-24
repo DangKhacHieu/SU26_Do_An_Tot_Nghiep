@@ -215,8 +215,29 @@ namespace STMM.Business.Services
         public async Task<IEnumerable<SystemConfigDto>> GetSystemConfigsAsync(CancellationToken ct = default)
         {
             var items = await _systemConfigRepository.GetAllAsync(ct);
+            var itemsList = items.ToList();
+
+            // Tự động seed auto_invoice_day nếu chưa có
+            if (!itemsList.Any(c => c.ConfigKey == "auto_invoice_day"))
+            {
+                var autoInvoiceConfig = new SystemConfig
+                {
+                    ConfigKey = "auto_invoice_day",
+                    ConfigValue = "5",
+                    Description = "Ngày trong tháng tự động khởi tạo hóa đơn của các sạp (1-28)",
+                    UpdatedByUserId = 1, // Default user
+                    UpdatedAt = DateTime.UtcNow
+                };
+                await _systemConfigRepository.AddAsync(autoInvoiceConfig, ct);
+                await _systemConfigRepository.SaveChangesAsync(ct);
+                
+                // Nạp lại danh sách sau khi seed
+                var reloaded = await _systemConfigRepository.GetAllAsync(ct);
+                itemsList = reloaded.ToList();
+            }
+
             // Lọc bỏ cấu hình bậc thang khỏi danh sách cấu hình chung để tránh hiển thị JSON thô
-            return items
+            return itemsList
                 .Where(c => c.ConfigKey != "electricity_tiers" && c.ConfigKey != "water_tiers")
                 .Select(c => new SystemConfigDto
                 {

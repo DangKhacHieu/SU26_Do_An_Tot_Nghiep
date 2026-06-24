@@ -30,6 +30,8 @@ namespace STMM.Business.Services
         private readonly IValidator<ReceiveCashPaymentRequest> _paymentValidator;
         private readonly IEmailService _emailService;
         private readonly IUserRepository _userRepository;
+        private readonly ISystemConfigRepository _systemConfigRepository;
+        private readonly IServiceRegistrationRepository _serviceRegistrationRepository;
 
         public BillingService(
             IInvoiceRepository invoiceRepository,
@@ -44,7 +46,9 @@ namespace STMM.Business.Services
             INotificationService notificationService,
             IValidator<ReceiveCashPaymentRequest> paymentValidator,
             IEmailService emailService,
-            IUserRepository userRepository)
+            IUserRepository userRepository,
+            ISystemConfigRepository systemConfigRepository,
+            IServiceRegistrationRepository serviceRegistrationRepository)
         {
             _invoiceRepository = invoiceRepository;
             _paymentRepository = paymentRepository;
@@ -59,6 +63,8 @@ namespace STMM.Business.Services
             _paymentValidator = paymentValidator;
             _emailService = emailService;
             _userRepository = userRepository;
+            _systemConfigRepository = systemConfigRepository;
+            _serviceRegistrationRepository = serviceRegistrationRepository;
         }
 
         /// <inheritdoc />
@@ -847,6 +853,96 @@ namespace STMM.Business.Services
 
             await _requestRepository.SaveChangesAsync(ct);
             return true;
+        }
+
+        /// <inheritdoc />
+        public async Task<int> AutoGenerateMonthlyInvoicesAsync(int month, int year, CancellationToken ct = default)
+        {
+            // 1. Get all active contracts
+            var activeContracts = await _contractRepository.Query()
+                .Include(c => c.Stall)
+                .Include(c => c.Vendor)
+                .Where(c => c.Status == "Active" && c.IsDeleted != true)
+                .ToListAsync(ct);
+
+            // Get invoice due days from config
+            var dueDaysConfig = await _systemConfigRepository.Query()
+                .Where(c => c.ConfigKey == "invoice_due_days")
+                .FirstOrDefaultAsync(ct);
+            int dueDays = dueDaysConfig != null && int.TryParse(dueDaysConfig.ConfigValue, out var parsedDays) ? parsedDays : 15;
+
+            // Get fee types to link correctly
+            var rentFeeType = await _feeTypeRepository.Query()
+                .Where(f => f.Name.Contains("thuê") || f.Name.Contains("mặt bằng") || f.FeeTypeId == 1)
+                .FirstOrDefaultAsync(ct);
+            int rentFeeTypeId = rentFeeType?.FeeTypeId ?? 1;
+
+            int count = 0;
+
+            foreach (var contract in activeContracts)
+            {
+                // Check if invoice already exists for this month/year/contract
+                var exists = await _invoiceRepository.Query()
+                    .AnyAsync(i => i.ContractId == contract.ContractId && i.Month == month && i.Year == year && i.IsDeleted != true, ct);
+
+                if (exists) continue;
+
+                // Find active service registrations for this stall
+                var activeServices = await _serviceRegistrationRepository.Query()
+                    .Include(sr => sr.Service)
+                    .Where(sr => sr.StallId == contract.StallId && sr.Status == "Active")
+                    .ToListAsync(ct);
+
+                decimal totalAmount = contract.RentFee + activeServices.Sum(s => s.Service.Price);
+
+                // Create a new Invoice (Draft status)
+                var invoice = new Invoice
+                {
+                    ContractId = contract.ContractId,
+                    Month = month,
+                    Year = year,
+                    TotalAmount = totalAmount,
+                    Status = "Draft",
+                    DueDate = DateOnly.FromDateTime(DateTime.Today.AddDays(dueDays)),
+                    CreatedAt = DateTime.UtcNow,
+                    IsDeleted = false
+                };
+
+                await _invoiceRepository.AddAsync(invoice, ct);
+                await _invoiceRepository.SaveChangesAsync(ct);
+
+                // Add Rent Fee detail line
+                var rentDetail = new InvoiceDetail
+                {
+                    InvoiceId = invoice.InvoiceId,
+                    FeeTypeId = rentFeeTypeId,
+                    Description = $"Tiền thuê sạp {contract.Stall.Code} tháng {month}/{year}",
+                    Quantity = 1,
+                    UnitPrice = contract.RentFee,
+                    Amount = contract.RentFee
+                };
+                invoice.InvoiceDetails.Add(rentDetail);
+
+                // Add detail lines for registered services
+                foreach (var reg in activeServices)
+                {
+                    var srvDetail = new InvoiceDetail
+                    {
+                        InvoiceId = invoice.InvoiceId,
+                        FeeTypeId = reg.Service.FeeTypeId,
+                        Description = $"{reg.Service.Name} tháng {month}/{year}",
+                        Quantity = 1,
+                        UnitPrice = reg.Service.Price,
+                        Amount = reg.Service.Price
+                    };
+                    invoice.InvoiceDetails.Add(srvDetail);
+                }
+
+                await _invoiceRepository.SaveChangesAsync(ct);
+                count++;
+            }
+
+            return count;
         }
     }
 }
