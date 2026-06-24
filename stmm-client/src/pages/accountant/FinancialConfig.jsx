@@ -131,6 +131,15 @@ export default function FinancialConfig() {
   // 1. Fee Types
   const handleFeeSubmit = (e) => {
     e.preventDefault();
+    if (!feeForm.name || !feeForm.name.trim()) {
+      showToast('error', 'Tên loại phí không được để trống.');
+      return;
+    }
+    if (!feeForm.unit || !feeForm.unit.trim()) {
+      showToast('error', 'Đơn vị tính không được để trống.');
+      return;
+    }
+
     const isEdit = !!selectedItem;
     const url = isEdit ? `http://localhost:5056/api/accountant/config/fee-types/${selectedItem.feeTypeId}` : 'http://localhost:5056/api/accountant/config/fee-types';
     const method = isEdit ? 'PUT' : 'POST';
@@ -179,6 +188,19 @@ export default function FinancialConfig() {
   // 2. Services
   const handleServiceSubmit = (e) => {
     e.preventDefault();
+    if (!serviceForm.name || !serviceForm.name.trim()) {
+      showToast('error', 'Tên dịch vụ không được để trống.');
+      return;
+    }
+    if (serviceForm.price < 0) {
+      showToast('error', 'Đơn giá dịch vụ phải lớn hơn hoặc bằng 0.');
+      return;
+    }
+    if (!serviceForm.feeTypeId || serviceForm.feeTypeId <= 0) {
+      showToast('error', 'Vui lòng chọn loại phí liên kết.');
+      return;
+    }
+
     const isEdit = !!selectedItem;
     const url = isEdit ? `http://localhost:5056/api/accountant/config/services/${selectedItem.serviceId}` : 'http://localhost:5056/api/accountant/config/services';
     const method = isEdit ? 'PUT' : 'POST';
@@ -230,6 +252,31 @@ export default function FinancialConfig() {
   // 3. System Config
   const handleSysSubmit = (e) => {
     e.preventDefault();
+    if (!sysForm.configValue || !sysForm.configValue.trim()) {
+      showToast('error', 'Giá trị cấu hình không được để trống.');
+      return;
+    }
+    const val = sysForm.configValue.trim();
+    if (sysForm.configKey === 'invoice_due_days') {
+      const parsed = parseInt(val);
+      if (isNaN(parsed) || parsed <= 0) {
+        showToast('error', 'Số ngày hạn thanh toán hóa đơn phải là số nguyên dương.');
+        return;
+      }
+    } else if (sysForm.configKey === 'vat_rate') {
+      const parsed = parseFloat(val);
+      if (isNaN(parsed) || parsed < 0 || parsed > 100) {
+        showToast('error', 'Thuế suất VAT phải nằm trong khoảng 0% đến 100%.');
+        return;
+      }
+    } else if (sysForm.configKey === 'auto_invoice_day') {
+      const parsed = parseInt(val);
+      if (isNaN(parsed) || parsed < 1 || parsed > 28) {
+        showToast('error', 'Ngày tự động xuất hóa đơn phải nằm trong khoảng từ 1 đến 28.');
+        return;
+      }
+    }
+
     if (isMock) {
       setSystemConfigs(systemConfigs.map(c => c.configKey === sysForm.configKey ? { ...c, configValue: sysForm.configValue } : c));
       showToast('success', 'Đã lưu cấu hình (Mock)!');

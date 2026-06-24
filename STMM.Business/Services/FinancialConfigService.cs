@@ -10,6 +10,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using FluentValidation;
 
 namespace STMM.Business.Services
 {
@@ -18,15 +19,33 @@ namespace STMM.Business.Services
         private readonly IFeeTypeRepository _feeTypeRepository;
         private readonly IServiceRepository _serviceRepository;
         private readonly ISystemConfigRepository _systemConfigRepository;
+        private readonly IValidator<CreateFeeTypeRequest> _createFeeTypeValidator;
+        private readonly IValidator<UpdateFeeTypeRequest> _updateFeeTypeValidator;
+        private readonly IValidator<CreateServiceRequest> _createServiceValidator;
+        private readonly IValidator<UpdateServiceRequest> _updateServiceValidator;
+        private readonly IValidator<UpdateSystemConfigRequest> _updateSystemConfigValidator;
+        private readonly IValidator<UpdateTiersRequest> _updateTiersValidator;
 
         public FinancialConfigService(
             IFeeTypeRepository feeTypeRepository,
             IServiceRepository serviceRepository,
-            ISystemConfigRepository systemConfigRepository)
+            ISystemConfigRepository systemConfigRepository,
+            IValidator<CreateFeeTypeRequest> createFeeTypeValidator,
+            IValidator<UpdateFeeTypeRequest> updateFeeTypeValidator,
+            IValidator<CreateServiceRequest> createServiceValidator,
+            IValidator<UpdateServiceRequest> updateServiceValidator,
+            IValidator<UpdateSystemConfigRequest> updateSystemConfigValidator,
+            IValidator<UpdateTiersRequest> updateTiersValidator)
         {
             _feeTypeRepository = feeTypeRepository;
             _serviceRepository = serviceRepository;
             _systemConfigRepository = systemConfigRepository;
+            _createFeeTypeValidator = createFeeTypeValidator;
+            _updateFeeTypeValidator = updateFeeTypeValidator;
+            _createServiceValidator = createServiceValidator;
+            _updateServiceValidator = updateServiceValidator;
+            _updateSystemConfigValidator = updateSystemConfigValidator;
+            _updateTiersValidator = updateTiersValidator;
         }
 
         // --- FEE TYPES ---
@@ -44,9 +63,10 @@ namespace STMM.Business.Services
 
         public async Task<FeeTypeDto> CreateFeeTypeAsync(CreateFeeTypeRequest request, CancellationToken ct = default)
         {
-            if (string.IsNullOrEmpty(request.Name))
+            var valResult = await _createFeeTypeValidator.ValidateAsync(request, ct);
+            if (!valResult.IsValid)
             {
-                throw new BadRequestException("Tên loại phí không được để trống.");
+                throw new BadRequestException(string.Join("; ", valResult.Errors.Select(e => e.ErrorMessage)));
             }
 
             var item = new FeeType
@@ -70,6 +90,12 @@ namespace STMM.Business.Services
 
         public async Task<FeeTypeDto> UpdateFeeTypeAsync(int id, UpdateFeeTypeRequest request, CancellationToken ct = default)
         {
+            var valResult = await _updateFeeTypeValidator.ValidateAsync(request, ct);
+            if (!valResult.IsValid)
+            {
+                throw new BadRequestException(string.Join("; ", valResult.Errors.Select(e => e.ErrorMessage)));
+            }
+
             var item = await _feeTypeRepository.GetByIdAsync(id, ct);
             if (item == null)
             {
@@ -126,6 +152,11 @@ namespace STMM.Business.Services
 
         public async Task<ServiceDto> CreateServiceAsync(CreateServiceRequest request, CancellationToken ct = default)
         {
+            var valResult = await _createServiceValidator.ValidateAsync(request, ct);
+            if (!valResult.IsValid)
+            {
+                throw new BadRequestException(string.Join("; ", valResult.Errors.Select(e => e.ErrorMessage)));
+            }
             var item = new Service
             {
                 Name = request.Name,
@@ -162,6 +193,12 @@ namespace STMM.Business.Services
 
         public async Task<ServiceDto> UpdateServiceAsync(int id, UpdateServiceRequest request, CancellationToken ct = default)
         {
+            var valResult = await _updateServiceValidator.ValidateAsync(request, ct);
+            if (!valResult.IsValid)
+            {
+                throw new BadRequestException(string.Join("; ", valResult.Errors.Select(e => e.ErrorMessage)));
+            }
+
             var item = await _serviceRepository.GetByIdAsync(id, ct);
             if (item == null)
             {
@@ -251,6 +288,12 @@ namespace STMM.Business.Services
 
         public async Task<bool> UpdateSystemConfigAsync(UpdateSystemConfigRequest request, CancellationToken ct = default)
         {
+            var valResult = await _updateSystemConfigValidator.ValidateAsync(request, ct);
+            if (!valResult.IsValid)
+            {
+                throw new BadRequestException(string.Join("; ", valResult.Errors.Select(e => e.ErrorMessage)));
+            }
+
             var config = await _systemConfigRepository.Query()
                 .Where(c => c.ConfigKey == request.ConfigKey)
                 .FirstOrDefaultAsync(ct);
@@ -303,9 +346,10 @@ namespace STMM.Business.Services
 
         public async Task<bool> UpdateTiersAsync(UpdateTiersRequest request, CancellationToken ct = default)
         {
-            if (request == null || request.Steps == null || !request.Steps.Any())
+            var valResult = await _updateTiersValidator.ValidateAsync(request, ct);
+            if (!valResult.IsValid)
             {
-                throw new BadRequestException("Danh sách bậc thang không được trống.");
+                throw new BadRequestException(string.Join("; ", valResult.Errors.Select(e => e.ErrorMessage)));
             }
 
             // Kiểm tra tính tăng dần liên tục và hợp lệ của các bậc thang
