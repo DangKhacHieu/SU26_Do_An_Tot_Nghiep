@@ -7,9 +7,22 @@ const API_ROOT = rawBaseUrl.replace(/\/$/, "").endsWith("/api")
 
 const MARKETS_URL = `${API_ROOT}/markets`;
 
+const getAuthHeaders = () => {
+  const session = localStorage.getItem('user_session');
+  if (session) {
+    try {
+      const parsed = JSON.parse(session);
+      return parsed.token ? { Authorization: `Bearer ${parsed.token}` } : {};
+    } catch (e) {
+      return {};
+    }
+  }
+  return {};
+};
+
 export const getAllMarkets = async () => {
   try {
-    const response = await axios.get(MARKETS_URL);
+    const response = await axios.get(MARKETS_URL, { headers: getAuthHeaders() });
     return response.data;
   } catch (error) {
     console.error("Error fetching markets:", error);
@@ -23,7 +36,7 @@ export const getMarketMap = async (marketId) => {
   }
 
   try {
-    const response = await axios.get(`${MARKETS_URL}/${marketId}/map`);
+    const response = await axios.get(`${MARKETS_URL}/${marketId}/map`, { headers: getAuthHeaders() });
     return response.data;
   } catch (error) {
     console.error(`Error fetching market map ${marketId}:`, error);
@@ -33,7 +46,7 @@ export const getMarketMap = async (marketId) => {
 
 export const createMarketBulk = async (marketData) => {
   try {
-    const response = await axios.post(`${MARKETS_URL}/bulk`, marketData);
+    const response = await axios.post(`${MARKETS_URL}/bulk`, marketData, { headers: getAuthHeaders() });
     return response.data;
   } catch (error) {
     console.error("Error creating market bulk:", error);
