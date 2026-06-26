@@ -44,16 +44,11 @@ namespace STMM.API.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetTaskById(
             int id,
-            [FromQuery] int userId, // staffUserId (can be used for auth check in service)
+            [FromQuery] int userId, // staffUserId
             CancellationToken ct)
         {
             userId = GetUserId();
-            var result = await _staffTaskService.GetTaskByIdAsync(id, ct);
-            // Verify that the task is assigned to this staff user
-            if (result.AssignedToUserId != userId)
-            {
-                return Forbid("You are not assigned to this task.");
-            }
+            var result = await _staffTaskService.GetTaskByIdForStaffAsync(id, userId, ct);
             return Ok(result);
         }
 

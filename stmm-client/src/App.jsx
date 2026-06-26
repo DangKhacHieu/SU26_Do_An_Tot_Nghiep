@@ -193,7 +193,7 @@ const PAGE_TITLES = {
   },
   meters: {
     title: "Quản lý Công tơ",
-    sub: "Danh sách, thêm mới, cập nhật và thay thế thiết bị công tơ Điện/Nước.",
+    sub: "Quản lý kho công tơ Điện/Nước khả dụng trong cùng chợ để tạo sạp.",
   },
 
   // Admin System Titles

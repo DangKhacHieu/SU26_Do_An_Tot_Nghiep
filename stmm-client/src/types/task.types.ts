@@ -30,6 +30,7 @@ export interface TaskDto extends TaskSummaryDto {
   imageBeforeUrl: string | null;
   imageAfterUrl: string | null;
   materials: TaskMaterialDto[];
+  requestPaidBy?: string | null;
 }
 
 export interface CreateTaskRequest {

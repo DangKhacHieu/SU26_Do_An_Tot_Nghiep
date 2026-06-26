@@ -41,4 +41,6 @@ public partial class Market
     public virtual ICollection<Area> Areas { get; set; } = new List<Area>();
 
     public virtual ICollection<User> Users { get; set; } = new List<User>();
+
+    public virtual ICollection<Meter> Meters { get; set; } = new List<Meter>();
 }

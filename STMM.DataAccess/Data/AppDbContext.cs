@@ -536,10 +536,15 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => e.SerialNumber, "meters_serial_number_key").IsUnique();
 
+            entity.HasIndex(e => e.MarketId, "idx_meters_market_id");
+
             entity.Property(e => e.MeterId)
                 .HasComment("Mã công tơ")
                 .UseIdentityAlwaysColumn()
                 .HasColumnName("meter_id");
+            entity.Property(e => e.MarketId)
+                .HasComment("Thuộc chợ nào")
+                .HasColumnName("market_id");
             entity.Property(e => e.InstalledAt)
                 .HasComment("Ngày lắp đặt")
                 .HasColumnName("installed_at");
@@ -561,6 +566,11 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.StallId)
                 .OnDelete(DeleteBehavior.SetNull)
                 .HasConstraintName("fk_meters_stalls");
+
+            entity.HasOne(d => d.Market).WithMany(p => p.Meters)
+                .HasForeignKey(d => d.MarketId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fk_meters_markets");
         });
 
         modelBuilder.Entity<MeterReading>(entity =>

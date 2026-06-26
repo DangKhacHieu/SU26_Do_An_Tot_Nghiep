@@ -21,7 +21,7 @@ namespace STMM.Business.Services
         private readonly IMapper _mapper;
         private readonly IValidator<CreateMeterRequest> _createValidator;
         private readonly IValidator<UpdateMeterRequest> _updateValidator;
-        private readonly IValidator<MeterReplacementRequest> _replaceValidator;
+        private readonly IUserRepository _userRepo;
 
         public MeterService(
             IMeterRepository meterRepo,
@@ -29,18 +29,21 @@ namespace STMM.Business.Services
             IMapper mapper,
             IValidator<CreateMeterRequest> createValidator,
             IValidator<UpdateMeterRequest> updateValidator,
-            IValidator<MeterReplacementRequest> replaceValidator)
+            IUserRepository userRepo)
         {
             _meterRepo = meterRepo;
             _readingRepo = readingRepo;
             _mapper = mapper;
             _createValidator = createValidator;
             _updateValidator = updateValidator;
-            _replaceValidator = replaceValidator;
+            _userRepo = userRepo;
         }
 
-        public async Task<PagedResult<MeterDto>> GetMetersAsync(MeterQueryParameters queryParams, CancellationToken ct = default)
+        public async Task<PagedResult<MeterDto>> GetMetersAsync(MeterQueryParameters queryParams, int userId, CancellationToken ct = default)
         {
+            var user = await _userRepo.GetByIdAsync(userId, ct);
+            var marketId = user?.MarketId;
+
             var (items, totalCount) = await _meterRepo.GetMetersPagedAsync(
                 queryParams.Type,
                 queryParams.IsActive,
@@ -48,6 +51,7 @@ namespace STMM.Business.Services
                 queryParams.Search,
                 queryParams.PageNumber,
                 queryParams.PageSize,
+                marketId,
                 ct);
 
             var dtos = _mapper.Map<IEnumerable<MeterDto>>(items).ToList();
@@ -81,12 +85,18 @@ namespace STMM.Business.Services
             return dto;
         }
 
-        public async Task<MeterDto> CreateMeterAsync(CreateMeterRequest request, CancellationToken ct = default)
+        public async Task<MeterDto> CreateMeterAsync(CreateMeterRequest request, int userId, CancellationToken ct = default)
         {
             var validationResult = await _createValidator.ValidateAsync(request, ct);
             if (!validationResult.IsValid)
             {
                 throw new BadRequestException(string.Join("; ", validationResult.Errors.Select(e => e.ErrorMessage)));
+            }
+
+            var user = await _userRepo.GetByIdAsync(userId, ct);
+            if (user == null || user.MarketId == null)
+            {
+                throw new BadRequestException("Manager does not belong to any market.");
             }
 
             // Check SerialNumber unique
@@ -102,7 +112,8 @@ namespace STMM.Business.Services
                 Type = request.Type.Trim(),
                 IsActive = true,
                 StallId = null,
-                InstalledAt = null
+                InstalledAt = null,
+                MarketId = user.MarketId.Value
             };
 
             await _meterRepo.AddAsync(meter, ct);
@@ -161,64 +172,14 @@ namespace STMM.Business.Services
             return true;
         }
 
-        public async Task<bool> ReplaceMeterAsync(MeterReplacementRequest request, CancellationToken ct = default)
+
+
+        public async Task<IEnumerable<MeterDto>> GetUnassignedMetersAsync(string? type, int userId, CancellationToken ct = default)
         {
-            var validationResult = await _replaceValidator.ValidateAsync(request, ct);
-            if (!validationResult.IsValid)
-            {
-                throw new BadRequestException(string.Join("; ", validationResult.Errors.Select(e => e.ErrorMessage)));
-            }
+            var user = await _userRepo.GetByIdAsync(userId, ct);
+            var marketId = user?.MarketId;
 
-            var oldMeter = await _meterRepo.GetByIdAsync(request.OldMeterId, ct);
-            if (oldMeter == null)
-                throw new NotFoundException($"Old meter with ID {request.OldMeterId} not found.");
-
-            if (oldMeter.StallId != request.StallId)
-            {
-                throw new BadRequestException("Old meter does not belong to specified stall.");
-            }
-
-            if (oldMeter.IsActive != true)
-            {
-                throw new BadRequestException("Old meter is already inactive.");
-            }
-
-            var newMeter = await _meterRepo.GetByIdAsync(request.NewMeterId, ct);
-            if (newMeter == null)
-                throw new NotFoundException($"New meter with ID {request.NewMeterId} not found.");
-
-            if (newMeter.StallId != null)
-            {
-                throw new BadRequestException("New meter is already assigned to another stall.");
-            }
-
-            if (newMeter.IsActive != true)
-            {
-                throw new BadRequestException("New meter is inactive.");
-            }
-
-            if (newMeter.Type != oldMeter.Type)
-            {
-                throw new BadRequestException("New meter must be of the same type as old meter.");
-            }
-
-            // Deactivate old meter
-            oldMeter.IsActive = false;
-            _meterRepo.Update(oldMeter);
-
-            // Assign new meter
-            newMeter.StallId = request.StallId;
-            newMeter.IsActive = true;
-            newMeter.InstalledAt = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
-            _meterRepo.Update(newMeter);
-
-            await _meterRepo.SaveChangesAsync(ct);
-            return true;
-        }
-
-        public async Task<IEnumerable<MeterDto>> GetUnassignedMetersAsync(string? type, CancellationToken ct = default)
-        {
-            var meters = await _meterRepo.GetUnassignedMetersAsync(type, ct);
+            var meters = await _meterRepo.GetUnassignedMetersAsync(type, marketId, ct);
             var dtos = _mapper.Map<IEnumerable<MeterDto>>(meters).ToList();
             foreach (var dto in dtos)
             {

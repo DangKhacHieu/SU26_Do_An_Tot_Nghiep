@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using STMM.Business.DTOs.Meter;
 using STMM.Business.Interfaces;
+using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -49,7 +50,9 @@ namespace STMM.API.Controllers
         [Authorize(Roles = "Manager")]
         public async Task<IActionResult> GetMeters([FromQuery] MeterQueryParameters queryParams, CancellationToken ct)
         {
-            var result = await _meterService.GetMetersAsync(queryParams, ct);
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var userId = int.Parse(userIdClaim!);
+            var result = await _meterService.GetMetersAsync(queryParams, userId, ct);
             return Ok(result);
         }
 
@@ -60,7 +63,9 @@ namespace STMM.API.Controllers
         [Authorize(Roles = "Manager")]
         public async Task<IActionResult> CreateMeter([FromBody] CreateMeterRequest request, CancellationToken ct)
         {
-            var result = await _meterService.CreateMeterAsync(request, ct);
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var userId = int.Parse(userIdClaim!);
+            var result = await _meterService.CreateMeterAsync(request, userId, ct);
             return CreatedAtAction(nameof(GetMeterById), new { id = result.MeterId }, result);
         }
 
@@ -86,16 +91,7 @@ namespace STMM.API.Controllers
             return Ok(result);
         }
 
-        /// <summary>
-        /// Replace meter for a stall (for Manager).
-        /// </summary>
-        [HttpPost("replace")]
-        [Authorize(Roles = "Manager")]
-        public async Task<IActionResult> ReplaceMeter([FromBody] MeterReplacementRequest request, CancellationToken ct)
-        {
-            var result = await _meterService.ReplaceMeterAsync(request, ct);
-            return Ok(result);
-        }
+
 
         /// <summary>
         /// Get unassigned active meters (for Manager/Hải's Stall assign usecase).
@@ -104,7 +100,9 @@ namespace STMM.API.Controllers
         [Authorize(Roles = "Manager")]
         public async Task<IActionResult> GetUnassignedMeters([FromQuery] string? type, CancellationToken ct)
         {
-            var result = await _meterService.GetUnassignedMetersAsync(type, ct);
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var userId = int.Parse(userIdClaim!);
+            var result = await _meterService.GetUnassignedMetersAsync(type, userId, ct);
             return Ok(result);
         }
     }

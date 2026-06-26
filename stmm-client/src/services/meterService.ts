@@ -3,8 +3,7 @@ import {
   MeterDto,
   MeterQueryParameters,
   CreateMeterRequest,
-  UpdateMeterRequest,
-  MeterReplacementRequest
+  UpdateMeterRequest
 } from '../types/meter.types';
 import { PagedResult } from '../types/common.types';
 
@@ -107,17 +106,7 @@ class MeterService {
     }
   }
 
-  /**
-   * Thay thế công tơ cho sạp (dành cho Manager)
-   */
-  async replaceMeter(request: MeterReplacementRequest): Promise<boolean> {
-    try {
-      const response = await this.api.post<boolean>('/meters/replace', request);
-      return response.data;
-    } catch (error: any) {
-      throw new Error(getApiErrorMessage(error, 'Thay thế công tơ thất bại'));
-    }
-  }
+
 
   /**
    * Lấy danh sách công tơ chưa gán cho sạp (để gán sạp hoặc thay thế)

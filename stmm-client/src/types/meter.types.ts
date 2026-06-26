@@ -1,6 +1,7 @@
 export interface MeterDto {
   meterId: number;
   stallId: number | null;
+  marketId: number;
   stallCode: string;
   type: string;
   serialNumber: string;
@@ -50,11 +51,7 @@ export interface UpdateMeterRequest {
   isActive: boolean;
 }
 
-export interface MeterReplacementRequest {
-  stallId: number;
-  oldMeterId: number;
-  newMeterId: number;
-}
+
 
 export interface MeterQueryParameters {
   pageNumber: number;

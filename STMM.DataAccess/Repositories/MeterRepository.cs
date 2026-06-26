@@ -28,11 +28,16 @@ namespace STMM.DataAccess.Repositories
                 .FirstOrDefaultAsync(m => m.MeterId == meterId, ct);
         }
 
-        public async Task<(IEnumerable<Meter> Items, int TotalCount)> GetMetersPagedAsync(string? type, bool? isActive, bool? isAssigned, string? search, int pageNumber, int pageSize, CancellationToken ct = default)
+        public async Task<(IEnumerable<Meter> Items, int TotalCount)> GetMetersPagedAsync(string? type, bool? isActive, bool? isAssigned, string? search, int pageNumber, int pageSize, int? marketId = null, CancellationToken ct = default)
         {
             var query = _context.Meters
                 .Include(m => m.Stall)
                 .AsQueryable();
+
+            if (marketId.HasValue)
+            {
+                query = query.Where(m => m.MarketId == marketId.Value);
+            }
 
             if (!string.IsNullOrEmpty(type))
             {
@@ -83,10 +88,15 @@ namespace STMM.DataAccess.Repositories
             return await query.AnyAsync(ct);
         }
 
-        public async Task<IEnumerable<Meter>> GetUnassignedMetersAsync(string? type, CancellationToken ct = default)
+        public async Task<IEnumerable<Meter>> GetUnassignedMetersAsync(string? type, int? marketId = null, CancellationToken ct = default)
         {
             var query = _context.Meters
                 .Where(m => m.StallId == null && m.IsActive == true);
+
+            if (marketId.HasValue)
+            {
+                query = query.Where(m => m.MarketId == marketId.Value);
+            }
 
             if (!string.IsNullOrEmpty(type))
             {

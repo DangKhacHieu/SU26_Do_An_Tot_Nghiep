@@ -110,6 +110,18 @@ namespace STMM.Business.Services
         }
 
         /// <inheritdoc />
+        public async Task<TaskDto> GetTaskByIdForStaffAsync(int taskId, int staffUserId, CancellationToken ct = default)
+        {
+            var task = await GetTaskByIdAsync(taskId, ct);
+            if (task.AssignedToUserId != staffUserId)
+            {
+                throw new ForbiddenException("You are not assigned to this task.");
+            }
+
+            return task;
+        }
+
+        /// <inheritdoc />
         public async Task<TaskDto> CreateTaskAsync(int managerUserId, CreateTaskRequest req, CancellationToken ct = default)
         {
             var validationResult = await _createValidator.ValidateAsync(req, ct);
