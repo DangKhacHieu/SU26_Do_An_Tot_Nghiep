@@ -64,9 +64,9 @@ export default function PaymentVerification() {
       } catch (e) {}
     }
     Promise.all([
-      fetch(`http://localhost:5056/api/accountant/payments/pending?userId=${userIdStr}`).then(r => { if (!r.ok) throw new Error(); return r.json(); }),
-      fetch(`http://localhost:5056/api/accountant/payments/debts?userId=${userIdStr}`).then(r => { if (!r.ok) throw new Error(); return r.json(); }),
-      fetch(`http://localhost:5056/api/accountant/payments/disputes?userId=${userIdStr}`).then(r => { if (!r.ok) throw new Error(); return r.json(); })
+      fetch(`http://localhost:5056/api/accountant/payments/pending?userId=${userIdStr}`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` } }).then(r => { if (!r.ok) throw new Error(); return r.json(); }),
+      fetch(`http://localhost:5056/api/accountant/payments/debts?userId=${userIdStr}`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` } }).then(r => { if (!r.ok) throw new Error(); return r.json(); }),
+      fetch(`http://localhost:5056/api/accountant/payments/disputes?userId=${userIdStr}`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` } }).then(r => { if (!r.ok) throw new Error(); return r.json(); })
     ])
       .then(([pay, debt, disp]) => { setPayments(pay); setDebts(debt); setDisputes(disp); setLoading(false); })
       .catch(() => { setTimeout(() => { setPayments(getMockPayments()); setDebts(getMockDebts()); setDisputes(getMockDisputes()); setIsMock(true); setLoading(false); }, 500); });
@@ -113,7 +113,7 @@ export default function PaymentVerification() {
   const handleApprovePayment = (pay) => {
     if (!window.confirm(`Xác nhận duyệt giao dịch ${pay.transactionCode} — ${formatCurrency(pay.amount)}?`)) return;
     if (isMock) { setPayments(p => p.map(x => x.paymentId === pay.paymentId ? { ...x, status: 'Approved' } : x)); showNotification('success', 'Đã xác nhận giao dịch thành công!'); }
-    else fetch(`http://localhost:5056/api/accountant/payments/${pay.paymentId}/verify?userId=1`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ approve: true }) })
+    else fetch(`http://localhost:5056/api/accountant/payments/${pay.paymentId}/verify?userId=1`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` }, body: JSON.stringify({ approve: true }) })
       .then(r => { if (!r.ok) throw new Error(); showNotification('success', 'Xác nhận thanh toán thành công!'); loadAllData(); })
       .catch(() => showNotification('danger', 'Không thể duyệt thanh toán.'));
   };
@@ -121,7 +121,7 @@ export default function PaymentVerification() {
   const submitRejectPayment = (e) => {
     e.preventDefault();
     if (isMock) { setPayments(p => p.filter(x => x.paymentId !== selectedItem.paymentId)); showNotification('success', `Đã từ chối giao dịch ${selectedItem.transactionCode}!`); setActiveModal(null); }
-    else fetch(`http://localhost:5056/api/accountant/payments/${selectedItem.paymentId}/verify?userId=1`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ approve: false, rejectionNote }) })
+    else fetch(`http://localhost:5056/api/accountant/payments/${selectedItem.paymentId}/verify?userId=1`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` }, body: JSON.stringify({ approve: false, rejectionNote }) })
       .then(r => { if (!r.ok) throw new Error(); showNotification('success', 'Đã từ chối thanh toán!'); setActiveModal(null); loadAllData(); })
       .catch(() => showNotification('danger', 'Không thể từ chối thanh toán.'));
   };
@@ -129,13 +129,13 @@ export default function PaymentVerification() {
   const handleViewOriginalInvoice = (invoiceId, stallCode) => {
     setLoadingPopup(true); setSelectedItem({ invoiceId, stallCode }); setActiveModal('invoice_detail');
     if (isMock) { setSelectedInvoiceDetail(getMockInvoiceDetail(invoiceId)); setLoadingPopup(false); }
-    else fetch(`http://localhost:5056/api/accountant/billing/invoices/${invoiceId}`).then(r => r.json()).then(d => { setSelectedInvoiceDetail(d); setLoadingPopup(false); }).catch(() => { setSelectedInvoiceDetail(getMockInvoiceDetail(invoiceId)); setLoadingPopup(false); });
+    else fetch(`http://localhost:5056/api/accountant/billing/invoices/${invoiceId}`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` } }).then(r => r.json()).then(d => { setSelectedInvoiceDetail(d); setLoadingPopup(false); }).catch(() => { setSelectedInvoiceDetail(getMockInvoiceDetail(invoiceId)); setLoadingPopup(false); });
   };
 
   const handleViewDebtDetail = (debt) => {
     setLoadingPopup(true); setSelectedItem(debt); setActiveModal('debt_detail');
     if (isMock) { setSelectedInvoiceDetail(getMockStallDebtDetail(debt.stallId)); setLoadingPopup(false); }
-    else fetch(`http://localhost:5056/api/accountant/payments/debts/${debt.stallId}`).then(r => r.json()).then(d => { setSelectedInvoiceDetail(d); setLoadingPopup(false); }).catch(() => { setSelectedInvoiceDetail(getMockStallDebtDetail(debt.stallId)); setLoadingPopup(false); });
+    else fetch(`http://localhost:5056/api/accountant/payments/debts/${debt.stallId}`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` } }).then(r => r.json()).then(d => { setSelectedInvoiceDetail(d); setLoadingPopup(false); }).catch(() => { setSelectedInvoiceDetail(getMockStallDebtDetail(debt.stallId)); setLoadingPopup(false); });
   };
 
   const handleSendReminderClick = (debt) => {
@@ -147,7 +147,7 @@ export default function PaymentVerification() {
   const submitSendReminder = (e) => {
     e.preventDefault();
     if (isMock) { showNotification('success', `Đã gửi thông báo nhắc nợ tới sạp ${selectedItem.stallCode}!`); setActiveModal(null); }
-    else fetch('http://localhost:5056/api/accountant/payments/debts/notify?userId=1', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ stallId: selectedItem.stallId, customMessage: reminderMessage }) })
+    else fetch('http://localhost:5056/api/accountant/payments/debts/notify?userId=1', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` }, body: JSON.stringify({ stallId: selectedItem.stallId, customMessage: reminderMessage }) })
       .then(r => { if (!r.ok) throw new Error(); showNotification('success', 'Gửi thông báo nhắc nợ thành công!'); setActiveModal(null); })
       .catch(() => showNotification('danger', 'Gửi nhắc nợ thất bại.'));
   };
@@ -161,7 +161,7 @@ export default function PaymentVerification() {
   const submitResolveDispute = (e) => {
     e.preventDefault();
     if (isMock) { setDisputes(d => d.map(x => x.requestId === selectedItem.requestId ? { ...x, status: disputeApprove ? 'Approved' : 'Rejected' } : x)); showNotification('success', `Đã ${disputeApprove ? 'chấp nhận' : 'từ chối'} kháng nghị!`); setActiveModal(null); }
-    else fetch(`http://localhost:5056/api/accountant/payments/disputes/${selectedItem.requestId}/resolve?userId=1`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ approve: disputeApprove, feedback: disputeFeedback }) })
+    else fetch(`http://localhost:5056/api/accountant/payments/disputes/${selectedItem.requestId}/resolve?userId=1`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` }, body: JSON.stringify({ approve: disputeApprove, feedback: disputeFeedback }) })
       .then(r => { if (!r.ok) throw new Error(); showNotification('success', 'Đã phản hồi kháng nghị thành công!'); setActiveModal(null); loadAllData(); })
       .catch(() => showNotification('danger', 'Xử lý kháng nghị thất bại.'));
   };
