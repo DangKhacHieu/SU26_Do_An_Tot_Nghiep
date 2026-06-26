@@ -8,14 +8,9 @@ const API_ROOT = rawBaseUrl.replace(/\/$/, "").endsWith("/api")
 const MARKETS_URL = `${API_ROOT}/markets`;
 
 const getAuthHeaders = () => {
-  const session = localStorage.getItem('user_session');
-  if (session) {
-    try {
-      const parsed = JSON.parse(session);
-      return parsed.token ? { Authorization: `Bearer ${parsed.token}` } : {};
-    } catch (e) {
-      return {};
-    }
+  const accessToken = localStorage.getItem('accessToken');
+  if (accessToken) {
+    return { Authorization: `Bearer ${accessToken}` };
   }
   return {};
 };
