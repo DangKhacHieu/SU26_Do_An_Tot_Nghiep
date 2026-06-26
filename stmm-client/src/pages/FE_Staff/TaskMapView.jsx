@@ -224,7 +224,7 @@ export default function TaskMapView({ userId, baseUrl, onBack, onViewDetails }) 
           </button>
         </div>
       ) : (
-        <div className="map-grid-layout">
+        <div className={`map-grid-layout ${selectedStall ? "has-selection" : ""}`}>
           {/* Left Column: Interactive Map Grid */}
           <section className="map-canvas-card" id="task-map-canvas-section">
             <div className="map-card-header">
@@ -323,18 +323,40 @@ export default function TaskMapView({ userId, baseUrl, onBack, onViewDetails }) 
             </div>
           </section>
 
+          {selectedStall && (
+            <button
+              type="button"
+              className="map-drawer-backdrop"
+              aria-label="Close stall summary"
+              onClick={() => setSelectedStall(null)}
+            />
+          )}
+
           {/* Right Column: Stall Details & Tasks Drawer */}
-          <aside className="map-sidebar-card" id="task-map-details-sidebar">
+          <aside
+            className={`map-sidebar-card ${selectedStall ? "is-open" : ""}`}
+            id="task-map-details-sidebar"
+          >
             {selectedStall ? (
               <div className="drawer-details">
                 <div className="drawer-section-header">
-                  <span className="section-label">Stall Information</span>
-                  <span
-                    className="stall-status-badge"
-                    style={{ backgroundColor: getStatusColor(selectedStall.status) }}
+                  <div className="drawer-title-group">
+                    <span className="section-label">Stall Information</span>
+                    <span
+                      className="stall-status-badge"
+                      style={{ backgroundColor: getStatusColor(selectedStall.status) }}
+                    >
+                      {getStatusLabel(selectedStall.status)}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    className="drawer-close-btn"
+                    onClick={() => setSelectedStall(null)}
+                    aria-label="Close stall summary"
                   >
-                    {getStatusLabel(selectedStall.status)}
-                  </span>
+                    ×
+                  </button>
                 </div>
 
                 <div className="stall-main-info">

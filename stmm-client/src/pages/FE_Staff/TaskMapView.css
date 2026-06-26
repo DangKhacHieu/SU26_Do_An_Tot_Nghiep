@@ -2,9 +2,10 @@
 .task-map-view-container {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 120px);
+  min-height: 0;
   gap: 16px;
   box-sizing: border-box;
+  overflow: hidden;
 }
 
 .map-view-header {
@@ -49,6 +50,9 @@
 .header-right {
   display: flex;
   gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .summary-badge {
@@ -104,20 +108,13 @@
 /* Map Grid Layout */
 .map-grid-layout {
   display: grid;
-  grid-template-columns: 1fr 340px;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 340px);
   gap: 20px;
   flex-grow: 1;
+  position: relative;
+  overflow: hidden;
+  min-width: 0;
   min-height: 0; /* Important for flex-child scrolling */
-}
-
-@media (max-width: 992px) {
-  .map-grid-layout {
-    grid-template-columns: 1fr;
-    overflow-y: auto;
-  }
-  .map-sidebar-card {
-    height: auto !important;
-  }
 }
 
 /* Left Column Canvas Card */
@@ -129,6 +126,7 @@
   padding: 20px;
   display: flex;
   flex-direction: column;
+  min-width: 0;
   min-height: 0;
 }
 
@@ -213,12 +211,15 @@
   background-color: #f1f5f9;
   overflow: auto;
   flex-grow: 1;
+  min-width: 0;
+  min-height: 420px;
   position: relative;
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
 }
 
 .blueprint-map-canvas {
   position: relative;
+  max-width: none;
   background-color: #f8fafc;
   background-image: 
     linear-gradient(rgba(99, 102, 241, 0.05) 1px, transparent 1px),
@@ -334,6 +335,10 @@
 }
 
 /* Right Sidebar Detail Card */
+.map-drawer-backdrop {
+  display: none;
+}
+
 .map-sidebar-card {
   background-color: #ffffff;
   border-radius: 16px;
@@ -343,7 +348,39 @@
   display: flex;
   flex-direction: column;
   overflow-y: auto;
+  min-width: 0;
+  max-height: 100%;
   height: 100%;
+}
+
+.drawer-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.drawer-close-btn {
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  transition: all 0.15s ease;
+}
+
+.drawer-close-btn:hover {
+  color: var(--color-text-primary);
+  border-color: #cbd5e1;
+  background: #f8fafc;
 }
 
 .drawer-placeholder {
@@ -387,7 +424,8 @@
 .drawer-section-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
+  gap: 12px;
 }
 
 .section-label {
@@ -450,6 +488,7 @@
   flex-direction: column;
   gap: 10px;
   overflow-y: auto;
+  min-height: 0;
   padding-right: 4px;
 }
 
@@ -552,6 +591,105 @@
 
 .btn-task-shortcut:hover {
   background-color: var(--primary-hover-color);
+}
+
+@media (max-width: 1280px) {
+  .task-map-view-container {
+    overflow: visible;
+  }
+
+  .map-grid-layout {
+    grid-template-columns: minmax(0, 1fr);
+    overflow: hidden;
+  }
+
+  .map-drawer-backdrop {
+    display: none;
+  }
+
+  .map-grid-layout.has-selection .map-drawer-backdrop {
+    display: block;
+    position: absolute;
+    inset: 0;
+    border: none;
+    background: rgba(15, 23, 42, 0.24);
+    cursor: pointer;
+    z-index: 20;
+  }
+
+  .map-sidebar-card {
+    display: none;
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    bottom: 16px;
+    width: min(360px, calc(100% - 32px));
+    height: auto;
+    max-height: calc(100% - 32px);
+    z-index: 30;
+  }
+
+  .map-sidebar-card.is-open {
+    display: flex;
+  }
+
+  .drawer-placeholder {
+    display: none;
+  }
+
+  .drawer-close-btn {
+    display: inline-flex;
+  }
+}
+
+@media (max-width: 768px) {
+  .task-map-view-container {
+    gap: 12px;
+  }
+
+  .map-view-header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .header-right {
+    justify-content: flex-start;
+  }
+
+  .summary-badge {
+    padding: 6px 10px;
+  }
+
+  .map-canvas-card {
+    padding: 14px;
+  }
+
+  .map-legends {
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .map-viewport {
+    min-height: 360px;
+  }
+
+  .map-grid-layout.has-selection .map-drawer-backdrop {
+    position: fixed;
+    z-index: 1000;
+  }
+
+  .map-sidebar-card {
+    position: fixed;
+    top: auto;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    max-height: 78vh;
+    border-radius: 18px 18px 0 0;
+    z-index: 1001;
+  }
 }
 
 .empty-tasks-placeholder {
