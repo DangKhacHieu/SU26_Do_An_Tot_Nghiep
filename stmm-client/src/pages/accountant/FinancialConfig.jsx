@@ -68,12 +68,14 @@ export default function FinancialConfig() {
     setLoading(true);
     setIsMock(false);
 
+    const token = localStorage.getItem('accessToken');
+    const headers = { 'Authorization': `Bearer ${token}` };
     Promise.all([
-      fetch('http://localhost:5056/api/accountant/config/fee-types').then(r => r.json()),
-      fetch('http://localhost:5056/api/accountant/config/services').then(r => r.json()),
-      fetch('http://localhost:5056/api/accountant/config/system-configs').then(r => r.json()),
-      fetch('http://localhost:5056/api/accountant/config/tiers/electricity_tiers').then(r => r.json()),
-      fetch('http://localhost:5056/api/accountant/config/tiers/water_tiers').then(r => r.json())
+      fetch('http://localhost:5056/api/accountant/config/fee-types', { headers }).then(r => r.json()),
+      fetch('http://localhost:5056/api/accountant/config/services', { headers }).then(r => r.json()),
+      fetch('http://localhost:5056/api/accountant/config/system-configs', { headers }).then(r => r.json()),
+      fetch('http://localhost:5056/api/accountant/config/tiers/electricity_tiers', { headers }).then(r => r.json()),
+      fetch('http://localhost:5056/api/accountant/config/tiers/water_tiers', { headers }).then(r => r.json())
     ])
     .then(([fees, srvs, sys, elec, water]) => {
       setFeeTypes(fees);
@@ -193,9 +195,10 @@ export default function FinancialConfig() {
       showToast('success', 'Đã cập nhật loại phí (Mock)!');
       closeModal();
     } else {
+      const token = localStorage.getItem('accessToken');
       fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify(payload)
       })
       .then(res => {
@@ -216,7 +219,8 @@ export default function FinancialConfig() {
       showToast('success', 'Đã xóa loại phí (Mock)!');
       closeModal();
     } else {
-      fetch(`http://localhost:5056/api/accountant/config/fee-types/${selectedItem.feeTypeId}`, { method: 'DELETE' })
+      const token = localStorage.getItem('accessToken');
+      fetch(`http://localhost:5056/api/accountant/config/fee-types/${selectedItem.feeTypeId}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } })
       .then(res => {
         if (!res.ok) {
           return res.text().then(text => { throw new Error(text || 'Không thể xóa loại phí này.'); });
@@ -290,9 +294,10 @@ export default function FinancialConfig() {
       showToast('success', 'Đã cập nhật dịch vụ (Mock)!');
       closeModal();
     } else {
+      const token = localStorage.getItem('accessToken');
       fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify(payload)
       })
       .then(res => {
@@ -313,7 +318,8 @@ export default function FinancialConfig() {
       showToast('success', 'Đã xóa dịch vụ (Mock)!');
       closeModal();
     } else {
-      fetch(`http://localhost:5056/api/accountant/config/services/${selectedItem.serviceId}`, { method: 'DELETE' })
+      const token = localStorage.getItem('accessToken');
+      fetch(`http://localhost:5056/api/accountant/config/services/${selectedItem.serviceId}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } })
       .then(res => {
         if (!res.ok) {
           return res.text().then(text => { throw new Error(text || 'Không thể xóa dịch vụ này.'); });
@@ -340,9 +346,10 @@ export default function FinancialConfig() {
       showToast('success', 'Đã lưu cấu hình (Mock)!');
       closeModal();
     } else {
+      const token = localStorage.getItem('accessToken');
       fetch('http://localhost:5056/api/accountant/config/system-configs', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({
           configKey: sysForm.configKey,
           configValue: val,
@@ -423,9 +430,10 @@ export default function FinancialConfig() {
       showToast('success', 'Đã cập nhật biểu giá bậc thang (Mock)!');
       closeModal();
     } else {
+      const token = localStorage.getItem('accessToken');
       fetch('http://localhost:5056/api/accountant/config/tiers', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({
           configKey: key,
           steps: stepsList,

@@ -48,8 +48,8 @@ export default function RepairPrice() {
   const loadData = () => {
     setLoading(true); setIsMock(false);
     Promise.all([
-      fetch('http://localhost:5056/api/accountant/repair-prices').then(r => { if (!r.ok) throw new Error(); return r.json(); }),
-      fetch('http://localhost:5056/api/accountant/repair-prices/used-tools').then(r => { if (!r.ok) throw new Error(); return r.json(); })
+      fetch('http://localhost:5056/api/accountant/repair-prices', { headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` } }).then(r => { if (!r.ok) throw new Error(); return r.json(); }),
+      fetch('http://localhost:5056/api/accountant/repair-prices/used-tools', { headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` } }).then(r => { if (!r.ok) throw new Error(); return r.json(); })
     ])
       .then(([prices, used]) => { setRepairItems(prices); setUsedTools(used); setLoading(false); })
       .catch(() => {
@@ -86,7 +86,7 @@ export default function RepairPrice() {
       showNotification('success', `${isEdit ? 'Cập nhật' : 'Thêm'} hạng mục thành công!`);
       setActiveModal(null);
     } else {
-      fetch(url, { method: isEdit ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(formState) })
+      fetch(url, { method: isEdit ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` }, body: JSON.stringify(formState) })
         .then(r => { if (!r.ok) throw new Error(); showNotification('success', `${isEdit ? 'Cập nhật' : 'Thêm'} hạng mục thành công!`); setActiveModal(null); loadData(); })
         .catch(() => showNotification('danger', 'Thao tác thất bại.'));
     }
@@ -103,7 +103,7 @@ export default function RepairPrice() {
       }
       setActiveModal(null);
     } else {
-      fetch(`http://localhost:5056/api/accountant/repair-prices/${selectedItem.repairPriceId}`, { method: 'DELETE' })
+      fetch(`http://localhost:5056/api/accountant/repair-prices/${selectedItem.repairPriceId}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` } })
         .then(r => { if (!r.ok) throw new Error(); showNotification('success', 'Xóa thành công!'); setActiveModal(null); loadData(); })
         .catch(() => showNotification('danger', 'Không thể xóa hạng mục.'));
     }
