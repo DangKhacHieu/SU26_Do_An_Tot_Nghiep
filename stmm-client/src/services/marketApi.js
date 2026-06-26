@@ -30,3 +30,13 @@ export const getMarketMap = async (marketId) => {
     throw error;
   }
 };
+
+export const createMarketBulk = async (marketData) => {
+  try {
+    const response = await axios.post(`${MARKETS_URL}/bulk`, marketData);
+    return response.data;
+  } catch (error) {
+    console.error("Error creating market bulk:", error);
+    throw error;
+  }
+};

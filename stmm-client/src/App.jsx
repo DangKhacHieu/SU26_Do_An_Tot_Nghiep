@@ -50,6 +50,7 @@ import FaqFormManager from "./pages/FE_Manager/FaqFormManager";
 import TaskListManager from "./pages/FE_Manager/TaskListManager";
 import TaskDetailManager from "./pages/FE_Manager/TaskDetailManager";
 import MarketAreaList from "./pages/FE_Manager/MarketArea/components/MarketAreaList";
+import MarketRoot from "./pages/FE_Manager/MarketArea/components/MarketRoot";
 import BusinessCategoryListManager from "./pages/FE_Manager/BusinessCategoryListManager";
 import ContractListManager from "./pages/FE_Manager/ContractListManager";
 import ContractDetailManager from "./pages/FE_Manager/ContractDetailManager";
@@ -136,6 +137,10 @@ const PAGE_TITLES = {
   "market-areas": {
     title: "Quản lý Mặt bằng",
     sub: "Thiết kế sơ đồ mặt bằng và quản lý các sạp hàng.",
+  },
+  "markets": {
+    title: "Danh sách Chợ",
+    sub: "Quản lý danh sách các chợ, tạo và thiết kế bản đồ chợ mới.",
   },
   "business-categories": {
     title: "Quản lý Danh mục Kinh doanh",
@@ -512,6 +517,8 @@ function AppContent() {
         return <DashboardManager addToast={addToast} navigate={navigate} />;
       case "market-areas":
         return <MarketAreaList />;
+      case "markets":
+        return <MarketRoot />;
       case "business-categories":
         return (
           <BusinessCategoryListManager

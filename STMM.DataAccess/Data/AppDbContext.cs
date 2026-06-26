@@ -1018,7 +1018,7 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => new { e.MapX, e.MapY, e.Width, e.Height, e.Status, e.IsDeleted }, "idx_stalls_map");
 
-            entity.HasIndex(e => e.Code, "stalls_code_key").IsUnique();
+            entity.HasIndex(e => e.Code, "stalls_code_key");
 
             entity.Property(e => e.StallId)
                 .HasComment("Mã định danh quầy sạp")

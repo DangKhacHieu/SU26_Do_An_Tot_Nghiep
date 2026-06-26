@@ -59,6 +59,11 @@ public partial class Area
     public double? MaxY { get; set; }
 
     /// <summary>
+    /// Chuỗi dữ liệu vẽ vector hình dạng khu vực tự do
+    /// </summary>
+    public string? SvgPath { get; set; }
+
+    /// <summary>
     /// Ngày khởi tạo
     /// </summary>
     public DateTime? CreatedAt { get; set; }

@@ -152,11 +152,12 @@ builder.Services.AddScoped<IReviewService, ReviewService>();
 
 // 1. Controllers & JSON Options
 builder.Services.AddControllers()
-    .AddJsonOptions(option =>
+    .AddJsonOptions(options =>
     {
-        option.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
-        option.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.Never;
-        option.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+        options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+        options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+        options.JsonSerializerOptions.NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals;
+        options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
     });
 
 // 4. CORS Policy (Cho phép React Client kết nối)

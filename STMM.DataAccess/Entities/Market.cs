@@ -38,5 +38,20 @@ public partial class Market
     /// </summary>
     public double? Size { get; set; }
 
+    /// <summary>
+    /// Vòng đời: Draft, Pending, Active, Rejected
+    /// </summary>
+    public string? Status { get; set; }
+
+    /// <summary>
+    /// Chuỗi dữ liệu vẽ vector hình dạng chợ tự do
+    /// </summary>
+    public string? SvgPath { get; set; }
+
+    public double? MinX { get; set; }
+    public double? MinY { get; set; }
+    public double? MaxX { get; set; }
+    public double? MaxY { get; set; }
+
     public virtual ICollection<Area> Areas { get; set; } = new List<Area>();
 }

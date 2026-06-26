@@ -104,6 +104,12 @@ const NAV_GROUPS = [
         childKeys: [],
       },
       {
+        key: 'markets',
+        label: 'Danh sách Chợ',
+        icon: <IconGrid />,
+        childKeys: [],
+      },
+      {
         key: 'business-categories',
         label: 'Danh mục kinh doanh',
         icon: <IconContent />,

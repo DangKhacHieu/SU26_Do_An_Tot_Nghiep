@@ -35,5 +35,29 @@ namespace STMM.API.Controllers
 
             return Ok(marketMap);
         }
+
+        [HttpPost("bulk")]
+        public async Task<ActionResult<MarketDto>> CreateMarketBulk([FromBody] CreateMarketBulkRequest request)
+        {
+            try
+            {
+                var market = await _marketService.CreateMarketBulkAsync(request);
+                return Ok(market);
+            }
+            catch (System.Exception ex)
+            {
+                var msg = ex.Message;
+                if (ex.InnerException != null) msg += " Inner: " + ex.InnerException.Message;
+                return BadRequest(new { message = msg });
+            }
+        }
+
+        [HttpDelete("{marketId}")]
+        public async Task<ActionResult> DeleteMarket(int marketId)
+        {
+            var result = await _marketService.DeleteMarketAsync(marketId);
+            if (!result) return NotFound(new { message = "Market not found" });
+            return NoContent();
+        }
     }
 }
