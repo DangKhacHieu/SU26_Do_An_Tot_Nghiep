@@ -6,7 +6,7 @@ import UpdateTaskStatusModal from './UpdateTaskStatusModal';
 /* ── Inline Icons ── */
 const IconBack = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>;
 const IconUser = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>;
-const IconEditStatus = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>;
+const IconCancel = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>;
 
 export default function TaskDetailManager({ taskId, userId, baseUrl, onBack, addToast, navigate }) {
   const [task, setTask] = useState(null);
@@ -139,7 +139,7 @@ export default function TaskDetailManager({ taskId, userId, baseUrl, onBack, add
     return (
       <div className="task-detail-error">
         <p>Task not found or has been removed.</p>
-        <button className="btn-secondary" onClick={onBack}>
+        <button className="task-detail-btn task-detail-btn-secondary" onClick={onBack}>
           <IconBack /> BACK TO LIST
         </button>
       </div>
@@ -180,29 +180,33 @@ export default function TaskDetailManager({ taskId, userId, baseUrl, onBack, add
 
   // Materials total
   const materialsTotal = (task.materials || []).reduce((acc, m) => acc + (m.amount || 0), 0);
+  const isActiveTask = task.status !== 'Completed' && task.status !== 'Cancelled';
+  const canCancelTask = ['Pending', 'PendingApproval', 'In_Progress'].includes(task.status);
+  const canResolveQuotation = task.status === 'PendingApproval' && (task.requestId === null || task.requestPaidBy === 'Market');
+  const quoteWarningTone = task.requestPaidBy === 'Market' ? 'market' : task.requestPaidBy === 'Vendor' ? 'vendor' : 'neutral';
 
   return (
     <main className="task-detail-container" id="task-detail-manager-main-view">
       {/* ── Page Header ── */}
-      <header className="page-header" id="task-detail-manager-page-header">
+      <header className="task-detail-page-header" id="task-detail-manager-page-header">
         <h1>Task Details: {task.title}</h1>
         <p className="subtitle">Mã tác vụ: #{task.taskId} &bull; Loại: {formatTaskType(task.taskType)}</p>
       </header>
 
       {/* ── Top Header Navbar ── */}
       <nav className="detail-action-bar" id="task-detail-manager-action-bar">
-        <button id="btn-manager-detail-back" className="btn-secondary back-btn" onClick={onBack}>
+        <button id="btn-manager-detail-back" className="task-detail-btn task-detail-btn-secondary back-btn" onClick={onBack}>
           <IconBack /> BACK TO LIST
         </button>
         <div className="action-buttons-group">
-          {task.status !== 'Completed' && task.status !== 'Cancelled' && (
+          {isActiveTask && (
             <>
-              <button id="btn-manager-reassign-staff" className="btn-secondary" onClick={() => setShowAssignModal(true)}>
+              <button id="btn-manager-reassign-staff" className="task-detail-btn task-detail-btn-secondary" onClick={() => setShowAssignModal(true)}>
                 <IconUser /> REASSIGN STAFF
               </button>
-              {(!(task.status === 'PendingApproval' && task.requestId) || (task.status === 'PendingApproval' && task.requestPaidBy === 'Market')) && (
-                <button id="btn-manager-update-status" className="btn-primary" onClick={() => setShowStatusModal(true)}>
-                  <IconEditStatus /> UPDATE STATUS
+              {canCancelTask && (
+                <button id="btn-manager-cancel-task" className="task-detail-btn task-detail-btn-danger" onClick={() => setShowStatusModal(true)}>
+                  <IconCancel /> CANCEL TASK
                 </button>
               )}
             </>
@@ -211,61 +215,44 @@ export default function TaskDetailManager({ taskId, userId, baseUrl, onBack, add
       </nav>
 
       {task.status === 'PendingApproval' && task.requestId && (
-        <div className="manager-quotation-pending-warning"
-             style={{
-               display: 'flex',
-               alignItems: 'center',
-               gap: '12px',
-               padding: '14px 20px',
-               borderRadius: '8px',
-               marginBottom: '24px',
-               fontSize: '0.88rem',
-               lineHeight: '1.5',
-               background: task.requestPaidBy === 'Market' ? '#e6fffa' : '#fff9db',
-               border: task.requestPaidBy === 'Market' ? '1px solid #319795' : '1px solid #f59f00',
-               color: task.requestPaidBy === 'Market' ? '#234e52' : '#663c00'
-             }}>
-          <span className="warning-icon" style={{ fontSize: '1.25rem' }}>{task.requestPaidBy === 'Market' ? 'ℹ️' : '⚠️'}</span>
+        <div className={`manager-quote-warning manager-quote-warning-${quoteWarningTone}`}>
+          <span className="warning-icon">{task.requestPaidBy === 'Market' ? 'i' : '!'}</span>
           <span className="warning-text">
             {task.requestPaidBy === 'Market' ? (
               <>
-                Báo giá vật tư của tác vụ này do <strong>Ban quản lý (Chợ chịu ngân sách)</strong> chi trả.
-                Bạn có thể bấm nút <strong>UPDATE STATUS</strong> để duyệt/từ chối thi công trực tiếp, hoặc{' '}
+                This task quotation is paid by <strong>Market Management</strong>. Use the quotation approval panel on this page, or open{' '}
                 <span 
                   id={`link-linked-request-warning-${task.requestId}`}
                   className="warning-link"
-                  style={{ color: '#2b6cb0', cursor: 'pointer', textDecoration: 'underline', fontWeight: 'bold' }}
                   onClick={() => navigate('request-detail', task.requestId)}
                 >
-                  Click vào đây để chuyển sang trang chi tiết Yêu cầu #REQ-{task.requestId}
+                  Request #REQ-{task.requestId}
                 </span>{' '}
-                để duyệt báo giá.
+                for the linked request detail.
               </>
             ) : task.requestPaidBy === 'Vendor' ? (
               <>
-                Báo giá vật tư của tác vụ này đang chờ <strong>Vendor (Tiểu thương)</strong> của Yêu cầu{' '}
+                This quotation is waiting for the <strong>vendor</strong> linked to{' '}
                 <span 
                   id={`link-linked-request-warning-${task.requestId}`}
                   className="warning-link"
-                  style={{ color: '#2b6cb0', cursor: 'pointer', textDecoration: 'underline', fontWeight: 'bold' }}
                   onClick={() => navigate('request-detail', task.requestId)}
                 >
-                  #REQ-{task.requestId}
+                  Request #REQ-{task.requestId}
                 </span>{' '}
-                phê duyệt trực tuyến. Bạn không thể duyệt trực tiếp tại đây.
+                . Manager cannot approve it directly here.
               </>
             ) : (
               <>
-                Báo giá vật tư của tác vụ này chưa được phân định bên chi trả chi phí. Vui lòng{' '}
+                This quotation has no payer selected yet. Open{' '}
                 <span 
                   id={`link-linked-request-warning-${task.requestId}`}
                   className="warning-link"
-                  style={{ color: '#2b6cb0', cursor: 'pointer', textDecoration: 'underline', fontWeight: 'bold' }}
                   onClick={() => navigate('request-detail', task.requestId)}
                 >
-                  Click vào đây để chuyển sang trang chi tiết Yêu cầu #REQ-{task.requestId}
+                  Request #REQ-{task.requestId}
                 </span>{' '}
-                để chọn bên chi trả (BQL hoặc Tiểu thương) và phê duyệt báo giá.
+                to choose who pays before approval.
               </>
             )}
           </span>
@@ -301,8 +288,7 @@ export default function TaskDetailManager({ taskId, userId, baseUrl, onBack, add
                   <span className="summary-label">LINKED CUSTOMER REQUEST</span>
                   <span 
                     id={`link-linked-request-${task.requestId}`}
-                    className="summary-val text-bold" 
-                    style={{ color: '#2563eb', cursor: 'pointer', textDecoration: 'underline' }}
+                    className="summary-val task-linked-record-link" 
                     onClick={() => navigate('request-detail', task.requestId)}
                   >
                     #REQ-{task.requestId}
@@ -417,65 +403,41 @@ export default function TaskDetailManager({ taskId, userId, baseUrl, onBack, add
             )}
           </div>
 
-          {task.status === 'PendingApproval' && (task.requestId === null || task.requestPaidBy === 'Market') && (
-            <div className="spec-card quotation-approval-widget" style={{ borderLeft: '4px solid #3b82f6', background: '#f0f9ff' }}>
-              <h3 className="spec-title" style={{ color: '#1d4ed8', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-                📁 MATERIAL QUOTATION APPROVAL (BQL)
+          {canResolveQuotation && (
+            <div className="spec-card quotation-approval-widget">
+              <h3 className="spec-title quotation-approval-title">
+                MATERIAL QUOTATION APPROVAL
               </h3>
               
-              <div style={{ fontSize: '0.88rem', color: '#4b5563', lineHeight: '1.5', marginBottom: '16px' }}>
+              <div className="quotation-approval-copy">
                 {task.requestId ? (
-                  <p style={{ margin: 0 }}>
-                    Task linked to Request **#REQ-{task.requestId}**. Cost is covered by **Market Management** from market budget.
+                  <p>
+                    Task linked to <strong>Request #REQ-{task.requestId}</strong>. Cost is covered by <strong>Market Management</strong>.
                   </p>
                 ) : (
-                  <p style={{ margin: 0 }}>
-                    General market infrastructure maintenance task. Cost is covered by **Market Management** from market budget.
+                  <p>
+                    General market infrastructure task. Cost is covered by <strong>Market Management</strong>.
                   </p>
                 )}
-                <p style={{ marginTop: '8px', marginBottom: 0 }}>
-                  Total estimated cost: <strong style={{ color: '#1d4ed8', fontSize: '1rem' }}>{formatCurrency(materialsTotal)}</strong>
+                <p>
+                  Total estimated cost: <strong className="quotation-total">{formatCurrency(materialsTotal)}</strong>
                 </p>
               </div>
 
-              <div style={{ display: 'flex', gap: '10px' }}>
+              <div className="quotation-actions">
                 <button
                   disabled={submittingQuote}
                   onClick={() => handleResolveQuote(true)}
-                  style={{
-                    flex: 1,
-                    padding: '10px 14px',
-                    fontSize: '0.85rem',
-                    fontWeight: '600',
-                    border: 'none',
-                    borderRadius: '6px',
-                    background: '#10b981',
-                    color: '#fff',
-                    cursor: submittingQuote ? 'not-allowed' : 'pointer',
-                    boxShadow: '0 2px 4px rgba(16, 185, 129, 0.15)',
-                    transition: 'all 0.15s ease'
-                  }}
+                  className="quotation-action-btn quotation-approve-btn"
                 >
                   {submittingQuote ? 'Processing...' : 'Approve Quotation'}
                 </button>
                 <button
                   disabled={submittingQuote}
                   onClick={() => handleResolveQuote(false)}
-                  style={{
-                    flex: 1,
-                    padding: '10px 14px',
-                    fontSize: '0.85rem',
-                    fontWeight: '600',
-                    border: 'none',
-                    borderRadius: '6px',
-                    background: '#ef4444',
-                    color: '#fff',
-                    cursor: submittingQuote ? 'not-allowed' : 'pointer',
-                    boxShadow: '0 2px 4px rgba(239, 68, 68, 0.15)',
-                    transition: 'all 0.15s ease'
-                  }}
+                  className="quotation-action-btn quotation-reject-btn"
                 >
-                  {submittingQuote ? 'Processing...' : 'Reject'}
+                  {submittingQuote ? 'Processing...' : 'Reject Quotation'}
                 </button>
               </div>
             </div>
@@ -569,6 +531,7 @@ export default function TaskDetailManager({ taskId, userId, baseUrl, onBack, add
         <UpdateTaskStatusModal
           taskId={task.taskId}
           currentStatus={task.status}
+          mode="cancel"
           baseUrl={baseUrl}
           onClose={() => setShowStatusModal(false)}
           onSuccess={(updated) => {
@@ -581,29 +544,25 @@ export default function TaskDetailManager({ taskId, userId, baseUrl, onBack, add
       {/* Custom Confirmation Modal */}
       {confirmModal.isOpen && (
         <div className="modal-overlay" onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}>
-          <div className="modal-box" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '440px' }}>
+          <div className="modal-box task-confirm-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-head">
               <h3>{confirmModal.title}</h3>
               <button className="modal-close" onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}>&times;</button>
             </div>
-            <div className="modal-body" style={{ padding: '24px 20px', fontSize: '0.92rem', color: '#334155', lineHeight: '1.6', textAlign: 'left' }}>
+            <div className="modal-body task-confirm-body">
               {confirmModal.message}
             </div>
             <div className="modal-foot">
               <button 
                 type="button" 
-                className="btn-secondary" 
+                className="task-detail-btn task-detail-btn-secondary" 
                 onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
               >
                 NO
               </button>
               <button 
                 type="button" 
-                className="btn-primary" 
-                style={{ 
-                  backgroundColor: confirmModal.type === 'danger' ? '#ef4444' : '',
-                  borderColor: confirmModal.type === 'danger' ? '#ef4444' : ''
-                }}
+                className={`task-detail-btn ${confirmModal.type === 'danger' ? 'task-detail-btn-danger-solid' : 'task-detail-btn-primary'}`} 
                 onClick={() => {
                   if (confirmModal.onConfirm) confirmModal.onConfirm();
                   setConfirmModal(prev => ({ ...prev, isOpen: false }));

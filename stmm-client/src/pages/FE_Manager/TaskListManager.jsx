@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import './TaskListManager.css';
 import CreateTaskModal from './CreateTaskModal';
 
@@ -6,8 +6,6 @@ import CreateTaskModal from './CreateTaskModal';
 const IconSearch = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>;
 const IconPlus = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>;
 const IconEye = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>;
-const IconUser = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>;
-const IconEditStatus = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>;
 const IconEmpty = () => <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>;
 
 export default function TaskListManager({ userId, baseUrl, navigate, addToast }) {
@@ -130,7 +128,7 @@ export default function TaskListManager({ userId, baseUrl, navigate, addToast })
 
   return (
     <main className="task-manager-container" id="task-manager-main-view">
-      <header className="page-header" id="task-manager-page-header">
+      <header className="task-page-header" id="task-manager-page-header">
         <h1>Operational Tasks Management</h1>
         <p className="subtitle">Giám sát, phân công và cập nhật trạng thái các công việc vận hành</p>
       </header>
@@ -206,45 +204,56 @@ export default function TaskListManager({ userId, baseUrl, navigate, addToast })
           )}
         </div>
 
-        <button 
-          id="btn-manager-create-task"
-          className="btn-primary" 
-          onClick={() => setShowCreateModal(true)}
-        >
-          <IconPlus /> CREATE TASK
-        </button>
+        <div className="toolbar-actions">
+          <button 
+            id="btn-manager-create-task"
+            className="task-btn task-btn-primary" 
+            onClick={() => setShowCreateModal(true)}
+          >
+            <IconPlus /> CREATE TASK
+          </button>
+        </div>
       </section>
 
       {/* ── Table Card ── */}
       <section className="table-section" id="task-manager-table-section">
-        <div className="table-card">
-          <div className="table-card-header">
-            <span className="table-card-title">Task Overview</span>
-            <span className="table-count-badge">{totalCount} Tasks</span>
+        <div className="task-table-card">
+          <div className="task-table-card-header">
+            <span className="task-table-card-title">Task Overview</span>
+            <span className="task-table-count-badge">{totalCount} Tasks</span>
           </div>
 
-          <div className="table-responsive">
+          <div className="task-table-responsive">
             {loading ? (
-              <div className="state-empty">
-                <div className="spinner"></div>
-                <p className="state-empty-text">Loading operational tasks...</p>
+              <div className="task-state-empty">
+                <div className="task-spinner"></div>
+                <p className="task-state-empty-text">Loading operational tasks...</p>
               </div>
             ) : tasks.length === 0 ? (
-              <div className="state-empty">
+              <div className="task-state-empty">
                 <IconEmpty />
-                <p className="state-empty-text">No tasks found matching current filters.</p>
+                <p className="task-state-empty-text">No tasks found matching current filters.</p>
               </div>
             ) : (
-              <table className="cat-table">
+              <table className="task-overview-table">
+                <colgroup>
+                  <col className="task-col-id" />
+                  <col className="task-col-label" />
+                  <col className="task-col-type" />
+                  <col className="task-col-created" />
+                  <col className="task-col-status" />
+                  <col className="task-col-staff" />
+                  <col className="task-col-actions" />
+                </colgroup>
                 <thead>
                   <tr>
-                    <th style={{ width: '60px', textAlign: 'center' }}>ID</th>
+                    <th className="task-th-id">ID</th>
                     <th>Task Label</th>
                     <th>Task Type</th>
                     <th>Created At</th>
                     <th>Status</th>
                     <th>Assigned Staff</th>
-                    <th style={{ width: '120px', textAlign: 'right' }}>Actions</th>
+                    <th className="task-th-actions">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -256,7 +265,7 @@ export default function TaskListManager({ userId, baseUrl, navigate, addToast })
                         className="task-row-clickable"
                         onClick={() => navigate('task-details', task.taskId)}
                       >
-                        <td className="row-no">#{task.taskId}</td>
+                        <td className="task-row-no">#{task.taskId}</td>
                         <td>
                           <div className="task-title-cell">
                             <span className="task-title-text">{task.title}</span>
@@ -275,22 +284,22 @@ export default function TaskListManager({ userId, baseUrl, navigate, addToast })
                             </span>
                           )}
                         </td>
-                        <td>{formatDate(task.createdAt)}</td>
+                        <td className="task-date-cell">{formatDate(task.createdAt)}</td>
                         <td>
-                          <span className={`badge-status status-${task.status.toLowerCase()}`}>
-                            <span className="badge-dot"></span>
+                          <span className={`task-status-badge status-${task.status.toLowerCase()}`}>
+                            <span className="task-status-dot"></span>
                             {formatStatus(task.status)}
                           </span>
                         </td>
                         <td>
-                          <div className="staff-assignee-cell">
-                            <span className="staff-name-text">{task.assignedToName}</span>
+                          <div className="task-staff-assignee-cell">
+                            <span className="task-staff-name-text">{task.assignedToName}</span>
                           </div>
                         </td>
-                        <td className="actions-cell" onClick={(e) => e.stopPropagation()}>
+                        <td className="task-actions-cell" onClick={(e) => e.stopPropagation()}>
                           <button 
                             id={`btn-manager-view-details-${task.taskId}`}
-                            className="btn-icon edit" 
+                            className="task-action-btn" 
                             title="View Details"
                             onClick={() => navigate('task-details', task.taskId)}
                           >
@@ -307,21 +316,21 @@ export default function TaskListManager({ userId, baseUrl, navigate, addToast })
 
           {/* Pagination Footer */}
           {totalPages > 1 && (
-            <div className="pagination-footer">
+            <div className="task-pagination-footer">
               <button 
                 id="btn-manager-page-prev"
-                className="btn-secondary btn-pagination" 
+                className="task-btn task-btn-secondary task-btn-pagination" 
                 disabled={pageNumber === 1}
                 onClick={() => setPageNumber(p => Math.max(1, p - 1))}
               >
                 Previous
               </button>
-              <span className="pagination-text">
+              <span className="task-pagination-text">
                 Page {pageNumber} of {totalPages}
               </span>
               <button 
                 id="btn-manager-page-next"
-                className="btn-secondary btn-pagination" 
+                className="task-btn task-btn-secondary task-btn-pagination" 
                 disabled={pageNumber === totalPages}
                 onClick={() => setPageNumber(p => Math.min(totalPages, p + 1))}
               >
