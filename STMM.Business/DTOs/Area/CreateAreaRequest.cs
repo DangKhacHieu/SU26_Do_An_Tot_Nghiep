@@ -11,5 +11,6 @@ namespace STMM.Business.DTOs.Area
         public double? MinY { get; set; }
         public double? MaxX { get; set; }
         public double? MaxY { get; set; }
+        public double? Size { get; set; }
     }
 }

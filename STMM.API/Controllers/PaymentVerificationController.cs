@@ -21,9 +21,9 @@ namespace STMM.API.Controllers
         /// Lấy danh sách giao dịch nộp tiền mặt hoặc online chờ đối soát.
         /// </summary>
         [HttpGet("pending")]
-        public async Task<IActionResult> GetPendingPayments(CancellationToken ct)
+        public async Task<IActionResult> GetPendingPayments([FromQuery] int? userId, CancellationToken ct)
         {
-            var result = await _billingService.GetPendingPaymentsAsync(ct);
+            var result = await _billingService.GetPendingPaymentsAsync(userId, ct);
             return Ok(result);
         }
 
@@ -45,9 +45,9 @@ namespace STMM.API.Controllers
         /// Lấy danh sách sạp chợ có dư nợ (tiền thuê, điện nước, vi phạm).
         /// </summary>
         [HttpGet("debts")]
-        public async Task<IActionResult> GetStallsDebtList([FromQuery] string? search, CancellationToken ct)
+        public async Task<IActionResult> GetStallsDebtList([FromQuery] string? search, [FromQuery] int? userId, CancellationToken ct)
         {
-            var result = await _billingService.GetStallsDebtListAsync(search, ct);
+            var result = await _billingService.GetStallsDebtListAsync(search, userId, ct);
             return Ok(result);
         }
 
@@ -78,9 +78,9 @@ namespace STMM.API.Controllers
         /// Lấy danh sách kháng nghị hóa đơn từ tiểu thương.
         /// </summary>
         [HttpGet("disputes")]
-        public async Task<IActionResult> GetInvoiceDisputes(CancellationToken ct)
+        public async Task<IActionResult> GetInvoiceDisputes([FromQuery] int? userId, CancellationToken ct)
         {
-            var result = await _billingService.GetInvoiceDisputesAsync(ct);
+            var result = await _billingService.GetInvoiceDisputesAsync(userId, ct);
             return Ok(result);
         }
 

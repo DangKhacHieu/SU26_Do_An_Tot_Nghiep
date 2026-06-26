@@ -101,6 +101,18 @@ namespace STMM.Business.Services
             {
                 existingArea.CategoryId = resolvedCategoryId.Value;
             }
+
+            if (request.Size.HasValue)
+            {
+                var totalStallsSize = await _context.Stalls
+                    .Where(s => s.AreaId == id && s.IsDeleted != true)
+                    .SumAsync(s => s.Size ?? 0);
+
+                if (request.Size.Value < totalStallsSize)
+                {
+                    throw new ArgumentException($"Diện tích Khu vực ({request.Size.Value:F2} m²) không được nhỏ hơn tổng diện tích các sạp hiện có ({(totalStallsSize):F2} m²).");
+                }
+            }
             
             _areaRepository.Update(existingArea);
             await _areaRepository.SaveChangesAsync();

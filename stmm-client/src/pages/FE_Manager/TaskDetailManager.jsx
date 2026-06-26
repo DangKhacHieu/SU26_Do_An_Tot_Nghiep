@@ -187,11 +187,6 @@ export default function TaskDetailManager({ taskId, userId, baseUrl, onBack, add
 
   return (
     <main className="task-detail-container" id="task-detail-manager-main-view">
-      {/* ── Page Header ── */}
-      <header className="task-detail-page-header" id="task-detail-manager-page-header">
-        <h1>Task Details: {task.title}</h1>
-        <p className="subtitle">Mã tác vụ: #{task.taskId} &bull; Loại: {formatTaskType(task.taskType)}</p>
-      </header>
 
       {/* ── Top Header Navbar ── */}
       <nav className="detail-action-bar" id="task-detail-manager-action-bar">

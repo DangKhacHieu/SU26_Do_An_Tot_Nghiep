@@ -128,10 +128,6 @@ export default function TaskListManager({ userId, baseUrl, navigate, addToast })
 
   return (
     <main className="task-manager-container" id="task-manager-main-view">
-      <header className="task-page-header" id="task-manager-page-header">
-        <h1>Operational Tasks Management</h1>
-        <p className="subtitle">Giám sát, phân công và cập nhật trạng thái các công việc vận hành</p>
-      </header>
 
       {/* ── Toolbar ── */}
       <section className="toolbar-section" id="task-manager-toolbar-section">

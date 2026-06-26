@@ -196,6 +196,11 @@ const PAGE_TITLES = {
     sub: "Quản lý kho công tơ Điện/Nước khả dụng trong cùng chợ để tạo sạp.",
   },
 
+  meters: {
+    title: "Quản lý Công tơ",
+    sub: "Quản lý kho công tơ Điện/Nước khả dụng trong cùng chợ để tạo sạp.",
+  },
+
   // Admin System Titles
   "admin-dashboard": {
     title: "Tổng quan hệ thống (Admin)",

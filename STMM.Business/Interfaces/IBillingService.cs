@@ -26,7 +26,7 @@ namespace STMM.Business.Interfaces
         /// <summary>
         /// Get a list of invoices with filters for Month, Year, Status, and search term.
         /// </summary>
-        Task<IEnumerable<InvoiceDto>> GetInvoicesAsync(int? month, int? year, string? status, string? search, CancellationToken ct = default);
+        Task<IEnumerable<InvoiceDto>> GetInvoicesAsync(int? month, int? year, string? status, string? search, int? accountantUserId = null, CancellationToken ct = default);
 
         /// <summary>
         /// Bulk approves invoices and transitions their status from Draft to Unpaid (Issued).
@@ -46,7 +46,7 @@ namespace STMM.Business.Interfaces
         /// <summary>
         /// Retrieves list of payments pending verification (invoice status: Pending Confirmation) or recently approved (Paid).
         /// </summary>
-        Task<IEnumerable<PaymentVerificationDto>> GetPendingPaymentsAsync(CancellationToken ct = default);
+        Task<IEnumerable<PaymentVerificationDto>> GetPendingPaymentsAsync(int? accountantUserId = null, CancellationToken ct = default);
 
         /// <summary>
         /// Confirms or rejects a payment request.
@@ -56,7 +56,7 @@ namespace STMM.Business.Interfaces
         /// <summary>
         /// Retrieves debt summary across all stalls.
         /// </summary>
-        Task<IEnumerable<DebtOfStallDto>> GetStallsDebtListAsync(string? search, CancellationToken ct = default);
+        Task<IEnumerable<DebtOfStallDto>> GetStallsDebtListAsync(string? search, int? accountantUserId = null, CancellationToken ct = default);
 
         /// <summary>
         /// Retrieves detailed unpaid invoices and violations for a specific stall.
@@ -71,11 +71,16 @@ namespace STMM.Business.Interfaces
         /// <summary>
         /// Retrieves invoice disputes from Requests.
         /// </summary>
-        Task<IEnumerable<DisputeResolutionDto>> GetInvoiceDisputesAsync(CancellationToken ct = default);
+        Task<IEnumerable<DisputeResolutionDto>> GetInvoiceDisputesAsync(int? accountantUserId = null, CancellationToken ct = default);
 
         /// <summary>
         /// Resolves an invoice dispute request (Approve/Reject).
         /// </summary>
         Task<bool> ResolveInvoiceDisputeAsync(int requestId, ResolveDisputeRequest request, int accountantUserId, CancellationToken ct = default);
+
+        /// <summary>
+        /// Tự động lập hóa đơn nháp kỳ hàng tháng cho tất cả các sạp có hợp đồng hoạt động và phí dịch vụ đăng ký tương ứng.
+        /// </summary>
+        Task<int> AutoGenerateMonthlyInvoicesAsync(int month, int year, CancellationToken ct = default);
     }
 }

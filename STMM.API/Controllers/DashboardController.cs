@@ -20,9 +20,9 @@ namespace STMM.API.Controllers
         /// Lấy dữ liệu thống kê tổng hợp và báo cáo cho vai trò Kế toán.
         /// </summary>
         [HttpGet]
-        public async Task<IActionResult> GetDashboardData(CancellationToken ct)
+        public async Task<IActionResult> GetDashboardData([FromQuery] int? userId, CancellationToken ct)
         {
-            var result = await _dashboardService.GetAccountantDashboardDataAsync(ct);
+            var result = await _dashboardService.GetAccountantDashboardDataAsync(userId, ct);
             return Ok(result);
         }
     }

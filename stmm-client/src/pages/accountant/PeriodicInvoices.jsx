@@ -25,6 +25,8 @@ export default function PeriodicInvoices() {
   const [status, setStatus] = useState('all');
   const [search, setSearch] = useState('');
   const [selectedIds, setSelectedIds] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
 
   const [activeModal, setActiveModal] = useState(null);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
@@ -43,7 +45,15 @@ export default function PeriodicInvoices() {
 
   const fetchInvoices = () => {
     setLoading(true);
-    const q = new URLSearchParams({ month: month || '', year: year || '', status: status !== 'all' ? status : '', search: search || '' }).toString();
+    const session = localStorage.getItem('user');
+    let userIdStr = '';
+    if (session) {
+      try {
+        const u = JSON.parse(session);
+        if (u && u.userId) userIdStr = u.userId;
+      } catch (e) {}
+    }
+    const q = new URLSearchParams({ month: month || '', year: year || '', status: status !== 'all' ? status : '', search: search || '', userId: userIdStr }).toString();
     fetch(`http://localhost:5056/api/accountant/billing/invoices?${q}`)
       .then(res => { if (!res.ok) throw new Error(); return res.json(); })
       .then(data => { setInvoices(data); setIsMock(false); setLoading(false); })
@@ -53,6 +63,7 @@ export default function PeriodicInvoices() {
   };
 
   useEffect(() => { fetchInvoices(); }, [month, year, status]);
+  useEffect(() => { setCurrentPage(1); }, [month, year, status, search]);
 
   const getMockInvoices = () => [
     { invoiceId: 101, stallCode: 'Kiosk A-12', vendorName: 'Nguyễn Văn A', totalAmount: 12500000, month: 6, year: 2026, dueDate: '2026-06-20', status: 'Unpaid', details: [{ feeTypeName: 'Thuê mặt bằng', description: 'Tiền thuê diện tích Kiosk A-12', quantity: 1, unitPrice: 12000000, amount: 12000000 }, { feeTypeName: 'Phí dịch vụ', description: 'Phí quản lý vận hành chung', quantity: 1, unitPrice: 500000, amount: 500000 }] },
@@ -149,9 +160,6 @@ export default function PeriodicInvoices() {
               <span>Phát Hành Hàng Loạt ({selectedIds.length})</span>
             </button>
           )}
-          <button className="btn btn-secondary btn-icon" onClick={fetchInvoices} title="Làm mới">
-            <RefreshCw size={15} />
-          </button>
           <button className="btn btn-primary" onClick={() => setActiveModal('adhoc')}>
             <Plus size={15} />
             <span>Hóa Đơn Đột Xuất</span>
@@ -229,7 +237,7 @@ export default function PeriodicInvoices() {
               </tr>
             </thead>
             <tbody>
-              {invoices.length > 0 ? invoices.map(inv => {
+              {invoices.length > 0 ? invoices.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(inv => {
                 const { cls, label } = getStatusBadge(inv.status);
                 return (
                   <tr key={inv.invoiceId}>

@@ -45,3 +45,9 @@ export const deactivateStall = async (id) => {
     const response = await axios.delete(`${API_BASE_URL}/${id}`);
     return response.data;
 };
+
+export const getUnassignedMeters = async (type) => {
+    const url = type ? `http://localhost:5056/api/meters/unassigned?type=${type}` : `http://localhost:5056/api/meters/unassigned`;
+    const response = await axios.get(url);
+    return response.data;
+};

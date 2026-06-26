@@ -11,6 +11,12 @@ const getStatusBadge = (status) => {
   return { cls: 'badge badge-neutral', label: status };
 };
 
+const formatDate = (d) => {
+  if (!d) return '—';
+  const dt = new Date(d);
+  return `${String(dt.getDate()).padStart(2, '0')}/${String(dt.getMonth() + 1).padStart(2, '0')}/${dt.getFullYear()}`;
+};
+
 export default function ViolationsPenalties() {
   const [activeTab, setActiveTab] = useState('violations');
   const [violations, setViolations] = useState([]);
@@ -26,6 +32,10 @@ export default function ViolationsPenalties() {
   const [selectedItem, setSelectedItem] = useState(null);
   const [typeForm, setTypeForm] = useState({ name: '', description: '', defaultFine: 500000, isActive: true });
 
+  const [violationsPage, setViolationsPage] = useState(1);
+  const [typesPage, setTypesPage] = useState(1);
+  const itemsPerPage = 5;
+
   const showNotification = (type, message) => {
     setNotification({ type, message });
     setTimeout(() => setNotification(null), 4000);
@@ -33,8 +43,16 @@ export default function ViolationsPenalties() {
 
   const loadAllData = () => {
     setLoading(true); setIsMock(false);
+    const session = localStorage.getItem('user');
+    let userIdStr = '';
+    if (session) {
+      try {
+        const u = JSON.parse(session);
+        if (u && u.userId) userIdStr = u.userId;
+      } catch (e) {}
+    }
     Promise.all([
-      fetch('http://localhost:5056/api/violations/all').then(r => r.json()),
+      fetch(`http://localhost:5056/api/violations/all?userId=${userIdStr}`).then(r => r.json()),
       fetch('http://localhost:5056/api/violations/types/all').then(r => r.json())
     ])
       .then(([viols, types]) => { setViolations(viols); setViolationTypes(types); setLoading(false); })
@@ -44,6 +62,11 @@ export default function ViolationsPenalties() {
   };
 
   useEffect(() => { loadAllData(); }, []);
+
+  useEffect(() => {
+    setViolationsPage(1);
+    setTypesPage(1);
+  }, [searchQuery, statusFilter, activeTab]);
 
   const getMockViolations = () => [
     { violationId: 81, stallCode: 'Kiosk B-12', title: 'Lấn chiếm lối đi chung', description: 'Bày hàng hóa tràn ra ngoài vạch kẻ ranh giới 50cm.', penalty: 1500000, fineAmount: 1500000, status: 'Unpaid', date: '01/06/2026', imageUrl: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=600', violationType: { name: 'Lấn chiếm' } },
@@ -61,7 +84,9 @@ export default function ViolationsPenalties() {
 
   const filteredViolations = violations.filter(v => {
     const q = searchQuery.toLowerCase();
-    const matchSearch = v.stallCode.toLowerCase().includes(q) || v.title.toLowerCase().includes(q) || (v.violationType?.name || '').toLowerCase().includes(q);
+    const matchSearch = v.stallCode.toLowerCase().includes(q) || 
+                        v.title.toLowerCase().includes(q) || 
+                        (v.violationTypeName || v.violationType?.name || '').toLowerCase().includes(q);
     const matchStatus = statusFilter === 'all' || (statusFilter === 'Paid' && v.status === 'Paid') || (statusFilter === 'Unpaid' && (v.status === 'Unpaid' || v.status === 'Pending'));
     return matchSearch && matchStatus;
   });
@@ -103,9 +128,6 @@ export default function ViolationsPenalties() {
           <p className="page-subtitle">Quản lý biên bản vi phạm và danh mục chế tài xử phạt của tiểu thương.</p>
         </div>
         <div className="page-actions">
-          <button className="btn btn-secondary btn-icon" onClick={loadAllData} title="Làm mới">
-            <RefreshCw size={15} />
-          </button>
           {activeTab === 'types' && (
             <button className="btn btn-primary" onClick={() => { setSelectedItem(null); setTypeForm({ name: '', description: '', defaultFine: 500000, isActive: true }); setActiveModal('type'); }}>
               <Plus size={15} /> Thêm loại vi phạm
@@ -188,15 +210,15 @@ export default function ViolationsPenalties() {
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredViolations.map(vio => {
+                      {filteredViolations.slice((violationsPage - 1) * itemsPerPage, violationsPage * itemsPerPage).map(vio => {
                         const { cls, label } = getStatusBadge(vio.status);
                         return (
                           <tr key={vio.violationId}>
                             <td><span style={{ fontWeight: 600, color: 'var(--text-title)', fontFamily: 'monospace', fontSize: 13 }}>VIO-{vio.violationId}</span></td>
                             <td><strong style={{ color: 'var(--danger)' }}>{vio.stallCode}</strong></td>
                             <td><span style={{ fontWeight: 600 }}>{vio.title}</span></td>
-                            <td><span className="badge badge-neutral">{vio.violationType?.name || '—'}</span></td>
-                            <td><span style={{ color: 'var(--text-muted)', fontSize: 13 }}>{vio.date}</span></td>
+                            <td><span className="badge badge-neutral">{vio.violationTypeName || vio.violationType?.name || '—'}</span></td>
+                            <td><span style={{ color: 'var(--text-muted)', fontSize: 13 }}>{vio.createdAt ? formatDate(vio.createdAt) : (vio.date || '—')}</span></td>
                             <td className="text-right"><strong style={{ color: 'var(--danger)' }}>{(vio.fineAmount || vio.penalty).toLocaleString('vi-VN')} ₫</strong></td>
                             <td><span className={cls}>{label}</span></td>
                             <td className="text-right">
@@ -209,6 +231,38 @@ export default function ViolationsPenalties() {
                       })}
                     </tbody>
                   </table>
+                  {filteredViolations.length > itemsPerPage && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, padding: '16px' }}>
+                      <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+                        Hiển thị {((violationsPage - 1) * itemsPerPage) + 1} - {Math.min(violationsPage * itemsPerPage, filteredViolations.length)} trong tổng số {filteredViolations.length} biên bản
+                      </span>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <button 
+                          className="btn btn-secondary btn-sm" 
+                          onClick={() => setViolationsPage(prev => Math.max(prev - 1, 1))} 
+                          disabled={violationsPage === 1}
+                        >
+                          Trước
+                        </button>
+                        {Array.from({ length: Math.ceil(filteredViolations.length / itemsPerPage) }, (_, i) => i + 1).map(page => (
+                          <button 
+                            key={page} 
+                            className={`btn btn-sm ${violationsPage === page ? 'btn-primary' : 'btn-secondary'}`}
+                            onClick={() => setViolationsPage(page)}
+                          >
+                            {page}
+                          </button>
+                        ))}
+                        <button 
+                          className="btn btn-secondary btn-sm" 
+                          onClick={() => setViolationsPage(prev => Math.min(prev + 1, Math.ceil(filteredViolations.length / itemsPerPage)))} 
+                          disabled={violationsPage === Math.ceil(filteredViolations.length / itemsPerPage)}
+                        >
+                          Sau
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="card-padded">
@@ -236,7 +290,7 @@ export default function ViolationsPenalties() {
                   </tr>
                 </thead>
                 <tbody>
-                  {violationTypes.length > 0 ? violationTypes.map(t => (
+                  {violationTypes.length > 0 ? violationTypes.slice((typesPage - 1) * itemsPerPage, typesPage * itemsPerPage).map(t => (
                     <tr key={t.violationTypeId}>
                       <td><strong>{t.name}</strong></td>
                       <td><span style={{ color: 'var(--text-muted)' }}>{t.description}</span></td>
@@ -262,6 +316,38 @@ export default function ViolationsPenalties() {
                   )}
                 </tbody>
               </table>
+              {violationTypes.length > itemsPerPage && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, padding: '16px' }}>
+                  <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+                    Hiển thị {((typesPage - 1) * itemsPerPage) + 1} - {Math.min(typesPage * itemsPerPage, violationTypes.length)} trong tổng số {violationTypes.length} loại vi phạm
+                  </span>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button 
+                      className="btn btn-secondary btn-sm" 
+                      onClick={() => setTypesPage(prev => Math.max(prev - 1, 1))} 
+                      disabled={typesPage === 1}
+                    >
+                      Trước
+                    </button>
+                    {Array.from({ length: Math.ceil(violationTypes.length / itemsPerPage) }, (_, i) => i + 1).map(page => (
+                      <button 
+                        key={page} 
+                        className={`btn btn-sm ${typesPage === page ? 'btn-primary' : 'btn-secondary'}`}
+                        onClick={() => setTypesPage(page)}
+                      >
+                        {page}
+                      </button>
+                    ))}
+                    <button 
+                      className="btn btn-secondary btn-sm" 
+                      onClick={() => setTypesPage(prev => Math.min(prev + 1, Math.ceil(violationTypes.length / itemsPerPage)))} 
+                      disabled={typesPage === Math.ceil(violationTypes.length / itemsPerPage)}
+                    >
+                      Sau
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </>
@@ -281,9 +367,12 @@ export default function ViolationsPenalties() {
               )}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, fontSize: 13.5, background: 'var(--bg-base)', padding: 14, borderRadius: 'var(--radius-md)' }}>
                 <div><span style={{ color: 'var(--text-muted)' }}>Gian hàng: </span><strong>{selectedItem.stallCode}</strong></div>
-                <div><span style={{ color: 'var(--text-muted)' }}>Ngày lập: </span>{selectedItem.date}</div>
-                <div><span style={{ color: 'var(--text-muted)' }}>Loại vi phạm: </span><strong>{selectedItem.violationType?.name}</strong></div>
-                <div><span style={{ color: 'var(--text-muted)' }}>Trạng thái: </span><span className={getStatusBadge(selectedItem.status).cls}>{getStatusBadge(selectedItem.status).label}</span></div>
+                <div><span style={{ color: 'var(--text-muted)' }}>Ngày lập: </span>{selectedItem.createdAt ? formatDate(selectedItem.createdAt) : (selectedItem.date || '—')}</div>
+                <div><span style={{ color: 'var(--text-muted)' }}>Loại vi phạm: </span><strong>{selectedItem.violationTypeName || selectedItem.violationType?.name || '—'}</strong></div>
+                <div><span style={{ color: 'var(--text-muted)' }}>Người lập: </span><strong>{selectedItem.createdByName || '—'}</strong></div>
+                <div><span style={{ color: 'var(--text-muted)' }}>Ngày thông báo: </span>{formatDate(selectedItem.notifiedAt)}</div>
+                <div><span style={{ color: 'var(--text-muted)' }}>Ngày cập nhật: </span>{formatDate(selectedItem.updatedAt)}</div>
+                <div style={{ gridColumn: 'span 2' }}><span style={{ color: 'var(--text-muted)' }}>Trạng thái: </span><span className={getStatusBadge(selectedItem.status).cls}>{getStatusBadge(selectedItem.status).label}</span></div>
               </div>
               <div>
                 <label className="form-label">Hành vi vi phạm</label>

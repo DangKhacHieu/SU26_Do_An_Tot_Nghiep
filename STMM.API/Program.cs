@@ -151,6 +151,9 @@ builder.Services.AddScoped<IVendorViolationService, VendorViolationService>();
 builder.Services.AddScoped<IMarketService, MarketService>();
 builder.Services.AddScoped<IReviewService, ReviewService>();
 
+// Register Background Services
+builder.Services.AddHostedService<STMM.API.BackgroundServices.MonthlyBillingWorker>();
+
 // 1. Controllers & JSON Options
 builder.Services.AddControllers()
     .AddJsonOptions(option =>

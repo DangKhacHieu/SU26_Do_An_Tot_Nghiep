@@ -72,6 +72,10 @@ namespace STMM.API.Controllers
                 var updatedArea = await _areaService.UpdateAreaAsync(id, request);
                 return Ok(updatedArea);
             }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
             catch (Exception ex)
             {
                 if (ex.Message == "Area not found")
