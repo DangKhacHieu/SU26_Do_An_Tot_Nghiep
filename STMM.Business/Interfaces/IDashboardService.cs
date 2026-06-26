@@ -6,6 +6,6 @@ namespace STMM.Business.Interfaces
 {
     public interface IDashboardService
     {
-        Task<AccountantDashboardDto> GetAccountantDashboardDataAsync(CancellationToken ct = default);
+        Task<AccountantDashboardDto> GetAccountantDashboardDataAsync(int? accountantUserId = null, CancellationToken ct = default);
     }
 }

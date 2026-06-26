@@ -9,6 +9,7 @@ export interface UserDto {
   roleId: number;
   roleName: string;
   status?: string;
+  marketId?: number | null;
 }
 
 /**

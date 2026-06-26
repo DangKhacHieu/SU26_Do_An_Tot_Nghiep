@@ -23,6 +23,7 @@ namespace STMM.Business.Services
         private readonly IMapper _mapper;
         private readonly IValidator<CreateViolationRequest> _createValidator;
         private readonly INotificationService _notificationService;
+        private readonly IUserRepository _userRepository;
 
         public ViolationService(
             IViolationRepository violationRepository,
@@ -30,7 +31,8 @@ namespace STMM.Business.Services
             IViolationTypeRepository violationTypeRepository,
             IMapper mapper,
             IValidator<CreateViolationRequest> createValidator,
-            INotificationService notificationService)
+            INotificationService notificationService,
+            IUserRepository userRepository)
         {
             _violationRepository = violationRepository;
             _stallRepository = stallRepository;
@@ -38,6 +40,7 @@ namespace STMM.Business.Services
             _mapper = mapper;
             _createValidator = createValidator;
             _notificationService = notificationService;
+            _userRepository = userRepository;
         }
 
         public async Task<PagedResult<ViolationDto>> GetViolationsAsync(
@@ -174,11 +177,22 @@ namespace STMM.Business.Services
 
         // --- ACCOUNTANT ADDITIONS ---
 
-        public async Task<IEnumerable<ViolationDto>> GetAllViolationsAsync(CancellationToken ct = default)
+        public async Task<IEnumerable<ViolationDto>> GetAllViolationsAsync(int? accountantUserId = null, CancellationToken ct = default)
         {
-            var list = await _violationRepository.Query()
+            IQueryable<Violation> query = _violationRepository.Query()
                 .Include(v => v.Stall)
-                .Include(v => v.ViolationType)
+                .Include(v => v.ViolationType);
+
+            if (accountantUserId.HasValue)
+            {
+                var user = await _userRepository.GetByIdAsync(accountantUserId.Value, ct);
+                if (user?.MarketId != null)
+                {
+                    query = query.Where(v => v.Stall.Area.MarketId == user.MarketId);
+                }
+            }
+
+            var list = await query
                 .OrderByDescending(v => v.ViolationId)
                 .ToListAsync(ct);
 

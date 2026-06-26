@@ -42,6 +42,11 @@ export default function PaymentVerification() {
   const [reminderMessage, setReminderMessage] = useState('');
   const [disputeApprove, setDisputeApprove] = useState(true);
   const [disputeFeedback, setDisputeFeedback] = useState('');
+  
+  const [paymentsPage, setPaymentsPage] = useState(1);
+  const [debtsPage, setDebtsPage] = useState(1);
+  const [disputesPage, setDisputesPage] = useState(1);
+  const itemsPerPage = 5;
 
   const showNotification = (type, message) => {
     setNotification({ type, message });
@@ -50,16 +55,30 @@ export default function PaymentVerification() {
 
   const loadAllData = () => {
     setLoading(true); setIsMock(false);
+    const session = localStorage.getItem('user');
+    let userIdStr = '';
+    if (session) {
+      try {
+        const u = JSON.parse(session);
+        if (u && u.userId) userIdStr = u.userId;
+      } catch (e) {}
+    }
     Promise.all([
-      fetch('http://localhost:5056/api/accountant/payments/pending').then(r => { if (!r.ok) throw new Error(); return r.json(); }),
-      fetch('http://localhost:5056/api/accountant/payments/debts').then(r => { if (!r.ok) throw new Error(); return r.json(); }),
-      fetch('http://localhost:5056/api/accountant/payments/disputes').then(r => { if (!r.ok) throw new Error(); return r.json(); })
+      fetch(`http://localhost:5056/api/accountant/payments/pending?userId=${userIdStr}`).then(r => { if (!r.ok) throw new Error(); return r.json(); }),
+      fetch(`http://localhost:5056/api/accountant/payments/debts?userId=${userIdStr}`).then(r => { if (!r.ok) throw new Error(); return r.json(); }),
+      fetch(`http://localhost:5056/api/accountant/payments/disputes?userId=${userIdStr}`).then(r => { if (!r.ok) throw new Error(); return r.json(); })
     ])
       .then(([pay, debt, disp]) => { setPayments(pay); setDebts(debt); setDisputes(disp); setLoading(false); })
       .catch(() => { setTimeout(() => { setPayments(getMockPayments()); setDebts(getMockDebts()); setDisputes(getMockDisputes()); setIsMock(true); setLoading(false); }, 500); });
   };
 
   useEffect(() => { loadAllData(); }, []);
+
+  useEffect(() => {
+    setPaymentsPage(1);
+    setDebtsPage(1);
+    setDisputesPage(1);
+  }, [searchQuery, activeTab]);
 
   const getMockPayments = () => [
     { paymentId: 10, transactionCode: 'FT2605892309', method: 'Chuyển khoản NH', amount: 3240000, paidAt: '2026-06-03T10:20:00Z', invoiceId: 5, stallCode: 'Kiosk B-05', tenantName: 'Trần Thị B', status: 'Pending' },
@@ -159,9 +178,7 @@ export default function PaymentVerification() {
           <h1 className="page-title">Xác Minh Thanh Toán &amp; Dư Nợ</h1>
           <p className="page-subtitle">Đối soát giao dịch, quản lý dư nợ và xử lý kháng nghị hóa đơn.</p>
         </div>
-        <div className="page-actions">
-          <button className="btn btn-secondary btn-icon" onClick={loadAllData} title="Làm mới"><RefreshCw size={15} /></button>
-        </div>
+        <div className="page-actions"></div>
       </div>
 
       {/* Notification */}
@@ -230,7 +247,7 @@ export default function PaymentVerification() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredPayments.length > 0 ? filteredPayments.map(pay => {
+                  {filteredPayments.length > 0 ? filteredPayments.slice((paymentsPage - 1) * itemsPerPage, paymentsPage * itemsPerPage).map(pay => {
                     const { cls, label } = getPaymentStatusBadge(pay.status);
                     return (
                       <tr key={pay.paymentId}>
@@ -267,6 +284,38 @@ export default function PaymentVerification() {
                   )}
                 </tbody>
               </table>
+              {filteredPayments.length > itemsPerPage && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, padding: '16px' }}>
+                  <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+                    Hiển thị {((paymentsPage - 1) * itemsPerPage) + 1} - {Math.min(paymentsPage * itemsPerPage, filteredPayments.length)} trong tổng số {filteredPayments.length} giao dịch
+                  </span>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button 
+                      className="btn btn-secondary btn-sm" 
+                      onClick={() => setPaymentsPage(prev => Math.max(prev - 1, 1))} 
+                      disabled={paymentsPage === 1}
+                    >
+                      Trước
+                    </button>
+                    {Array.from({ length: Math.ceil(filteredPayments.length / itemsPerPage) }, (_, i) => i + 1).map(page => (
+                      <button 
+                        key={page} 
+                        className={`btn btn-sm ${paymentsPage === page ? 'btn-primary' : 'btn-secondary'}`}
+                        onClick={() => setPaymentsPage(page)}
+                      >
+                        {page}
+                      </button>
+                    ))}
+                    <button 
+                      className="btn btn-secondary btn-sm" 
+                      onClick={() => setPaymentsPage(prev => Math.min(prev + 1, Math.ceil(filteredPayments.length / itemsPerPage)))} 
+                      disabled={paymentsPage === Math.ceil(filteredPayments.length / itemsPerPage)}
+                    >
+                      Sau
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -286,7 +335,7 @@ export default function PaymentVerification() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredDebts.length > 0 ? filteredDebts.map(debt => (
+                  {filteredDebts.length > 0 ? filteredDebts.slice((debtsPage - 1) * itemsPerPage, debtsPage * itemsPerPage).map(debt => (
                     <tr key={debt.stallId}>
                       <td>
                         <div><strong>{debt.stallCode}</strong></div>
@@ -309,6 +358,38 @@ export default function PaymentVerification() {
                   )}
                 </tbody>
               </table>
+              {filteredDebts.length > itemsPerPage && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, padding: '16px' }}>
+                  <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+                    Hiển thị {((debtsPage - 1) * itemsPerPage) + 1} - {Math.min(debtsPage * itemsPerPage, filteredDebts.length)} trong tổng số {filteredDebts.length} sạp
+                  </span>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button 
+                      className="btn btn-secondary btn-sm" 
+                      onClick={() => setDebtsPage(prev => Math.max(prev - 1, 1))} 
+                      disabled={debtsPage === 1}
+                    >
+                      Trước
+                    </button>
+                    {Array.from({ length: Math.ceil(filteredDebts.length / itemsPerPage) }, (_, i) => i + 1).map(page => (
+                      <button 
+                        key={page} 
+                        className={`btn btn-sm ${debtsPage === page ? 'btn-primary' : 'btn-secondary'}`}
+                        onClick={() => setDebtsPage(page)}
+                      >
+                        {page}
+                      </button>
+                    ))}
+                    <button 
+                      className="btn btn-secondary btn-sm" 
+                      onClick={() => setDebtsPage(prev => Math.min(prev + 1, Math.ceil(filteredDebts.length / itemsPerPage)))} 
+                      disabled={debtsPage === Math.ceil(filteredDebts.length / itemsPerPage)}
+                    >
+                      Sau
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -328,7 +409,7 @@ export default function PaymentVerification() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredDisputes.length > 0 ? filteredDisputes.map(dis => {
+                  {filteredDisputes.length > 0 ? filteredDisputes.slice((disputesPage - 1) * itemsPerPage, disputesPage * itemsPerPage).map(dis => {
                     const { cls, label } = getDisputeStatusBadge(dis.status);
                     return (
                       <tr key={dis.requestId}>
@@ -357,6 +438,38 @@ export default function PaymentVerification() {
                   )}
                 </tbody>
               </table>
+              {filteredDisputes.length > itemsPerPage && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, padding: '16px' }}>
+                  <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+                    Hiển thị {((disputesPage - 1) * itemsPerPage) + 1} - {Math.min(disputesPage * itemsPerPage, filteredDisputes.length)} trong tổng số {filteredDisputes.length} kháng nghị
+                  </span>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button 
+                      className="btn btn-secondary btn-sm" 
+                      onClick={() => setDisputesPage(prev => Math.max(prev - 1, 1))} 
+                      disabled={disputesPage === 1}
+                    >
+                      Trước
+                    </button>
+                    {Array.from({ length: Math.ceil(filteredDisputes.length / itemsPerPage) }, (_, i) => i + 1).map(page => (
+                      <button 
+                        key={page} 
+                        className={`btn btn-sm ${disputesPage === page ? 'btn-primary' : 'btn-secondary'}`}
+                        onClick={() => setDisputesPage(page)}
+                      >
+                        {page}
+                      </button>
+                    ))}
+                    <button 
+                      className="btn btn-secondary btn-sm" 
+                      onClick={() => setDisputesPage(prev => Math.min(prev + 1, Math.ceil(filteredDisputes.length / itemsPerPage)))} 
+                      disabled={disputesPage === Math.ceil(filteredDisputes.length / itemsPerPage)}
+                    >
+                      Sau
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </>

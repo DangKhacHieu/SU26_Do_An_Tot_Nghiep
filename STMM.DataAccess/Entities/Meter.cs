@@ -14,7 +14,7 @@ public partial class Meter
     public int MeterId { get; set; }
 
     /// <summary>
-    /// Lắp đặt tại sạp nào
+    /// Lắp đặt tại sạp nào (nullable khi nằm trong kho)
     /// </summary>
     public int? StallId { get; set; }
 
@@ -38,7 +38,14 @@ public partial class Meter
     /// </summary>
     public bool? IsActive { get; set; }
 
+    /// <summary>
+    /// Thuộc chợ nào
+    /// </summary>
+    public int MarketId { get; set; }
+
     public virtual ICollection<MeterReading> MeterReadings { get; set; } = new List<MeterReading>();
 
     public virtual Stall? Stall { get; set; }
+
+    public virtual Market Market { get; set; } = null!;
 }

@@ -4,10 +4,15 @@ using System.Threading.Tasks;
 using STMM.Business.Interfaces;
 using STMM.Business.DTOs.Market;
 
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
+using System;
+
 namespace STMM.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class MarketsController : ControllerBase
     {
         private readonly IMarketService _marketService;
@@ -20,7 +25,15 @@ namespace STMM.API.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<MarketDto>>> GetAllMarkets()
         {
-            var markets = await _marketService.GetAllMarketsAsync();
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var roleClaim = User.FindFirst(ClaimTypes.Role)?.Value;
+
+            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
+            {
+                return Unauthorized(new { message = "User ID not found in token." });
+            }
+
+            var markets = await _marketService.GetAllMarketsAsync(userId, roleClaim ?? "");
             return Ok(markets);
         }
 
@@ -41,7 +54,13 @@ namespace STMM.API.Controllers
         {
             try
             {
-                var market = await _marketService.CreateMarketBulkAsync(request);
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
+                {
+                    return Unauthorized(new { message = "User ID not found in token." });
+                }
+
+                var market = await _marketService.CreateMarketBulkAsync(request, userId);
                 return Ok(market);
             }
             catch (System.Exception ex)

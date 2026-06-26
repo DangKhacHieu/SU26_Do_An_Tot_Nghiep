@@ -25,14 +25,28 @@ namespace STMM.Business.Services
             _context = context;
         }
 
-        public async Task<IEnumerable<MarketDto>> GetAllMarketsAsync()
+        public async Task<IEnumerable<MarketDto>> GetAllMarketsAsync(int currentUserId, string currentUserRole)
         {
-            var markets = await _marketRepository.Query()
+            var query = _marketRepository.Query()
                 .Include(m => m.Areas)
                     .ThenInclude(a => a.Stalls)
-                .Where(m => m.IsDeleted != true)
-                .OrderBy(m => m.MarketId)
-                .ToListAsync();
+                .Where(m => m.IsDeleted != true);
+
+            if (currentUserRole == "Manager")
+            {
+                var user = await _context.Users.FindAsync(currentUserId);
+                if (user != null && user.MarketId.HasValue)
+                {
+                    query = query.Where(m => m.MarketId == user.MarketId.Value);
+                }
+                else
+                {
+                    // Manager has not created/assigned a market yet
+                    return new List<MarketDto>();
+                }
+            }
+
+            var markets = await query.OrderBy(m => m.MarketId).ToListAsync();
 
             return _mapper.Map<IEnumerable<MarketDto>>(markets);
         }
@@ -70,9 +84,15 @@ namespace STMM.Business.Services
             return marketMapDto;
         }
 
-        public async Task<MarketDto> CreateMarketBulkAsync(CreateMarketBulkRequest request)
+        public async Task<MarketDto> CreateMarketBulkAsync(CreateMarketBulkRequest request, int currentUserId)
         {
             // 1. Validation
+            var user = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.UserId == currentUserId);
+            if (user != null && user.Role?.Name == "Manager" && user.MarketId.HasValue)
+            {
+                throw new Exception("Quản lý này đã sở hữu một chợ. Mỗi quản lý chỉ được phép tạo và quản lý duy nhất 1 chợ.");
+            }
+
             var isMarketNameExist = await _context.Markets.AnyAsync(m => m.MarketName == request.MarketName && m.IsDeleted != true);
             if (isMarketNameExist)
             {
@@ -155,7 +175,16 @@ namespace STMM.Business.Services
                     await _context.SaveChangesAsync();
                 }
 
+                // 4. Update the logged-in Manager to own this new Market
+                if (user != null && user.Role != null && user.Role.Name == "Manager")
+                {
+                    user.MarketId = newMarket.MarketId;
+                    _context.Users.Update(user);
+                    await _context.SaveChangesAsync();
+                }
+
                 await transaction.CommitAsync();
+
                 return _mapper.Map<MarketDto>(newMarket);
             }
             catch (Exception ex)
