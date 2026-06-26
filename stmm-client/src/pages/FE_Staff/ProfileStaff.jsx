@@ -90,10 +90,6 @@ export default function ProfileStaff({ userId, baseUrl, onShowNotification }) {
     onShowNotification(message, type === 'error' ? 'danger' : type);
   };
 
-  useEffect(() => {
-    document.title = "My Profile - STMM Staff";
-  }, []);
-
   useEffect(() => { fetchProfile(); }, [userId]);
 
   const fetchProfile = async () => {
@@ -164,12 +160,10 @@ export default function ProfileStaff({ userId, baseUrl, onShowNotification }) {
 
   if (loading) {
     return (
-      <main className="sp2-page">
-        <div className="sp2-loading">
-          <div className="sp2-spinner" />
-          <p>Đang tải hồ sơ…</p>
-        </div>
-      </main>
+      <div className="sp2-loading">
+        <div className="sp2-spinner" />
+        <p>Đang tải hồ sơ…</p>
+      </div>
     );
   }
 
@@ -180,7 +174,7 @@ export default function ProfileStaff({ userId, baseUrl, onShowNotification }) {
   const fmtDate = (d) => d ? new Date(d).toLocaleString('vi-VN', { dateStyle: 'medium', timeStyle: 'short' }) : '—';
 
   return (
-    <main className="sp2-page" aria-labelledby="page-title">
+    <div className="sp2-page">
       {/* ═══ HERO BANNER ═══ */}
       <div className="sp2-hero">
         <div className="sp2-hero-top">
@@ -190,7 +184,7 @@ export default function ProfileStaff({ userId, baseUrl, onShowNotification }) {
               <span className="sp2-avatar-ring" />
             </div>
             <div className="sp2-hero-info">
-              <h1 className="sp2-hero-name" id="page-title">{profile?.name}</h1>
+              <h1 className="sp2-hero-name">{profile?.name}</h1>
               <p className="sp2-hero-meta">
                 <span className="sp2-badge sp2-badge-role">{profile?.roleName || 'Staff'}</span>
                 <span className="sp2-badge sp2-badge-active">
@@ -221,21 +215,18 @@ export default function ProfileStaff({ userId, baseUrl, onShowNotification }) {
       {/* ═══ TABS ═══ */}
       <div className="sp2-tabs">
         <button
-          id="tab-info-btn"
           className={`sp2-tab ${activeTab === 'info' ? 'sp2-tab-active' : ''}`}
           onClick={() => setActiveTab('info')}
         >
           <IconUser /> Thông tin cá nhân
         </button>
         <button
-          id="tab-security-btn"
           className={`sp2-tab ${activeTab === 'security' ? 'sp2-tab-active' : ''}`}
           onClick={() => setActiveTab('security')}
         >
           <IconShield /> Bảo mật & Mật khẩu
         </button>
         <button
-          id="tab-activity-btn"
           className={`sp2-tab ${activeTab === 'activity' ? 'sp2-tab-active' : ''}`}
           onClick={() => setActiveTab('activity')}
         >
@@ -248,15 +239,14 @@ export default function ProfileStaff({ userId, baseUrl, onShowNotification }) {
 
         {/* ── INFO TAB ── */}
         {activeTab === 'info' && (
-          <form onSubmit={handleSaveChanges} className="sp2-form" id="profile-info-form">
+          <form onSubmit={handleSaveChanges} className="sp2-form">
             <div className="sp2-section-title">
               <IconUser /> Chỉnh sửa thông tin
             </div>
             <div className="sp2-field-grid">
               <div className="sp2-field">
-                <label className="sp2-label" htmlFor="staff-profile-name-input">Họ và tên</label>
+                <label className="sp2-label">Họ và tên</label>
                 <input
-                  id="staff-profile-name-input"
                   type="text"
                   className="sp2-input"
                   value={name}
@@ -266,11 +256,10 @@ export default function ProfileStaff({ userId, baseUrl, onShowNotification }) {
                 />
               </div>
               <div className="sp2-field">
-                <label className="sp2-label" htmlFor="staff-profile-phone-input">Số điện thoại</label>
+                <label className="sp2-label">Số điện thoại</label>
                 <div className="sp2-input-icon-wrap">
                   <span className="sp2-input-icon"><IconPhone /></span>
                   <input
-                    id="staff-profile-phone-input"
                     type="tel"
                     className="sp2-input sp2-input-iconed"
                     value={phone}
@@ -281,11 +270,10 @@ export default function ProfileStaff({ userId, baseUrl, onShowNotification }) {
                 </div>
               </div>
               <div className="sp2-field">
-                <label className="sp2-label" htmlFor="staff-profile-email-input">Địa chỉ Email <span className="sp2-lock-tag">Không thể thay đổi</span></label>
+                <label className="sp2-label">Địa chỉ Email <span className="sp2-lock-tag">Không thể thay đổi</span></label>
                 <div className="sp2-input-icon-wrap">
                   <span className="sp2-input-icon"><IconMail /></span>
                   <input
-                    id="staff-profile-email-input"
                     type="email"
                     className="sp2-input sp2-input-iconed sp2-input-locked"
                     value={profile?.email || ''}
@@ -294,11 +282,10 @@ export default function ProfileStaff({ userId, baseUrl, onShowNotification }) {
                 </div>
               </div>
               <div className="sp2-field">
-                <label className="sp2-label" htmlFor="staff-profile-cccd-input">Số CCCD <span className="sp2-lock-tag">Không thể thay đổi</span></label>
+                <label className="sp2-label">Số CCCD <span className="sp2-lock-tag">Không thể thay đổi</span></label>
                 <div className="sp2-input-icon-wrap">
                   <span className="sp2-input-icon"><IconCard /></span>
                   <input
-                    id="staff-profile-cccd-input"
                     type="text"
                     className="sp2-input sp2-input-iconed sp2-input-locked"
                     value={profile?.cccd || ''}
@@ -308,7 +295,7 @@ export default function ProfileStaff({ userId, baseUrl, onShowNotification }) {
               </div>
             </div>
             <div className="sp2-form-footer">
-              <button type="submit" id="profile-save-btn" className="sp2-btn-save" disabled={saving}>
+              <button type="submit" className="sp2-btn-save" disabled={saving}>
                 {saving ? (
                   <><span className="sp2-btn-spinner" /> Đang lưu…</>
                 ) : (
@@ -321,7 +308,7 @@ export default function ProfileStaff({ userId, baseUrl, onShowNotification }) {
 
         {/* ── SECURITY TAB ── */}
         {activeTab === 'security' && (
-          <form onSubmit={handleChangePassword} className="sp2-form" id="profile-security-form">
+          <form onSubmit={handleChangePassword} className="sp2-form">
             <div className="sp2-section-title">
               <IconKey /> Đổi mật khẩu
             </div>
@@ -331,15 +318,14 @@ export default function ProfileStaff({ userId, baseUrl, onShowNotification }) {
             </div>
             <div className="sp2-field-grid mp2-field-grid-1">
               {[
-                { label: 'Mật khẩu hiện tại', val: currentPassword, set: setCurrentPassword, show: showCur, toggle: setShowCur, ac: 'current-password', id: 'current-password-input' },
-                { label: 'Mật khẩu mới', val: newPassword, set: setNewPassword, show: showNew, toggle: setShowNew, ac: 'new-password', id: 'new-password-input' },
-                { label: 'Xác nhận mật khẩu mới', val: confirmPassword, set: setConfirmPassword, show: showCfm, toggle: setShowCfm, ac: 'new-password', id: 'confirm-password-input' },
-              ].map(({ label, val, set, show, toggle, ac, id }) => (
+                { label: 'Mật khẩu hiện tại', val: currentPassword, set: setCurrentPassword, show: showCur, toggle: setShowCur, ac: 'current-password' },
+                { label: 'Mật khẩu mới', val: newPassword, set: setNewPassword, show: showNew, toggle: setShowNew, ac: 'new-password' },
+                { label: 'Xác nhận mật khẩu mới', val: confirmPassword, set: setConfirmPassword, show: showCfm, toggle: setShowCfm, ac: 'new-password' },
+              ].map(({ label, val, set, show, toggle, ac }) => (
                 <div className="sp2-field" key={label}>
-                  <label className="sp2-label" htmlFor={id}>{label}</label>
+                  <label className="sp2-label">{label}</label>
                   <div className="sp2-pw-wrap">
                     <input
-                      id={id}
                       type={show ? 'text' : 'password'}
                       className="sp2-input sp2-input-pw"
                       value={val}
@@ -360,7 +346,7 @@ export default function ProfileStaff({ userId, baseUrl, onShowNotification }) {
               ))}
             </div>
             <div className="sp2-form-footer">
-              <button type="submit" id="password-save-btn" className="sp2-btn-save sp2-btn-danger" disabled={passwordSaving}>
+              <button type="submit" className="sp2-btn-save sp2-btn-danger" disabled={passwordSaving}>
                 {passwordSaving ? (
                   <><span className="sp2-btn-spinner" /> Đang cập nhật…</>
                 ) : (
@@ -412,6 +398,6 @@ export default function ProfileStaff({ userId, baseUrl, onShowNotification }) {
           </div>
         )}
       </div>
-    </main>
+    </div>
   );
 }

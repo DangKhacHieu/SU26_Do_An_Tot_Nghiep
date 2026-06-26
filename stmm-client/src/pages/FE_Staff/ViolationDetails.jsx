@@ -7,10 +7,6 @@ export default function ViolationDetails({ violationId, userId, baseUrl, onBack 
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    document.title = "Violation Details - STMM Staff";
-  }, []);
-
-  useEffect(() => {
     const fetchDetails = async () => {
       setLoading(true);
       setError(null);
@@ -54,25 +50,22 @@ export default function ViolationDetails({ violationId, userId, baseUrl, onBack 
     });
   };
 
-  if (loading) return <main className="violation-details-container"><div className="loading-state">Loading violation details...</div></main>;
+  if (loading) return <div className="loading-state">Loading violation details...</div>;
   
   if (error) return (
-    <main className="violation-details-container" aria-labelledby="error-title">
-      <div className="error-state">
-        <h1 id="error-title">Error Loading Details</h1>
-        <p className="error-message">Error: {error}</p>
-        <button id="violation-detail-error-back-btn" className="btn-secondary" onClick={onBack}>Back to List</button>
-      </div>
-    </main>
+    <div className="error-state">
+      <p className="error-message">Error: {error}</p>
+      <button className="btn-secondary" onClick={onBack}>Back to List</button>
+    </div>
   );
 
   if (!violation) return null;
 
   return (
-    <main className="violation-details-container" aria-labelledby="page-title">
+    <div className="violation-details-container">
       <div className="details-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h1 style={{ fontSize: '18px', fontWeight: '700', margin: 0, color: 'var(--text-main)' }} id="page-title">VIOLATION DETAILS: {violation.violationId}</h1>
-        <button id="violation-detail-back-btn" className="btn-secondary" onClick={onBack}>
+        <h2 style={{ fontSize: '18px', fontWeight: '700', margin: 0, color: 'var(--text-main)' }}>VIOLATION DETAILS: {violation.violationId}</h2>
+        <button className="btn-secondary" onClick={onBack}>
           &larr; Back to List
         </button>
       </div>
@@ -149,6 +142,6 @@ export default function ViolationDetails({ violationId, userId, baseUrl, onBack 
       <div className="audit-footer">
         Logged by: Staff User {violation.createdBy} | Timestamp: {formatDate(violation.createdAt)} {formatTime(violation.createdAt)}
       </div>
-    </main>
+    </div>
   );
 }

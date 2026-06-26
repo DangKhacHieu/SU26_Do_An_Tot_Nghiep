@@ -51,10 +51,6 @@ export default function StallList({ baseUrl, userId, onShowNotification, onViewM
   };
 
   useEffect(() => {
-    document.title = "Stalls Checklist - STMM Staff";
-  }, []);
-
-  useEffect(() => {
     fetchStalls();
   }, [userId, pageNumber, filterType, appliedSearch]);
 
@@ -111,24 +107,23 @@ export default function StallList({ baseUrl, userId, onShowNotification, onViewM
   };
 
   return (
-    <main className="stall-list-page" aria-labelledby="page-title">
-      <h1 className="sr-only" id="page-title">Stalls Checklist</h1>
+    <div className="stall-list-page">
+
 
       {/* Toolbar: Search + Filters */}
       <div className="toolbar">
         <div className="toolbar-left">
-          <form onSubmit={handleSearchSubmit} className="search-wrap" id="stall-search-form">
+          <form onSubmit={handleSearchSubmit} className="search-wrap">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             <input
               type="text"
-              id="stall-search-input"
               className="search-input"
               placeholder="Search by stall code..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
             {searchQuery && (
-              <button type="button" id="stall-search-clear-btn" className="search-clear" onClick={() => { setSearchQuery(''); setAppliedSearch(''); }} title="Clear">
+              <button type="button" className="search-clear" onClick={() => { setSearchQuery(''); setAppliedSearch(''); }} title="Clear">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
               </button>
             )}
@@ -136,21 +131,18 @@ export default function StallList({ baseUrl, userId, onShowNotification, onViewM
 
           <div className="filter-tabs">
             <button 
-              id="filter-all-btn"
               className={`tab-btn ${filterType === 'All' ? 'active' : ''}`}
               onClick={() => { setFilterType('All'); setPageNumber(1); }}
             >
               All
             </button>
             <button 
-              id="filter-tasks-btn"
               className={`tab-btn ${filterType === 'HasTask' ? 'active' : ''}`}
               onClick={() => { setFilterType('HasTask'); setPageNumber(1); }}
             >
               📋 Has Tasks
             </button>
             <button 
-              id="filter-debt-btn"
               className={`tab-btn ${filterType === 'HasUnpaidInvoice' ? 'active' : ''}`}
               onClick={() => { setFilterType('HasUnpaidInvoice'); setPageNumber(1); }}
             >
@@ -159,7 +151,7 @@ export default function StallList({ baseUrl, userId, onShowNotification, onViewM
           </div>
 
           {(searchQuery || filterType !== 'All') && (
-            <button type="button" id="stall-clear-filters-btn" className="btn-filter-clear" onClick={handleResetFilters}>
+            <button type="button" className="btn-filter-clear" onClick={handleResetFilters}>
               Clear Filters
             </button>
           )}
@@ -168,21 +160,15 @@ export default function StallList({ baseUrl, userId, onShowNotification, onViewM
 
       {/* Content Grid */}
       {loading ? (
-        <div className="loading-state">
-          <span className="spinner" aria-hidden="true"></span>
-          <p>Loading stalls...</p>
-        </div>
+        <div className="loading-state">Loading stalls...</div>
       ) : error ? (
         <div className="error-state">
-          <span className="error-icon" aria-hidden="true">⚠️</span>
           <p className="error-message">Error: {error}</p>
-          <button id="stall-retry-btn" className="btn-secondary" onClick={fetchStalls}>Retry</button>
+          <button className="btn-secondary" onClick={fetchStalls}>Retry</button>
         </div>
       ) : stalls.length === 0 ? (
         <div className="empty-state">
-          <span className="empty-icon" aria-hidden="true">🏪</span>
-          <h2>No Stalls Found</h2>
-          <p>You currently have no stalls assigned or matching the selected filters.</p>
+          <p>No stalls match the selected filters.</p>
         </div>
       ) : (
         <>
@@ -244,7 +230,6 @@ export default function StallList({ baseUrl, userId, onShowNotification, onViewM
 
                 <div className="stall-card-actions">
                   <button 
-                    id={`violation-btn-${stall.stallId}`}
                     className="btn-card-action violation-btn" 
                     onClick={() => openModal('violation', stall.stallId, stall.stallCode)}
                     title="Report violation for this stall"
@@ -254,7 +239,6 @@ export default function StallList({ baseUrl, userId, onShowNotification, onViewM
 
                   {stall.stallStatus === 'Rented' && (
                     <button 
-                      id={`meter-btn-${stall.stallId}`}
                       className="btn-card-action meter-btn" 
                       onClick={() => onViewMeterHistory(stall.stallId)}
                       title="View meter reading history"
@@ -265,7 +249,6 @@ export default function StallList({ baseUrl, userId, onShowNotification, onViewM
 
                   {stall.hasUnpaidInvoice && (
                     <button 
-                      id={`invoices-btn-${stall.stallId}`}
                       className="btn-card-action cash-btn" 
                       onClick={() => onViewInvoices(stall.stallId, stall.stallCode)}
                       title="View unpaid invoices"
@@ -285,7 +268,6 @@ export default function StallList({ baseUrl, userId, onShowNotification, onViewM
             </span>
             <div className="pagination-buttons">
               <button 
-                id="stall-prev-page-btn"
                 className="btn-page" 
                 onClick={() => setPageNumber(p => Math.max(p - 1, 1))}
                 disabled={pageNumber === 1}
@@ -295,7 +277,6 @@ export default function StallList({ baseUrl, userId, onShowNotification, onViewM
               
               {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
                 <button
-                  id={`stall-page-btn-${p}`}
                   key={p}
                   className={`btn-page ${pageNumber === p ? 'active' : ''}`}
                   onClick={() => setPageNumber(p)}
@@ -305,7 +286,6 @@ export default function StallList({ baseUrl, userId, onShowNotification, onViewM
               ))}
 
               <button 
-                id="stall-next-page-btn"
                 className="btn-page" 
                 onClick={() => setPageNumber(p => Math.min(p + 1, totalPages))}
                 disabled={pageNumber === totalPages}
@@ -329,6 +309,6 @@ export default function StallList({ baseUrl, userId, onShowNotification, onViewM
           }
         />
       )}
-    </main>
+    </div>
   );
 }
