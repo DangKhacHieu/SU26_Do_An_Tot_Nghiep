@@ -57,5 +57,8 @@ public partial class Market
 
     public virtual ICollection<User> Users { get; set; } = new List<User>();
 
+    public int? CreatorId { get; set; }
+    public virtual User? Creator { get; set; }
+
     public virtual ICollection<Meter> Meters { get; set; } = new List<Meter>();
 }

@@ -15,6 +15,7 @@ namespace STMM.Business.DTOs.Area
         public double? MinY { get; set; }
         public double? MaxX { get; set; }
         public double? MaxY { get; set; }
+        public string? SvgPath { get; set; }
         public DateTime? CreatedAt { get; set; }
     }
 }

@@ -70,6 +70,7 @@ import DashboardAdminSystem from "./pages/FE_AdminSystem/DashboardAdminSystem";
 import UserListAdminSystem from "./pages/FE_AdminSystem/UserListAdminSystem";
 import UserFormAdminSystem from "./pages/FE_AdminSystem/UserFormAdminSystem";
 import UserDetailAdminSystem from "./pages/FE_AdminSystem/UserDetailAdminSystem";
+import MarketApprovalListAdminSystem from "./pages/FE_AdminSystem/MarketApprovalListAdminSystem";
 
 // Accountant Layout & Pages
 import AccountantLayout from './components/layout/AccountantLayout';
@@ -522,9 +523,9 @@ function AppContent() {
       case "dashboard":
         return <DashboardManager addToast={addToast} navigate={navigate} />;
       case "market-areas":
-        return <MarketAreaList />;
+        return <MarketAreaList user={user} />;
       case "markets":
-        return <MarketRoot />;
+        return <MarketRoot user={user} />;
       case "business-categories":
         return (
           <BusinessCategoryListManager
@@ -679,6 +680,8 @@ function AppContent() {
             addToast={addToast}
           />
         );
+      case "admin-market-approval":
+        return <MarketApprovalListAdminSystem navigate={navigate} addToast={addToast} />;
 
       default:
         return <DashboardManager addToast={addToast} navigate={navigate} />;

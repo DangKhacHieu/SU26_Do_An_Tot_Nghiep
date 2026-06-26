@@ -524,8 +524,16 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Size)
                 .HasComment("Diện tích")
                 .HasColumnName("size");
-        });
+            entity.Property(e => e.CreatorId)
+                .HasComment("Quản lý đã tạo ra chợ này")
+                .HasColumnName("creator_id");
 
+            entity.HasOne(d => d.Creator)
+                .WithMany(p => p.CreatedMarkets)
+                .HasForeignKey(d => d.CreatorId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("fk_markets_users_creator");
+        });
         modelBuilder.Entity<Meter>(entity =>
         {
             entity.HasKey(e => e.MeterId).HasName("meters_pkey");

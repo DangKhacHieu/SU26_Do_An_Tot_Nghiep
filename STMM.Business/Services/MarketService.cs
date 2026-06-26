@@ -35,9 +35,9 @@ namespace STMM.Business.Services
             if (currentUserRole == "Manager")
             {
                 var user = await _context.Users.FindAsync(currentUserId);
-                if (user != null && user.MarketId.HasValue)
+                if (user != null)
                 {
-                    query = query.Where(m => m.MarketId == user.MarketId.Value);
+                    query = query.Where(m => m.CreatorId == currentUserId || (user.MarketId.HasValue && m.MarketId == user.MarketId.Value));
                 }
                 else
                 {
@@ -90,13 +90,17 @@ namespace STMM.Business.Services
             var user = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.UserId == currentUserId);
             if (user != null && user.Role?.Name == "Manager" && user.MarketId.HasValue)
             {
-                throw new Exception("Quản lý này đã sở hữu một chợ. Mỗi quản lý chỉ được phép tạo và quản lý duy nhất 1 chợ.");
+                var currentMarket = await _context.Markets.FindAsync(user.MarketId.Value);
+                if (currentMarket != null && currentMarket.IsDeleted != true && currentMarket.Status != "Rejected" && currentMarket.Status != "Inactive")
+                {
+                    throw new Exception("Quản lý này đã sở hữu một chợ đang hoạt động hoặc chờ duyệt. Mỗi quản lý chỉ được phép tạo và quản lý duy nhất 1 chợ.");
+                }
             }
 
-            var isMarketNameExist = await _context.Markets.AnyAsync(m => m.MarketName == request.MarketName && m.IsDeleted != true);
+            var isMarketNameExist = await _context.Markets.AnyAsync(m => m.MarketName == request.MarketName && m.IsDeleted != true && m.Status != "Rejected" && m.Status != "Inactive");
             if (isMarketNameExist)
             {
-                throw new Exception("Tên chợ đã tồn tại trên hệ thống.");
+                throw new Exception("Tên chợ đã tồn tại trên hệ thống (chợ đang hoạt động hoặc chờ duyệt).");
             }
 
             // Check duplicate stall names within the new market
@@ -125,12 +129,20 @@ namespace STMM.Business.Services
                     MaxX = request.MaxX,
                     MaxY = request.MaxY,
                     Status = "Pending",
+                    CreatorId = currentUserId,
                     CreatedAt = DateTime.UtcNow,
                     IsDeleted = false
                 };
 
                 _context.Markets.Add(newMarket);
                 await _context.SaveChangesAsync();
+
+                if (user != null && user.Role?.Name == "Manager")
+                {
+                    user.MarketId = newMarket.MarketId;
+                    _context.Users.Update(user);
+                    await _context.SaveChangesAsync();
+                }
 
                 foreach (var areaReq in request.Areas)
                 {
@@ -215,6 +227,53 @@ namespace STMM.Business.Services
 
             await _context.SaveChangesAsync();
             
+            return true;
+        }
+
+        public async Task<bool> ChangeMarketStatusAsync(int marketId, string status)
+        {
+            var market = await _context.Markets.FirstOrDefaultAsync(m => m.MarketId == marketId);
+            if (market == null) return false;
+
+            market.Status = status;
+            _context.Markets.Update(market);
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<bool> DeactivateMarketAsync(int marketId, int managerId)
+        {
+            var market = await _context.Markets
+                .Include(m => m.Areas)
+                    .ThenInclude(a => a.Stalls)
+                        .ThenInclude(s => s.Contracts)
+                .FirstOrDefaultAsync(m => m.MarketId == marketId);
+                
+            if (market == null) throw new Exception("Market not found.");
+
+            // Check if there are any active contracts
+            bool hasActiveContracts = market.Areas
+                .SelectMany(a => a.Stalls)
+                .SelectMany(s => s.Contracts)
+                .Any(c => c.Status == "Active" && c.IsDeleted != true);
+
+            if (hasActiveContracts)
+            {
+                throw new Exception("Không thể ngưng hoạt động chợ vì vẫn còn hợp đồng đang hoạt động.");
+            }
+
+            market.Status = "Inactive";
+            _context.Markets.Update(market);
+
+            // Detach manager from this market
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == managerId);
+            if (user != null && user.MarketId == marketId)
+            {
+                user.MarketId = null;
+                _context.Users.Update(user);
+            }
+
+            await _context.SaveChangesAsync();
             return true;
         }
     }

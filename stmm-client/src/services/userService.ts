@@ -1,7 +1,8 @@
 import axios, { AxiosInstance } from 'axios';
 import { UserDto } from '../types/user.types';
 
-const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5056/api').replace(/\/$/, '');
+const _rawUrl = (import.meta.env.VITE_API_URL || 'http://localhost:5056/api').replace(/\/$/, '');
+const API_BASE_URL = _rawUrl.endsWith('/api') ? _rawUrl : `${_rawUrl}/api`;
 
 const getApiErrorMessage = (error: any, fallback: string): string => {
   const data = error.response?.data;

@@ -60,7 +60,4 @@
   position: relative;
   background-size: 40px 40px;
   background-color: var(--bg-main);
-  background-image: 
-    linear-gradient(to right, rgba(0, 0, 0, 0.05) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
 }

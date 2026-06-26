@@ -28,9 +28,46 @@ const pointsToSvgPath = (points, isClosed) => {
     return isClosed ? `${d} Z` : d;
 };
 
+// Calculate polygon area in square pixels (Shoelace formula)
+const getPolygonArea = (points) => {
+    let area = 0;
+    for (let i = 0; i < points.length; i++) {
+        let j = (i + 1) % points.length;
+        area += points[i][0] * points[j][1];
+        area -= points[j][0] * points[i][1];
+    }
+    return Math.abs(area / 2.0);
+};
+
+// Calculate centroid of a polygon
+const getPolygonCentroid = (points) => {
+    let x = 0, y = 0, area = 0;
+    for (let i = 0; i < points.length; i++) {
+        let j = (i + 1) % points.length;
+        const factor = (points[i][0] * points[j][1] - points[j][0] * points[i][1]);
+        x += (points[i][0] + points[j][0]) * factor;
+        y += (points[i][1] + points[j][1]) * factor;
+        area += factor;
+    }
+    area /= 2.0;
+    if (area === 0) return points[0]; // fallback
+    return [Math.abs(x / (6.0 * area)), Math.abs(y / (6.0 * area))];
+};
+
+// Scale a polygon from its centroid by a scaleFactor
+const scalePolygon = (points, scaleFactor) => {
+    if (!points || points.length === 0) return [];
+    const centroid = getPolygonCentroid(points);
+    return points.map(p => [
+        centroid[0] + (p[0] - centroid[0]) * scaleFactor,
+        centroid[1] + (p[1] - centroid[1]) * scaleFactor
+    ]);
+};
+
 const MarketWizard = ({ onCancel, onComplete }) => {
     const [step, setStep] = useState(1);
     const [loading, setLoading] = useState(false);
+    const [zoom, setZoom] = useState(1);
 
     // Step 1: Market Info & Shape
     const [marketInfo, setMarketInfo] = useState({
@@ -47,7 +84,10 @@ const MarketWizard = ({ onCancel, onComplete }) => {
 
     // Step 3: Stalls
     const [selectedAreaIndex, setSelectedAreaIndex] = useState(null);
-    const [stallsConfig, setStallsConfig] = useState({ prefix: 'S', count: 10, width: 20, height: 20, size: 4 });
+    const [stallsConfig, setStallsConfig] = useState({ prefix: 'S', count: 10, width: 2, height: 2, size: 4 });
+
+    // Drag and Drop State
+    const [dragState, setDragState] = useState(null);
 
     const svgRef = useRef(null);
 
@@ -55,8 +95,8 @@ const MarketWizard = ({ onCancel, onComplete }) => {
     const handleSvgClick = (e) => {
         if (!svgRef.current) return;
         const rect = svgRef.current.getBoundingClientRect();
-        const x = Math.round(e.clientX - rect.left);
-        const y = Math.round(e.clientY - rect.top);
+        const x = Math.round((e.clientX - rect.left) / zoom);
+        const y = Math.round((e.clientY - rect.top) / zoom);
 
         if (step === 1 && !marketInfo.isClosed) {
             setMarketInfo(prev => ({ ...prev, points: [...prev.points, [x, y]] }));
@@ -65,13 +105,154 @@ const MarketWizard = ({ onCancel, onComplete }) => {
         }
     };
 
+    // Drag Handlers
+    const handleMouseDown = (type, index, e, initialData) => {
+        e.stopPropagation(); // Ngăn kích hoạt handleSvgClick
+        
+        // Chỉ cho phép kéo đúng loại đối tượng theo từng bước
+        if (type === 'market' && step !== 1) return;
+        if (type === 'area' && step !== 2) return;
+        if (type === 'stall' && step !== 3) return;
+
+        setDragState({
+            type,
+            index,
+            startX: e.clientX,
+            startY: e.clientY,
+            initialData
+        });
+    };
+
+    const handleGlobalMouseMove = (e) => {
+        if (!dragState) return;
+
+        const dx = (e.clientX - dragState.startX) / zoom;
+        const dy = (e.clientY - dragState.startY) / zoom;
+
+        if (dragState.type === 'market') {
+            const newPoints = dragState.initialData.map(p => [p[0] + dx, p[1] + dy]);
+            setMarketInfo(prev => ({ ...prev, points: newPoints }));
+        } else if (dragState.type === 'area') {
+            const newPoints = dragState.initialData.map(p => [p[0] + dx, p[1] + dy]);
+            setAreas(prev => {
+                const updated = [...prev];
+                updated[dragState.index] = { 
+                    ...updated[dragState.index], 
+                    points: newPoints 
+                };
+                return updated;
+            });
+        } else if (dragState.type === 'stall') {
+            const { areaIndex, stallIndex } = dragState.index;
+            setAreas(prev => {
+                const updated = [...prev];
+                const area = { ...updated[areaIndex] };
+                const stalls = [...area.stalls];
+                stalls[stallIndex] = {
+                    ...stalls[stallIndex],
+                    mapX: Math.round(dragState.initialData.mapX + dx),
+                    mapY: Math.round(dragState.initialData.mapY + dy)
+                };
+                area.stalls = stalls;
+                updated[areaIndex] = area;
+                return updated;
+            });
+        }
+    };
+
+    const handleGlobalMouseUp = () => {
+        if (!dragState) return;
+        
+        // Cập nhật lại bounding box & svgPath sau khi kéo xong
+        if (dragState.type === 'area') {
+            setAreas(prev => {
+                const updated = [...prev];
+                const area = updated[dragState.index];
+                const bbox = getBoundingBox(area.points);
+                updated[dragState.index] = {
+                    ...area,
+                    svgPath: pointsToSvgPath(area.points, true),
+                    minX: bbox.minX,
+                    minY: bbox.minY,
+                    maxX: bbox.maxX,
+                    maxY: bbox.maxY,
+                };
+                return updated;
+            });
+        }
+        
+        setDragState(null);
+    };
+
     // Step 1 Actions
-    const closeMarketShape = () => setMarketInfo(prev => ({ ...prev, isClosed: true }));
+    const closeMarketShape = () => {
+        setMarketInfo(prev => {
+            const closed = { ...prev, isClosed: true };
+            if (parseFloat(closed.size) > 0) {
+                const targetAreaPx = parseFloat(closed.size) * 900;
+                const currentAreaPx = getPolygonArea(closed.points);
+                if (currentAreaPx > 0) {
+                    const scaleFactor = Math.sqrt(targetAreaPx / currentAreaPx);
+                    closed.points = scalePolygon(closed.points, scaleFactor);
+                }
+            }
+            return closed;
+        });
+    };
+    
     const resetMarketShape = () => setMarketInfo(prev => ({ ...prev, points: [], isClosed: false }));
+
+    // Hardcode pixelsPerMeter to 30 (30px = 1m -> 900px² = 1m²) to sync with MarketAreaList
+    const pixelsPerMeter = 30;
+
+    const handleMarketSizeChange = (newSize) => {
+        setMarketInfo(prev => {
+            const updated = { ...prev, size: newSize };
+            if (prev.isClosed && parseFloat(newSize) > 0) {
+                const targetAreaPx = parseFloat(newSize) * 900;
+                const currentAreaPx = getPolygonArea(prev.points);
+                if (currentAreaPx > 0) {
+                    const scaleFactor = Math.sqrt(targetAreaPx / currentAreaPx);
+                    updated.points = scalePolygon(prev.points, scaleFactor);
+                }
+            }
+            return updated;
+        });
+    };
 
     // Step 2 Actions
     const startNewArea = () => setDrawingArea({ name: `Khu vực ${areas.length + 1}`, points: [], isClosed: false, size: '' });
-    const closeAreaShape = () => setDrawingArea(prev => ({ ...prev, isClosed: true }));
+    
+    const closeAreaShape = () => {
+        setDrawingArea(prev => {
+            const closed = { ...prev, isClosed: true };
+            if (parseFloat(closed.size) > 0) {
+                const targetAreaPx = parseFloat(closed.size) * 900;
+                const currentAreaPx = getPolygonArea(closed.points);
+                if (currentAreaPx > 0) {
+                    const scaleFactor = Math.sqrt(targetAreaPx / currentAreaPx);
+                    closed.points = scalePolygon(closed.points, scaleFactor);
+                }
+            }
+            return closed;
+        });
+    };
+
+    const handleAreaSizeChange = (newSize) => {
+        setDrawingArea(prev => {
+            const updated = { ...prev, size: newSize };
+            if (prev.isClosed && parseFloat(newSize) > 0) {
+                const targetAreaPx = parseFloat(newSize) * 900;
+                const currentAreaPx = getPolygonArea(prev.points);
+                if (currentAreaPx > 0) {
+                    const scaleFactor = Math.sqrt(targetAreaPx / currentAreaPx);
+                    updated.points = scalePolygon(prev.points, scaleFactor);
+                }
+            }
+            return updated;
+        });
+    };
+
     const saveArea = () => {
         if (!drawingArea.isClosed || drawingArea.points.length < 3) return;
 
@@ -81,6 +262,12 @@ const MarketWizard = ({ onCancel, onComplete }) => {
 
         if (marketSize > 0 && (currentAreasSize + newAreaSize) > marketSize) {
             alert(`Lỗi: Diện tích khu vực mới (${newAreaSize} m²) làm tổng diện tích các khu vực (${currentAreasSize + newAreaSize} m²) vượt quá diện tích của chợ (${marketSize} m²)!`);
+            return;
+        }
+
+        const isCompletelyInside = drawingArea.points.every(pt => pointInPolygon(pt, marketInfo.points));
+        if (!isCompletelyInside) {
+            alert('Lỗi: Khu vực này vượt ra ngoài ranh giới của chợ. Vui lòng vẽ lại cho khớp bên trong!');
             return;
         }
 
@@ -103,8 +290,16 @@ const MarketWizard = ({ onCancel, onComplete }) => {
     const generateStalls = () => {
         if (selectedAreaIndex === null) return;
         const area = areas[selectedAreaIndex];
-        const w = parseInt(stallsConfig.width);
-        const h = parseInt(stallsConfig.height);
+        let wMeters = parseFloat(stallsConfig.width);
+        let hMeters = parseFloat(stallsConfig.height);
+        
+        let w = wMeters;
+        let h = hMeters;
+        if (pixelsPerMeter) {
+            w = wMeters * pixelsPerMeter;
+            h = hMeters * pixelsPerMeter;
+        }
+
         const count = parseInt(stallsConfig.count);
         const spacing = 5;
 
@@ -118,7 +313,11 @@ const MarketWizard = ({ onCancel, onComplete }) => {
                 const centerX = x + w / 2;
                 const centerY = y + h / 2;
                 
-                if (pointInPolygon([centerX, centerY], area.points)) {
+                const corners = [
+                    [x, y], [x + w, y], [x + w, y + h], [x, y + h]
+                ];
+                
+                if (corners.every(c => pointInPolygon(c, area.points))) {
                     newStalls.push({
                         code: `${stallsConfig.prefix}${codeCounter++}`,
                         width: w,
@@ -252,7 +451,7 @@ const MarketWizard = ({ onCancel, onComplete }) => {
                                     <label htmlFor="market-size">Tổng diện tích (m²)</label>
                                     <input id="market-size" className={styles.formInput} type="number" min="0"
                                         value={marketInfo.size}
-                                        onChange={e => setMarketInfo({...marketInfo, size: e.target.value})}
+                                        onChange={e => handleMarketSizeChange(e.target.value)}
                                         placeholder="Vd: 10000" />
                                 </div>
 
@@ -314,7 +513,7 @@ const MarketWizard = ({ onCancel, onComplete }) => {
                                             <label htmlFor="area-size">Diện tích (m²)</label>
                                             <input id="area-size" className={styles.formInput} type="number" min="0"
                                                 value={drawingArea.size}
-                                                onChange={e => setDrawingArea({...drawingArea, size: e.target.value})}
+                                                onChange={e => handleAreaSizeChange(e.target.value)}
                                                 placeholder="Vd: 200" />
                                         </div>
                                         {!drawingArea.isClosed && drawingArea.points.length > 2 && (
@@ -363,21 +562,32 @@ const MarketWizard = ({ onCancel, onComplete }) => {
                                             <label htmlFor="stall-size">Diện tích mỗi sạp (m²)</label>
                                             <input id="stall-size" type="number" min="0" className={styles.formInput}
                                                 value={stallsConfig.size}
-                                                onChange={e => setStallsConfig({...stallsConfig, size: e.target.value})}
-                                                placeholder="Vd: 4" />
+                                                readOnly
+                                                style={{backgroundColor: 'var(--mw-gray-50)', color: 'var(--mw-gray-500)'}}
+                                                placeholder="Tự động tính..." />
                                         </div>
                                         <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:12}}>
                                             <div className={styles.formGroup}>
-                                                <label htmlFor="stall-w">Rộng (px)</label>
+                                                <label htmlFor="stall-w">Rộng (m)</label>
                                                 <input id="stall-w" type="number" min="1" className={styles.formInput}
                                                     value={stallsConfig.width}
-                                                    onChange={e => setStallsConfig({...stallsConfig, width: e.target.value})} />
+                                                    onChange={e => {
+                                                        const w = e.target.value;
+                                                        const h = stallsConfig.height;
+                                                        const s = w && h ? (parseFloat(w) * parseFloat(h)).toString() : '';
+                                                        setStallsConfig({...stallsConfig, width: w, size: s});
+                                                    }} />
                                             </div>
                                             <div className={styles.formGroup}>
-                                                <label htmlFor="stall-h">Cao (px)</label>
+                                                <label htmlFor="stall-h">Cao (m)</label>
                                                 <input id="stall-h" type="number" min="1" className={styles.formInput}
                                                     value={stallsConfig.height}
-                                                    onChange={e => setStallsConfig({...stallsConfig, height: e.target.value})} />
+                                                    onChange={e => {
+                                                        const h = e.target.value;
+                                                        const w = stallsConfig.width;
+                                                        const s = w && h ? (parseFloat(w) * parseFloat(h)).toString() : '';
+                                                        setStallsConfig({...stallsConfig, height: h, size: s});
+                                                    }} />
                                             </div>
                                         </div>
                                         <button className={styles.primaryBtn} style={{width:'100%', marginTop:4}} onClick={generateStalls}>
@@ -441,14 +651,39 @@ const MarketWizard = ({ onCancel, onComplete }) => {
                         )}
                     </div>
 
-                    <svg ref={svgRef} className={styles.svgArea} onClick={handleSvgClick}
-                        role="img" aria-label="Vùng vẽ bản đồ chợ tương tác">
+                    <div style={{ flex: 1, overflow: 'auto', position: 'relative', backgroundColor: '#f1f5f9' }}>
+                        {/* Zoom Controls */}
+                        <div style={{ position: 'sticky', top: 16, left: 16, zIndex: 10, display: 'flex', gap: 8, background: 'white', padding: 8, borderRadius: 8, boxShadow: '0 2px 10px rgba(0,0,0,0.1)', width: 'fit-content' }}>
+                            <button onClick={() => setZoom(z => Math.max(0.2, z - 0.2))} style={{ width: 32, height: 32, borderRadius: 4, border: '1px solid #ccc', background: '#fff', cursor: 'pointer', fontWeight: 'bold' }}>-</button>
+                            <span style={{ display: 'flex', alignItems: 'center', minWidth: 48, justifyContent: 'center', fontSize: 14, fontWeight: 'bold' }}>{Math.round(zoom * 100)}%</span>
+                            <button onClick={() => setZoom(z => Math.min(3, z + 0.2))} style={{ width: 32, height: 32, borderRadius: 4, border: '1px solid #ccc', background: '#fff', cursor: 'pointer', fontWeight: 'bold' }}>+</button>
+                            <button onClick={() => setZoom(1)} style={{ padding: '0 8px', borderRadius: 4, border: '1px solid #ccc', background: '#fff', cursor: 'pointer', fontSize: 12 }}>Reset</button>
+                        </div>
+                        <svg ref={svgRef} className={styles.svgArea} onClick={handleSvgClick}
+                            onMouseMove={handleGlobalMouseMove}
+                            onMouseUp={handleGlobalMouseUp}
+                            onMouseLeave={handleGlobalMouseUp}
+                            style={{ 
+                                width: 4000 * zoom, 
+                                height: 4000 * zoom,
+                                minWidth: 4000 * zoom, 
+                                minHeight: 4000 * zoom, 
+                                backgroundColor: '#f1f5f9', 
+                                backgroundImage: 'radial-gradient(circle, #cbd5e1 1px, transparent 1px)', 
+                                backgroundSize: `${24 * zoom}px ${24 * zoom}px`,
+                                display: 'block'
+                            }}
+                            viewBox="0 0 4000 4000"
+                            role="img" aria-label="Vùng vẽ bản đồ chợ tương tác">
 
                         {/* Market outline */}
                         {marketInfo.points.length > 0 && (
                             <path d={pointsToSvgPath(marketInfo.points, marketInfo.isClosed)}
                                 fill={marketInfo.isClosed ? 'rgba(59,130,246,.07)' : 'none'}
-                                stroke="#3b82f6" strokeWidth="2.5" strokeLinejoin="round" />
+                                stroke="#3b82f6" strokeWidth="2.5" strokeLinejoin="round" 
+                                onMouseDown={marketInfo.isClosed ? (e) => handleMouseDown('market', null, e, marketInfo.points) : undefined}
+                                style={{ cursor: marketInfo.isClosed && step === 1 ? 'move' : 'default', pointerEvents: 'auto' }}
+                            />
                         )}
                         {step === 1 && !marketInfo.isClosed && marketInfo.points.map((p, i) => (
                             <circle key={`m-pt-${i}`} cx={p[0]} cy={p[1]} r="5" fill="#3b82f6" stroke="#fff" strokeWidth="2" />
@@ -460,7 +695,10 @@ const MarketWizard = ({ onCancel, onComplete }) => {
                                 <path d={a.svgPath}
                                     fill={selectedAreaIndex === i ? 'rgba(139,92,246,.18)' : 'rgba(5,150,105,.12)'}
                                     stroke={selectedAreaIndex === i ? '#8b5cf6' : '#059669'}
-                                    strokeWidth="2" strokeLinejoin="round" />
+                                    strokeWidth="2" strokeLinejoin="round" 
+                                    onMouseDown={(e) => handleMouseDown('area', i, e, a.points)}
+                                    style={{ cursor: step === 2 ? 'move' : 'default', pointerEvents: 'auto' }}
+                                />
                                 <text x={(a.minX + a.maxX) / 2} y={(a.minY + a.maxY) / 2}
                                     textAnchor="middle" dominantBaseline="middle"
                                     fill={selectedAreaIndex === i ? '#8b5cf6' : '#047857'}
@@ -473,7 +711,10 @@ const MarketWizard = ({ onCancel, onComplete }) => {
                                 {a.stalls.map((s, j) => (
                                     <g key={`stall-${i}-${j}`}>
                                         <rect x={s.mapX} y={s.mapY} width={s.width} height={s.height}
-                                            fill="#fff" stroke="#3b82f6" strokeWidth="1.5" rx="3" />
+                                            fill="#fff" stroke="#3b82f6" strokeWidth="1.5" rx="3" 
+                                            onMouseDown={(e) => handleMouseDown('stall', { areaIndex: i, stallIndex: j }, e, { mapX: s.mapX, mapY: s.mapY })}
+                                            style={{ cursor: step === 3 ? 'move' : 'default', pointerEvents: 'auto' }}
+                                        />
                                         {/* Skip text rendering if stall is too small to improve perf */}
                                         {(s.width > 15 && s.height > 15) && (
                                             <text x={s.mapX + s.width / 2} y={s.mapY + s.height / 2}
@@ -501,6 +742,7 @@ const MarketWizard = ({ onCancel, onComplete }) => {
                             <circle key={`a-pt-${i}`} cx={p[0]} cy={p[1]} r="5" fill="#dc2626" stroke="#fff" strokeWidth="2" />
                         ))}
                     </svg>
+                    </div>
                 </section>
             </div>
         </main>

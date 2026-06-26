@@ -25,7 +25,7 @@ const MarketMapViewer = ({ marketId, onBack }) => {
     if (loading) return <div style={{ padding: 40, textAlign: 'center' }}>Đang tải bản đồ...</div>;
     if (!marketData) return <div style={{ padding: 40, textAlign: 'center' }}>Không tìm thấy dữ liệu bản đồ.</div>;
 
-    const padding = 50;
+
     let viewBox = "0 0 800 600";
     const { svgPath, areas } = marketData;
     
@@ -45,8 +45,30 @@ const MarketMapViewer = ({ marketId, onBack }) => {
         }
     }
 
+    // Ensure viewBox also encompasses the market's svgPath if present
+    if (svgPath) {
+        const matches = [...svgPath.matchAll(/(\d+(?:\.\d+)?),(\d+(?:\.\d+)?)/g)];
+        if (matches.length > 0) {
+            const xs = matches.map(m => parseFloat(m[1]));
+            const ys = matches.map(m => parseFloat(m[2]));
+            const svgMinX = Math.min(...xs);
+            const svgMinY = Math.min(...ys);
+            const svgMaxX = Math.max(...xs);
+            const svgMaxY = Math.max(...ys);
+
+            finalMinX = finalMinX != null ? Math.min(finalMinX, svgMinX) : svgMinX;
+            finalMinY = finalMinY != null ? Math.min(finalMinY, svgMinY) : svgMinY;
+            finalMaxX = finalMaxX != null ? Math.max(finalMaxX, svgMaxX) : svgMaxX;
+            finalMaxY = finalMaxY != null ? Math.max(finalMaxY, svgMaxY) : svgMaxY;
+        }
+    }
+
     if (finalMinX != null && finalMaxX != null) {
-        viewBox = `${finalMinX - padding} ${finalMinY - padding} ${finalMaxX - finalMinX + padding * 2} ${finalMaxY - finalMinY + padding * 2}`;
+        const width = finalMaxX - finalMinX;
+        const height = finalMaxY - finalMinY;
+        const paddingX = Math.max(20, width * 0.05);
+        const paddingY = Math.max(20, height * 0.05);
+        viewBox = `${finalMinX - paddingX} ${finalMinY - paddingY} ${width + paddingX * 2} ${height + paddingY * 2}`;
     }
 
     // Calculate totals for the stats
@@ -69,22 +91,26 @@ const MarketMapViewer = ({ marketId, onBack }) => {
             
             <section className={styles.viewerContent}>
                 <div className={styles.viewerMapWrapper}>
-                    <svg
-                        width="100%"
-                        height="100%"
-                        viewBox={viewBox}
-                        style={{ backgroundColor: '#1e293b' }}
-                        aria-label={`Bản đồ trực quan của chợ ${marketData.marketName}`}
-                        role="img"
-                    >
+                        <svg
+                            width="100%"
+                            height="100%"
+                            viewBox={viewBox}
+                            style={{ 
+                                backgroundColor: '#f8fafc',
+                                backgroundImage: 'linear-gradient(#e2e8f0 1px, transparent 1px), linear-gradient(90deg, #e2e8f0 1px, transparent 1px)',
+                                backgroundSize: '40px 40px'
+                            }}
+                            aria-label={`Bản đồ trực quan của chợ ${marketData.marketName}`}
+                            role="img"
+                        >
                         {/* Render Market Polygon */}
                         {svgPath && (
                             <path
                                 d={svgPath}
-                                fill="none"
-                                stroke="#ffffff"
-                                strokeWidth="2"
-                                opacity="0.1"
+                                fill="rgba(59,130,246,0.05)"
+                                stroke="#3b82f6"
+                                strokeWidth="4"
+                                opacity="0.8"
                             />
                         )}
 
@@ -93,62 +119,75 @@ const MarketMapViewer = ({ marketId, onBack }) => {
                             const isSelected = selectedAreaId === (area.areaId || aIdx);
                             const pathD = area.svgPath || (area.minX != null ? `M ${area.minX},${area.minY} L ${area.maxX},${area.minY} L ${area.maxX},${area.maxY} L ${area.minX},${area.maxY} Z` : null);
                             
+                            // Calculate center for the Card
+                            let cx = 0, cy = 0;
+                            if (pathD) {
+                                const matches = [...pathD.matchAll(/(\d+(?:\.\d+)?),(\d+(?:\.\d+)?)/g)];
+                                if (matches.length > 0) {
+                                    const xs = matches.map(m => parseFloat(m[1]));
+                                    const ys = matches.map(m => parseFloat(m[2]));
+                                    cx = (Math.min(...xs) + Math.max(...xs)) / 2;
+                                    cy = (Math.min(...ys) + Math.max(...ys)) / 2;
+                                }
+                            }
+
+                            // Card dimensions
+                            const cardW = 320;
+                            const cardH = 140;
+                            
                             return (
                                 <g key={area.areaId || aIdx} id={`area-${area.areaId || aIdx}`}>
                                     {pathD && (
                                         <path
                                             d={pathD}
-                                            fill={isSelected ? "rgba(46, 204, 113, 0.4)" : "rgba(46, 204, 113, 0.15)"}
-                                            stroke="#2ecc71"
-                                            strokeWidth={isSelected ? "4" : "2"}
-                                            style={{ cursor: 'pointer', transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)' }}
+                                            fill={isSelected ? "rgba(46, 204, 113, 0.25)" : "rgba(46, 204, 113, 0.08)"}
+                                            stroke={isSelected ? "#27ae60" : "#2ecc71"}
+                                            strokeWidth={isSelected ? "3" : "2"}
+                                            style={{ transition: 'all 0.3s', cursor: 'pointer' }}
                                             onClick={() => setSelectedAreaId(isSelected ? null : (area.areaId || aIdx))}
                                         />
                                     )}
                                     
-                                    {/* Render stalls with a subtle fade-in animation */}
-                                    {/* Render stalls only when selected to optimize performance */}
-                                    {isSelected && (
-                                        <g style={{ animation: 'fadeIn 0.3s ease' }}>
-                                            {area.stalls?.map((stall, sIdx) => {
-                                                // Auto-correct old seeded data which used relative coordinates (e.g. 0,0)
-                                                let renderX = stall.mapX;
-                                                let renderY = stall.mapY;
-                                                if (renderX < area.minX || renderY < area.minY) {
-                                                    renderX = area.minX + stall.mapX;
-                                                    renderY = area.minY + stall.mapY;
-                                                }
+                                    {/* Render stalls always, not just when selected */}
+                                    <g>
+                                        {area.stalls?.map((stall, sIdx) => {
+                                            // Auto-correct old seeded data which used relative coordinates (e.g. 0,0)
+                                            let renderX = stall.mapX;
+                                            let renderY = stall.mapY;
+                                            if (renderX < area.minX || renderY < area.minY) {
+                                                renderX = area.minX + stall.mapX;
+                                                renderY = area.minY + stall.mapY;
+                                            }
 
-                                                return (
-                                                <g key={stall.stallId || sIdx} transform={`translate(${renderX}, ${renderY})`} id={`stall-${stall.stallId || stall.code}`}>
-                                                    <rect
-                                                        width={stall.width}
-                                                        height={stall.height}
-                                                        fill="#3b82f6"
-                                                        stroke="#ffffff"
-                                                        strokeWidth="1.5"
-                                                        rx="4"
-                                                        style={{ transition: 'fill 0.2s', cursor: 'pointer' }}
-                                                        onMouseEnter={(e) => e.target.setAttribute('fill', '#2563eb')}
-                                                        onMouseLeave={(e) => e.target.setAttribute('fill', '#3b82f6')}
-                                                    />
-                                                    <text
-                                                        x={stall.width / 2}
-                                                        y={stall.height / 2}
-                                                        textAnchor="middle"
-                                                        dominantBaseline="middle"
-                                                        fill="#ffffff"
-                                                        fontSize={Math.min(stall.width, stall.height) * 0.4}
-                                                        fontWeight="bold"
-                                                        style={{ pointerEvents: 'none' }}
-                                                    >
-                                                        {stall.code}
-                                                    </text>
-                                                </g>
-                                                );
-                                            })}
-                                        </g>
-                                    )}
+                                            return (
+                                            <g key={stall.stallId || sIdx} transform={`translate(${renderX}, ${renderY})`} id={`stall-${stall.stallId || stall.code}`}>
+                                                <rect
+                                                    width={stall.width}
+                                                    height={stall.height}
+                                                    fill={isSelected ? "#2563eb" : "#3b82f6"}
+                                                    stroke="#ffffff"
+                                                    strokeWidth="1.5"
+                                                    rx="4"
+                                                    style={{ transition: 'fill 0.2s', cursor: 'pointer' }}
+                                                    onMouseEnter={(e) => e.target.setAttribute('fill', '#1d4ed8')}
+                                                    onMouseLeave={(e) => e.target.setAttribute('fill', isSelected ? '#2563eb' : '#3b82f6')}
+                                                />
+                                                <text
+                                                    x={stall.width / 2}
+                                                    y={stall.height / 2}
+                                                    textAnchor="middle"
+                                                    dominantBaseline="middle"
+                                                    fill="#ffffff"
+                                                    fontSize={Math.min(stall.width, stall.height) * 0.4}
+                                                    fontWeight="bold"
+                                                    style={{ pointerEvents: 'none' }}
+                                                >
+                                                    {stall.code}
+                                                </text>
+                                            </g>
+                                            );
+                                        })}
+                                    </g>
                                 </g>
                             );
                         })}

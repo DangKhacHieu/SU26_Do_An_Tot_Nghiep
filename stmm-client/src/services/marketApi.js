@@ -8,11 +8,19 @@ const API_ROOT = rawBaseUrl.replace(/\/$/, "").endsWith("/api")
 const MARKETS_URL = `${API_ROOT}/markets`;
 
 const getAuthHeaders = () => {
-  const accessToken = localStorage.getItem('accessToken');
-  if (accessToken) {
-    return { Authorization: `Bearer ${accessToken}` };
+  let token = localStorage.getItem('accessToken');
+  // Fallback: if Login.jsx saved token inside user_session object
+  if (!token) {
+    try {
+      const session = JSON.parse(localStorage.getItem('user_session') || '{}');
+      token = session.token || null;
+    } catch (e) { /* ignore */ }
   }
-  return {};
+  const headers = { 'Content-Type': 'application/json' };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  return headers;
 };
 
 export const getAllMarkets = async () => {
@@ -45,6 +53,26 @@ export const createMarketBulk = async (marketData) => {
     return response.data;
   } catch (error) {
     console.error("Error creating market bulk:", error);
+    throw error;
+  }
+};
+
+export const changeMarketStatus = async (marketId, status) => {
+  try {
+    const response = await axios.put(`${MARKETS_URL}/${marketId}/status`, `"${status}"`, { headers: getAuthHeaders() });
+    return response.data;
+  } catch (error) {
+    console.error(`Error changing market status ${marketId}:`, error);
+    throw error;
+  }
+};
+
+export const deactivateMarket = async (marketId) => {
+  try {
+    const response = await axios.put(`${MARKETS_URL}/${marketId}/deactivate`, {}, { headers: getAuthHeaders() });
+    return response.data;
+  } catch (error) {
+    console.error(`Error deactivating market ${marketId}:`, error);
     throw error;
   }
 };

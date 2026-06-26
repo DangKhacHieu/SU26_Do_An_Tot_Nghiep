@@ -10,5 +10,7 @@ namespace STMM.Business.DTOs.Market
         public double? Size { get; set; }
         public int AreasCount { get; set; }
         public int StallsCount { get; set; }
+        public string? Status { get; set; }
+        public string? SvgPath { get; set; }
     }
 }

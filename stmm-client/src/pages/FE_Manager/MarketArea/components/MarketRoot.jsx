@@ -3,7 +3,7 @@ import MarketList from './MarketList';
 import MarketWizard from './MarketWizard';
 import MarketMapViewer from './MarketMapViewer';
 
-const MarketRoot = () => {
+const MarketRoot = ({ user }) => {
     const [view, setView] = useState('list'); // 'list' or 'wizard' or 'viewer'
     const [selectedMarketId, setSelectedMarketId] = useState(null);
 
@@ -20,7 +20,7 @@ const MarketRoot = () => {
         return <MarketMapViewer marketId={selectedMarketId} onBack={() => setView('list')} />;
     }
 
-    return <MarketList onCreateNew={() => setView('wizard')} onViewMarket={handleViewMarket} />;
+    return <MarketList user={user} onCreateNew={() => setView('wizard')} onViewMarket={handleViewMarket} />;
 };
 
 export default MarketRoot;

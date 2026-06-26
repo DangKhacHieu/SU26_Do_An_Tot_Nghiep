@@ -115,4 +115,6 @@ public partial class User
     public virtual ICollection<Violation> Violations { get; set; } = new List<Violation>();
 
     public virtual Market? Market { get; set; }
+
+    public virtual ICollection<Market> CreatedMarkets { get; set; } = new List<Market>();
 }

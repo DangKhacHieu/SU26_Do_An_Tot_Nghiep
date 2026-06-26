@@ -1,36 +1,112 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styles from './MarketAreaList.module.css';
 import MarketAreaForm from './MarketAreaForm';
 import { getAllAreas, createArea, updateArea, deleteArea } from '../api/marketAreaApi';
+import { getAllMarkets, deactivateMarket } from '../../../../services/marketApi';
 import { Rnd } from 'react-rnd';
 import StallLayoutEditor from './StallLayoutEditor';
 
-const MarketAreaList = () => {
+const MarketAreaList = ({ user }) => {
   const [areas, setAreas] = useState([]);
+  const [marketStatus, setMarketStatus] = useState(null);
+  const [marketSvgPath, setMarketSvgPath] = useState(null);
+
+  // --- Pan Canvas State ---
+  const containerRef = useRef(null);
+  const [isPanning, setIsPanning] = useState(false);
+  const [panStartX, setPanStartX] = useState(0);
+  const [panStartY, setPanStartY] = useState(0);
+  const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
+
+  const handlePanStart = (e) => {
+    // Only pan if clicking on the background grid (not interacting with Area Rnd components)
+    if (e.target.closest('.react-draggable') || e.target.closest('button')) return;
+    setIsPanning(true);
+    setPanStartX(e.clientX - panOffset.x);
+    setPanStartY(e.clientY - panOffset.y);
+  };
+
+  const handlePanMove = (e) => {
+    if (!isPanning) return;
+    e.preventDefault();
+    setPanOffset({
+      x: e.clientX - panStartX,
+      y: e.clientY - panStartY
+    });
+  };
+
+  const handlePanEnd = () => {
+    setIsPanning(false);
+  };
+
   const [selectedArea, setSelectedArea] = useState(null); // For editing
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
-  const [expandedAreas, setExpandedAreas] = useState([]);
-  const [zoom, setZoom] = useState(1);
+  const [renderKey, setRenderKey] = useState(0); // To force re-render when needed
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  const [infoArea, setInfoArea] = useState(null);
+  
+  // Track hovered area to show action buttons
+  const [hoveredAreaId, setHoveredAreaId] = useState(null);
+  const [zoom, setZoom] = useState(1);
   const [errorMessage, setErrorMessage] = useState(null);
   const [deleteSuccess, setDeleteSuccess] = useState(null);
-  const [infoArea, setInfoArea] = useState(null);
+  const [expandedAreas, setExpandedAreas] = useState([]);
+
+  const marketId = user?.marketId;
 
   const handleZoomIn = () => setZoom(prev => Math.min(prev + 0.1, 2));
   const handleZoomOut = () => setZoom(prev => Math.max(prev - 0.1, 0.5));
   const handleResetZoom = () => setZoom(1);
 
   useEffect(() => {
-    fetchAreas();
-  }, []);
+    if (marketId) {
+      fetchMarketStatusAndAreas();
+    }
+  }, [marketId]);
+
+  const fetchMarketStatusAndAreas = async () => {
+    try {
+      // 1. Check market status first
+      const marketsData = await getAllMarkets();
+      const myMarket = marketsData.find(m => m.marketId === marketId);
+      setMarketStatus(myMarket?.status || null);
+      setMarketSvgPath(myMarket?.svgPath || null);
+
+      // 2. Fetch areas
+      const data = await getAllAreas(marketId); 
+      setAreas(data || []);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    }
+  };
 
   const fetchAreas = async () => {
     try {
-      const data = await getAllAreas(1); 
+      const data = await getAllAreas(marketId); 
       setAreas(data || []);
     } catch (error) {
       console.error('Error fetching areas:', error);
+    }
+  };
+
+  const handleDeactivateMarket = async () => {
+    if (!window.confirm("Bạn có chắc chắn muốn ngưng hoạt động chợ này để tạo sơ đồ mới? LƯU Ý: Hành động này chỉ thực hiện được nếu không có hợp đồng nào đang hoạt động.")) return;
+    
+    try {
+      await deactivateMarket(marketId);
+      // Update local storage to remove marketId
+      const storedUser = JSON.parse(localStorage.getItem('user'));
+      if (storedUser) {
+        storedUser.marketId = null;
+        localStorage.setItem('user', JSON.stringify(storedUser));
+      }
+      
+      // Force reload to clear states and get back to market creation
+      window.location.reload();
+    } catch (error) {
+      const msg = error.response?.data?.message || 'Lỗi khi ngưng hoạt động chợ.';
+      setErrorMessage(msg);
     }
   };
 
@@ -90,7 +166,7 @@ const MarketAreaList = () => {
           description: formData.description,
           categoryName: formData.categoryName,
           size: formData.size,
-          marketId: 1, // default market for now
+          marketId: marketId,
           minX: 24, // default starting X
           minY: 24, // default starting Y
           maxX: 24 + formData.width,
@@ -112,10 +188,6 @@ const MarketAreaList = () => {
     );
   };
 
-  const [renderKey, setRenderKey] = useState(0);
-
-
-
   // Helper to check collision between areas
   const checkOverlap = (areaId, minX, minY, maxX, maxY) => {
     return areas.some((a, index) => {
@@ -136,16 +208,103 @@ const MarketAreaList = () => {
     });
   };
 
+  // Tính toán dynamic canvas dimensions
+  const { cWidth, cHeight, svgOffsetX, svgOffsetY } = React.useMemo(() => {
+      let width = 4000;
+      let height = 4000;
+      let offsetX = 0;
+      let offsetY = 0;
+      
+      if (marketSvgPath) {
+          const matches = [...marketSvgPath.matchAll(/(\d+(?:\.\d+)?),(\d+(?:\.\d+)?)/g)];
+          if (matches.length > 0) {
+              const xs = matches.map(m => parseFloat(m[1]));
+              const ys = matches.map(m => parseFloat(m[2]));
+              const minX = Math.min(...xs);
+              const minY = Math.min(...ys);
+              const maxX = Math.max(...xs);
+              const maxY = Math.max(...ys);
+              
+              width = maxX - minX + 100;
+              height = maxY - minY + 100;
+              offsetX = -minX + 50;
+              offsetY = -minY + 50;
+          }
+      } else if (areas.length > 0) {
+           const validAreas = areas.filter(a => a.minX != null);
+           if(validAreas.length > 0) {
+               const minX = Math.min(...validAreas.map(a => a.minX));
+               const minY = Math.min(...validAreas.map(a => a.minY));
+               const maxX = Math.max(...validAreas.map(a => (a.maxX != null && a.minX != null) ? a.maxX : a.minX + 180));
+               const maxY = Math.max(...validAreas.map(a => (a.maxY != null && a.minY != null) ? a.maxY : a.minY + 140));
+               width = maxX - minX + 200;
+               height = maxY - minY + 200;
+           }
+      }
+      return { cWidth: width, cHeight: height, svgOffsetX: offsetX, svgOffsetY: offsetY };
+  }, [marketSvgPath, areas]);
+
+  // Parse market boundary points
+  const marketPolygon = React.useMemo(() => {
+    if (!marketSvgPath) return null;
+    const matches = [...marketSvgPath.matchAll(/(\d+(?:\.\d+)?),(\d+(?:\.\d+)?)/g)];
+    if (matches.length > 0) {
+      return matches.map(m => [parseFloat(m[1]), parseFloat(m[2])]);
+    }
+    return null;
+  }, [marketSvgPath]);
+
+  // Ray-casting algorithm for a single point
+  const isPointInPolygon = (point, vs) => {
+    let x = point[0], y = point[1];
+    let inside = false;
+    for (let i = 0, j = vs.length - 1; i < vs.length; j = i++) {
+      let xi = vs[i][0], yi = vs[i][1];
+      let xj = vs[j][0], yj = vs[j][1];
+      let intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+      if (intersect) inside = !inside;
+    }
+    return inside;
+  };
+
+  // Check if a rectangle is fully inside the polygon
+  const isRectInsidePolygon = (minX, minY, maxX, maxY, polygon) => {
+    if (!polygon || polygon.length < 3) return true; // if no boundary, allow
+    // Check 4 corners
+    const corners = [
+      [minX, minY],
+      [maxX, minY],
+      [maxX, maxY],
+      [minX, maxY]
+    ];
+    for (let point of corners) {
+      if (!isPointInPolygon(point, polygon)) {
+        return false;
+      }
+    }
+    return true;
+  };
+
   // Drag and Drop handlers
   const handleDragStop = async (e, d, area) => {
     try {
+      // Revert shift for db
+      const dbX = d.x - svgOffsetX;
+      const dbY = d.y - svgOffsetY;
+
       // Don't update if position didn't actually change
-      if (area.minX === d.x && area.minY === d.y) return;
+      if (area.minX === dbX && area.minY === dbY) return;
       
       const width = (area.maxX !== null && area.minX !== null) ? (area.maxX - area.minX) : 180;
       const height = (area.maxY !== null && area.minY !== null) ? (area.maxY - area.minY) : 140;
 
-      if (checkOverlap(area.areaId, d.x, d.y, d.x + width, d.y + height)) {
+      if (!isRectInsidePolygon(dbX, dbY, dbX + width, dbY + height, marketPolygon)) {
+          setErrorMessage('Không thể di chuyển: Khu vực này bị kéo ra ngoài ranh giới của Chợ!');
+          setRenderKey(prev => prev + 1); // Force Rnd to revert
+          return;
+      }
+
+      if (checkOverlap(area.areaId, dbX, dbY, dbX + width, dbY + height)) {
           setErrorMessage('Không thể di chuyển: Khu vực này bị chồng lấp lên Khu vực khác!');
           setRenderKey(prev => prev + 1); // Force Rnd to revert
           return;
@@ -157,10 +316,10 @@ const MarketAreaList = () => {
         categoryId: area.categoryId,
         categoryName: area.categoryName,
         size: area.size,
-        minX: d.x,
-        minY: d.y,
-        maxX: d.x + width,
-        maxY: d.y + height
+        minX: dbX,
+        minY: dbY,
+        maxX: dbX + width,
+        maxY: dbY + height
       };
 
       // Update local state immediately for smooth UI
@@ -176,10 +335,19 @@ const MarketAreaList = () => {
 
   const handleResizeStop = async (e, direction, ref, delta, position, area) => {
     try {
+      const dbX = position.x - svgOffsetX;
+      const dbY = position.y - svgOffsetY;
+
       const width = parseInt(ref.style.width, 10);
       const height = parseInt(ref.style.height, 10);
       
-      if (checkOverlap(area.areaId, position.x, position.y, position.x + width, position.y + height)) {
+      if (!isRectInsidePolygon(dbX, dbY, dbX + width, dbY + height, marketPolygon)) {
+          setErrorMessage('Không thể thay đổi kích thước: Khu vực này vượt ra ngoài ranh giới của Chợ!');
+          setRenderKey(prev => prev + 1); // Force Rnd to revert
+          return;
+      }
+
+      if (checkOverlap(area.areaId, dbX, dbY, dbX + width, dbY + height)) {
           setErrorMessage('Không thể thay đổi kích thước: Khu vực này bị chồng lấp lên Khu vực khác!');
           setRenderKey(prev => prev + 1); // Force Rnd to revert
           return;
@@ -194,10 +362,10 @@ const MarketAreaList = () => {
         categoryId: area.categoryId,
         categoryName: area.categoryName,
         size: newSize,
-        minX: position.x,
-        minY: position.y,
-        maxX: position.x + width,
-        maxY: position.y + height
+        minX: dbX,
+        minY: dbY,
+        maxX: dbX + width,
+        maxY: dbY + height
       };
 
       // Update local state immediately for smooth UI
@@ -217,7 +385,39 @@ const MarketAreaList = () => {
 
   return (
       <div className={styles.main}>
-        {/* Form Panel */}
+        {!marketId && (
+          <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-secondary)' }}>
+            <div style={{ fontSize: '48px', marginBottom: '16px' }}>🏪</div>
+            <h3>Bạn chưa có chợ nào</h3>
+            <p>Hãy tạo một chợ mới ở mục Đăng ký Chợ để bắt đầu.</p>
+          </div>
+        )}
+        
+        {marketId && marketStatus === 'Pending' && (
+          <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-secondary)' }}>
+            <div style={{ fontSize: '48px', marginBottom: '16px' }}>⏳</div>
+            <h3 style={{ color: 'var(--warning, #faad14)' }}>Chợ của bạn đang chờ phê duyệt</h3>
+            <p>Hệ thống đã ghi nhận yêu cầu tạo chợ của bạn. Vui lòng chờ Admin phê duyệt (trạng thái Active) để có thể vào quản lý và thiết kế mặt bằng.</p>
+          </div>
+        )}
+
+        {marketId && marketStatus === 'Rejected' && (
+          <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-secondary)' }}>
+            <div style={{ fontSize: '48px', marginBottom: '16px' }}>❌</div>
+            <h3 style={{ color: 'var(--danger, #ff4d4f)' }}>Chợ của bạn đã bị từ chối</h3>
+            <p>Yêu cầu tạo chợ của bạn không được phê duyệt. Vui lòng liên hệ Admin để biết thêm chi tiết.</p>
+          </div>
+        )}
+
+        {marketId && marketStatus === null && (
+           <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-secondary)' }}>
+              <p>Đang tải dữ liệu mặt bằng...</p>
+           </div>
+        )}
+
+        {marketId && marketStatus === 'Active' && (
+          <>
+            {/* Form Panel */}
         {isFormVisible && (
           <MarketAreaForm 
             initialData={selectedArea} 
@@ -315,21 +515,88 @@ const MarketAreaList = () => {
               >
                 {isEditMode ? '✓ HOÀN TẤT CHỈNH SỬA' : '✏️ CHỈNH SỬA SƠ ĐỒ'}
               </button>
+              
+              {!isEditMode && (
+                <button 
+                  onClick={handleDeactivateMarket}
+                  style={{
+                    background: 'transparent',
+                    border: '1px solid var(--danger, #ff4d4f)',
+                    color: 'var(--danger, #ff4d4f)', 
+                    padding: '8px 16px', 
+                    borderRadius: '4px', 
+                    cursor: 'pointer', 
+                    fontWeight: 'bold',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseOver={(e) => {
+                    e.currentTarget.style.background = 'rgba(255, 77, 79, 0.1)';
+                  }}
+                  onMouseOut={(e) => {
+                    e.currentTarget.style.background = 'transparent';
+                  }}
+                >
+                  🛑 NGƯNG HOẠT ĐỘNG CHỢ
+                </button>
+              )}
           </div>
         </div>
 
         {/* Canvas / List Area */}
         <div className={styles.canvasArea}>
-          <div className={styles.canvasContainer} style={{ overflow: 'auto', flex: 1 }}>
-            <div className={styles.gridBg} style={{ minWidth: '4000px', minHeight: '4000px', width: '4000px', height: '4000px' }}>
-              <div style={{ position: 'relative', width: '100%', height: '100%', transform: `scale(${zoom})`, transformOrigin: '0 0' }}>
-                
+          <div 
+            ref={containerRef}
+            className={styles.canvasContainer} 
+            style={{ 
+              overflow: 'auto', 
+              flex: 1, 
+              display: 'flex', 
+              justifyContent: 'center', 
+              alignItems: 'center',
+              cursor: isPanning ? 'grabbing' : 'grab'
+            }}
+            onMouseDown={handlePanStart}
+            onMouseLeave={handlePanEnd}
+            onMouseUp={handlePanEnd}
+            onMouseMove={handlePanMove}
+          >
+            
+            <div 
+              className={styles.gridBg} 
+              style={{ 
+                minWidth: `${cWidth}px`, 
+                minHeight: `${cHeight}px`, 
+                width: `${cWidth}px`, 
+                height: `${cHeight}px`, 
+                position: 'relative',
+                transform: `translate(${panOffset.x}px, ${panOffset.y}px)`,
+                transition: isPanning ? 'none' : 'transform 0.1s',
+                backgroundColor: '#f8fafc',
+                backgroundImage: `linear-gradient(to right, #e2e8f0 1px, transparent 1px), linear-gradient(to bottom, #e2e8f0 1px, transparent 1px)`,
+                backgroundSize: '20px 20px'
+              }}
+            >
+                      <div style={{ position: 'relative', width: '100%', height: '100%', transform: `scale(${zoom})`, transformOrigin: '0 0' }}>
+                        
+                        {/* 0. Market Boundary Outline */}
+                        {marketSvgPath && (
+                          <svg style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 0 }}>
+                             <g transform={`translate(${svgOffsetX}, ${svgOffsetY})`}>
+                                <path d={marketSvgPath} fill="transparent" stroke="#3b82f6" strokeWidth="2" strokeDasharray="6 4" />
+                             </g>
+                          </svg>
+                        )}
+
                 {/* 1. Interactive Area Map */}
                 {areas.map((area, index) => {
                   const defaultX = (index % 4) * 200 + 24;
                   const defaultY = Math.floor(index / 4) * 160 + 24;
-                  const x = area.minX !== null ? area.minX : defaultX;
-                  const y = area.minY !== null ? area.minY : defaultY;
+                  // For rendering, we shift it by svgOffset so it visually matches the SVG shift
+                  const dbX = area.minX !== null ? area.minX : defaultX;
+                  const dbY = area.minY !== null ? area.minY : defaultY;
+                  const x = dbX + svgOffsetX;
+                  const y = dbY + svgOffsetY;
+                  
                   const width = (area.maxX !== null && area.minX !== null) ? (area.maxX - area.minX) : 180;
                   const height = (area.maxY !== null && area.minY !== null) ? (area.maxY - area.minY) : 140;
                   const isInteractive = isEditMode;
@@ -348,56 +615,69 @@ const MarketAreaList = () => {
                       disableDragging={!isInteractive}
                       enableResizing={isInteractive}
                       style={{
-                        background: 'var(--color-accent-2)', 
-                        border: '1px solid var(--color-primary)', 
+                        position: 'relative',
                         display: 'flex', 
                         flexDirection: 'column',
                         cursor: isInteractive ? 'move' : 'default',
-                        borderRadius: '8px',
-                        transition: 'background-color 0.3s, border-color 0.3s, box-shadow 0.3s',
+                        transition: 'all 0.2s',
                         zIndex: isInteractive ? 50 : 1,
-                        color: 'var(--text-primary)',
-                        overflow: 'hidden'
+                        border: '1px solid #10b981',
+                        borderRadius: '2px',
+                        background: 'rgba(16, 185, 129, 0.05)',
                       }}
-                      onMouseEnter={(e) => { 
-                          e.currentTarget.style.boxShadow = 'var(--shadow-md)'; 
-                          if(isInteractive) e.currentTarget.style.zIndex = 100; 
-                      }}
-                      onMouseLeave={(e) => { 
-                          e.currentTarget.style.boxShadow = 'none'; 
-                          if(isInteractive) e.currentTarget.style.zIndex = 50; 
-                      }}
+                      onMouseEnter={() => setHoveredAreaId(area.areaId)}
+                      onMouseLeave={() => setHoveredAreaId(null)}
                     >
+                      {/* Custom Shape Background */}
+                      {area.svgPath && (
+                        <svg style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: -1, overflow: 'visible' }} preserveAspectRatio="none" 
+                             viewBox={(() => {
+                                 const matches = [...area.svgPath.matchAll(/(\d+(?:\.\d+)?),(\d+(?:\.\d+)?)/g)];
+                                 if(matches.length > 0) {
+                                     const xs = matches.map(m => parseFloat(m[1]));
+                                     const ys = matches.map(m => parseFloat(m[2]));
+                                     const pMinX = Math.min(...xs);
+                                     const pMinY = Math.min(...ys);
+                                     const pMaxX = Math.max(...xs);
+                                     const pMaxY = Math.max(...ys);
+                                     return `${pMinX} ${pMinY} ${pMaxX - pMinX} ${pMaxY - pMinY}`;
+                                 }
+                                 return "0 0 100 100";
+                             })()}
+                        >
+                          <path d={area.svgPath} fill={isInteractive ? 'rgba(16, 185, 129, 0.1)' : 'rgba(16, 185, 129, 0.05)'} stroke="#10b981" strokeWidth="1.5" vectorEffect="non-scaling-stroke" strokeLinejoin="round" />
+                        </svg>
+                      )}
+
                       <div style={{ width: '100%', height: '100%', position: 'relative', display: 'flex', flexDirection: 'column' }}>
-                        {/* Header Bar for Area */}
-                        <div style={{ background: 'var(--color-primary)', color: '#fff', padding: '4px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', fontWeight: 'bold', userSelect: 'none', cursor: isInteractive ? 'move' : 'default' }}>
-                          <div style={{display: 'flex', alignItems: 'center'}}>
-                            <span title={area.description}>{area.name}</span>
-                            <button onMouseDown={(e) => e.stopPropagation()} onClick={(e) => toggleAreaExpand(e, area.areaId)} style={{background: 'rgba(255,255,255,0.2)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px', fontSize: '10px', marginLeft: 8}} title="Bật/Tắt hiển thị Sạp">
-                              {expandedAreas.includes(area.areaId) ? '👁 Ẩn sạp' : '👁 Xem sạp'}
-                            </button>
-                          </div>
-                          {isEditMode ? (
-                            <div style={{display: 'flex', gap: '4px'}}>
-                              <button onMouseDown={(e) => e.stopPropagation()} onClick={(e) => handleEdit(e, area)} style={{background: 'rgba(255,255,255,0.2)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px', fontSize: '10px'}} title="Sửa Khu vực">✎</button>
-                              <button onMouseDown={(e) => e.stopPropagation()} onClick={(e) => requestDelete(e, area.areaId)} style={{background: 'rgba(255,0,0,0.5)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px', fontSize: '10px'}} title="Xóa Khu vực">✕</button>
+                        {/* Hover Action Menu */}
+                        {hoveredAreaId === area.areaId && (
+                          <div style={{ position: 'absolute', top: -30, right: 0, display: 'flex', gap: '4px', background: 'rgba(255,255,255,0.95)', padding: '4px', borderRadius: '4px', boxShadow: '0 2px 8px rgba(0,0,0,0.15)', zIndex: 100 }}>
+                            <div style={{ padding: '0 8px', fontSize: '11px', fontWeight: 'bold', color: '#0f172a', display: 'flex', alignItems: 'center', borderRight: '1px solid #e2e8f0' }}>
+                              {area.name}
                             </div>
-                          ) : (
-                            <button onMouseDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); setInfoArea(area); }} style={{background: 'rgba(255,255,255,0.2)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px', fontSize: '10px'}} title="Thông tin Khu vực">ℹ</button>
-                          )}
-                        </div>
-                        {/* Nested StallLayoutEditor or Empty Info */}
-                        {expandedAreas.includes(area.areaId) ? (
-                          <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
-                            <StallLayoutEditor areaId={area.areaId} areaName={area.name} isEditMode={isEditMode} zoom={zoom} areaWidth={width} areaHeight={height} />
-                          </div>
-                        ) : (
-                          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)', padding: 12, textAlign: 'center' }}>
-                            <div style={{fontSize: 14, fontWeight: 'bold', color: 'var(--color-primary)'}}>{area.name}</div>
-                            <div style={{fontSize: 12, marginTop: 4}}>{area.description || 'Chưa có mô tả'}</div>
-                            <div style={{fontSize: 11, marginTop: 12, opacity: 0.6}}>(Bấm "👁 Xem sạp" ở góc trên để hiển thị sạp bên trong)</div>
+                            {isEditMode ? (
+                              <>
+                                <button onMouseDown={(e) => e.stopPropagation()} onClick={(e) => handleEdit(e, area)} style={{background: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', padding: '2px 8px', fontSize: '11px', fontWeight: 'bold'}} title="Sửa Khu vực">✎ Sửa</button>
+                                <button onMouseDown={(e) => e.stopPropagation()} onClick={(e) => requestDelete(e, area.areaId)} style={{background: '#ef4444', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', padding: '2px 8px', fontSize: '11px', fontWeight: 'bold'}} title="Xóa Khu vực">✕ Xóa</button>
+                              </>
+                            ) : (
+                              <button onMouseDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); setInfoArea(area); }} style={{background: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', padding: '2px 8px', fontSize: '11px', fontWeight: 'bold'}} title="Thông tin Khu vực">ℹ Chi tiết</button>
+                            )}
                           </div>
                         )}
+                        
+                        {/* Always show StallLayoutEditor */}
+                        <div style={{ flex: 1, position: 'relative', overflow: 'visible' }}>
+                          <StallLayoutEditor 
+                            areaId={area.areaId} 
+                            areaName={area.name}
+                            isEditMode={isEditMode}
+                            zoom={zoom}
+                            areaWidth={width}
+                            areaHeight={height}
+                          />
+                        </div>
                       </div>
                     </Rnd>
                   );
@@ -413,6 +693,8 @@ const MarketAreaList = () => {
             </div>
           </div>
         </div>
+        </>
+        )}
       </div>
   );
 };

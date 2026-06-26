@@ -14,6 +14,7 @@ namespace STMM.Business.DTOs.Market
         public double? MinY { get; set; }
         public double? MaxX { get; set; }
         public double? MaxY { get; set; }
+        public string? Status { get; set; }
         public List<AreaMapDto> Areas { get; set; } = new List<AreaMapDto>();
     }
 

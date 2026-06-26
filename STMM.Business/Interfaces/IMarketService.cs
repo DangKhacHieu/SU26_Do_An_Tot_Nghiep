@@ -10,5 +10,7 @@ namespace STMM.Business.Interfaces
         Task<MarketMapDto?> GetMarketMapAsync(int marketId);
         Task<MarketDto> CreateMarketBulkAsync(CreateMarketBulkRequest request, int currentUserId);
         Task<bool> DeleteMarketAsync(int marketId);
+        Task<bool> ChangeMarketStatusAsync(int marketId, string status);
+        Task<bool> DeactivateMarketAsync(int marketId, int managerId);
     }
 }

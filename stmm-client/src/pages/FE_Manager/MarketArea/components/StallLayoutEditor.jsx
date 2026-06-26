@@ -20,6 +20,7 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
     const [errorMessage, setErrorMessage] = useState(null);
     const [deleteSuccess, setDeleteSuccess] = useState(null);
     const [renderKey, setRenderKey] = useState(0);
+    const [hoveredStallId, setHoveredStallId] = useState(null);
     
     // Size of the area container, e.g., representing the full market area map
     const editorRef = useRef(null);
@@ -270,45 +271,45 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
                             enableResizing={isEditMode}
                             className={`${styles.stallNode} stall-node-prevent-drag`}
                             style={{ 
-                                borderLeftColor: getStatusColor(stall.status),
-                                cursor: isEditMode ? 'move' : 'default',
-                                zIndex: isEditMode ? 10 : 1
+                                backgroundColor: '#3b82f6',
+                                border: '1px solid #2563eb',
+                                borderRadius: '3px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: '#ffffff',
+                                fontSize: '11px',
+                                fontWeight: 'bold',
+                                cursor: isEditMode ? 'move' : 'pointer',
+                                zIndex: isEditMode ? 10 : 1,
+                                position: 'relative'
+                            }}
+                            onMouseEnter={() => setHoveredStallId(stall.stallId)}
+                            onMouseLeave={() => setHoveredStallId(null)}
+                            onClick={(e) => {
+                                if (!isEditMode) {
+                                    e.stopPropagation();
+                                    setViewingStall(stall);
+                                }
                             }}
                         >
-                            <div className={styles.stallContent}>
-                                <strong>{stall.code}</strong>
-                                <span className={styles.statusBadge} style={{ backgroundColor: getStatusColor(stall.status) }}>
-                                    {stall.status || 'Available'}
-                                </span>
-                                <div className={styles.stallActions}>
-                                    {isEditMode ? (
-                                        <>
-                                            <button 
-                                                className={styles.iconBtn} 
-                                                onClick={(e) => { e.stopPropagation(); setSelectedStall(stall); setIsFormOpen(true); }}
-                                                title="Sửa Sạp"
-                                            >
-                                                ✎
-                                            </button>
-                                            <button 
-                                                className={styles.iconBtnDanger} 
-                                                onClick={(e) => { e.stopPropagation(); requestDelete(stall.stallId); }}
-                                                title="Xóa Sạp"
-                                            >
-                                                ✕
-                                            </button>
-                                        </>
-                                    ) : (
-                                        <button 
-                                            className={styles.iconBtn} 
-                                            onClick={(e) => { e.stopPropagation(); setViewingStall(stall); }}
-                                            title="Thông tin Sạp"
-                                        >
-                                            ℹ
-                                        </button>
-                                    )}
+                            <span style={{ pointerEvents: 'none' }}>{stall.code}</span>
+                            
+                            {/* Hover Actions Menu */}
+                            {hoveredStallId === stall.stallId && isEditMode && (
+                                <div style={{ position: 'absolute', top: -28, right: -28, display: 'flex', gap: '4px', background: 'rgba(255,255,255,0.9)', padding: '2px', borderRadius: '4px', boxShadow: '0 2px 4px rgba(0,0,0,0.2)', zIndex: 100 }}>
+                                    <button 
+                                        onClick={(e) => { e.stopPropagation(); setSelectedStall(stall); setIsFormOpen(true); }}
+                                        style={{ background: '#3b82f6', color: 'white', border: 'none', borderRadius: '2px', cursor: 'pointer', padding: '2px 6px', fontSize: '10px' }}
+                                        title="Sửa Sạp"
+                                    >✎</button>
+                                    <button 
+                                        onClick={(e) => { e.stopPropagation(); requestDelete(stall.stallId); }}
+                                        style={{ background: '#ef4444', color: 'white', border: 'none', borderRadius: '2px', cursor: 'pointer', padding: '2px 6px', fontSize: '10px' }}
+                                        title="Xóa Sạp"
+                                    >✕</button>
                                 </div>
-                            </div>
+                            )}
                         </Rnd>
                     ))
                 )}
