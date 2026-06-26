@@ -63,6 +63,21 @@
   line-height: 1.5;
 }
 
+.status-cancel-summary {
+  font-size: 13.5px;
+  color: #7f1d1d;
+  background: #fff7f7;
+  border: 1px solid #fecaca;
+  padding: 12px 14px;
+  border-radius: 8px;
+  line-height: 1.5;
+  margin-top: 12px;
+}
+
+.status-cancel-summary strong {
+  color: #991b1b;
+}
+
 .flat-radio-buttons-container {
   display: flex;
   flex-direction: column;
