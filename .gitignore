@@ -31,3 +31,7 @@ yarn-error.log*
 
 # Test project (Local execution only)
 STMM.Tests/
+
+# Agent config (Local execution only)
+.agents/
+.claude/

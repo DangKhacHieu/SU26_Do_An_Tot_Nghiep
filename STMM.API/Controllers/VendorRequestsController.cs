@@ -102,5 +102,20 @@ namespace STMM.API.Controllers
                 return BadRequest(new { message = ex.Message });
             }
         }
+
+        [HttpPost("{id}/resolve-quote")]
+        public async Task<IActionResult> ResolveQuote(int id, [FromQuery] bool approve)
+        {
+            try
+            {
+                var vendorId = await GetVendorIdAsync();
+                var result = await _vendorRequestService.ResolveRequestQuoteForVendorAsync(vendorId, id, approve);
+                return Ok(new { message = "Thao tác thành công.", data = result });
+            }
+            catch (System.Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
     }
 }

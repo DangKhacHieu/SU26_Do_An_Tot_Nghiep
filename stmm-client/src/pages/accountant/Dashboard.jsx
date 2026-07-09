@@ -33,7 +33,10 @@ export default function Dashboard() {
       } catch (e) {}
     }
 
-    fetch(`http://localhost:5056/api/accountant/dashboard?userId=${userIdStr}`)
+    const token = localStorage.getItem('accessToken');
+    const headers = { 'Authorization': `Bearer ${token}` };
+
+    fetch(`http://localhost:5056/api/accountant/dashboard?userId=${userIdStr}`, { headers })
       .then(res => {
         if (!res.ok) throw new Error('Phản hồi từ API lỗi');
         return res.json();

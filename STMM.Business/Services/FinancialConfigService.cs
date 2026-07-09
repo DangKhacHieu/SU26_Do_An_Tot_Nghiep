@@ -10,6 +10,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using FluentValidation;
 
 namespace STMM.Business.Services
 {
@@ -18,15 +19,33 @@ namespace STMM.Business.Services
         private readonly IFeeTypeRepository _feeTypeRepository;
         private readonly IServiceRepository _serviceRepository;
         private readonly ISystemConfigRepository _systemConfigRepository;
+        private readonly IValidator<CreateFeeTypeRequest> _createFeeTypeValidator;
+        private readonly IValidator<UpdateFeeTypeRequest> _updateFeeTypeValidator;
+        private readonly IValidator<CreateServiceRequest> _createServiceValidator;
+        private readonly IValidator<UpdateServiceRequest> _updateServiceValidator;
+        private readonly IValidator<UpdateSystemConfigRequest> _updateSystemConfigValidator;
+        private readonly IValidator<UpdateTiersRequest> _updateTiersValidator;
 
         public FinancialConfigService(
             IFeeTypeRepository feeTypeRepository,
             IServiceRepository serviceRepository,
-            ISystemConfigRepository systemConfigRepository)
+            ISystemConfigRepository systemConfigRepository,
+            IValidator<CreateFeeTypeRequest> createFeeTypeValidator,
+            IValidator<UpdateFeeTypeRequest> updateFeeTypeValidator,
+            IValidator<CreateServiceRequest> createServiceValidator,
+            IValidator<UpdateServiceRequest> updateServiceValidator,
+            IValidator<UpdateSystemConfigRequest> updateSystemConfigValidator,
+            IValidator<UpdateTiersRequest> updateTiersValidator)
         {
             _feeTypeRepository = feeTypeRepository;
             _serviceRepository = serviceRepository;
             _systemConfigRepository = systemConfigRepository;
+            _createFeeTypeValidator = createFeeTypeValidator;
+            _updateFeeTypeValidator = updateFeeTypeValidator;
+            _createServiceValidator = createServiceValidator;
+            _updateServiceValidator = updateServiceValidator;
+            _updateSystemConfigValidator = updateSystemConfigValidator;
+            _updateTiersValidator = updateTiersValidator;
         }
 
         // --- FEE TYPES ---
@@ -44,16 +63,26 @@ namespace STMM.Business.Services
 
         public async Task<FeeTypeDto> CreateFeeTypeAsync(CreateFeeTypeRequest request, CancellationToken ct = default)
         {
-            if (string.IsNullOrEmpty(request.Name))
+            var valResult = await _createFeeTypeValidator.ValidateAsync(request, ct);
+            if (!valResult.IsValid)
             {
-                throw new BadRequestException("Tên loại phí không được để trống.");
+                throw new BadRequestException(string.Join("; ", valResult.Errors.Select(e => e.ErrorMessage)));
+            }
+
+            // Kiểm tra trùng lặp tên loại phí
+            var nameTrimmed = request.Name.Trim().ToLower();
+            var isDuplicate = await _feeTypeRepository.Query()
+                .AnyAsync(f => f.Name.Trim().ToLower() == nameTrimmed, ct);
+            if (isDuplicate)
+            {
+                throw new BadRequestException("Tên loại phí này đã tồn tại trong hệ thống.");
             }
 
             var item = new FeeType
             {
-                Name = request.Name,
-                Unit = request.Unit,
-                Description = request.Description
+                Name = request.Name.Trim(),
+                Unit = request.Unit?.Trim(),
+                Description = request.Description?.Trim()
             };
 
             await _feeTypeRepository.AddAsync(item, ct);
@@ -70,15 +99,30 @@ namespace STMM.Business.Services
 
         public async Task<FeeTypeDto> UpdateFeeTypeAsync(int id, UpdateFeeTypeRequest request, CancellationToken ct = default)
         {
+            var valResult = await _updateFeeTypeValidator.ValidateAsync(request, ct);
+            if (!valResult.IsValid)
+            {
+                throw new BadRequestException(string.Join("; ", valResult.Errors.Select(e => e.ErrorMessage)));
+            }
+
             var item = await _feeTypeRepository.GetByIdAsync(id, ct);
             if (item == null)
             {
                 throw new NotFoundException($"Không tìm thấy Loại phí ID {id}.");
             }
 
-            item.Name = request.Name;
-            item.Unit = request.Unit;
-            item.Description = request.Description;
+            // Kiểm tra trùng lặp tên loại phí (ngoại trừ chính nó)
+            var nameTrimmed = request.Name.Trim().ToLower();
+            var isDuplicate = await _feeTypeRepository.Query()
+                .AnyAsync(f => f.FeeTypeId != id && f.Name.Trim().ToLower() == nameTrimmed, ct);
+            if (isDuplicate)
+            {
+                throw new BadRequestException("Tên loại phí này đã tồn tại trong hệ thống.");
+            }
+
+            item.Name = request.Name.Trim();
+            item.Unit = request.Unit?.Trim();
+            item.Description = request.Description?.Trim();
 
             _feeTypeRepository.Update(item);
             await _feeTypeRepository.SaveChangesAsync(ct);
@@ -97,8 +141,24 @@ namespace STMM.Business.Services
             var item = await _feeTypeRepository.GetByIdAsync(id, ct);
             if (item == null) return false;
 
-            _feeTypeRepository.Delete(item);
-            await _feeTypeRepository.SaveChangesAsync(ct);
+            // Kiểm tra xem có dịch vụ nào đang hoạt động liên kết với loại phí này không
+            var hasService = await _serviceRepository.Query()
+                .AnyAsync(s => s.FeeTypeId == id && s.IsActive != false, ct);
+            if (hasService)
+            {
+                throw new BadRequestException("Không thể xóa loại phí này vì hiện đang có dịch vụ hoạt động liên kết với nó.");
+            }
+
+            try
+            {
+                _feeTypeRepository.Delete(item);
+                await _feeTypeRepository.SaveChangesAsync(ct);
+            }
+            catch (DbUpdateException)
+            {
+                throw new BadRequestException("Không thể xóa loại phí này vì nó đang được liên kết với dữ liệu hóa đơn hoặc các dữ liệu khác trong hệ thống.");
+            }
+
             return true;
         }
 
@@ -107,7 +167,6 @@ namespace STMM.Business.Services
         {
             var items = await _serviceRepository.Query()
                 .Include(s => s.FeeType)
-                .Where(s => s.IsActive != false)
                 .ToListAsync(ct);
 
             return items.Select(s => new ServiceDto
@@ -126,10 +185,25 @@ namespace STMM.Business.Services
 
         public async Task<ServiceDto> CreateServiceAsync(CreateServiceRequest request, CancellationToken ct = default)
         {
+            var valResult = await _createServiceValidator.ValidateAsync(request, ct);
+            if (!valResult.IsValid)
+            {
+                throw new BadRequestException(string.Join("; ", valResult.Errors.Select(e => e.ErrorMessage)));
+            }
+
+            // Kiểm tra trùng lặp tên dịch vụ (chỉ so với dịch vụ đang hoạt động)
+            var nameTrimmed = request.Name.Trim().ToLower();
+            var isDuplicate = await _serviceRepository.Query()
+                .AnyAsync(s => s.IsActive != false && s.Name.Trim().ToLower() == nameTrimmed, ct);
+            if (isDuplicate)
+            {
+                throw new BadRequestException("Tên dịch vụ này đã tồn tại và đang hoạt động trong hệ thống.");
+            }
+
             var item = new Service
             {
-                Name = request.Name,
-                Description = request.Description,
+                Name = request.Name.Trim(),
+                Description = request.Description?.Trim(),
                 Price = request.Price,
                 BillingCycle = request.BillingCycle ?? "Monthly",
                 FeeTypeId = request.FeeTypeId,
@@ -162,14 +236,29 @@ namespace STMM.Business.Services
 
         public async Task<ServiceDto> UpdateServiceAsync(int id, UpdateServiceRequest request, CancellationToken ct = default)
         {
+            var valResult = await _updateServiceValidator.ValidateAsync(request, ct);
+            if (!valResult.IsValid)
+            {
+                throw new BadRequestException(string.Join("; ", valResult.Errors.Select(e => e.ErrorMessage)));
+            }
+
             var item = await _serviceRepository.GetByIdAsync(id, ct);
             if (item == null)
             {
                 throw new NotFoundException($"Không tìm thấy Dịch vụ ID {id}.");
             }
 
-            item.Name = request.Name;
-            item.Description = request.Description;
+            // Kiểm tra trùng lặp tên dịch vụ (chỉ so với dịch vụ đang hoạt động khác chính nó)
+            var nameTrimmed = request.Name.Trim().ToLower();
+            var isDuplicate = await _serviceRepository.Query()
+                .AnyAsync(s => s.ServiceId != id && s.IsActive != false && s.Name.Trim().ToLower() == nameTrimmed, ct);
+            if (isDuplicate)
+            {
+                throw new BadRequestException("Tên dịch vụ này đã tồn tại và đang hoạt động trong hệ thống.");
+            }
+
+            item.Name = request.Name.Trim();
+            item.Description = request.Description?.Trim();
             item.Price = request.Price;
             item.BillingCycle = request.BillingCycle ?? "Monthly";
             item.FeeTypeId = request.FeeTypeId;
@@ -251,6 +340,12 @@ namespace STMM.Business.Services
 
         public async Task<bool> UpdateSystemConfigAsync(UpdateSystemConfigRequest request, CancellationToken ct = default)
         {
+            var valResult = await _updateSystemConfigValidator.ValidateAsync(request, ct);
+            if (!valResult.IsValid)
+            {
+                throw new BadRequestException(string.Join("; ", valResult.Errors.Select(e => e.ErrorMessage)));
+            }
+
             var config = await _systemConfigRepository.Query()
                 .Where(c => c.ConfigKey == request.ConfigKey)
                 .FirstOrDefaultAsync(ct);
@@ -303,9 +398,10 @@ namespace STMM.Business.Services
 
         public async Task<bool> UpdateTiersAsync(UpdateTiersRequest request, CancellationToken ct = default)
         {
-            if (request == null || request.Steps == null || !request.Steps.Any())
+            var valResult = await _updateTiersValidator.ValidateAsync(request, ct);
+            if (!valResult.IsValid)
             {
-                throw new BadRequestException("Danh sách bậc thang không được trống.");
+                throw new BadRequestException(string.Join("; ", valResult.Errors.Select(e => e.ErrorMessage)));
             }
 
             // Kiểm tra tính tăng dần liên tục và hợp lệ của các bậc thang

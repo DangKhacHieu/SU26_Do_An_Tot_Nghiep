@@ -51,9 +51,11 @@ export default function ViolationsPenalties() {
         if (u && u.userId) userIdStr = u.userId;
       } catch (e) {}
     }
+    const token = localStorage.getItem('accessToken');
+    const headers = { 'Authorization': `Bearer ${token}` };
     Promise.all([
-      fetch(`http://localhost:5056/api/violations/all?userId=${userIdStr}`).then(r => r.json()),
-      fetch('http://localhost:5056/api/violations/types/all').then(r => r.json())
+      fetch(`http://localhost:5056/api/violations/all?userId=${userIdStr}`, { headers }).then(r => { if(!r.ok) throw new Error(); return r.json(); }),
+      fetch('http://localhost:5056/api/violations/types/all', { headers }).then(r => { if(!r.ok) throw new Error(); return r.json(); })
     ])
       .then(([viols, types]) => { setViolations(viols); setViolationTypes(types); setLoading(false); })
       .catch(() => {
@@ -101,7 +103,8 @@ export default function ViolationsPenalties() {
       showNotification('success', `${isEdit ? 'Cập nhật' : 'Thêm'} loại vi phạm thành công!`);
       setActiveModal(null);
     } else {
-      fetch(url, { method: isEdit ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(typeForm) })
+      const token = localStorage.getItem('accessToken');
+      fetch(url, { method: isEdit ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify(typeForm) })
         .then(r => { if (!r.ok) throw new Error(); showNotification('success', 'Cập nhật thành công!'); setActiveModal(null); loadAllData(); })
         .catch(() => showNotification('danger', 'Không thể cập nhật loại vi phạm.'));
     }
@@ -113,7 +116,8 @@ export default function ViolationsPenalties() {
       showNotification('success', 'Đã xóa loại vi phạm!');
       setActiveModal(null);
     } else {
-      fetch(`http://localhost:5056/api/violations/types/${selectedItem.violationTypeId}`, { method: 'DELETE' })
+      const token = localStorage.getItem('accessToken');
+      fetch(`http://localhost:5056/api/violations/types/${selectedItem.violationTypeId}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } })
         .then(r => { if (!r.ok) throw new Error(); showNotification('success', 'Xóa thành công!'); setActiveModal(null); loadAllData(); })
         .catch(() => showNotification('danger', 'Thao tác xóa thất bại.'));
     }

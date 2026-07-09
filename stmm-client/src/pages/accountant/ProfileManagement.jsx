@@ -68,7 +68,7 @@ export default function ProfileManagement() {
     }
 
     // Fetch profile of accountant dynamically using logged-in user id
-    fetch(`http://localhost:5056/api/accountant/profile?userId=${currentUserId}`)
+    fetch(`http://localhost:5056/api/accountant/profile?userId=${currentUserId}`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` } })
       .then(res => {
         if (!res.ok) throw new Error('Không thể tải hồ sơ người dùng');
         return res.json();
@@ -153,7 +153,7 @@ export default function ProfileManagement() {
     } else {
       fetch(`http://localhost:5056/api/accountant/profile?userId=${profile.userId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` },
         body: JSON.stringify({
           name: tempProfile.name,
           email: tempProfile.email,
@@ -225,7 +225,7 @@ export default function ProfileManagement() {
     } else {
       fetch(`http://localhost:5056/api/accountant/profile/change-password?userId=${profile.userId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` },
         body: JSON.stringify({
           currentPassword: password.current,
           newPassword: password.new

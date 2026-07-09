@@ -35,6 +35,7 @@ export default function FinancialConfig() {
 
   // Inline feedback messages (replacing alert())
   const [toast, setToast] = useState(null); // { type: 'success'|'error', message: '' }
+  const [modalError, setModalError] = useState(null);
 
   // Modal control
   const [activeModal, setActiveModal] = useState(null); // 'fee', 'service', 'tier_add', 'tier_edit', 'sys_edit', 'confirm_delete_fee', 'confirm_delete_srv'
@@ -56,17 +57,25 @@ export default function FinancialConfig() {
     setTimeout(() => setToast(null), 3500);
   };
 
+  const closeModal = () => {
+    setActiveModal(null);
+    setModalError(null);
+    setSelectedItem(null);
+  };
+
   // Fetch all config data
   const loadAllConfigData = () => {
     setLoading(true);
     setIsMock(false);
 
+    const token = localStorage.getItem('accessToken');
+    const headers = { 'Authorization': `Bearer ${token}` };
     Promise.all([
-      fetch('http://localhost:5056/api/accountant/config/fee-types').then(r => r.json()),
-      fetch('http://localhost:5056/api/accountant/config/services').then(r => r.json()),
-      fetch('http://localhost:5056/api/accountant/config/system-configs').then(r => r.json()),
-      fetch('http://localhost:5056/api/accountant/config/tiers/electricity_tiers').then(r => r.json()),
-      fetch('http://localhost:5056/api/accountant/config/tiers/water_tiers').then(r => r.json())
+      fetch('http://localhost:5056/api/accountant/config/fee-types', { headers }).then(r => r.json()),
+      fetch('http://localhost:5056/api/accountant/config/services', { headers }).then(r => r.json()),
+      fetch('http://localhost:5056/api/accountant/config/system-configs', { headers }).then(r => r.json()),
+      fetch('http://localhost:5056/api/accountant/config/tiers/electricity_tiers', { headers }).then(r => r.json()),
+      fetch('http://localhost:5056/api/accountant/config/tiers/water_tiers', { headers }).then(r => r.json())
     ])
     .then(([fees, srvs, sys, elec, water]) => {
       setFeeTypes(fees);
@@ -131,31 +140,76 @@ export default function FinancialConfig() {
   // 1. Fee Types
   const handleFeeSubmit = (e) => {
     e.preventDefault();
+    const nameTrimmed = feeForm.name ? feeForm.name.trim() : '';
+    const unitTrimmed = feeForm.unit ? feeForm.unit.trim() : '';
+    const descTrimmed = feeForm.description ? feeForm.description.trim() : '';
+
+    if (!nameTrimmed) {
+      setModalError('Tên loại phí không được để trống.');
+      return;
+    }
+    if (nameTrimmed.length > 100) {
+      setModalError('Tên loại phí không vượt quá 100 ký tự.');
+      return;
+    }
+    if (!unitTrimmed) {
+      setModalError('Đơn vị tính không được để trống.');
+      return;
+    }
+    if (unitTrimmed.length > 50) {
+      setModalError('Đơn vị tính không vượt quá 50 ký tự.');
+      return;
+    }
+    if (descTrimmed.length > 500) {
+      setModalError('Mô tả không vượt quá 500 ký tự.');
+      return;
+    }
+
+    // Kiểm tra trùng lặp tên loại phí
     const isEdit = !!selectedItem;
+    const isDuplicate = feeTypes.some(f => {
+      const isSelf = isEdit && f.feeTypeId === selectedItem.feeTypeId;
+      return !isSelf && f.name.trim().toLowerCase() === nameTrimmed.toLowerCase();
+    });
+
+    if (isDuplicate) {
+      setModalError('Tên loại phí này đã tồn tại trong danh sách.');
+      return;
+    }
+
+    const payload = {
+      name: nameTrimmed,
+      unit: unitTrimmed,
+      description: descTrimmed
+    };
+
     const url = isEdit ? `http://localhost:5056/api/accountant/config/fee-types/${selectedItem.feeTypeId}` : 'http://localhost:5056/api/accountant/config/fee-types';
     const method = isEdit ? 'PUT' : 'POST';
 
     if (isMock) {
       if (isEdit) {
-        setFeeTypes(feeTypes.map(f => f.feeTypeId === selectedItem.feeTypeId ? { ...f, ...feeForm } : f));
+        setFeeTypes(feeTypes.map(f => f.feeTypeId === selectedItem.feeTypeId ? { ...f, ...payload } : f));
       } else {
-        setFeeTypes([...feeTypes, { feeTypeId: Math.floor(Math.random() * 100) + 10, ...feeForm }]);
+        setFeeTypes([...feeTypes, { feeTypeId: Math.floor(Math.random() * 100) + 10, ...payload }]);
       }
       showToast('success', 'Đã cập nhật loại phí (Mock)!');
-      setActiveModal(null);
+      closeModal();
     } else {
+      const token = localStorage.getItem('accessToken');
       fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(feeForm)
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify(payload)
       })
       .then(res => {
-        if (!res.ok) throw new Error('Thao tác thất bại');
+        if (!res.ok) {
+          return res.text().then(text => { throw new Error(text || 'Thao tác thất bại'); });
+        }
         showToast('success', 'Cập nhật loại phí thành công!');
-        setActiveModal(null);
+        closeModal();
         loadAllConfigData();
       })
-      .catch(err => showToast('error', err.message));
+      .catch(err => setModalError(err.message));
     }
   };
 
@@ -163,50 +217,98 @@ export default function FinancialConfig() {
     if (isMock) {
       setFeeTypes(feeTypes.filter(f => f.feeTypeId !== selectedItem.feeTypeId));
       showToast('success', 'Đã xóa loại phí (Mock)!');
-      setActiveModal(null);
+      closeModal();
     } else {
-      fetch(`http://localhost:5056/api/accountant/config/fee-types/${selectedItem.feeTypeId}`, { method: 'DELETE' })
+      const token = localStorage.getItem('accessToken');
+      fetch(`http://localhost:5056/api/accountant/config/fee-types/${selectedItem.feeTypeId}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } })
       .then(res => {
-        if (!res.ok) throw new Error('Không thể xóa loại phí này.');
+        if (!res.ok) {
+          return res.text().then(text => { throw new Error(text || 'Không thể xóa loại phí này.'); });
+        }
         showToast('success', 'Xóa loại phí thành công!');
-        setActiveModal(null);
+        closeModal();
         loadAllConfigData();
       })
-      .catch(err => showToast('error', err.message));
+      .catch(err => setModalError(err.message));
     }
   };
 
   // 2. Services
   const handleServiceSubmit = (e) => {
     e.preventDefault();
+    const nameTrimmed = serviceForm.name ? serviceForm.name.trim() : '';
+    const descTrimmed = serviceForm.description ? serviceForm.description.trim() : '';
+    const priceVal = parseFloat(serviceForm.price);
+    const feeIdVal = parseInt(serviceForm.feeTypeId);
+
+    if (!nameTrimmed) {
+      setModalError('Tên dịch vụ không được để trống.');
+      return;
+    }
+    if (nameTrimmed.length > 150) {
+      setModalError('Tên dịch vụ không vượt quá 150 ký tự.');
+      return;
+    }
+    if (isNaN(priceVal) || priceVal < 0) {
+      setModalError('Đơn giá dịch vụ phải lớn hơn hoặc bằng 0.');
+      return;
+    }
+    if (!feeIdVal || feeIdVal <= 0) {
+      setModalError('Vui lòng chọn loại phí liên kết.');
+      return;
+    }
+    if (descTrimmed.length > 500) {
+      setModalError('Mô tả dịch vụ không vượt quá 500 ký tự.');
+      return;
+    }
+
+    // Kiểm tra trùng lặp tên dịch vụ (chỉ so với dịch vụ đang hoạt động)
     const isEdit = !!selectedItem;
+    const isDuplicate = services.some(s => {
+      const isSelf = isEdit && s.serviceId === selectedItem.serviceId;
+      const isSrvActive = s.isActive !== false;
+      return !isSelf && isSrvActive && s.name.trim().toLowerCase() === nameTrimmed.toLowerCase();
+    });
+
+    if (isDuplicate) {
+      setModalError('Tên dịch vụ này đã tồn tại và đang hoạt động.');
+      return;
+    }
+
+    const isServiceActive = serviceForm.isActive !== undefined ? serviceForm.isActive : true;
+
+    const payload = isEdit 
+      ? { name: nameTrimmed, description: descTrimmed, price: priceVal, billingCycle: serviceForm.billingCycle, feeTypeId: feeIdVal, isActive: isServiceActive }
+      : { name: nameTrimmed, description: descTrimmed, price: priceVal, billingCycle: serviceForm.billingCycle, feeTypeId: feeIdVal, createdByUserId: 1 };
+
     const url = isEdit ? `http://localhost:5056/api/accountant/config/services/${selectedItem.serviceId}` : 'http://localhost:5056/api/accountant/config/services';
     const method = isEdit ? 'PUT' : 'POST';
 
-    const reqData = isEdit ? { ...serviceForm, isActive: true } : { ...serviceForm, createdByUserId: 1 };
-
     if (isMock) {
-      const mappedTypeName = feeTypes.find(f => f.feeTypeId === parseInt(serviceForm.feeTypeId))?.name || 'Phí dịch vụ';
+      const mappedTypeName = feeTypes.find(f => f.feeTypeId === feeIdVal)?.name || 'Phí dịch vụ';
       if (isEdit) {
-        setServices(services.map(s => s.serviceId === selectedItem.serviceId ? { ...s, ...serviceForm, feeTypeName: mappedTypeName } : s));
+        setServices(services.map(s => s.serviceId === selectedItem.serviceId ? { ...s, ...payload, feeTypeName: mappedTypeName } : s));
       } else {
-        setServices([...services, { serviceId: Math.floor(Math.random() * 100) + 10, ...serviceForm, feeTypeName: mappedTypeName, isActive: true }]);
+        setServices([...services, { serviceId: Math.floor(Math.random() * 100) + 10, ...payload, feeTypeName: mappedTypeName, isActive: true }]);
       }
       showToast('success', 'Đã cập nhật dịch vụ (Mock)!');
-      setActiveModal(null);
+      closeModal();
     } else {
+      const token = localStorage.getItem('accessToken');
       fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(reqData)
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify(payload)
       })
       .then(res => {
-        if (!res.ok) throw new Error('Thao tác thất bại');
+        if (!res.ok) {
+          return res.text().then(text => { throw new Error(text || 'Thao tác thất bại'); });
+        }
         showToast('success', 'Cập nhật dịch vụ thành công!');
-        setActiveModal(null);
+        closeModal();
         loadAllConfigData();
       })
-      .catch(err => showToast('error', err.message));
+      .catch(err => setModalError(err.message));
     }
   };
 
@@ -214,43 +316,55 @@ export default function FinancialConfig() {
     if (isMock) {
       setServices(services.filter(s => s.serviceId !== selectedItem.serviceId));
       showToast('success', 'Đã xóa dịch vụ (Mock)!');
-      setActiveModal(null);
+      closeModal();
     } else {
-      fetch(`http://localhost:5056/api/accountant/config/services/${selectedItem.serviceId}`, { method: 'DELETE' })
+      const token = localStorage.getItem('accessToken');
+      fetch(`http://localhost:5056/api/accountant/config/services/${selectedItem.serviceId}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } })
       .then(res => {
-        if (!res.ok) throw new Error('Không thể xóa dịch vụ này.');
+        if (!res.ok) {
+          return res.text().then(text => { throw new Error(text || 'Không thể xóa dịch vụ này.'); });
+        }
         showToast('success', 'Xóa dịch vụ thành công!');
-        setActiveModal(null);
+        closeModal();
         loadAllConfigData();
       })
-      .catch(err => showToast('error', err.message));
+      .catch(err => setModalError(err.message));
     }
   };
 
   // 3. System Config
   const handleSysSubmit = (e) => {
     e.preventDefault();
+    const val = sysForm.configValue ? sysForm.configValue.trim() : '';
+    if (!val) {
+      setModalError('Giá trị cấu hình không được để trống.');
+      return;
+    }
+
     if (isMock) {
       setSystemConfigs(systemConfigs.map(c => c.configKey === sysForm.configKey ? { ...c, configValue: sysForm.configValue } : c));
       showToast('success', 'Đã lưu cấu hình (Mock)!');
-      setActiveModal(null);
+      closeModal();
     } else {
+      const token = localStorage.getItem('accessToken');
       fetch('http://localhost:5056/api/accountant/config/system-configs', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({
           configKey: sysForm.configKey,
-          configValue: sysForm.configValue,
+          configValue: val,
           updatedByUserId: 1
         })
       })
       .then(res => {
-        if (!res.ok) throw new Error('Thất bại');
+        if (!res.ok) {
+          return res.text().then(text => { throw new Error(text || 'Thao tác cập nhật cấu hình thất bại.'); });
+        }
         showToast('success', 'Cập nhật cấu hình thành công!');
-        setActiveModal(null);
+        closeModal();
         loadAllConfigData();
       })
-      .catch(err => showToast('error', err.message));
+      .catch(err => setModalError(err.message));
     }
   };
 
@@ -259,34 +373,54 @@ export default function FinancialConfig() {
     e.preventDefault();
     const isElectric = selectedTierKey === 'electricity_tiers';
     const currentTiers = isElectric ? electricTiers : waterTiers;
-    const maxStep = currentTiers.length > 0 ? Math.max(...currentTiers.map(t => t.step)) : 0;
     
-    // Calculate From value automatically
-    let fromVal = 0;
-    if (currentTiers.length > 0) {
-      const lastStep = currentTiers.find(t => t.step === maxStep);
-      if (!lastStep || lastStep.to === null) {
-        showToast('error', 'Bậc cuối hiện tại đang là Vô hạn (Null). Hãy chỉnh sửa giới hạn của bậc trước trước khi thêm bậc mới!');
-        return;
-      }
-      fromVal = lastStep.to + 1;
-    }
-
-    const toVal = newTierLimit !== '' ? parseFloat(newTierLimit) : null;
-    if (toVal !== null && toVal <= fromVal) {
-      showToast('error', `Chỉ số giới hạn kết thúc (${toVal}) phải lớn hơn chỉ số bắt đầu (${fromVal})!`);
+    if (newTierPrice < 0) {
+      setModalError('Đơn giá bậc thang mới phải lớn hơn hoặc bằng 0.');
       return;
     }
 
-    const newStep = {
-      step: maxStep + 1,
-      from: fromVal,
-      to: toVal,
-      price: parseFloat(newTierPrice)
-    };
+    if (currentTiers.length === 0) {
+      // Bậc đầu tiên mặc định bắt đầu từ 0 đến Vô hạn
+      const newStep = {
+        step: 1,
+        from: 0,
+        to: null,
+        price: parseFloat(newTierPrice)
+      };
+      saveTiersToBackend(selectedTierKey, [newStep]);
+    } else {
+      const maxStep = Math.max(...currentTiers.map(t => t.step));
+      const lastStep = currentTiers.find(t => t.step === maxStep);
+      
+      if (!newTierLimit || newTierLimit.trim() === '') {
+        setModalError('Vui lòng nhập giới hạn kết thúc mới cho bậc hiện tại.');
+        return;
+      }
 
-    const updatedTiers = [...currentTiers, newStep];
-    saveTiersToBackend(selectedTierKey, updatedTiers);
+      const limitVal = parseInt(newTierLimit);
+      if (isNaN(limitVal) || limitVal <= lastStep.from) {
+        setModalError(`Giới hạn kết thúc mới (${limitVal}) phải là số nguyên và lớn hơn chỉ số bắt đầu của bậc cuối hiện tại (${lastStep.from}).`);
+        return;
+      }
+
+      // Cập nhật bậc cuối hiện tại và tạo bậc tiếp theo
+      const updatedTiers = currentTiers.map(t => {
+        if (t.step === maxStep) {
+          return { ...t, to: limitVal };
+        }
+        return t;
+      });
+
+      const newStep = {
+        step: maxStep + 1,
+        from: limitVal + 1,
+        to: null,
+        price: parseFloat(newTierPrice)
+      };
+
+      updatedTiers.push(newStep);
+      saveTiersToBackend(selectedTierKey, updatedTiers);
+    }
   };
 
   const saveTiersToBackend = (key, stepsList) => {
@@ -294,11 +428,12 @@ export default function FinancialConfig() {
       if (key === 'electricity_tiers') setElectricTiers(stepsList);
       else setWaterTiers(stepsList);
       showToast('success', 'Đã cập nhật biểu giá bậc thang (Mock)!');
-      setActiveModal(null);
+      closeModal();
     } else {
+      const token = localStorage.getItem('accessToken');
       fetch('http://localhost:5056/api/accountant/config/tiers', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({
           configKey: key,
           steps: stepsList,
@@ -306,12 +441,20 @@ export default function FinancialConfig() {
         })
       })
       .then(res => {
-        if (!res.ok) throw new Error('Không thể lưu bậc thang');
+        if (!res.ok) {
+          return res.text().then(text => { throw new Error(text || 'Không thể lưu bậc thang'); });
+        }
         showToast('success', 'Cấu hình biểu giá bậc thang thành công!');
-        setActiveModal(null);
+        closeModal();
         loadAllConfigData();
       })
-      .catch(err => showToast('error', err.message));
+      .catch(err => {
+        if (activeModal) {
+          setModalError(err.message);
+        } else {
+          showToast('error', err.message);
+        }
+      });
     }
   };
 
@@ -766,7 +909,7 @@ export default function FinancialConfig() {
                   className="btn btn-primary btn-sm"
                   onClick={() => {
                     setSelectedItem(null);
-                    setServiceForm({ name: '', description: '', price: 50000, billingCycle: 'Monthly', feeTypeId: feeTypes[0]?.feeTypeId || 1 });
+                    setServiceForm({ name: '', description: '', price: 50000, billingCycle: 'Monthly', feeTypeId: feeTypes[0]?.feeTypeId || 1, isActive: true });
                     setActiveModal('service');
                   }}
                 >
@@ -783,32 +926,40 @@ export default function FinancialConfig() {
                     <th>Chu kỳ</th>
                     <th className="text-right">Đơn giá dịch vụ</th>
                     <th>Mô tả</th>
+                    <th>Trạng thái</th>
                     <th className="text-right">Thao tác</th>
                   </tr>
                 </thead>
                 <tbody>
                   {services.slice((servicesPage - 1) * itemsPerPage, servicesPage * itemsPerPage).map(s => (
-                    <tr key={s.serviceId}>
+                    <tr key={s.serviceId} style={{ opacity: s.isActive === false ? 0.6 : 1 }}>
                       <td style={{ fontWeight: '700', color: 'var(--text-title)' }}>{s.name}</td>
                       <td>
                         <span className="badge badge-primary">{s.feeTypeName}</span>
                       </td>
                       <td>
                         <span className="badge badge-neutral">
-                          {s.billingCycle === 'Monthly' ? 'Hàng tháng' : s.billingCycle}
+                          {s.billingCycle === 'Monthly' ? 'Hàng tháng' : s.billingCycle === 'One-time' ? 'Một lần' : 'Hàng năm'}
                         </span>
                       </td>
                       <td className="text-right" style={{ fontWeight: '800', color: 'var(--primary)', letterSpacing: '-0.02em' }}>
                         {s.price.toLocaleString('vi-VN')} ₫
                       </td>
                       <td style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>{s.description}</td>
+                      <td>
+                        {s.isActive !== false ? (
+                          <span className="badge badge-success" style={{ backgroundColor: '#e6f4ea', color: '#137333' }}>Đang hoạt động</span>
+                        ) : (
+                          <span className="badge badge-neutral" style={{ backgroundColor: '#f1f3f4', color: '#5f6368' }}>Ngừng hoạt động</span>
+                        )}
+                      </td>
                       <td className="text-right">
                         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px' }}>
                           <button
                             className="btn btn-ghost btn-sm"
                             onClick={() => {
                               setSelectedItem(s);
-                              setServiceForm({ name: s.name, description: s.description || '', price: s.price, billingCycle: s.billingCycle, feeTypeId: s.feeTypeId });
+                              setServiceForm({ name: s.name, description: s.description || '', price: s.price, billingCycle: s.billingCycle, feeTypeId: s.feeTypeId, isActive: s.isActive ?? true });
                               setActiveModal('service');
                             }}
                             title="Chỉnh sửa"
@@ -822,7 +973,7 @@ export default function FinancialConfig() {
                               setSelectedItem(s);
                               setActiveModal('confirm_delete_srv');
                             }}
-                            title="Xóa"
+                            title="Ngừng hoạt động"
                           >
                             <Trash2 size={14} />
                           </button>
@@ -882,12 +1033,18 @@ export default function FinancialConfig() {
               <h2 className="modal-title">
                 {selectedItem ? 'Chỉnh sửa loại phí' : 'Thêm loại phí mới'}
               </h2>
-              <button className="modal-close-btn" onClick={() => setActiveModal(null)}>
+              <button className="modal-close-btn" onClick={closeModal}>
                 <X size={17} />
               </button>
             </div>
             <form onSubmit={handleFeeSubmit}>
               <div className="modal-body">
+                {modalError && (
+                  <div className="alert alert-danger" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+                    <AlertTriangle size={16} className="alert-icon" style={{ flexShrink: 0 }} />
+                    <span>{modalError}</span>
+                  </div>
+                )}
                 <div>
                   <label className="form-label">Tên loại phí <span style={{ color: 'var(--danger)' }}>*</span></label>
                   <input
@@ -921,7 +1078,7 @@ export default function FinancialConfig() {
                 </div>
               </div>
               <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={() => setActiveModal(null)}>
+                <button type="button" className="btn btn-secondary" onClick={closeModal}>
                   Hủy
                 </button>
                 <button type="submit" className="btn btn-primary">
@@ -940,11 +1097,17 @@ export default function FinancialConfig() {
           <div className="modal-container modal-container-sm">
             <div className="modal-header">
               <h2 className="modal-title">Xác nhận xóa loại phí</h2>
-              <button className="modal-close-btn" onClick={() => setActiveModal(null)}>
+              <button className="modal-close-btn" onClick={closeModal}>
                 <X size={17} />
               </button>
             </div>
             <div className="modal-body">
+              {modalError && (
+                <div className="alert alert-danger" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+                  <AlertTriangle size={16} className="alert-icon" style={{ flexShrink: 0 }} />
+                  <span>{modalError}</span>
+                </div>
+              )}
               <div className="alert alert-danger" style={{ marginBottom: 0 }}>
                 <AlertTriangle size={17} className="alert-icon" />
                 <span>
@@ -954,7 +1117,7 @@ export default function FinancialConfig() {
               </div>
             </div>
             <div className="modal-footer">
-              <button className="btn btn-secondary" onClick={() => setActiveModal(null)}>Hủy</button>
+              <button className="btn btn-secondary" onClick={closeModal}>Hủy</button>
               <button className="btn btn-danger" onClick={deleteFeeType}>
                 <Trash2 size={14} />
                 Xác nhận xóa
@@ -972,12 +1135,18 @@ export default function FinancialConfig() {
               <h2 className="modal-title">
                 {selectedItem ? 'Chỉnh sửa dịch vụ' : 'Thêm dịch vụ mới'}
               </h2>
-              <button className="modal-close-btn" onClick={() => setActiveModal(null)}>
+              <button className="modal-close-btn" onClick={closeModal}>
                 <X size={17} />
               </button>
             </div>
             <form onSubmit={handleServiceSubmit}>
               <div className="modal-body">
+                {modalError && (
+                  <div className="alert alert-danger" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+                    <AlertTriangle size={16} className="alert-icon" style={{ flexShrink: 0 }} />
+                    <span>{modalError}</span>
+                  </div>
+                )}
                 <div>
                   <label className="form-label">Tên dịch vụ <span style={{ color: 'var(--danger)' }}>*</span></label>
                   <input
@@ -1028,6 +1197,20 @@ export default function FinancialConfig() {
                   </select>
                 </div>
 
+                {selectedItem && (
+                  <div>
+                    <label className="form-label">Trạng thái hoạt động</label>
+                    <select
+                      className="form-select"
+                      value={serviceForm.isActive ? "true" : "false"}
+                      onChange={e => setServiceForm({ ...serviceForm, isActive: e.target.value === "true" })}
+                    >
+                      <option value="true">Đang hoạt động</option>
+                      <option value="false">Ngừng hoạt động</option>
+                    </select>
+                  </div>
+                )}
+
                 <div>
                   <label className="form-label">Mô tả dịch vụ</label>
                   <textarea
@@ -1040,7 +1223,7 @@ export default function FinancialConfig() {
                 </div>
               </div>
               <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={() => setActiveModal(null)}>Hủy</button>
+                <button type="button" className="btn btn-secondary" onClick={closeModal}>Hủy</button>
                 <button type="submit" className="btn btn-primary">
                   <Save size={14} />
                   Lưu dịch vụ
@@ -1057,11 +1240,17 @@ export default function FinancialConfig() {
           <div className="modal-container modal-container-sm">
             <div className="modal-header">
               <h2 className="modal-title">Xác nhận ngừng dịch vụ</h2>
-              <button className="modal-close-btn" onClick={() => setActiveModal(null)}>
+              <button className="modal-close-btn" onClick={closeModal}>
                 <X size={17} />
               </button>
             </div>
             <div className="modal-body">
+              {modalError && (
+                <div className="alert alert-danger" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+                  <AlertTriangle size={16} className="alert-icon" style={{ flexShrink: 0 }} />
+                  <span>{modalError}</span>
+                </div>
+              )}
               <div className="alert alert-warning" style={{ marginBottom: 0 }}>
                 <AlertTriangle size={17} className="alert-icon" />
                 <div>
@@ -1073,7 +1262,7 @@ export default function FinancialConfig() {
               </div>
             </div>
             <div className="modal-footer">
-              <button className="btn btn-secondary" onClick={() => setActiveModal(null)}>Hủy</button>
+              <button className="btn btn-secondary" onClick={closeModal}>Hủy</button>
               <button className="btn btn-danger" onClick={deleteService}>
                 <Trash2 size={14} />
                 Ngừng hoạt động
@@ -1089,12 +1278,18 @@ export default function FinancialConfig() {
           <div className="modal-container modal-container-sm">
             <div className="modal-header">
               <h2 className="modal-title">Chỉnh sửa tham số hệ thống</h2>
-              <button className="modal-close-btn" onClick={() => setActiveModal(null)}>
+              <button className="modal-close-btn" onClick={closeModal}>
                 <X size={17} />
               </button>
             </div>
             <form onSubmit={handleSysSubmit}>
               <div className="modal-body">
+                {modalError && (
+                  <div className="alert alert-danger" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+                    <AlertTriangle size={16} className="alert-icon" style={{ flexShrink: 0 }} />
+                    <span>{modalError}</span>
+                  </div>
+                )}
                 <div style={{
                   padding: '12px 14px',
                   backgroundColor: 'var(--bg-base)',
@@ -1155,7 +1350,7 @@ export default function FinancialConfig() {
                 </div>
               </div>
               <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={() => setActiveModal(null)}>Hủy</button>
+                <button type="button" className="btn btn-secondary" onClick={closeModal}>Hủy</button>
                 <button type="submit" className="btn btn-primary">
                   <Save size={14} />
                   Lưu cấu hình
@@ -1174,51 +1369,84 @@ export default function FinancialConfig() {
               <h2 className="modal-title">
                 Thêm bậc giá {selectedTierKey === 'electricity_tiers' ? 'Điện' : 'Nước'} mới
               </h2>
-              <button className="modal-close-btn" onClick={() => setActiveModal(null)}>
+              <button className="modal-close-btn" onClick={closeModal}>
                 <X size={17} />
               </button>
             </div>
-            <form onSubmit={handleAddTierStep}>
-              <div className="modal-body">
-                <div className="alert alert-info" style={{ marginBottom: 0 }}>
-                  <Info size={16} className="alert-icon" />
-                  <span>
-                    Chỉ số bắt đầu của bậc này sẽ tự động được gán bằng chỉ số kết thúc của bậc trước + 1.
-                  </span>
-                </div>
+            {(() => {
+              const currentTiers = selectedTierKey === 'electricity_tiers' ? electricTiers : waterTiers;
+              const hasTiers = currentTiers.length > 0;
+              const lastStep = hasTiers ? currentTiers[currentTiers.length - 1] : null;
 
-                <div>
-                  <label className="form-label">Chỉ số giới hạn kết thúc (To)</label>
-                  <input
-                    className="form-input"
-                    type="number"
-                    placeholder="Để trống nếu là bậc không giới hạn (Vô hạn)"
-                    value={newTierLimit}
-                    onChange={e => setNewTierLimit(e.target.value)}
-                  />
-                </div>
+              return (
+                <form onSubmit={handleAddTierStep}>
+                  <div className="modal-body">
+                    {modalError && (
+                      <div className="alert alert-danger" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+                        <AlertTriangle size={16} className="alert-icon" style={{ flexShrink: 0 }} />
+                        <span>{modalError}</span>
+                      </div>
+                    )}
+                    {hasTiers ? (
+                      <div className="alert alert-info" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <Info size={16} className="alert-icon" />
+                          <span><strong>Cập nhật bậc thang:</strong></span>
+                        </div>
+                        <span style={{ fontSize: '12.5px' }}>
+                          Bậc {lastStep.step} hiện tại (từ {lastStep.from} đến Vô cùng) sẽ được gán giới hạn kết thúc mới.
+                          Bậc {lastStep.step + 1} mới sẽ tự động được tạo và áp dụng từ giới hạn đó + 1 đến **Vô cùng**.
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="alert alert-info">
+                        <Info size={16} className="alert-icon" />
+                        <span>Bậc đầu tiên (Bậc 1) sẽ tự động bắt đầu từ 0 đến Vô cùng.</span>
+                      </div>
+                    )}
 
-                <div>
-                  <label className="form-label">
-                    Đơn giá áp dụng (đ/{selectedTierKey === 'electricity_tiers' ? 'kWh' : 'm³'}) <span style={{ color: 'var(--danger)' }}>*</span>
-                  </label>
-                  <input
-                    className="form-input"
-                    type="number"
-                    required
-                    value={newTierPrice}
-                    onChange={e => setNewTierPrice(parseFloat(e.target.value) || 0)}
-                  />
-                </div>
-              </div>
-              <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={() => setActiveModal(null)}>Hủy</button>
-                <button type="submit" className="btn btn-primary">
-                  <Plus size={14} />
-                  Xác nhận thêm bậc
-                </button>
-              </div>
-            </form>
+                    {hasTiers && (
+                      <div>
+                        <label className="form-label">
+                          Giới hạn kết thúc mới cho Bậc {lastStep.step} <span style={{ color: 'var(--danger)' }}>*</span>
+                        </label>
+                        <input
+                          className="form-input"
+                          type="number"
+                          required
+                          min={lastStep.from + 1}
+                          placeholder={`Nhập số lớn hơn ${lastStep.from}`}
+                          value={newTierLimit}
+                          onChange={e => setNewTierLimit(e.target.value)}
+                        />
+                      </div>
+                    )}
+
+                    <div>
+                      <label className="form-label">
+                        Đơn giá áp dụng cho {hasTiers ? `Bậc ${lastStep.step + 1} mới (từ ${newTierLimit ? parseInt(newTierLimit) + 1 : '...'} trở đi)` : 'Bậc 1 (từ 0 trở đi)'} (đ/{selectedTierKey === 'electricity_tiers' ? 'kWh' : 'm³'}) <span style={{ color: 'var(--danger)' }}>*</span>
+                      </label>
+                      <input
+                        className="form-input"
+                        type="number"
+                        required
+                        min="0"
+                        placeholder="Nhập đơn giá..."
+                        value={newTierPrice}
+                        onChange={e => setNewTierPrice(parseFloat(e.target.value) || 0)}
+                      />
+                    </div>
+                  </div>
+                  <div className="modal-footer">
+                    <button type="button" className="btn btn-secondary" onClick={closeModal}>Hủy</button>
+                    <button type="submit" className="btn btn-primary">
+                      <Plus size={14} />
+                      Xác nhận thêm bậc
+                    </button>
+                  </div>
+                </form>
+              );
+            })()}
           </div>
         </div>
       )}

@@ -110,6 +110,18 @@ namespace STMM.Business.Services
         }
 
         /// <inheritdoc />
+        public async Task<TaskDto> GetTaskByIdForStaffAsync(int taskId, int staffUserId, CancellationToken ct = default)
+        {
+            var task = await GetTaskByIdAsync(taskId, ct);
+            if (task.AssignedToUserId != staffUserId)
+            {
+                throw new ForbiddenException("You are not assigned to this task.");
+            }
+
+            return task;
+        }
+
+        /// <inheritdoc />
         public async Task<TaskDto> CreateTaskAsync(int managerUserId, CreateTaskRequest req, CancellationToken ct = default)
         {
             var validationResult = await _createValidator.ValidateAsync(req, ct);
@@ -220,12 +232,33 @@ namespace STMM.Business.Services
 
             if (oldStatus == "PendingApproval" && task.RequestId.HasValue)
             {
-                throw new BadRequestException("Báo giá của tác vụ liên kết với Yêu cầu sửa chữa (Request) phải do Vendor phê duyệt trực tuyến.");
+                var request = await _requestRepository.GetByIdAsync(task.RequestId.Value, ct);
+                if (request == null || request.PaidBy != "Market")
+                {
+                    throw new BadRequestException("Báo giá của tác vụ liên kết với Yêu cầu sửa chữa (Request) phải do Vendor phê duyệt trực tuyến.");
+                }
+
+                if (newStatus == "In_Progress")
+                {
+                    request.IsQuoteApproved = true;
+                    request.Status = "Approved";
+                    request.QuotationAmount = task.ActualCost;
+                    request.UpdatedAt = DateTime.UtcNow;
+                    _requestRepository.Update(request);
+                }
+                else if (newStatus == "Pending")
+                {
+                    request.IsQuoteApproved = false;
+                    request.Status = "Pending";
+                    request.UpdatedAt = DateTime.UtcNow;
+                    _requestRepository.Update(request);
+                }
             }
 
             bool isValid = false;
             if (oldStatus == "Pending" && newStatus == "Cancelled") isValid = true;
             else if (oldStatus == "PendingApproval" && newStatus == "In_Progress") isValid = true;
+            else if (oldStatus == "PendingApproval" && newStatus == "Pending") isValid = true;
             else if (oldStatus == "PendingApproval" && newStatus == "Cancelled") isValid = true;
             else if (oldStatus == "In_Progress" && newStatus == "Cancelled") isValid = true;
 
@@ -235,6 +268,18 @@ namespace STMM.Business.Services
             }
 
             task.Status = newStatus;
+
+            if (oldStatus == "PendingApproval" && newStatus == "Pending")
+            {
+                await _notificationService.CreateAsync(new CreateNotificationRequest
+                {
+                    Title = "Quotation Rejected",
+                    Content = $"Quotation for task \"{task.Title}\" has been rejected. Please update materials and resubmit.",
+                    NotiType = "System",
+                    CreatedByUserId = task.AssignedToUserId,
+                    TargetUserId = task.AssignedToUserId
+                }, ct);
+            }
 
             if (newStatus == "Cancelled")
             {
@@ -253,6 +298,11 @@ namespace STMM.Business.Services
                     if (request != null)
                     {
                         request.Status = "Rejected";
+                        if (oldStatus == "PendingApproval")
+                        {
+                            request.IsQuoteApproved = false;
+                        }
+                        request.UpdatedAt = DateTime.UtcNow;
                         _requestRepository.Update(request);
                     }
                 }

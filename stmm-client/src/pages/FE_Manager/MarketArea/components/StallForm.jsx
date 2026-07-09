@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { createStall, updateStall, updateStallStatus, updateStallLocation } from '../api/stallApi';
+import { createStall, updateStall, updateStallStatus, updateStallLocation, getUnassignedMeters } from '../api/stallApi';
 import { getAllCategories } from '../api/categoryApi';
 import styles from './MarketAreaForm.module.css';
 
@@ -34,7 +34,6 @@ const StallForm = ({ initialData, areaId, areaWidth, areaHeight, onSave, onCance
         const fetchMeters = async () => {
             try {
                 if (!initialData) {
-                    const { getUnassignedMeters } = await import('../api/stallApi');
                     const eMeters = await getUnassignedMeters('Electricity');
                     const wMeters = await getUnassignedMeters('Water');
                     setUnassignedElectricityMeters(eMeters);

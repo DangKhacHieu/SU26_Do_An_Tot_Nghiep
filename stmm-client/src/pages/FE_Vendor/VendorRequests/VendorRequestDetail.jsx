@@ -5,6 +5,7 @@ const VendorRequestDetail = ({ requestId, onBack, onSuccess }) => {
     const [request, setRequest] = useState(null);
     const [loading, setLoading] = useState(true);
     const [isCancelling, setIsCancelling] = useState(false);
+    const [isResolvingQuote, setIsResolvingQuote] = useState(false);
 
     useEffect(() => {
         const fetchRequestDetail = async () => {
@@ -47,6 +48,31 @@ const VendorRequestDetail = ({ requestId, onBack, onSuccess }) => {
             alert(msg);
         } finally {
             setIsCancelling(false);
+        }
+    };
+
+    const handleResolveQuote = async (approve) => {
+        const confirmMsg = approve 
+            ? 'Bạn có chắc chắn muốn DUYỆT báo giá này và ĐỒNG Ý chi trả chi phí sửa chữa không?' 
+            : 'Bạn có chắc chắn muốn TỪ CHỐI báo giá này không?';
+        if (!window.confirm(confirmMsg)) {
+            return;
+        }
+
+        setIsResolvingQuote(true);
+        try {
+            const token = localStorage.getItem('accessToken');
+            await axios.post(`http://localhost:5056/api/vendor/requests/${requestId}/resolve-quote?approve=${approve}`, {}, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            alert(approve ? 'Đã duyệt báo giá thành công.' : 'Đã từ chối báo giá thành công.');
+            onSuccess();
+        } catch (err) {
+            console.error('Lỗi khi xử lý báo giá:', err);
+            const msg = err.response?.data?.message || 'Có lỗi xảy ra khi xử lý báo giá.';
+            alert(msg);
+        } finally {
+            setIsResolvingQuote(false);
         }
     };
 
@@ -177,6 +203,44 @@ const VendorRequestDetail = ({ requestId, onBack, onSuccess }) => {
                         disabled={isCancelling}
                         style={{ background: '#fee2e2', color: '#991b1b', border: '1px solid #f87171', padding: '12px 24px', borderRadius: '6px', fontWeight: 'bold', cursor: isCancelling ? 'not-allowed' : 'pointer', transition: 'background 0.2s' }}>
                         {isCancelling ? 'Đang hủy...' : 'Hủy Yêu Cầu Này'}
+                    </button>
+                </div>
+            )}
+
+            {/* Vendor Quotation Approval Actions */}
+            {request.status === 'Quoted' && request.paidBy === 'Vendor' && request.isQuoteApproved === null && (
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '24px', borderTop: '1px solid #e5e7eb', paddingTop: '24px' }}>
+                    <button
+                        onClick={() => handleResolveQuote(true)}
+                        disabled={isResolvingQuote}
+                        style={{
+                            background: '#10b981',
+                            color: '#ffffff',
+                            border: 'none',
+                            padding: '12px 24px',
+                            borderRadius: '6px',
+                            fontWeight: 'bold',
+                            cursor: isResolvingQuote ? 'not-allowed' : 'pointer',
+                            transition: 'background 0.2s'
+                        }}
+                    >
+                        Duyệt báo giá & Đồng ý sửa chữa
+                    </button>
+                    <button
+                        onClick={() => handleResolveQuote(false)}
+                        disabled={isResolvingQuote}
+                        style={{
+                            background: '#ef4444',
+                            color: '#ffffff',
+                            border: 'none',
+                            padding: '12px 24px',
+                            borderRadius: '6px',
+                            fontWeight: 'bold',
+                            cursor: isResolvingQuote ? 'not-allowed' : 'pointer',
+                            transition: 'background 0.2s'
+                        }}
+                    >
+                        Từ chối báo giá
                     </button>
                 </div>
             )}

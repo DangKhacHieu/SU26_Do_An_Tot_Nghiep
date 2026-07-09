@@ -10,5 +10,6 @@ namespace STMM.Business.Interfaces
         Task<RequestDto?> GetRequestDetailAsync(int vendorId, int requestId);
         Task<RequestDto> CreateRequestAsync(int vendorId, CreateRequestDto dto);
         Task<bool> CancelRequestAsync(int vendorId, int requestId);
+        Task<RequestDto> ResolveRequestQuoteForVendorAsync(int vendorId, int requestId, bool approve, CancellationToken ct = default);
     }
 }

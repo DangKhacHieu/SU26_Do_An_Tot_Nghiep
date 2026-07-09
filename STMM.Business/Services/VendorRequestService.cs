@@ -18,13 +18,20 @@ namespace STMM.Business.Services
         private readonly IRequestRepository _requestRepository;
         private readonly IContractRepository _contractRepository;
         private readonly IViolationRepository _violationRepository;
+        private readonly IStaffTaskRepository _staffTaskRepository;
         private readonly IMapper _mapper;
 
-        public VendorRequestService(IRequestRepository requestRepository, IContractRepository contractRepository, IViolationRepository violationRepository, IMapper mapper)
+        public VendorRequestService(
+            IRequestRepository requestRepository, 
+            IContractRepository contractRepository, 
+            IViolationRepository violationRepository, 
+            IStaffTaskRepository staffTaskRepository,
+            IMapper mapper)
         {
             _requestRepository = requestRepository;
             _contractRepository = contractRepository;
             _violationRepository = violationRepository;
+            _staffTaskRepository = staffTaskRepository;
             _mapper = mapper;
         }
 
@@ -137,6 +144,53 @@ namespace STMM.Business.Services
             await _requestRepository.SaveChangesAsync();
 
             return true;
+        }
+
+        public async Task<RequestDto> ResolveRequestQuoteForVendorAsync(int vendorId, int requestId, bool approve, CancellationToken ct = default)
+        {
+            var request = await _requestRepository.GetByIdAsync(requestId, ct);
+            if (request == null || request.VendorId != vendorId)
+            {
+                throw new NotFoundException($"Không tìm thấy yêu cầu sửa chữa ID {requestId}.");
+            }
+
+            if (request.PaidBy != "Vendor")
+            {
+                throw new BadRequestException("Yêu cầu này không do tiểu thương chi trả nên không thể phê duyệt.");
+            }
+
+            request.IsQuoteApproved = approve;
+            request.Status = approve ? "Approved" : "Rejected";
+            request.UpdatedAt = DateTime.UtcNow;
+
+            // Synchronize linked staff task status
+            var tasks = await _staffTaskRepository.FindAsync(t => t.RequestId == requestId, ct);
+            foreach (var task in tasks)
+            {
+                if (approve)
+                {
+                    if (task.Status == "PendingApproval")
+                    {
+                        task.Status = "In_Progress";
+                        _staffTaskRepository.Update(task);
+                    }
+                }
+                else
+                {
+                    if (task.Status == "PendingApproval" || task.Status == "Pending" || task.Status == "In_Progress")
+                    {
+                        task.Status = "Cancelled";
+                        _staffTaskRepository.Update(task);
+                    }
+                }
+            }
+            await _staffTaskRepository.SaveChangesAsync(ct);
+
+            _requestRepository.Update(request);
+            await _requestRepository.SaveChangesAsync(ct);
+
+            var requestWithRelations = await _requestRepository.GetRequestWithRelationsAsync(requestId, ct);
+            return _mapper.Map<RequestDto>(requestWithRelations!);
         }
     }
 }

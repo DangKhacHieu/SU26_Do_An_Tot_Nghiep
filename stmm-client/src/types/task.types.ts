@@ -6,6 +6,8 @@ export interface TaskSummaryDto {
   issueId: number | null;
   areaId?: number | null;
   areaName?: string | null;
+  stallId?: number | null;
+  stallCode?: string | null;
   taskType: 'Repair' | 'Maintenance' | 'UtilityReading' | 'CashCollection';
   title: string;
   status: 'Pending' | 'PendingApproval' | 'In_Progress' | 'Completed' | 'Cancelled';
@@ -28,6 +30,7 @@ export interface TaskDto extends TaskSummaryDto {
   imageBeforeUrl: string | null;
   imageAfterUrl: string | null;
   materials: TaskMaterialDto[];
+  requestPaidBy?: string | null;
 }
 
 export interface CreateTaskRequest {

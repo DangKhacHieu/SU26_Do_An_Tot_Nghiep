@@ -54,7 +54,7 @@ export default function PeriodicInvoices() {
       } catch (e) {}
     }
     const q = new URLSearchParams({ month: month || '', year: year || '', status: status !== 'all' ? status : '', search: search || '', userId: userIdStr }).toString();
-    fetch(`http://localhost:5056/api/accountant/billing/invoices?${q}`)
+    fetch(`http://localhost:5056/api/accountant/billing/invoices?${q}`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` } })
       .then(res => { if (!res.ok) throw new Error(); return res.json(); })
       .then(data => { setInvoices(data); setIsMock(false); setLoading(false); })
       .catch(() => {
@@ -82,7 +82,7 @@ export default function PeriodicInvoices() {
 
   const openDetails = (invoice) => {
     if (isMock) { setSelectedInvoice(invoice); setActiveModal('details'); }
-    else fetch(`http://localhost:5056/api/accountant/billing/invoices/${invoice.invoiceId}`)
+    else fetch(`http://localhost:5056/api/accountant/billing/invoices/${invoice.invoiceId}`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` } })
       .then(r => r.json()).then(d => { setSelectedInvoice(d); setActiveModal('details'); })
       .catch(() => { setSelectedInvoice(invoice); setActiveModal('details'); });
   };
@@ -113,7 +113,7 @@ export default function PeriodicInvoices() {
       setActiveModal(null);
     } else {
       fetch(`http://localhost:5056/api/accountant/billing/meter-readings/adjust?userId=1`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` },
         body: JSON.stringify({ stallId: adjustForm.stallId, meterType: adjustForm.meterType, month: selectedInvoice.month, year: selectedInvoice.year, oldValue: adjustForm.oldValue, newValue: adjustForm.newValue })
       }).then(r => { if (!r.ok) throw new Error(); showNotification('success', 'Cập nhật thành công!'); setActiveModal(null); fetchInvoices(); })
         .catch(() => showNotification('danger', 'Có lỗi khi cập nhật chỉ số.'));
@@ -127,7 +127,7 @@ export default function PeriodicInvoices() {
       showNotification('success', 'Tạo hóa đơn đột xuất thành công!');
       setActiveModal(null);
     } else {
-      fetch('http://localhost:5056/api/accountant/billing/invoices/ad-hoc', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(adhocForm) })
+      fetch('http://localhost:5056/api/accountant/billing/invoices/ad-hoc', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` }, body: JSON.stringify(adhocForm) })
         .then(r => { if (!r.ok) throw new Error(); showNotification('success', 'Phát hành hóa đơn đột xuất thành công!'); setActiveModal(null); fetchInvoices(); })
         .catch(() => showNotification('danger', 'Lỗi khi tạo hóa đơn.'));
     }
@@ -139,7 +139,7 @@ export default function PeriodicInvoices() {
       setSelectedIds([]); setActiveModal(null);
       showNotification('success', `Đã phát hành ${selectedIds.length} hóa đơn thành công!`);
     } else {
-      fetch('http://localhost:5056/api/accountant/billing/invoices/bulk-approve', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ invoiceIds: selectedIds }) })
+      fetch('http://localhost:5056/api/accountant/billing/invoices/bulk-approve', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` }, body: JSON.stringify({ invoiceIds: selectedIds }) })
         .then(r => { if (!r.ok) throw new Error(); showNotification('success', `Phê duyệt ${selectedIds.length} hóa đơn thành công!`); setSelectedIds([]); setActiveModal(null); fetchInvoices(); })
         .catch(() => showNotification('danger', 'Lỗi khi phê duyệt hàng loạt.'));
     }
