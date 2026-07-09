@@ -24,13 +24,13 @@ namespace STMM.API.Controllers
         public async Task<IActionResult> GetMyStalls()
         {
             var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (!int.TryParse(userIdStr, out int vendorId))
+            if (!int.TryParse(userIdStr, out int userId))
             {
                 return Unauthorized();
             }
 
             var stalls = await _context.Contracts
-                .Where(c => c.VendorId == vendorId && c.Status == "Active" && c.IsDeleted != true)
+                .Where(c => c.Vendor.UserId == userId && c.Status == "Active" && c.IsDeleted != true)
                 .Include(c => c.Stall)
                 .Select(c => new { 
                     StallId = c.Stall.StallId,

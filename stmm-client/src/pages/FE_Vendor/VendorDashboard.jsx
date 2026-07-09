@@ -8,7 +8,7 @@ import VendorViolationList from "./VendorViolations/VendorViolationList";
 import VendorProfile from "./VendorProfile";
 import VendorBillsList from "./VendorBills/VendorBillsList";
 import VendorNotificationList from "./VendorNotifications/VendorNotificationList";
-import notificationService from "../../../services/notificationService";
+import notificationService from "../../services/notificationService";
 
 // Icons
 const IconHome = () => (
