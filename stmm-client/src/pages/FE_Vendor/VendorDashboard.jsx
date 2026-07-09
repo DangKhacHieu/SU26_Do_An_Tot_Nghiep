@@ -6,6 +6,7 @@ import VendorMyServices from "../FE_Vendor/VendorServices/VendorMyServices";
 import VendorRequestList from "./VendorRequests/VendorRequestList";
 import VendorViolationList from "./VendorViolations/VendorViolationList";
 import VendorProfile from "./VendorProfile";
+import VendorBillsList from "./VendorBills/VendorBillsList";
 
 // Icons
 const IconHome = () => (
