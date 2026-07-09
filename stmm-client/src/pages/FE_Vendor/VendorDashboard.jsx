@@ -6,6 +6,9 @@ import VendorMyServices from "../FE_Vendor/VendorServices/VendorMyServices";
 import VendorRequestList from "./VendorRequests/VendorRequestList";
 import VendorViolationList from "./VendorViolations/VendorViolationList";
 import VendorProfile from "./VendorProfile";
+import VendorBillsList from "./VendorBills/VendorBillsList";
+import VendorNotificationList from "./VendorNotifications/VendorNotificationList";
+import notificationService from "../../../services/notificationService";
 
 // Icons
 const IconHome = () => (
@@ -87,6 +90,7 @@ function VendorDashboard({ user, onBack, onLogout }) {
   const [serviceTab, setServiceTab] = useState('AVAILABLE'); // 'AVAILABLE' | 'MY_SERVICES'
   const [rentedStalls, setRentedStalls] = useState([]);
   const [selectedStallId, setSelectedStallId] = useState('ALL');
+  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
 
   useEffect(() => {
     const fetchStalls = async () => {
@@ -101,6 +105,19 @@ function VendorDashboard({ user, onBack, onLogout }) {
       }
     };
     if (user) fetchStalls();
+  }, [user]);
+
+  useEffect(() => {
+    const fetchUnreadCount = async () => {
+      try {
+        const data = await notificationService.getNotifications();
+        const unread = (data || []).filter(n => !n.isRead).length;
+        setUnreadNotificationCount(unread);
+      } catch (err) {
+        console.error("Failed to fetch notifications", err);
+      }
+    };
+    if (user) fetchUnreadCount();
   }, [user]);
 
   const MENU_ITEMS = [
@@ -203,7 +220,28 @@ function VendorDashboard({ user, onBack, onLogout }) {
               />
             </div>
             <div className="vendor-topbar-icons">
-              <IconNotifications />
+              <div 
+                style={{ cursor: 'pointer', position: 'relative' }} 
+                onClick={() => setActiveMenu('NOTIFICATIONS')}
+              >
+                <IconNotifications />
+                {unreadNotificationCount > 0 && (
+                  <span style={{
+                    position: 'absolute',
+                    top: '-4px',
+                    right: '-4px',
+                    background: '#ef4444',
+                    color: 'white',
+                    fontSize: '10px',
+                    fontWeight: 'bold',
+                    padding: '2px 6px',
+                    borderRadius: '10px',
+                    border: '2px solid white'
+                  }}>
+                    {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
+                  </span>
+                )}
+              </div>
               <div style={{ cursor: 'pointer' }} onClick={() => setActiveMenu('PROFILE')}>
                   <IconUser />
               </div>
@@ -319,7 +357,7 @@ function VendorDashboard({ user, onBack, onLogout }) {
 
           {activeMenu === 'NOTIFICATIONS' && (
             <div style={{ height: '100%' }}>
-              <div>NOTIFICATIONS</div>
+              <VendorNotificationList onUpdateUnreadCount={setUnreadNotificationCount} />
             </div>
           )}
 
