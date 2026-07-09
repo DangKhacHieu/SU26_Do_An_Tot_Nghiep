@@ -8,6 +8,7 @@ import VendorViolationList from "./VendorViolations/VendorViolationList";
 import VendorProfile from "./VendorProfile";
 import VendorBillsList from "./VendorBills/VendorBillsList";
 import VendorNotificationList from "./VendorNotifications/VendorNotificationList";
+import VendorFeedbackList from "./VendorFeedbacks/VendorFeedbackList";
 import notificationService from "../../services/notificationService";
 
 // Icons
@@ -351,7 +352,7 @@ function VendorDashboard({ user, onBack, onLogout }) {
 
           {activeMenu === 'FEEDBACK' && (
             <div style={{ height: '100%' }}>
-              <div>FEEDBACK</div>
+              <VendorFeedbackList stallId={selectedStallId} rentedStalls={rentedStalls} />
             </div>
           )}
 
