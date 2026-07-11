@@ -50,5 +50,45 @@ namespace STMM.DataAccess.Repositories
                 .AsNoTracking()
                 .ToListAsync(ct);
         }
+
+        public async Task<List<Invoice>> GetInvoicesByVendorAsync(int userId, int? stallId, int? month, int? year, CancellationToken ct = default)
+        {
+            var query = _context.Invoices
+                .Include(i => i.Contract)
+                .ThenInclude(c => c.Stall)
+                .Include(i => i.Contract.Vendor)
+                .ThenInclude(v => v.User)
+                .Include(i => i.InvoiceDetails)
+                .ThenInclude(d => d.FeeType)
+                .AsQueryable();
+
+            // Lọc theo Vendor (BR-06)
+            query = query.Where(i => i.Contract.Vendor.UserId == userId && i.Contract.Status == "Active");
+
+            // Xóa mềm và chỉ lấy hóa đơn chính thức
+            query = query.Where(i => i.IsDeleted != true && i.Contract.IsDeleted != true);
+            query = query.Where(i => i.Status == "Unpaid" || i.Status == "Paid" || i.Status == "Overdue");
+
+            if (stallId.HasValue && stallId.Value > 0)
+            {
+                query = query.Where(i => i.Contract.StallId == stallId.Value);
+            }
+
+            if (month.HasValue && month.Value > 0)
+            {
+                query = query.Where(i => i.Month == month.Value);
+            }
+
+            if (year.HasValue && year.Value > 0)
+            {
+                query = query.Where(i => i.Year == year.Value);
+            }
+
+            return await query
+                .OrderByDescending(i => i.Year)
+                .ThenByDescending(i => i.Month)
+                .AsNoTracking()
+                .ToListAsync(ct);
+        }
     }
 }
