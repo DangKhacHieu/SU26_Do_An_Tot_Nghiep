@@ -224,28 +224,52 @@ const VendorServiceList = ({ vendorId, searchTerm = '', setSearchTerm, onViewMyS
             )}
 
             {viewService && (
-                <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
-                    <div style={{ background: 'white', padding: '32px', borderRadius: '12px', minWidth: '400px', maxWidth: '600px', boxShadow: '0 10px 30px rgba(0,0,0,0.2)' }}>
-                        <h3 style={{ marginTop: 0, borderBottom: '1px solid #eee', paddingBottom: '16px', color: 'var(--color-primary)' }}>Chi tiết Dịch vụ</h3>
-                        <div style={{ marginTop: '20px' }}>
-                            <h4 style={{ fontSize: '18px', marginBottom: '8px' }}>{viewService.name}</h4>
-                            <p style={{ color: '#555', lineHeight: '1.6' }}>{viewService.description}</p>
-                        </div>
-                        
-                        <div style={{ marginTop: '24px', background: '#f9fafb', padding: '16px', borderRadius: '8px', display: 'flex', justifyContent: 'space-between' }}>
-                            <div>
-                                <span style={{ color: '#666', fontSize: '14px', display: 'block', marginBottom: '4px' }}>Đơn giá:</span>
-                                <strong style={{ fontSize: '20px', color: '#ff4d4f' }}>{viewService.price.toLocaleString()} VNĐ</strong>
+                <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+                    <div style={{ background: 'white', borderRadius: '16px', width: '100%', maxWidth: '500px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', overflow: 'hidden', animation: 'fadeIn 0.3s ease-out' }}>
+                        {/* Header Image/Gradient */}
+                        <div style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #1e40af 100%)', padding: '32px 24px', color: 'white', position: 'relative' }}>
+                            <button onClick={() => setViewService(null)} style={{ position: 'absolute', top: '16px', right: '16px', background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white', width: '32px', height: '32px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', transition: 'background 0.2s' }}>✕</button>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                                <span style={{ background: 'rgba(255,255,255,0.2)', padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: '600', backdropFilter: 'blur(4px)' }}>
+                                    {viewService.isMandatory ? 'Dịch vụ Bắt buộc' : 'Dịch vụ Tự chọn'}
+                                </span>
+                                <span style={{ background: 'rgba(255,255,255,0.2)', padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: '600', backdropFilter: 'blur(4px)' }}>
+                                    {viewService.billingCycle === 'Monthly' ? 'Gia hạn hàng tháng' : viewService.billingCycle === 'Yearly' ? 'Gia hạn hàng năm' : 'Thanh toán một lần'}
+                                </span>
                             </div>
-                            <div>
-                                <span style={{ color: '#666', fontSize: '14px', display: 'block', marginBottom: '4px' }}>Chu kỳ:</span>
-                                <strong style={{ fontSize: '16px' }}>{viewService.billingCycle === 'Monthly' ? 'Mỗi tháng' : viewService.billingCycle}</strong>
-                            </div>
+                            <h3 style={{ margin: 0, fontSize: '24px', fontWeight: '800', lineHeight: '1.2' }}>{viewService.name}</h3>
                         </div>
 
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '32px' }}>
-                            <button onClick={() => setViewService(null)} style={{ padding: '10px 20px', border: '1px solid #ccc', background: 'transparent', borderRadius: '6px', cursor: 'pointer' }}>Đóng</button>
-                            <button onClick={() => { setViewService(null); handleRegisterClick(viewService); }} style={{ padding: '10px 20px', border: 'none', background: '#000', color: 'white', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>Đăng ký ngay</button>
+                        {/* Content */}
+                        <div style={{ padding: '24px' }}>
+                            <div style={{ marginBottom: '24px' }}>
+                                <h4 style={{ fontSize: '13px', textTransform: 'uppercase', color: '#64748b', fontWeight: '700', marginBottom: '8px', letterSpacing: '0.05em' }}>Mô tả chi tiết</h4>
+                                <p style={{ color: '#334155', lineHeight: '1.7', margin: 0, fontSize: '15px' }}>
+                                    {viewService.description || 'Không có mô tả chi tiết cho dịch vụ này.'}
+                                </p>
+                            </div>
+
+                            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+                                <div>
+                                    <span style={{ color: '#64748b', fontSize: '13px', display: 'block', marginBottom: '4px', fontWeight: '600' }}>Chi phí dịch vụ</span>
+                                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+                                        <strong style={{ fontSize: '24px', color: '#0f172a', fontWeight: '800' }}>{viewService.price.toLocaleString()}đ</strong>
+                                        <span style={{ color: '#64748b', fontSize: '14px' }}>/ {viewService.billingCycle === 'Monthly' ? 'tháng' : 'kỳ'}</span>
+                                    </div>
+                                </div>
+                                <div style={{ textAlign: 'right' }}>
+                                    <span style={{ color: '#64748b', fontSize: '13px', display: 'block', marginBottom: '4px', fontWeight: '600' }}>Thanh toán</span>
+                                    <strong style={{ fontSize: '15px', color: '#0f172a' }}>Tự động trừ vào hóa đơn</strong>
+                                </div>
+                            </div>
+
+                            {/* Actions */}
+                            <div style={{ display: 'flex', gap: '12px' }}>
+                                <button onClick={() => setViewService(null)} style={{ flex: 1, padding: '12px', border: '1px solid #cbd5e1', background: 'white', color: '#475569', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s' }}>Đóng lại</button>
+                                <button onClick={() => { setViewService(null); handleRegisterClick(viewService); }} style={{ flex: 2, padding: '12px', border: 'none', background: '#3b82f6', color: 'white', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', transition: 'background 0.2s', boxShadow: '0 4px 6px -1px rgba(59, 130, 246, 0.2)' }}>
+                                    Đăng ký dịch vụ này
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
