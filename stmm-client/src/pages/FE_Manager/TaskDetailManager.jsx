@@ -3,6 +3,10 @@ import './TaskDetailManager.css';
 import AssignStaffModal from './AssignStaffModal';
 import UpdateTaskStatusModal from './UpdateTaskStatusModal';
 
+const getAuthHeaders = () => ({
+  Authorization: `Bearer ${localStorage.getItem('accessToken')}`
+});
+
 /* ── Inline Icons ── */
 const IconBack = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>;
 const IconUser = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>;
@@ -41,7 +45,10 @@ export default function TaskDetailManager({ taskId, userId, baseUrl, onBack, add
     try {
       const res = await fetch(`${baseUrl}/api/manager/tasks/${taskId}/status`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          ...getAuthHeaders(),
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify({ newStatus: approve ? 'In_Progress' : 'Pending' })
       });
 
@@ -111,7 +118,9 @@ export default function TaskDetailManager({ taskId, userId, baseUrl, onBack, add
   const fetchTaskDetails = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${baseUrl}/api/manager/tasks/${taskId}`);
+      const res = await fetch(`${baseUrl}/api/manager/tasks/${taskId}`, {
+        headers: getAuthHeaders()
+      });
       if (res.ok) {
         const data = await res.json();
         setTask(data);
@@ -182,7 +191,7 @@ export default function TaskDetailManager({ taskId, userId, baseUrl, onBack, add
   const materialsTotal = (task.materials || []).reduce((acc, m) => acc + (m.amount || 0), 0);
   const isActiveTask = task.status !== 'Completed' && task.status !== 'Cancelled';
   const canCancelTask = ['Pending', 'PendingApproval', 'In_Progress'].includes(task.status);
-  const canResolveQuotation = task.status === 'PendingApproval' && (task.requestId === null || task.requestPaidBy === 'Market');
+  const canResolveQuotation = task.status === 'PendingApproval' && task.requestId === null;
   const quoteWarningTone = task.requestPaidBy === 'Market' ? 'market' : task.requestPaidBy === 'Vendor' ? 'vendor' : 'neutral';
 
   return (

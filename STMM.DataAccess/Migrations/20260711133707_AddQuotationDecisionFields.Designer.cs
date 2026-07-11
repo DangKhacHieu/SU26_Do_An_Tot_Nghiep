@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using STMM.DataAccess.Data;
@@ -11,9 +12,11 @@ using STMM.DataAccess.Data;
 namespace STMM.DataAccess.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260711133707_AddQuotationDecisionFields")]
+    partial class AddQuotationDecisionFields
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -91,9 +94,6 @@ namespace STMM.DataAccess.Migrations
                         .HasColumnType("double precision")
                         .HasColumnName("size")
                         .HasComment("Diện tích");
-
-                    b.Property<string>("SvgPath")
-                        .HasColumnType("text");
 
                     b.HasKey("AreaId")
                         .HasName("areas_pkey");
@@ -643,11 +643,6 @@ namespace STMM.DataAccess.Migrations
                         .HasDefaultValueSql("CURRENT_TIMESTAMP")
                         .HasComment("Ngày khởi tạo");
 
-                    b.Property<int?>("CreatorId")
-                        .HasColumnType("integer")
-                        .HasColumnName("creator_id")
-                        .HasComment("Quản lý đã tạo ra chợ này");
-
                     b.Property<bool?>("IsDeleted")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
@@ -661,33 +656,13 @@ namespace STMM.DataAccess.Migrations
                         .HasColumnName("market_name")
                         .HasComment("Tên chợ");
 
-                    b.Property<double?>("MaxX")
-                        .HasColumnType("double precision");
-
-                    b.Property<double?>("MaxY")
-                        .HasColumnType("double precision");
-
-                    b.Property<double?>("MinX")
-                        .HasColumnType("double precision");
-
-                    b.Property<double?>("MinY")
-                        .HasColumnType("double precision");
-
                     b.Property<double?>("Size")
                         .HasColumnType("double precision")
                         .HasColumnName("size")
                         .HasComment("Diện tích");
 
-                    b.Property<string>("Status")
-                        .HasColumnType("text");
-
-                    b.Property<string>("SvgPath")
-                        .HasColumnType("text");
-
                     b.HasKey("MarketId")
                         .HasName("markets_pkey");
-
-                    b.HasIndex("CreatorId");
 
                     b.ToTable("markets", null, t =>
                         {
@@ -1571,7 +1546,8 @@ namespace STMM.DataAccess.Migrations
 
                     b.HasIndex(new[] { "MapX", "MapY", "Width", "Height", "Status", "IsDeleted" }, "idx_stalls_map");
 
-                    b.HasIndex(new[] { "Code" }, "stalls_code_key");
+                    b.HasIndex(new[] { "Code" }, "stalls_code_key")
+                        .IsUnique();
 
                     b.ToTable("stalls", null, t =>
                         {
@@ -2155,17 +2131,6 @@ namespace STMM.DataAccess.Migrations
                     b.Navigation("Stall");
                 });
 
-            modelBuilder.Entity("STMM.DataAccess.Entities.Market", b =>
-                {
-                    b.HasOne("STMM.DataAccess.Entities.User", "Creator")
-                        .WithMany("CreatedMarkets")
-                        .HasForeignKey("CreatorId")
-                        .OnDelete(DeleteBehavior.SetNull)
-                        .HasConstraintName("fk_markets_users_creator");
-
-                    b.Navigation("Creator");
-                });
-
             modelBuilder.Entity("STMM.DataAccess.Entities.Meter", b =>
                 {
                     b.HasOne("STMM.DataAccess.Entities.Market", "Market")
@@ -2573,8 +2538,6 @@ namespace STMM.DataAccess.Migrations
             modelBuilder.Entity("STMM.DataAccess.Entities.User", b =>
                 {
                     b.Navigation("AuditLogs");
-
-                    b.Navigation("CreatedMarkets");
 
                     b.Navigation("Faqs");
 

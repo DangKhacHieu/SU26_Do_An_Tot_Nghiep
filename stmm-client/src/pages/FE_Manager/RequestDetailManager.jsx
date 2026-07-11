@@ -1,7 +1,19 @@
+
 import { useState, useEffect } from 'react';
 import './RequestDetailManager.css';
+import {
+  MANAGER_QUOTATION_ACTION_OPTIONS,
+  OTHER_CONTRACT_CLAUSE,
+  REPAIR_RESPONSIBILITY_CLAUSES,
+  actionRequiresContractClause,
+  actionRequiresDecisionNote
+} from '../../constants/repairResponsibilityGuide';
+
 
 const API_BASE = "http://localhost:5056/api/manager/requests";
+const getAuthHeaders = () => ({
+  Authorization: `Bearer ${localStorage.getItem('accessToken')}`
+});
 
 const IconCheck = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -22,6 +34,7 @@ const TYPE_META = {
 };
 
 const STATUS_META = {
+  PendingManagerReview: { label: 'Báo giá chờ quyết định', cls: 'status-review' },
   Pending:   { label: 'Chờ xử lý',       cls: 'status-pending'   },
   Quoted:    { label: 'Báo giá',          cls: 'status-quoted'    },
   Approved:  { label: 'Đã duyệt',        cls: 'status-approved'  },
@@ -74,6 +87,11 @@ export default function RequestDetailManager({ requestId, navigate, addToast }) 
   const [request, setRequest] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [decision, setDecision] = useState({
+    action: '',
+    contractClause: '',
+    decisionNote: ''
+  });
 
   useEffect(() => {
     if (requestId) fetchRequestDetail();
@@ -82,7 +100,7 @@ export default function RequestDetailManager({ requestId, navigate, addToast }) 
   const fetchRequestDetail = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/${requestId}`);
+      const res = await fetch(`${API_BASE}/${requestId}`, { headers: getAuthHeaders() });
       if (!res.ok) throw new Error();
       const data = await res.json();
       setRequest(data);
@@ -98,6 +116,7 @@ export default function RequestDetailManager({ requestId, navigate, addToast }) 
     try {
       const res = await fetch(`${API_BASE}/${requestId}/resolve-appeal?approve=${approve}`, {
         method: 'POST',
+        headers: getAuthHeaders()
       });
       if (!res.ok) throw new Error();
       addToast(approve ? 'Đã phê duyệt chấp nhận kháng nghị.' : 'Đã bác bỏ kháng nghị.', 'success');
@@ -109,17 +128,69 @@ export default function RequestDetailManager({ requestId, navigate, addToast }) 
     }
   };
 
-  const handleResolveQuote = async (approve) => {
+  const updateDecisionField = (field, value) => {
+    setDecision(current => ({ ...current, [field]: value }));
+  };
+
+  const validateDecision = () => {
+    if (!decision.action) {
+      return 'Vui lòng chọn quyết định xử lý báo giá.';
+    }
+
+    if (actionRequiresContractClause(decision.action) && !decision.contractClause) {
+      return 'Vui lòng chọn điều khoản hợp đồng.';
+    }
+
+    if (
+      actionRequiresDecisionNote(decision.action, decision.contractClause)
+      && decision.decisionNote.trim().length < 10
+    ) {
+      return 'Ghi chú quyết định phải có ít nhất 10 ký tự.';
+    }
+
+    return null;
+  };
+
+  const handleResolveQuotation = async () => {
+    const validationMessage = validateDecision();
+    if (validationMessage) {
+      addToast(validationMessage, 'error');
+      return;
+    }
+
     setSubmitting(true);
     try {
-      const res = await fetch(`${API_BASE}/${requestId}/resolve-quote?approve=${approve}`, {
+      const res = await fetch(`${API_BASE}/${requestId}/resolve-quotation`, {
         method: 'POST',
+        headers: {
+          ...getAuthHeaders(),
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          action: decision.action,
+          contractClause: decision.contractClause || null,
+          decisionNote: decision.decisionNote.trim() || null
+        })
       });
+
       if (!res.ok) {
-        const errData = await res.text();
-        throw new Error(errData || 'Thao tác thất bại.');
+        const errorText = await res.text();
+        try {
+          const problem = JSON.parse(errorText);
+          throw new Error(problem.detail || problem.message || 'Thao tác thất bại.');
+        } catch (parseError) {
+          if (parseError instanceof SyntaxError) {
+            throw new Error(errorText || 'Thao tác thất bại.');
+          }
+          throw parseError;
+        }
       }
-      addToast(approve ? 'Đã phê duyệt báo giá và cập nhật trạng thái thi công.' : 'Đã từ chối báo giá.', 'success');
+
+      const selectedAction = MANAGER_QUOTATION_ACTION_OPTIONS.find(
+        option => option.value === decision.action
+      );
+      addToast(`Đã xử lý: ${selectedAction?.label || decision.action}.`, 'success');
+      setDecision({ action: '', contractClause: '', decisionNote: '' });
       await fetchRequestDetail();
     } catch (err) {
       addToast(err.message || 'Thao tác thất bại. Vui lòng thử lại.', 'error');
@@ -171,6 +242,13 @@ export default function RequestDetailManager({ requestId, navigate, addToast }) 
   const hasQuotation = request.quotationText || request.quotationAmount !== null && request.quotationAmount !== undefined;
   const hasReference = request.violationId   || request.invoiceId;
   const hasRating    = request.status === 'Completed' && (request.repairRating !== null || request.repairComment);
+  const canResolveQuotation = request.requestType === 'FacilityIssue'
+    && request.status === 'PendingManagerReview';
+  const requiresContractClause = actionRequiresContractClause(decision.action);
+  const requiresDecisionNote = actionRequiresDecisionNote(
+    decision.action,
+    decision.contractClause
+  );
 
   return (
     <div className="rd-container">
@@ -293,6 +371,17 @@ export default function RequestDetailManager({ requestId, navigate, addToast }) 
                   <div className="rd-quote-text">{request.quotationText}</div>
                 </div>
               )}
+
+              {(request.payerContractClause || request.payerDecisionNote) && (
+                <div className="rd-decision-summary">
+                  {request.payerContractClause && (
+                    <p><strong>Điều khoản:</strong> {request.payerContractClause}</p>
+                  )}
+                  {request.payerDecisionNote && (
+                    <p><strong>Ghi chú Manager:</strong> {request.payerDecisionNote}</p>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
@@ -358,92 +447,104 @@ export default function RequestDetailManager({ requestId, navigate, addToast }) 
             </div>
           )}
 
-          {/* Action section for FacilityIssue Quotation Approval — BQL chịu phí */}
-          {request.requestType === 'FacilityIssue' && request.status === 'Quoted' && request.isQuoteApproved === null && request.paidBy === 'Market' && (
-            <div className="rd-card rd-action-card" style={{ borderLeft: '4px solid #3b82f6', background: '#f0f9ff' }}>
-              <div className="rd-card-header" style={{ color: '#1d4ed8', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {canResolveQuotation && (
+            <div className="rd-card rd-decision-card">
+              <div className="rd-card-header rd-decision-card-header">
                 <IconTool />
-                <span style={{ fontWeight: '700' }}>Phê duyệt Báo giá sửa chữa (BQL chịu phí)</span>
+                <span>Quyết định báo giá sửa chữa</span>
               </div>
-              
-              <div style={{ marginTop: '16px' }}>
-                <p style={{ margin: '0 0 16px 0', fontSize: '0.88rem', color: '#4b5563', lineHeight: '1.5' }}>
-                  Nhân viên đã khảo sát và xác định <strong>BQL chịu phí</strong> cho yêu cầu sửa chữa này.
-                  Vui lòng xem xét báo giá và phê duyệt hoặc từ chối chi phí từ ngân sách chợ.
-                </p>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
-                  <button
-                    disabled={submitting}
-                    onClick={() => handleResolveQuote(true)}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '8px',
-                      padding: '10px 18px',
-                      fontSize: '0.88rem',
-                      fontWeight: '600',
-                      border: 'none',
-                      borderRadius: '8px',
-                      cursor: submitting ? 'not-allowed' : 'pointer',
-                      flex: 1,
-                      background: '#10b981',
-                      color: '#ffffff',
-                      boxShadow: '0 2px 4px rgba(16, 185, 129, 0.15)',
-                      transition: 'all 0.15s ease'
-                    }}
-                    onMouseEnter={(e) => { if(!submitting) e.currentTarget.style.backgroundColor = '#059669'; }}
-                    onMouseLeave={(e) => { if(!submitting) e.currentTarget.style.backgroundColor = '#10b981'; }}
-                  >
-                    <IconCheck /> Duyệt báo giá
-                  </button>
 
-                  <button
-                    disabled={submitting}
-                    onClick={() => handleResolveQuote(false)}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '8px',
-                      padding: '10px 18px',
-                      fontSize: '0.88rem',
-                      fontWeight: '600',
-                      border: 'none',
-                      borderRadius: '8px',
-                      cursor: submitting ? 'not-allowed' : 'pointer',
-                      flex: 1,
-                      background: '#ef4444',
-                      color: '#ffffff',
-                      boxShadow: '0 2px 4px rgba(239, 68, 68, 0.15)',
-                      transition: 'all 0.15s ease'
+              {request.vendorRejectReason && (
+                <div className="rd-vendor-reject-reason">
+                  <strong>Lý do Vendor từ chối:</strong>
+                  <span>{request.vendorRejectReason}</span>
+                </div>
+              )}
+
+              <div className="rd-decision-form">
+                <label className="rd-decision-field">
+                  <span>Hướng xử lý</span>
+                  <select
+                    value={decision.action}
+                    onChange={event => {
+                      const action = event.target.value;
+                      setDecision(current => ({
+                        ...current,
+                        action,
+                        contractClause: actionRequiresContractClause(action)
+                          ? current.contractClause
+                          : ''
+                      }));
                     }}
-                    onMouseEnter={(e) => { if(!submitting) e.currentTarget.style.backgroundColor = '#dc2626'; }}
-                    onMouseLeave={(e) => { if(!submitting) e.currentTarget.style.backgroundColor = '#ef4444'; }}
+                    disabled={submitting}
                   >
-                    <IconX /> Từ chối báo giá
-                  </button>
+                    <option value="">-- Chọn quyết định --</option>
+                    {MANAGER_QUOTATION_ACTION_OPTIONS.map(option => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                {requiresContractClause && (
+                  <label className="rd-decision-field">
+                    <span>Điều khoản hợp đồng</span>
+                    <select
+                      value={decision.contractClause}
+                      onChange={event => updateDecisionField('contractClause', event.target.value)}
+                      disabled={submitting}
+                    >
+                      <option value="">-- Chọn điều khoản --</option>
+                      {REPAIR_RESPONSIBILITY_CLAUSES.map(clause => (
+                        <option key={clause} value={clause}>{clause}</option>
+                      ))}
+                    </select>
+                  </label>
+                )}
+
+                <label className="rd-decision-field">
+                  <span>
+                    Ghi chú quyết định
+                    {requiresDecisionNote ? ' (bắt buộc, tối thiểu 10 ký tự)' : ' (tùy chọn)'}
+                  </span>
+                  <textarea
+                    rows="4"
+                    maxLength="1000"
+                    value={decision.decisionNote}
+                    onChange={event => updateDecisionField('decisionNote', event.target.value)}
+                    placeholder={
+                      decision.contractClause === OTHER_CONTRACT_CLAUSE
+                        ? 'Nêu rõ căn cứ quyết định...'
+                        : 'Nhập ghi chú cho Staff hoặc Vendor...'
+                    }
+                    disabled={submitting}
+                  />
+                </label>
+
+                <button
+                  type="button"
+                  className="rd-decision-submit"
+                  onClick={handleResolveQuotation}
+                  disabled={submitting || !decision.action}
+                >
+                  {submitting ? 'Đang xử lý...' : 'Xác nhận quyết định'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {request.requestType === 'FacilityIssue'
+            && request.status === 'Quoted'
+            && request.paidBy === 'Vendor'
+            && request.isQuoteApproved === null && (
+              <div className="rd-card rd-vendor-waiting-card">
+                <div className="rd-card-header">
+                  <IconInfo />
+                  <span>Đang chờ Tiểu thương xác nhận báo giá</span>
                 </div>
               </div>
-            </div>
-          )}
-
-          {/* Info banner for FacilityIssue — Tiểu thương chịu phí → chờ Vendor duyệt */}
-          {request.requestType === 'FacilityIssue' && request.status === 'Quoted' && request.isQuoteApproved === null && request.paidBy === 'Vendor' && (
-            <div className="rd-card rd-action-card" style={{ borderLeft: '4px solid #f59e0b', background: '#fffbeb' }}>
-              <div className="rd-card-header" style={{ color: '#b45309', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <IconInfo />
-                <span style={{ fontWeight: '700' }}>Đang chờ Tiểu thương duyệt báo giá</span>
-              </div>
-              <div style={{ marginTop: '12px' }}>
-                <p style={{ margin: 0, fontSize: '0.88rem', color: '#92400e', lineHeight: '1.6' }}>
-                  Nhân viên đã khảo sát và xác định <strong>Tiểu thương chịu phí</strong> cho yêu cầu này.
-                  Báo giá đã được gửi cho tiểu thương để xem xét và phê duyệt trên portal của họ.
-                  Khi tiểu thương duyệt, trạng thái sẽ tự động cập nhật.
-                </p>
-              </div>
-            </div>
-          )}
+            )}
         </div>
 
         {/* ── Right Column ── */}
