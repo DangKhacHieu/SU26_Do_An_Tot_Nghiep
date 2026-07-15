@@ -532,7 +532,7 @@ function AppContent() {
       case "manager-profile":
         return <ProfileManager navigate={navigate} addToast={addToast} />;
       case "dashboard":
-        return <DashboardManager addToast={addToast} navigate={navigate} />;
+        return <DashboardManager addToast={addToast} navigate={navigate} baseUrl={baseUrl} user={user} />;
       case "notifications":
         return <NotificationListManager navigate={navigate} addToast={addToast} />;
       case "market-areas":
