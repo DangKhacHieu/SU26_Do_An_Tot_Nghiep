@@ -68,7 +68,7 @@ const VendorServiceList = ({ vendorId, searchTerm = '', setSearchTerm, onViewMyS
             alert('Đăng ký dịch vụ thành công cho các sạp đã chọn! Vui lòng đợi Ban quản lý phê duyệt.');
             setConfirmService(null);
         } catch (err) {
-            const msg = err.response?.data?.message || 'Có lỗi xảy ra khi đăng ký dịch vụ cho một số sạp.';
+            const msg = err.response?.data?.detail || err.response?.data?.message || 'Có lỗi xảy ra khi đăng ký dịch vụ cho một số sạp.';
             alert(msg);
         } finally {
             setIsRegistering(false);

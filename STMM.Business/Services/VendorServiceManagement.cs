@@ -77,6 +77,33 @@ public class VendorServiceManagement : IVendorServiceManagement
         });
     }
 
+    public async Task<ServiceRegistrationDto> GetServiceDetailAsync(int vendorId, int registrationId, CancellationToken ct = default)
+    {
+        var registration = await _serviceRegistrationRepository.GetRegistrationWithRelationsAsync(registrationId);
+        
+        if (registration == null)
+            throw new KeyNotFoundException("Không tìm thấy thông tin đăng ký dịch vụ.");
+            
+        if (registration.VendorId != vendorId)
+            throw new UnauthorizedAccessException("Bạn không có quyền truy cập thông tin dịch vụ này.");
+
+        return new ServiceRegistrationDto
+        {
+            RegistrationId = registration.RegistrationId,
+            ServiceId = registration.ServiceId,
+            ServiceName = registration.Service?.Name ?? "Unknown",
+            StallId = registration.StallId,
+            StallCode = registration.Stall?.Code ?? "Unknown",
+            Status = registration.Status,
+            Price = registration.Service?.Price ?? 0,
+            BillingCycle = registration.Service?.BillingCycle,
+            RegisteredAt = registration.RegisteredAt,
+            CancelledAt = registration.CancelledAt,
+            EndDate = registration.EndDate,
+            IsAutoRenew = registration.IsAutoRenew
+        };
+    }
+
     public async Task<IEnumerable<STMM.Business.DTOs.Stall.StallDto>> GetMyStallsAsync(int vendorId, CancellationToken ct = default)
     {
         var vendorContracts = await _contractRepository.Query()

@@ -8,6 +8,7 @@ const VendorMyServices = ({ vendorId, searchTerm = '', setSearchTerm, onAddServi
     const [error, setError] = useState(null);
     const [cancelService, setCancelService] = useState(null);
     const [viewMyService, setViewMyService] = useState(null);
+    const [loadingDetailId, setLoadingDetailId] = useState(null);
     const [statusFilter, setStatusFilter] = useState('All');
 
     const fetchMyServices = async () => {
@@ -31,6 +32,21 @@ const VendorMyServices = ({ vendorId, searchTerm = '', setSearchTerm, onAddServi
 
     const handleCancelClick = (service) => {
         setCancelService(service);
+    };
+
+    const handleViewDetailClick = async (service) => {
+        setLoadingDetailId(service.registrationId);
+        try {
+            const token = localStorage.getItem('accessToken');
+            const response = await axios.get(`http://localhost:5056/api/vendor/services/${service.registrationId}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setViewMyService(response.data);
+        } catch (err) {
+            alert(err.response?.data?.message || 'Không thể lấy thông tin chi tiết dịch vụ.');
+        } finally {
+            setLoadingDetailId(null);
+        }
     };
 
     const handleConfirmCancel = async () => {
@@ -131,9 +147,10 @@ const VendorMyServices = ({ vendorId, searchTerm = '', setSearchTerm, onAddServi
                                     <td style={{ padding: '16px', textAlign: 'center' }}>
                                         <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
                                             <button 
-                                                onClick={() => setViewMyService(service)}
-                                                style={{ background: 'transparent', border: '1px solid #e5e7eb', color: '#333', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}>
-                                                Chi tiết
+                                                onClick={() => handleViewDetailClick(service)}
+                                                disabled={loadingDetailId === service.registrationId}
+                                                style={{ background: 'transparent', border: '1px solid #e5e7eb', color: '#333', padding: '6px 12px', borderRadius: '4px', cursor: loadingDetailId === service.registrationId ? 'wait' : 'pointer', fontSize: '12px', fontWeight: 'bold' }}>
+                                                {loadingDetailId === service.registrationId ? 'Đang tải...' : 'Chi tiết'}
                                             </button>
                                             {service.status !== 'Cancelled' && (
                                                 <button 

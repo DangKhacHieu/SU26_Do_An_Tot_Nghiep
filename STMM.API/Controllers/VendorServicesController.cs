@@ -56,6 +56,25 @@ public class VendorServicesController : ControllerBase
         return Ok(myServices);
     }
 
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetServiceDetail(int id, CancellationToken ct)
+    {
+        var vendorId = await GetVendorIdAsync(ct);
+        try
+        {
+            var serviceDetail = await _vendorServiceManagement.GetServiceDetailAsync(vendorId, id, ct);
+            return Ok(serviceDetail);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Forbid(ex.Message);
+        }
+    }
+
     [HttpGet("my-stalls")]
     public async Task<IActionResult> GetMyStalls(CancellationToken ct)
     {
