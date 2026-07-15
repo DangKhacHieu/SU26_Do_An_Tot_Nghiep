@@ -61,11 +61,13 @@ namespace STMM.Business.Services
         public async Task<IEnumerable<NotificationDto>> GetNotificationsForUserAsync(int userId, string? roleName, CancellationToken ct = default)
         {
             var targetRoleLower = roleName?.Trim().ToLower();
+            var limitDate = DateTime.UtcNow.AddDays(-60);
 
             var notifications = await _notificationRepository.FindAsync(n =>
-                (n.TargetUserId == userId) ||
+                (n.CreatedAt >= limitDate) &&
+                ((n.TargetUserId == userId) ||
                 (!string.IsNullOrWhiteSpace(n.TargetRole) && n.TargetRole.ToLower() == targetRoleLower) ||
-                (!string.IsNullOrWhiteSpace(n.TargetRole) && n.TargetRole.ToLower() == "public"),
+                (!string.IsNullOrWhiteSpace(n.TargetRole) && n.TargetRole.ToLower() == "public")),
                 ct);
 
             var sortedNotifications = notifications.OrderByDescending(n => n.CreatedAt ?? DateTime.MinValue);
@@ -91,9 +93,11 @@ namespace STMM.Business.Services
         public async Task MarkAllAsReadAsync(int userId, string? roleName, CancellationToken ct = default)
         {
             var targetRoleLower = roleName?.Trim().ToLower();
+            var limitDate = DateTime.UtcNow.AddDays(-60);
 
             var notifications = await _notificationRepository.FindAsync(n =>
                 (n.IsRead == false || n.IsRead == null) &&
+                (n.CreatedAt >= limitDate) &&
                 ((n.TargetUserId == userId) ||
                 (!string.IsNullOrWhiteSpace(n.TargetRole) && n.TargetRole.ToLower() == targetRoleLower) ||
                 (!string.IsNullOrWhiteSpace(n.TargetRole) && n.TargetRole.ToLower() == "public")),

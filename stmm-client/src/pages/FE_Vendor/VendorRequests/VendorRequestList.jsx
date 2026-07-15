@@ -3,12 +3,14 @@ import axios from 'axios';
 import VendorRequestCreate from './VendorRequestCreate';
 import VendorRequestDetail from './VendorRequestDetail';
 
-const VendorRequestList = () => {
+const VendorRequestList = ({ vendorId, searchTerm, setSearchTerm, stallId }) => {
     const [requests, setRequests] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('All');
+    
+    // Default search term if not provided
+    const _searchTerm = searchTerm !== undefined ? searchTerm : '';
     
     // Pagination state
     const [pageNumber, setPageNumber] = useState(1);
@@ -26,8 +28,9 @@ const VendorRequestList = () => {
             const response = await axios.get('http://localhost:5056/api/vendor/requests', {
                 headers: { Authorization: `Bearer ${token}` },
                 params: {
-                    searchTerm: searchTerm,
+                    searchTerm: _searchTerm,
                     status: statusFilter === 'All' ? null : statusFilter,
+                    stallId: stallId === 'ALL' ? null : stallId,
                     pageNumber: pageNumber,
                     pageSize: pageSize
                 }
@@ -44,13 +47,13 @@ const VendorRequestList = () => {
 
     useEffect(() => {
         setPageNumber(1);
-    }, [searchTerm, statusFilter]);
+    }, [_searchTerm, statusFilter, stallId]);
 
     useEffect(() => {
         if (viewMode === 'LIST') {
             fetchRequests();
         }
-    }, [searchTerm, statusFilter, viewMode, pageNumber]);
+    }, [_searchTerm, statusFilter, stallId, viewMode, pageNumber]);
 
     const handleCreateClick = () => {
         setViewMode('CREATE');

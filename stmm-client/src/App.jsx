@@ -33,6 +33,7 @@ import StallList from "./pages/FE_Staff/StallList";
 import StallInvoiceDetail from "./pages/FE_Staff/StallInvoiceDetail";
 import TaskList from "./pages/FE_Staff/TaskList";
 import TaskDetail from "./pages/FE_Staff/TaskDetail";
+import TaskMapView from "./pages/FE_Staff/TaskMapView";
 import SidebarStaff from "./pages/FE_Staff/SidebarStaff";
 import ProfileStaff from "./pages/FE_Staff/ProfileStaff";
 
@@ -50,6 +51,7 @@ import FaqFormManager from "./pages/FE_Manager/FaqFormManager";
 import TaskListManager from "./pages/FE_Manager/TaskListManager";
 import TaskDetailManager from "./pages/FE_Manager/TaskDetailManager";
 import MarketAreaList from "./pages/FE_Manager/MarketArea/components/MarketAreaList";
+import MarketRoot from "./pages/FE_Manager/MarketArea/components/MarketRoot";
 import BusinessCategoryListManager from "./pages/FE_Manager/BusinessCategoryListManager";
 import ContractListManager from "./pages/FE_Manager/ContractListManager";
 import ContractDetailManager from "./pages/FE_Manager/ContractDetailManager";
@@ -61,6 +63,8 @@ import ViolationListManager from "./pages/FE_Manager/ViolationListManager";
 import ViolationDetailsManager from "./pages/FE_Manager/ViolationDetailsManager";
 import IssueListManager from "./pages/FE_Manager/IssueListManager";
 import IssueDetailManager from "./pages/FE_Manager/IssueDetailManager";
+import MeterManagement from "./pages/FE_Manager/MeterManagement";
+import NotificationListManager from "./pages/FE_Manager/NotificationListManager";
 
 // FE Admin System Imports
 import SidebarAdminSystem from "./pages/FE_AdminSystem/SidebarAdminSystem";
@@ -68,6 +72,7 @@ import DashboardAdminSystem from "./pages/FE_AdminSystem/DashboardAdminSystem";
 import UserListAdminSystem from "./pages/FE_AdminSystem/UserListAdminSystem";
 import UserFormAdminSystem from "./pages/FE_AdminSystem/UserFormAdminSystem";
 import UserDetailAdminSystem from "./pages/FE_AdminSystem/UserDetailAdminSystem";
+import MarketApprovalListAdminSystem from "./pages/FE_AdminSystem/MarketApprovalListAdminSystem";
 
 // Accountant Layout & Pages
 import AccountantLayout from './components/layout/AccountantLayout';
@@ -100,6 +105,10 @@ const PAGE_TITLES = {
   dashboard: {
     title: "Tổng quan hệ thống",
     sub: "Thống kê tổng hợp và trạng thái hoạt động của MHMS.",
+  },
+  notifications: {
+    title: "Thông báo hệ thống",
+    sub: "Quản lý và xem các thông báo, cập nhật từ hệ thống gửi tới ban quản lý.",
   },
   users: {
     title: "Quản lý Tài khoản",
@@ -136,6 +145,10 @@ const PAGE_TITLES = {
   "market-areas": {
     title: "Quản lý Mặt bằng",
     sub: "Thiết kế sơ đồ mặt bằng và quản lý các sạp hàng.",
+  },
+  "markets": {
+    title: "Danh sách Chợ",
+    sub: "Quản lý danh sách các chợ, tạo và thiết kế bản đồ chợ mới.",
   },
   "business-categories": {
     title: "Quản lý Danh mục Kinh doanh",
@@ -188,6 +201,15 @@ const PAGE_TITLES = {
   "issue-details": {
     title: "Chi tiết Sự cố Hạ tầng",
     sub: "Chi tiết sự cố và thông tin xử lý/bàn giao tác vụ sửa chữa.",
+  },
+  meters: {
+    title: "Quản lý Công tơ",
+    sub: "Quản lý kho công tơ Điện/Nước khả dụng trong cùng chợ để tạo sạp.",
+  },
+
+  meters: {
+    title: "Quản lý Công tơ",
+    sub: "Quản lý kho công tơ Điện/Nước khả dụng trong cùng chợ để tạo sạp.",
   },
 
   // Admin System Titles
@@ -338,7 +360,9 @@ function AppContent() {
         navigatePath("/manager/dashboard", true);
       } else if (role === "staff" && !path.startsWith("/staff/")) {
         navigatePath("/staff/dashboard", true);
-      } else if ((role === "customer" || role === "vendor") && ["/login", "/register", "/forgot-password"].includes(path)) {
+      } else if (role === "vendor" && ["/login", "/register", "/forgot-password"].includes(path)) {
+        navigatePath("/vendor/dashboard", true);
+      } else if (role === "customer" && ["/login", "/register", "/forgot-password"].includes(path)) {
         navigatePath("/", true);
       }
     }
@@ -346,7 +370,11 @@ function AppContent() {
 
   const handleLoginSuccess = (loginResult) => {
     const loginUser = loginResult?.user || null;
-    const redirectPath = loginResult?.redirectUrl || "/";
+    let redirectPath = loginResult?.redirectUrl || "/";
+
+    if (loginUser?.roleName?.toLowerCase() === "vendor" && redirectPath === "/") {
+      redirectPath = "/vendor/dashboard";
+    }
 
     setUser(loginUser);
     navigatePath(redirectPath, true); // Clean up the login entry in the history stack
@@ -420,6 +448,7 @@ function AppContent() {
   const [currentStaffView, setCurrentStaffView] = useState("dashboard");
   const [selectedViolationId, setSelectedViolationId] = useState(null);
   const [selectedTaskId, setSelectedTaskId] = useState(null);
+  const [taskViewOrigin, setTaskViewOrigin] = useState("tasks");
   const [showCreateModal, setShowCreateModal] = useState(false);
 
   // Issue state
@@ -504,8 +533,12 @@ function AppContent() {
         return <ProfileManager navigate={navigate} addToast={addToast} />;
       case "dashboard":
         return <DashboardManager addToast={addToast} navigate={navigate} />;
+      case "notifications":
+        return <NotificationListManager navigate={navigate} addToast={addToast} />;
       case "market-areas":
-        return <MarketAreaList />;
+        return <MarketAreaList user={user} />;
+      case "markets":
+        return <MarketRoot user={user} />;
       case "business-categories":
         return (
           <BusinessCategoryListManager
@@ -572,6 +605,8 @@ function AppContent() {
             addToast={addToast}
           />
         );
+      case "meters":
+        return <MeterManagement navigate={navigate} addToast={addToast} />;
       case "form":
         return (
           <UserFormManager
@@ -658,6 +693,8 @@ function AppContent() {
             addToast={addToast}
           />
         );
+      case "admin-market-approval":
+        return <MarketApprovalListAdminSystem navigate={navigate} addToast={addToast} />;
 
       default:
         return <DashboardManager addToast={addToast} navigate={navigate} />;
@@ -989,6 +1026,21 @@ function AppContent() {
                   baseUrl={baseUrl}
                   onViewDetails={(id) => {
                     setSelectedTaskId(id);
+                    setTaskViewOrigin("tasks");
+                    setCurrentStaffView("task-details");
+                  }}
+                  onViewMap={() => setCurrentStaffView("task-map")}
+                />
+              )}
+
+              {currentStaffView === "task-map" && (
+                <TaskMapView
+                  userId={userId}
+                  baseUrl={baseUrl}
+                  onBack={() => setCurrentStaffView("tasks")}
+                  onViewDetails={(id) => {
+                    setSelectedTaskId(id);
+                    setTaskViewOrigin("task-map");
                     setCurrentStaffView("task-details");
                   }}
                 />
@@ -999,7 +1051,7 @@ function AppContent() {
                   taskId={selectedTaskId}
                   userId={userId}
                   baseUrl={baseUrl}
-                  onBack={() => setCurrentStaffView("tasks")}
+                  onBack={() => setCurrentStaffView(taskViewOrigin)}
                   onShowNotification={handleShowNotification}
                   onViewIssueDetails={handleViewIssueDetails}
                 />
@@ -1243,13 +1295,16 @@ function AppContent() {
       <Route path="/manager/dashboard" element={renderManagerOrAdminConsole()} />
       <Route path="/staff/dashboard" element={renderStaffConsole()} />
       
-      <Route path="/vendor/dashboard" element={
-        <VendorDashboard
-          user={user}
-          onBack={() => navigatePath("/")}
-          onLogout={handleLogout}
-        />
-      } />
+      {/* Vendor Portal Route */}
+      <Route element={<ProtectedRoute allowedRoles={["Vendor"]} />}>
+        <Route path="/vendor/dashboard" element={
+          <VendorDashboard
+            user={user}
+            onBack={() => navigatePath("/")}
+            onLogout={handleLogout}
+          />
+        } />
+      </Route>
 
       {/* 4. Protected Accountant Portal Routing */}
       <Route element={<ProtectedRoute allowedRoles={["Accountant"]} />}>

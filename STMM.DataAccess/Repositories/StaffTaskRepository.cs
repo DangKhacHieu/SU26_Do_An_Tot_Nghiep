@@ -36,6 +36,9 @@ namespace STMM.DataAccess.Repositories
         {
             var query = _context.StaffTasks
                 .Include(t => t.AssignedToUser)
+                .Include(t => t.Area)
+                .Include(t => t.Request).ThenInclude(r => r!.Stall)
+                .Include(t => t.Issue).ThenInclude(i => i!.Stall)
                 .AsQueryable();
 
             if (staffUserId.HasValue)
@@ -76,9 +79,10 @@ namespace STMM.DataAccess.Repositories
         {
             return await _context.StaffTasks
                 .Include(t => t.AssignedToUser)
+                .Include(t => t.Area)
                 .Include(t => t.TaskMaterials)
-                .Include(t => t.Issue)
-                .Include(t => t.Request)
+                .Include(t => t.Issue).ThenInclude(i => i!.Stall)
+                .Include(t => t.Request).ThenInclude(r => r!.Stall)
                 .FirstOrDefaultAsync(t => t.TaskId == taskId, ct);
         }
     }

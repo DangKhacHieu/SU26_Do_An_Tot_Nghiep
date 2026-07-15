@@ -19,6 +19,11 @@ public partial class User
     public int RoleId { get; set; }
 
     /// <summary>
+    /// Thuộc chợ nào (nullable)
+    /// </summary>
+    public int? MarketId { get; set; }
+
+    /// <summary>
     /// Họ và tên đầy đủ
     /// </summary>
     public string Name { get; set; } = null!;
@@ -108,4 +113,8 @@ public partial class User
     public virtual Vendor? Vendor { get; set; }
 
     public virtual ICollection<Violation> Violations { get; set; } = new List<Violation>();
+
+    public virtual Market? Market { get; set; }
+
+    public virtual ICollection<Market> CreatedMarkets { get; set; } = new List<Market>();
 }

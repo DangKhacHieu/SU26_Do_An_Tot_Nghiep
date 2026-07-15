@@ -87,6 +87,14 @@ namespace STMM.DataAccess.Migrations
                         .HasColumnName("name")
                         .HasComment("Tên khu vực (VD: \"Khu A - Thực phẩm\")");
 
+                    b.Property<double?>("Size")
+                        .HasColumnType("double precision")
+                        .HasColumnName("size")
+                        .HasComment("Diện tích");
+
+                    b.Property<string>("SvgPath")
+                        .HasColumnType("text");
+
                     b.HasKey("AreaId")
                         .HasName("areas_pkey");
 
@@ -635,6 +643,11 @@ namespace STMM.DataAccess.Migrations
                         .HasDefaultValueSql("CURRENT_TIMESTAMP")
                         .HasComment("Ngày khởi tạo");
 
+                    b.Property<int?>("CreatorId")
+                        .HasColumnType("integer")
+                        .HasColumnName("creator_id")
+                        .HasComment("Quản lý đã tạo ra chợ này");
+
                     b.Property<bool?>("IsDeleted")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
@@ -648,8 +661,33 @@ namespace STMM.DataAccess.Migrations
                         .HasColumnName("market_name")
                         .HasComment("Tên chợ");
 
+                    b.Property<double?>("MaxX")
+                        .HasColumnType("double precision");
+
+                    b.Property<double?>("MaxY")
+                        .HasColumnType("double precision");
+
+                    b.Property<double?>("MinX")
+                        .HasColumnType("double precision");
+
+                    b.Property<double?>("MinY")
+                        .HasColumnType("double precision");
+
+                    b.Property<double?>("Size")
+                        .HasColumnType("double precision")
+                        .HasColumnName("size")
+                        .HasComment("Diện tích");
+
+                    b.Property<string>("Status")
+                        .HasColumnType("text");
+
+                    b.Property<string>("SvgPath")
+                        .HasColumnType("text");
+
                     b.HasKey("MarketId")
                         .HasName("markets_pkey");
+
+                    b.HasIndex("CreatorId");
 
                     b.ToTable("markets", null, t =>
                         {
@@ -679,13 +717,18 @@ namespace STMM.DataAccess.Migrations
                         .HasColumnName("is_active")
                         .HasComment("Công tơ còn hoạt động hay đã thay thế");
 
+                    b.Property<int>("MarketId")
+                        .HasColumnType("integer")
+                        .HasColumnName("market_id")
+                        .HasComment("Thuộc chợ nào");
+
                     b.Property<string>("SerialNumber")
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("serial_number")
                         .HasComment("Số seri trên mặt đồng hồ");
 
-                    b.Property<int>("StallId")
+                    b.Property<int?>("StallId")
                         .HasColumnType("integer")
                         .HasColumnName("stall_id")
                         .HasComment("Lắp đặt tại sạp nào");
@@ -698,6 +741,8 @@ namespace STMM.DataAccess.Migrations
 
                     b.HasKey("MeterId")
                         .HasName("meters_pkey");
+
+                    b.HasIndex(new[] { "MarketId" }, "idx_meters_market_id");
 
                     b.HasIndex(new[] { "StallId" }, "idx_meters_stall_id");
 
@@ -977,6 +1022,11 @@ namespace STMM.DataAccess.Migrations
                         .HasColumnType("text")
                         .HasColumnName("description")
                         .HasComment("Mô tả chi tiết");
+
+                    b.Property<string>("ImageUrl")
+                        .HasColumnType("text")
+                        .HasColumnName("image_url")
+                        .HasComment("Hình ảnh minh chứng đính kèm");
 
                     b.Property<int?>("InvoiceId")
                         .HasColumnType("integer")
@@ -1503,8 +1553,7 @@ namespace STMM.DataAccess.Migrations
 
                     b.HasIndex(new[] { "MapX", "MapY", "Width", "Height", "Status", "IsDeleted" }, "idx_stalls_map");
 
-                    b.HasIndex(new[] { "Code" }, "stalls_code_key")
-                        .IsUnique();
+                    b.HasIndex(new[] { "Code" }, "stalls_code_key");
 
                     b.ToTable("stalls", null, t =>
                         {
@@ -1667,6 +1716,11 @@ namespace STMM.DataAccess.Migrations
                         .HasColumnName("last_login")
                         .HasComment("Ghi nhận thời gian đăng nhập gần nhất");
 
+                    b.Property<int?>("MarketId")
+                        .HasColumnType("integer")
+                        .HasColumnName("market_id")
+                        .HasComment("Thuộc chợ nào (nullable)");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text")
@@ -1721,6 +1775,8 @@ namespace STMM.DataAccess.Migrations
 
                     b.HasIndex(new[] { "Email", "Phone", "Status", "IsDeleted" }, "idx_users_login");
 
+                    b.HasIndex(new[] { "MarketId" }, "idx_users_market_id");
+
                     b.HasIndex(new[] { "RoleId" }, "idx_users_role_id");
 
                     b.HasIndex(new[] { "Cccd" }, "users_cccd_key")
@@ -1752,6 +1808,16 @@ namespace STMM.DataAccess.Migrations
                         .HasColumnType("text")
                         .HasColumnName("address")
                         .HasComment("Địa chỉ kinh doanh");
+
+                    b.Property<string>("BankAccount")
+                        .HasColumnType("text")
+                        .HasColumnName("bank_account")
+                        .HasComment("Số tài khoản ngân hàng");
+
+                    b.Property<string>("BankName")
+                        .HasColumnType("text")
+                        .HasColumnName("bank_name")
+                        .HasComment("Tên ngân hàng");
 
                     b.Property<string>("BusinessLicense")
                         .HasColumnType("text")
@@ -2071,13 +2137,32 @@ namespace STMM.DataAccess.Migrations
                     b.Navigation("Stall");
                 });
 
+            modelBuilder.Entity("STMM.DataAccess.Entities.Market", b =>
+                {
+                    b.HasOne("STMM.DataAccess.Entities.User", "Creator")
+                        .WithMany("CreatedMarkets")
+                        .HasForeignKey("CreatorId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_markets_users_creator");
+
+                    b.Navigation("Creator");
+                });
+
             modelBuilder.Entity("STMM.DataAccess.Entities.Meter", b =>
                 {
+                    b.HasOne("STMM.DataAccess.Entities.Market", "Market")
+                        .WithMany("Meters")
+                        .HasForeignKey("MarketId")
+                        .IsRequired()
+                        .HasConstraintName("fk_meters_markets");
+
                     b.HasOne("STMM.DataAccess.Entities.Stall", "Stall")
                         .WithMany("Meters")
                         .HasForeignKey("StallId")
-                        .IsRequired()
+                        .OnDelete(DeleteBehavior.SetNull)
                         .HasConstraintName("fk_meters_stalls");
+
+                    b.Navigation("Market");
 
                     b.Navigation("Stall");
                 });
@@ -2312,11 +2397,19 @@ namespace STMM.DataAccess.Migrations
 
             modelBuilder.Entity("STMM.DataAccess.Entities.User", b =>
                 {
+                    b.HasOne("STMM.DataAccess.Entities.Market", "Market")
+                        .WithMany("Users")
+                        .HasForeignKey("MarketId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_users_markets");
+
                     b.HasOne("STMM.DataAccess.Entities.Role", "Role")
                         .WithMany("Users")
                         .HasForeignKey("RoleId")
                         .IsRequired()
                         .HasConstraintName("fk_users_roles");
+
+                    b.Navigation("Market");
 
                     b.Navigation("Role");
                 });
@@ -2406,6 +2499,10 @@ namespace STMM.DataAccess.Migrations
             modelBuilder.Entity("STMM.DataAccess.Entities.Market", b =>
                 {
                     b.Navigation("Areas");
+
+                    b.Navigation("Meters");
+
+                    b.Navigation("Users");
                 });
 
             modelBuilder.Entity("STMM.DataAccess.Entities.Meter", b =>
@@ -2458,6 +2555,8 @@ namespace STMM.DataAccess.Migrations
             modelBuilder.Entity("STMM.DataAccess.Entities.User", b =>
                 {
                     b.Navigation("AuditLogs");
+
+                    b.Navigation("CreatedMarkets");
 
                     b.Navigation("Faqs");
 

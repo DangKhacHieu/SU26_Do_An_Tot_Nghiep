@@ -133,6 +133,7 @@ builder.Services.AddScoped<IUserProfileService, UserProfileService>();
 builder.Services.AddScoped<IStaffTaskService, StaffTaskService>();
 builder.Services.AddScoped<IQuotationService, QuotationService>();
 builder.Services.AddScoped<IMeterReadingService, MeterReadingService>();
+builder.Services.AddScoped<IMeterService, MeterService>();
 builder.Services.AddScoped<IFileStorageService, CloudinaryStorageService>();
 builder.Services.AddScoped<IVendorServiceManagement, VendorServiceManagement>();
 builder.Services.AddScoped<IUserService, UserService>();
@@ -147,16 +148,21 @@ builder.Services.AddScoped<IContractService, ContractService>();
 builder.Services.AddScoped<IRequestService, RequestService>();
 builder.Services.AddScoped<IVendorRequestService, VendorRequestService>();
 builder.Services.AddScoped<IVendorViolationService, VendorViolationService>();
+builder.Services.AddScoped<IVendorInvoiceService, VendorInvoiceService>();
 builder.Services.AddScoped<IMarketService, MarketService>();
 builder.Services.AddScoped<IReviewService, ReviewService>();
 
+// Register Background Services
+builder.Services.AddHostedService<STMM.API.BackgroundServices.MonthlyBillingWorker>();
+
 // 1. Controllers & JSON Options
 builder.Services.AddControllers()
-    .AddJsonOptions(option =>
+    .AddJsonOptions(options =>
     {
-        option.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
-        option.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.Never;
-        option.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+        options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+        options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+        options.JsonSerializerOptions.NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals;
+        options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
     });
 
 // 4. CORS Policy (Cho phép React Client kết nối)

@@ -24,7 +24,19 @@ export default function Dashboard() {
     setError(null);
     setIsMock(false);
 
-    fetch('http://localhost:5056/api/accountant/dashboard')
+    const session = localStorage.getItem('user');
+    let userIdStr = '';
+    if (session) {
+      try {
+        const u = JSON.parse(session);
+        if (u && u.userId) userIdStr = u.userId;
+      } catch (e) {}
+    }
+
+    const token = localStorage.getItem('accessToken');
+    const headers = { 'Authorization': `Bearer ${token}` };
+
+    fetch(`http://localhost:5056/api/accountant/dashboard?userId=${userIdStr}`, { headers })
       .then(res => {
         if (!res.ok) throw new Error('Phản hồi từ API lỗi');
         return res.json();
@@ -158,13 +170,6 @@ export default function Dashboard() {
           </p>
         </div>
         <div className="page-actions">
-          <button
-            className="btn btn-secondary btn-icon"
-            onClick={fetchDashboardData}
-            title="Làm mới dữ liệu"
-          >
-            <RefreshCw size={16} />
-          </button>
           <button className="btn btn-primary">
             <span>Xuất Báo Cáo</span>
             <ArrowUpRight size={15} />

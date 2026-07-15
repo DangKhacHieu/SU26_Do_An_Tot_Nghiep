@@ -80,7 +80,7 @@ const NAV_GROUPS = [
         key: 'tasks',
         label: 'Tasks',
         icon: <IconTasks />,
-        childKeys: ['task-details'],
+        childKeys: ['task-details', 'task-map'],
       },
       {
         key: 'violations',

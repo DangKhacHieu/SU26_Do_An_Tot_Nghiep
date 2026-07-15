@@ -16,7 +16,7 @@ export default function TaskInfoCard({ task, onViewIssueDetails }) {
   const getStatusLabel = (status) => {
     switch (status) {
       case TASK_STATUS.PENDING: return 'Pending';
-      case TASK_STATUS.PENDING_APPROVAL: return 'Pending Quote Approval';
+      case TASK_STATUS.PENDING_APPROVAL: return 'Pending Approval';
       case TASK_STATUS.IN_PROGRESS: return 'In Progress';
       case TASK_STATUS.COMPLETED: return 'Completed';
       case TASK_STATUS.CANCELLED: return 'Cancelled';
@@ -89,7 +89,7 @@ export default function TaskInfoCard({ task, onViewIssueDetails }) {
 
         <div className="info-item">
           <span className="info-label">Area/Location:</span>
-          <span className="info-value">{task.areaName || 'All Stalls (Unlimited)'}</span>
+          <span className="info-value">{task.areaName || 'Khu vực hạ tầng chung (Chợ)'}</span>
         </div>
 
         <div className="info-item">

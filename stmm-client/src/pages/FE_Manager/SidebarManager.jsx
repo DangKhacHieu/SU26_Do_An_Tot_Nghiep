@@ -60,6 +60,22 @@ const IconAlert = () => (
   </svg>
 );
 
+const IconMeter = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="4" y="4" width="16" height="16" rx="2" />
+    <line x1="4" y1="10" x2="20" y2="10" />
+    <circle cx="12" cy="15" r="2" />
+    <line x1="12" y1="10" x2="12" y2="13" />
+  </svg>
+);
+
+const IconBell = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+    <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+  </svg>
+);
+
 // ─── Navigation structure ─────────────────────────────────────────────────────
 // Mỗi group có label và danh sách items.
 // Mỗi item: { key, label, icon, childKeys? }
@@ -73,6 +89,11 @@ const NAV_GROUPS = [
         key: 'dashboard',
         label: 'Trang tổng quan',
         icon: <IconGrid />,
+      },
+      {
+        key: 'notifications',
+        label: 'Thông báo',
+        icon: <IconBell />,
       },
     ],
   },
@@ -101,6 +122,12 @@ const NAV_GROUPS = [
         key: 'market-areas',
         label: 'Quản lý Mặt bằng',
         icon: <IconGrid />, // Using IconGrid for Market Areas
+        childKeys: [],
+      },
+      {
+        key: 'markets',
+        label: 'Đăng ký Chợ',
+        icon: <IconGrid />,
         childKeys: [],
       },
       {
@@ -138,6 +165,12 @@ const NAV_GROUPS = [
         label: 'Quản lý Sự cố',
         icon: <IconAlert />,
         childKeys: ['issue-details'],
+      },
+      {
+        key: 'meters',
+        label: 'Quản lý Công tơ',
+        icon: <IconMeter />,
+        childKeys: [],
       },
     ],
   },

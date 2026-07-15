@@ -17,8 +17,10 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
     const [viewingStall, setViewingStall] = useState(null);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [deleteConfirmId, setDeleteConfirmId] = useState(null);
-    const [deleteError, setDeleteError] = useState(null);
+    const [errorMessage, setErrorMessage] = useState(null);
     const [deleteSuccess, setDeleteSuccess] = useState(null);
+    const [renderKey, setRenderKey] = useState(0);
+    const [hoveredStallId, setHoveredStallId] = useState(null);
     
     // Size of the area container, e.g., representing the full market area map
     const editorRef = useRef(null);
@@ -39,7 +41,36 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
         }
     };
 
+    // Helper to check collision between stalls
+    const checkStallOverlap = (stallId, minX, minY, maxX, maxY) => {
+        return stalls.some(s => {
+            if (s.stallId === stallId) return false;
+            
+            const sMinX = s.mapX || 0;
+            const sMinY = s.mapY || 0;
+            const sMaxX = sMinX + (s.width || 100);
+            const sMaxY = sMinY + (s.height || 100);
+
+            return minX < sMaxX && maxX > sMinX && minY < sMaxY && maxY > sMinY;
+        });
+    };
+
     const handleDragStop = async (id, e, d) => {
+        const stall = stalls.find(s => s.stallId === id);
+        if (!stall) return;
+        
+        // Don't update if position didn't actually change
+        if (stall.mapX === d.x && stall.mapY === d.y) return;
+
+        const width = stall.width || 100;
+        const height = stall.height || 100;
+
+        if (checkStallOverlap(id, d.x, d.y, d.x + width, d.y + height)) {
+            setErrorMessage('Không thể di chuyển: Sạp này bị chồng lấp lên Sạp khác!');
+            setRenderKey(prev => prev + 1); // Force Rnd to revert
+            return;
+        }
+
         // Optimistic UI update
         setStalls(stalls.map(s => s.stallId === id ? { ...s, mapX: d.x, mapY: d.y } : s));
         
@@ -47,6 +78,7 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
             await updateStallLocation(id, { mapX: d.x, mapY: d.y });
         } catch (error) {
             console.error('Failed to update stall location:', error);
+            setErrorMessage('Có lỗi xảy ra khi lưu vị trí sạp.');
             fetchStalls(); // revert on fail
         }
     };
@@ -54,6 +86,15 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
     const handleResizeStop = async (id, e, direction, ref, delta, position) => {
         const newWidth = parseFloat(ref.style.width);
         const newHeight = parseFloat(ref.style.height);
+        
+        const PX_PER_M2 = 900;
+        const newSize = Math.round((newWidth * newHeight) / PX_PER_M2 * 100) / 100;
+
+        if (checkStallOverlap(id, position.x, position.y, position.x + newWidth, position.y + newHeight)) {
+            setErrorMessage('Không thể thay đổi kích thước: Sạp này bị chồng lấp lên Sạp khác!');
+            setRenderKey(prev => prev + 1); // Force Rnd to revert
+            return;
+        }
 
         // Optimistic UI update
         setStalls(stalls.map(s => s.stallId === id ? { 
@@ -61,7 +102,8 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
             width: newWidth, 
             height: newHeight,
             mapX: position.x,
-            mapY: position.y
+            mapY: position.y,
+            size: newSize
         } : s));
 
         try {
@@ -69,10 +111,18 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
                 width: newWidth, 
                 height: newHeight,
                 mapX: position.x,
-                mapY: position.y
+                mapY: position.y,
+                size: newSize
             });
         } catch (error) {
             console.error('Failed to update stall size:', error);
+            
+            // Check if error is due to size validation limit
+            if (error.response?.data?.message) {
+                setErrorMessage(`Không thể thay đổi kích thước sạp: ${error.response.data.message}`);
+            } else {
+                setErrorMessage('Có lỗi xảy ra khi lưu kích thước sạp.');
+            }
             fetchStalls(); // revert on fail
         }
     };
@@ -92,7 +142,7 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
         } catch (error) {
             console.error('Failed to deactivate stall:', error);
             setDeleteConfirmId(null);
-            setDeleteError('Không thể xóa sạp này! Sạp đang có hợp đồng hiệu lực (có người thuê).');
+            setErrorMessage('Không thể xóa sạp này! Sạp đang có hợp đồng hiệu lực (có người thuê).');
         }
     };
 
@@ -121,6 +171,20 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
                         <div style={{fontSize: '15px'}}><strong>Tình trạng:</strong> <span style={{backgroundColor: getStatusColor(viewingStall.status), color: 'white', padding: '4px 12px', borderRadius: '12px', fontSize: '13px', marginLeft: '8px', fontWeight: 'bold'}}>{viewingStall.status}</span></div>
                         <div style={{fontSize: '15px'}}><strong>Người thuê:</strong> {viewingStall.tenantName || viewingStall.description || 'Trống'}</div>
                         <div style={{fontSize: '15px'}}><strong>Kích thước (WxH):</strong> {viewingStall.width} x {viewingStall.height}</div>
+                        
+                        <div style={{marginTop: '8px', padding: '12px', background: 'var(--bg-card)', borderRadius: '8px', border: '1px solid var(--border-color)'}}>
+                            <h4 style={{margin: '0 0 8px 0', fontSize: '14px', color: 'var(--text-secondary)'}}>⚡ Tiện ích (Điện / Nước)</h4>
+                            <div style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
+                                <div style={{fontSize: '14px', display: 'flex', justifyContent: 'space-between'}}>
+                                    <span>Mã đồng hồ điện: <strong>{viewingStall.electricityMeterSerial || 'Chưa lắp'}</strong></span>
+                                    <span>Chỉ số: <strong>{viewingStall.currentElectricityIndex ?? 0} kWh</strong></span>
+                                </div>
+                                <div style={{fontSize: '14px', display: 'flex', justifyContent: 'space-between'}}>
+                                    <span>Mã đồng hồ nước: <strong>{viewingStall.waterMeterSerial || 'Chưa lắp'}</strong></span>
+                                    <span>Chỉ số: <strong>{viewingStall.currentWaterIndex ?? 0} m³</strong></span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <div style={{display: 'flex', justifyContent: 'flex-end', marginTop: '32px'}}>
                         <button onClick={() => setViewingStall(null)} style={{padding: '10px 24px', background: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold'}}>Đóng lại</button>
@@ -148,15 +212,15 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
                 </div>
             );
         }
-        if (deleteError) {
+        if (errorMessage) {
             modals.push(
                 <div key="error" style={{position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 9999, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-                    <div style={{background: 'var(--bg-panel)', padding: '32px', borderRadius: '16px', minWidth: '400px', boxShadow: '0 10px 30px rgba(0,0,0,0.2)', textAlign: 'center'}}>
+                    <div style={{background: 'var(--bg-panel)', padding: '32px', borderRadius: '16px', minWidth: '400px', maxWidth: '500px', boxShadow: '0 10px 30px rgba(0,0,0,0.2)', textAlign: 'center'}}>
                         <div style={{fontSize: '48px', marginBottom: '16px'}}>⚠️</div>
-                        <h3 style={{marginTop: 0, color: 'var(--danger, #ff4d4f)', fontSize: '24px'}}>Không thể xóa</h3>
-                        <p style={{color: 'var(--text-secondary)', fontSize: '15px', lineHeight: '1.5'}}>{deleteError}</p>
+                        <h3 style={{marginTop: 0, color: 'var(--danger, #ff4d4f)', fontSize: '24px'}}>Lỗi</h3>
+                        <p style={{color: 'var(--text-secondary)', fontSize: '15px', lineHeight: '1.5'}}>{errorMessage}</p>
                         <div style={{marginTop: 32}}>
-                            <button onClick={() => setDeleteError(null)} style={{padding: '10px 32px', background: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px', transition: 'all 0.2s'}}>Đóng</button>
+                            <button onClick={() => setErrorMessage(null)} style={{padding: '10px 32px', background: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px', transition: 'all 0.2s'}}>Đóng</button>
                         </div>
                     </div>
                 </div>
@@ -196,7 +260,7 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
                 ) : (
                     stalls.map(stall => (
                         <Rnd
-                            key={stall.stallId}
+                            key={`${stall.stallId}-${renderKey}`}
                             bounds="parent"
                             scale={zoom}
                             size={{ width: stall.width || 100, height: stall.height || 100 }}
@@ -207,45 +271,45 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
                             enableResizing={isEditMode}
                             className={`${styles.stallNode} stall-node-prevent-drag`}
                             style={{ 
-                                borderLeftColor: getStatusColor(stall.status),
-                                cursor: isEditMode ? 'move' : 'default',
-                                zIndex: isEditMode ? 10 : 1
+                                backgroundColor: '#3b82f6',
+                                border: '1px solid #2563eb',
+                                borderRadius: '3px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: '#ffffff',
+                                fontSize: '11px',
+                                fontWeight: 'bold',
+                                cursor: isEditMode ? 'move' : 'pointer',
+                                zIndex: isEditMode ? 10 : 1,
+                                position: 'relative'
+                            }}
+                            onMouseEnter={() => setHoveredStallId(stall.stallId)}
+                            onMouseLeave={() => setHoveredStallId(null)}
+                            onClick={(e) => {
+                                if (!isEditMode) {
+                                    e.stopPropagation();
+                                    setViewingStall(stall);
+                                }
                             }}
                         >
-                            <div className={styles.stallContent}>
-                                <strong>{stall.code}</strong>
-                                <span className={styles.statusBadge} style={{ backgroundColor: getStatusColor(stall.status) }}>
-                                    {stall.status || 'Available'}
-                                </span>
-                                <div className={styles.stallActions}>
-                                    {isEditMode ? (
-                                        <>
-                                            <button 
-                                                className={styles.iconBtn} 
-                                                onClick={(e) => { e.stopPropagation(); setSelectedStall(stall); setIsFormOpen(true); }}
-                                                title="Sửa Sạp"
-                                            >
-                                                ✎
-                                            </button>
-                                            <button 
-                                                className={styles.iconBtnDanger} 
-                                                onClick={(e) => { e.stopPropagation(); requestDelete(stall.stallId); }}
-                                                title="Xóa Sạp"
-                                            >
-                                                ✕
-                                            </button>
-                                        </>
-                                    ) : (
-                                        <button 
-                                            className={styles.iconBtn} 
-                                            onClick={(e) => { e.stopPropagation(); setViewingStall(stall); }}
-                                            title="Thông tin Sạp"
-                                        >
-                                            ℹ
-                                        </button>
-                                    )}
+                            <span style={{ pointerEvents: 'none' }}>{stall.code}</span>
+                            
+                            {/* Hover Actions Menu */}
+                            {hoveredStallId === stall.stallId && isEditMode && (
+                                <div style={{ position: 'absolute', top: -28, right: -28, display: 'flex', gap: '4px', background: 'rgba(255,255,255,0.9)', padding: '2px', borderRadius: '4px', boxShadow: '0 2px 4px rgba(0,0,0,0.2)', zIndex: 100 }}>
+                                    <button 
+                                        onClick={(e) => { e.stopPropagation(); setSelectedStall(stall); setIsFormOpen(true); }}
+                                        style={{ background: '#3b82f6', color: 'white', border: 'none', borderRadius: '2px', cursor: 'pointer', padding: '2px 6px', fontSize: '10px' }}
+                                        title="Sửa Sạp"
+                                    >✎</button>
+                                    <button 
+                                        onClick={(e) => { e.stopPropagation(); requestDelete(stall.stallId); }}
+                                        style={{ background: '#ef4444', color: 'white', border: 'none', borderRadius: '2px', cursor: 'pointer', padding: '2px 6px', fontSize: '10px' }}
+                                        title="Xóa Sạp"
+                                    >✕</button>
                                 </div>
-                            </div>
+                            )}
                         </Rnd>
                     ))
                 )}
@@ -254,6 +318,7 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
             {isFormOpen && (
                 <StallForm 
                     initialData={selectedStall} 
+                    areaId={areaId}
                     onSave={() => {
                         setIsFormOpen(false);
                         fetchStalls();

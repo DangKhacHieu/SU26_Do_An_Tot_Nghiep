@@ -1,5 +1,6 @@
 using AutoMapper;
 using STMM.Business.DTOs.Common;
+using STMM.Business.DTOs.Notification;
 using STMM.Business.DTOs.Request;
 using STMM.Business.Exceptions;
 using STMM.Business.Interfaces;
@@ -16,12 +17,18 @@ namespace STMM.Business.Services
     {
         private readonly IRequestRepository _requestRepository;
         private readonly IStaffTaskRepository _staffTaskRepository;
+        private readonly INotificationService _notificationService;
         private readonly IMapper _mapper;
 
-        public RequestService(IRequestRepository requestRepository, IStaffTaskRepository staffTaskRepository, IMapper mapper)
+        public RequestService(
+            IRequestRepository requestRepository, 
+            IStaffTaskRepository staffTaskRepository, 
+            INotificationService notificationService,
+            IMapper mapper)
         {
             _requestRepository = requestRepository;
             _staffTaskRepository = staffTaskRepository;
+            _notificationService = notificationService;
             _mapper = mapper;
         }
 
@@ -29,6 +36,7 @@ namespace STMM.Business.Services
         {
             var (items, totalCount) = await _requestRepository.GetRequestsPagedAsync(
                 null, // vendorId
+                queryParams.StallId, // stallId
                 queryParams.Status,
                 queryParams.RequestType,
                 queryParams.SearchTerm,
@@ -94,7 +102,7 @@ namespace STMM.Business.Services
             }
 
             request.IsQuoteApproved = approve;
-            request.Status = approve ? "Approved" : "Rejected";
+            request.Status = approve ? "Approved" : "Pending";
             request.UpdatedAt = DateTime.UtcNow;
 
             // Synchronize linked staff task status
@@ -113,8 +121,17 @@ namespace STMM.Business.Services
                 {
                     if (task.Status == "PendingApproval" || task.Status == "Pending" || task.Status == "In_Progress")
                     {
-                        task.Status = "Cancelled";
+                        task.Status = "Pending";
                         _staffTaskRepository.Update(task);
+
+                        await _notificationService.CreateAsync(new CreateNotificationRequest
+                        {
+                            Title = "Quotation Rejected",
+                            Content = $"Quotation for task \"{task.Title}\" has been rejected. Please update materials and resubmit.",
+                            NotiType = "System",
+                            CreatedByUserId = task.AssignedToUserId,
+                            TargetUserId = task.AssignedToUserId
+                        }, ct);
                     }
                 }
             }

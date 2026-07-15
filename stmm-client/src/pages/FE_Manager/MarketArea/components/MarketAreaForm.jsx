@@ -7,6 +7,7 @@ const MarketAreaForm = ({ initialData, onSave, onCancel, existingAreas = [] }) =
     name: '',
     description: '',
     categoryName: '',
+    size: '',
     width: 200,
     height: 150
   });
@@ -31,6 +32,7 @@ const MarketAreaForm = ({ initialData, onSave, onCancel, existingAreas = [] }) =
         name: initialData.name || '',
         description: initialData.description || '',
         categoryName: initialData.categoryName || '',
+        size: initialData.size || '',
         width: (initialData.maxX !== null && initialData.minX !== null) ? (initialData.maxX - initialData.minX) : 200,
         height: (initialData.maxY !== null && initialData.minY !== null) ? (initialData.maxY - initialData.minY) : 150
       });
@@ -39,15 +41,38 @@ const MarketAreaForm = ({ initialData, onSave, onCancel, existingAreas = [] }) =
         name: '',
         description: '',
         categoryName: '',
+        size: '',
         width: 200,
         height: 150
       });
     }
   }, [initialData]);
 
+  const PX_PER_M2 = 900; // 1 m2 = 900 pixels vuông
+
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => {
+        const newData = { ...prev, [name]: value };
+        
+        // Đồng bộ 2 chiều (Cách 3)
+        if (name === 'size' && value) {
+            const numSize = parseFloat(value);
+            if (!isNaN(numSize) && numSize > 0) {
+                const dimension = Math.round(Math.sqrt(numSize * PX_PER_M2));
+                newData.width = dimension;
+                newData.height = dimension;
+            }
+        } else if ((name === 'width' || name === 'height') && value) {
+            const w = parseFloat(name === 'width' ? value : prev.width);
+            const h = parseFloat(name === 'height' ? value : prev.height);
+            if (!isNaN(w) && !isNaN(h) && w > 0 && h > 0) {
+                newData.size = Math.round((w * h) / PX_PER_M2 * 100) / 100;
+            }
+        }
+        
+        return newData;
+    });
   };
 
   const handleSave = () => {
@@ -74,9 +99,12 @@ const MarketAreaForm = ({ initialData, onSave, onCancel, existingAreas = [] }) =
     setError(null);
     onSave({
         ...formData,
+        categoryId: formData.categoryId,
+        categoryName: formData.categoryName,
+        size: formData.size ? parseFloat(formData.size) : null,
         name: formData.name.trim(),
-        width: parseInt(formData.width) || 200,
-        height: parseInt(formData.height) || 150
+        width: parseInt(formData.width, 10),
+        height: parseInt(formData.height, 10)
     });
   };
 
@@ -111,6 +139,20 @@ const MarketAreaForm = ({ initialData, onSave, onCancel, existingAreas = [] }) =
               value={formData.description}
               onChange={handleChange}
               placeholder="Nhập mô tả ngắn gọn..."></textarea>
+          </div>
+
+          <div className={styles.formGroup}>
+            <label>DIỆN TÍCH VẬT LÝ (m²)</label>
+            <input 
+              className={styles.input} 
+              type="number" 
+              name="size"
+              value={formData.size}
+              onChange={handleChange}
+              min="1"
+              step="any"
+              placeholder="VD: 50" 
+            />
           </div>
 
           <div style={{display: 'flex', gap: '12px'}}>

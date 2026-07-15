@@ -6,7 +6,11 @@ namespace STMM.Business.Interfaces
 {
     public interface IMarketService
     {
-        Task<IEnumerable<MarketDto>> GetAllMarketsAsync();
+        Task<IEnumerable<MarketDto>> GetAllMarketsAsync(int currentUserId, string currentUserRole);
         Task<MarketMapDto?> GetMarketMapAsync(int marketId);
+        Task<MarketDto> CreateMarketBulkAsync(CreateMarketBulkRequest request, int currentUserId);
+        Task<bool> DeleteMarketAsync(int marketId);
+        Task<bool> ChangeMarketStatusAsync(int marketId, string status);
+        Task<bool> DeactivateMarketAsync(int marketId, int managerId);
     }
 }

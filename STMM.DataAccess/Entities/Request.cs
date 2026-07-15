@@ -49,6 +49,11 @@ public partial class Request
     public string Description { get; set; } = null!;
 
     /// <summary>
+    /// Hình ảnh minh chứng đính kèm
+    /// </summary>
+    public string? ImageUrl { get; set; }
+
+    /// <summary>
     /// Vòng đời: Pending → Quoted → Approved → Completed | Rejected
     /// </summary>
     public string? Status { get; set; }

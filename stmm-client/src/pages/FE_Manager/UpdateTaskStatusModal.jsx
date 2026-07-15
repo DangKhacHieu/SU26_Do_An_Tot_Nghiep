@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import './UpdateTaskStatusModal.css';
 
-export default function UpdateTaskStatusModal({ taskId, currentStatus, baseUrl, onClose, onSuccess, addToast }) {
-  const [newStatus, setNewStatus] = useState('');
-  const [statusNotes, setStatusNotes] = useState('');
+export default function UpdateTaskStatusModal({ taskId, currentStatus, mode = 'status', baseUrl, onClose, onSuccess, addToast }) {
+  const isCancelMode = mode === 'cancel';
+  const [newStatus, setNewStatus] = useState(isCancelMode ? 'Cancelled' : '');
   const [submitting, setSubmitting] = useState(false);
 
   // Determine allowed transitions
@@ -13,7 +13,11 @@ export default function UpdateTaskStatusModal({ taskId, currentStatus, baseUrl, 
   const allowedOptions = [];
   const oldStatus = currentStatus || 'Pending';
 
-  if (oldStatus === 'Pending') {
+  if (isCancelMode) {
+    if (['Pending', 'PendingApproval', 'In_Progress'].includes(oldStatus)) {
+      allowedOptions.push({ value: 'Cancelled', label: 'Cancel Task' });
+    }
+  } else if (oldStatus === 'Pending') {
     allowedOptions.push({ value: 'Cancelled', label: 'Cancel Task' });
   } else if (oldStatus === 'PendingApproval') {
     allowedOptions.push({ value: 'In_Progress', label: 'Approve Quotation & Start' });
@@ -38,12 +42,8 @@ export default function UpdateTaskStatusModal({ taskId, currentStatus, baseUrl, 
       });
 
       if (res.ok) {
-        addToast(`Task status updated to ${newStatus} successfully!`, 'success');
+        addToast(isCancelMode ? 'Task cancelled successfully!' : `Task status updated to ${newStatus} successfully!`, 'success');
         const updatedTask = await res.json();
-        // Even though status notes aren't saved in the db (no column), we log them in the console
-        if (statusNotes.trim()) {
-          console.log(`Status transition note: ${statusNotes}`);
-        }
         onSuccess(updatedTask);
       } else {
         const errText = await res.text();
@@ -61,8 +61,8 @@ export default function UpdateTaskStatusModal({ taskId, currentStatus, baseUrl, 
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-box" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '440px' }}>
         <div className="modal-head">
-          <h3>Update Task Status</h3>
-          <button className="modal-close" onClick={onClose}>&times;</button>
+          <h3>{isCancelMode ? 'Cancel Task' : 'Update Task Status'}</h3>
+          <button id="btn-status-close" className="modal-close" onClick={onClose}>&times;</button>
         </div>
         <form onSubmit={handleSubmit}>
           <div className="modal-body">
@@ -73,11 +73,17 @@ export default function UpdateTaskStatusModal({ taskId, currentStatus, baseUrl, 
               </span>
             </div>
 
+            {isCancelMode && allowedOptions.length > 0 && (
+              <div className="status-cancel-summary">
+                This action will move the task from <strong>{oldStatus.replace('_', ' ')}</strong> to <strong>Cancelled</strong>.
+              </div>
+            )}
+
             {allowedOptions.length === 0 ? (
               <div className="status-no-transitions-msg">
                 No state transitions are allowed from <strong>{oldStatus.replace('_', ' ')}</strong> state.
               </div>
-            ) : (
+            ) : !isCancelMode ? (
               <div className="form-group">
                 <label className="form-label required-field">TARGET STATUS</label>
                 <div className="flat-radio-buttons-container">
@@ -89,6 +95,7 @@ export default function UpdateTaskStatusModal({ taskId, currentStatus, baseUrl, 
                         className={`flat-status-option ${isSelected ? 'is-active' : ''}`}
                       >
                         <input
+                          id={`radio-status-${opt.value}`}
                           type="radio"
                           name="targetStatus"
                           value={opt.value}
@@ -104,33 +111,19 @@ export default function UpdateTaskStatusModal({ taskId, currentStatus, baseUrl, 
                   })}
                 </div>
               </div>
-            )}
-
-            {allowedOptions.length > 0 && (
-              <div className="form-group">
-                <label className="form-label">STATUS NOTES</label>
-                <textarea
-                  className="form-control"
-                  rows="3"
-                  placeholder="Provide reason for this status update..."
-                  value={statusNotes}
-                  onChange={(e) => setStatusNotes(e.target.value)}
-                  disabled={submitting}
-                  style={{ resize: 'none' }}
-                />
-              </div>
-            )}
+            ) : null}
           </div>
           <div className="modal-foot">
-            <button type="button" className="btn-secondary" onClick={onClose} disabled={submitting}>
+            <button id="btn-status-cancel" type="button" className="btn-secondary" onClick={onClose} disabled={submitting}>
               CANCEL
             </button>
             <button 
+              id="btn-status-submit"
               type="submit" 
               className="btn-primary" 
               disabled={submitting || allowedOptions.length === 0 || !newStatus}
             >
-              {submitting ? 'UPDATING...' : 'UPDATE STATUS'}
+              {submitting ? (isCancelMode ? 'CANCELLING...' : 'UPDATING...') : (isCancelMode ? 'CANCEL TASK' : 'UPDATE STATUS')}
             </button>
           </div>
         </form>

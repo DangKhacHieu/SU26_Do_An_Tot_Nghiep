@@ -77,7 +77,7 @@ export default function AssignStaffModal({ taskId, currentStaffId, baseUrl, onCl
       <div className="modal-box" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '460px' }}>
         <div className="modal-head">
           <h3>Assign Staff Member</h3>
-          <button className="modal-close" onClick={onClose}>&times;</button>
+          <button id="btn-assign-staff-close" className="modal-close" onClick={onClose}>&times;</button>
         </div>
         <form onSubmit={handleSubmit}>
           <div className="modal-body">
@@ -86,6 +86,7 @@ export default function AssignStaffModal({ taskId, currentStaffId, baseUrl, onCl
               <label className="form-label">FIND STAFF MEMBER</label>
               <div className="search-input-wrapper">
                 <input
+                  id="input-assign-staff-search"
                   type="text"
                   className="form-control"
                   placeholder="Search by name or email..."
@@ -95,6 +96,7 @@ export default function AssignStaffModal({ taskId, currentStaffId, baseUrl, onCl
                 />
                 {searchTerm && (
                   <button
+                    id="btn-assign-staff-search-clear"
                     type="button"
                     className="search-clear-btn"
                     onClick={() => setSearchTerm('')}
@@ -126,6 +128,7 @@ export default function AssignStaffModal({ taskId, currentStaffId, baseUrl, onCl
                         className={`staff-radio-item ${isSelected ? 'is-selected' : ''}`}
                       >
                         <input
+                          id={`radio-assign-staff-${s.userId}`}
                           type="radio"
                           name="assignedStaff"
                           value={s.userId}
@@ -156,10 +159,10 @@ export default function AssignStaffModal({ taskId, currentStaffId, baseUrl, onCl
             </div>
           </div>
           <div className="modal-foot">
-            <button type="button" className="btn-secondary" onClick={onClose} disabled={submitting}>
+            <button id="btn-assign-staff-cancel" type="button" className="btn-secondary" onClick={onClose} disabled={submitting}>
               CANCEL
             </button>
-            <button type="submit" className="btn-primary" disabled={submitting || !selectedStaffId}>
+            <button id="btn-assign-staff-confirm" type="submit" className="btn-primary" disabled={submitting || !selectedStaffId}>
               {submitting ? 'ASSIGNING...' : 'CONFIRM ASSIGNMENT'}
             </button>
           </div>

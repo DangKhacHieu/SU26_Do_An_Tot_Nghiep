@@ -118,6 +118,9 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Name)
                 .HasComment("Tên khu vực (VD: \"Khu A - Thực phẩm\")")
                 .HasColumnName("name");
+            entity.Property(e => e.Size)
+                .HasComment("Diện tích")
+                .HasColumnName("size");
 
             entity.HasOne(d => d.Category).WithMany(p => p.Areas)
                 .HasForeignKey(d => d.CategoryId)
@@ -518,8 +521,19 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.MarketName)
                 .HasComment("Tên chợ")
                 .HasColumnName("market_name");
-        });
+            entity.Property(e => e.Size)
+                .HasComment("Diện tích")
+                .HasColumnName("size");
+            entity.Property(e => e.CreatorId)
+                .HasComment("Quản lý đã tạo ra chợ này")
+                .HasColumnName("creator_id");
 
+            entity.HasOne(d => d.Creator)
+                .WithMany(p => p.CreatedMarkets)
+                .HasForeignKey(d => d.CreatorId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("fk_markets_users_creator");
+        });
         modelBuilder.Entity<Meter>(entity =>
         {
             entity.HasKey(e => e.MeterId).HasName("meters_pkey");
@@ -530,10 +544,15 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => e.SerialNumber, "meters_serial_number_key").IsUnique();
 
+            entity.HasIndex(e => e.MarketId, "idx_meters_market_id");
+
             entity.Property(e => e.MeterId)
                 .HasComment("Mã công tơ")
                 .UseIdentityAlwaysColumn()
                 .HasColumnName("meter_id");
+            entity.Property(e => e.MarketId)
+                .HasComment("Thuộc chợ nào")
+                .HasColumnName("market_id");
             entity.Property(e => e.InstalledAt)
                 .HasComment("Ngày lắp đặt")
                 .HasColumnName("installed_at");
@@ -553,8 +572,13 @@ public partial class AppDbContext : DbContext
 
             entity.HasOne(d => d.Stall).WithMany(p => p.Meters)
                 .HasForeignKey(d => d.StallId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
+                .OnDelete(DeleteBehavior.SetNull)
                 .HasConstraintName("fk_meters_stalls");
+
+            entity.HasOne(d => d.Market).WithMany(p => p.Meters)
+                .HasForeignKey(d => d.MarketId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fk_meters_markets");
         });
 
         modelBuilder.Entity<MeterReading>(entity =>
@@ -754,6 +778,9 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Description)
                 .HasComment("Mô tả chi tiết")
                 .HasColumnName("description");
+            entity.Property(e => e.ImageUrl)
+                .HasComment("Hình ảnh minh chứng đính kèm")
+                .HasColumnName("image_url");
             entity.Property(e => e.InvoiceId)
                 .HasComment("Điền nếu Kháng nghị hóa đơn")
                 .HasColumnName("invoice_id");
@@ -1009,7 +1036,7 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => new { e.MapX, e.MapY, e.Width, e.Height, e.Status, e.IsDeleted }, "idx_stalls_map");
 
-            entity.HasIndex(e => e.Code, "stalls_code_key").IsUnique();
+            entity.HasIndex(e => e.Code, "stalls_code_key");
 
             entity.Property(e => e.StallId)
                 .HasComment("Mã định danh quầy sạp")
@@ -1304,10 +1331,21 @@ public partial class AppDbContext : DbContext
                 .HasComment("Ngày giờ cập nhật gần nhất")
                 .HasColumnName("updated_at");
 
+            entity.Property(e => e.MarketId)
+                .HasComment("Thuộc chợ nào (nullable)")
+                .HasColumnName("market_id");
+
+            entity.HasIndex(e => e.MarketId, "idx_users_market_id");
+
             entity.HasOne(d => d.Role).WithMany(p => p.Users)
                 .HasForeignKey(d => d.RoleId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("fk_users_roles");
+
+            entity.HasOne(d => d.Market).WithMany(p => p.Users)
+                .HasForeignKey(d => d.MarketId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("fk_users_markets");
         });
 
         modelBuilder.Entity<Vendor>(entity =>

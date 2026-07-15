@@ -48,6 +48,11 @@ const NAV_GROUPS = [
         icon: <IconUsers />,
         childKeys: ['admin-user-form', 'admin-user-detail'],
       },
+      {
+        key: 'admin-market-approval',
+        label: 'Phê duyệt Chợ',
+        icon: <IconSettings />,
+      },
     ],
   },
 ];

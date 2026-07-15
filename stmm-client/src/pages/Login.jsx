@@ -58,14 +58,21 @@ export default function Login() {
       }
 
       const data = await res.json();
+      // Save tokens using the standard keys that marketApi.js and authService.ts expect
+      localStorage.setItem('accessToken', data.accessToken);
+      localStorage.setItem('refreshToken', data.refreshToken);
+      localStorage.setItem('user', JSON.stringify(data.user));
+      // Also save user_session for backward compatibility with other components
       localStorage.setItem('user_session', JSON.stringify({
-        userId: data.userId, name: data.name, email: data.email,
-        roleId: data.roleId, roleName: data.roleName, token: data.token,
+        userId: data.user?.userId, name: data.user?.name, email: data.user?.email,
+        roleId: data.user?.roleId, roleName: data.user?.roleName, token: data.accessToken,
         avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=200'
       }));
 
-      setSuccess(`Xin chào, ${data.name}! Đang chuyển hướng...`);
-      setTimeout(() => navigate('/dashboard'), 1000);
+      const userName = data.user?.name || 'bạn';
+      setSuccess(`Xin chào, ${userName}! Đang chuyển hướng...`);
+      const redirectPath = data.redirectUrl || '/dashboard';
+      setTimeout(() => navigate(redirectPath), 1000);
 
     } catch (err) {
       const matched = MOCK_ACCOUNTS.find(
@@ -73,10 +80,17 @@ export default function Login() {
       );
 
       if (matched) {
+        const mockToken = `mock-${matched.userId}-${Date.now()}`;
+        // Save tokens using the standard keys
+        localStorage.setItem('accessToken', mockToken);
+        localStorage.setItem('user', JSON.stringify({
+          userId: matched.userId, name: matched.name, email: matched.email,
+          roleId: matched.roleId, roleName: matched.roleName
+        }));
         localStorage.setItem('user_session', JSON.stringify({
           userId: matched.userId, name: matched.name, email: matched.email,
           roleId: matched.roleId, roleName: matched.roleName,
-          token: `mock-${matched.userId}-${Date.now()}`,
+          token: mockToken,
           avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=200'
         }));
         setSuccess(`Xin chào, ${matched.name}! (Chế độ thử nghiệm)`);

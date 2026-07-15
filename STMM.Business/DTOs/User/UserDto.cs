@@ -53,5 +53,10 @@ namespace STMM.Business.DTOs.User
         /// Ngày tạo
         /// </summary>
         public DateTime? CreatedAt { get; set; }
+
+        /// <summary>
+        /// ID chợ được gán cho người dùng
+        /// </summary>
+        public int? MarketId { get; set; }
     }
 }

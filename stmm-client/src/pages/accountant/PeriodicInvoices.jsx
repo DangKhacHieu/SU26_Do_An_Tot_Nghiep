@@ -25,6 +25,8 @@ export default function PeriodicInvoices() {
   const [status, setStatus] = useState('all');
   const [search, setSearch] = useState('');
   const [selectedIds, setSelectedIds] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
 
   const [activeModal, setActiveModal] = useState(null);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
@@ -43,8 +45,16 @@ export default function PeriodicInvoices() {
 
   const fetchInvoices = () => {
     setLoading(true);
-    const q = new URLSearchParams({ month: month || '', year: year || '', status: status !== 'all' ? status : '', search: search || '' }).toString();
-    fetch(`http://localhost:5056/api/accountant/billing/invoices?${q}`)
+    const session = localStorage.getItem('user');
+    let userIdStr = '';
+    if (session) {
+      try {
+        const u = JSON.parse(session);
+        if (u && u.userId) userIdStr = u.userId;
+      } catch (e) {}
+    }
+    const q = new URLSearchParams({ month: month || '', year: year || '', status: status !== 'all' ? status : '', search: search || '', userId: userIdStr }).toString();
+    fetch(`http://localhost:5056/api/accountant/billing/invoices?${q}`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` } })
       .then(res => { if (!res.ok) throw new Error(); return res.json(); })
       .then(data => { setInvoices(data); setIsMock(false); setLoading(false); })
       .catch(() => {
@@ -53,6 +63,7 @@ export default function PeriodicInvoices() {
   };
 
   useEffect(() => { fetchInvoices(); }, [month, year, status]);
+  useEffect(() => { setCurrentPage(1); }, [month, year, status, search]);
 
   const getMockInvoices = () => [
     { invoiceId: 101, stallCode: 'Kiosk A-12', vendorName: 'Nguyễn Văn A', totalAmount: 12500000, month: 6, year: 2026, dueDate: '2026-06-20', status: 'Unpaid', details: [{ feeTypeName: 'Thuê mặt bằng', description: 'Tiền thuê diện tích Kiosk A-12', quantity: 1, unitPrice: 12000000, amount: 12000000 }, { feeTypeName: 'Phí dịch vụ', description: 'Phí quản lý vận hành chung', quantity: 1, unitPrice: 500000, amount: 500000 }] },
@@ -71,7 +82,7 @@ export default function PeriodicInvoices() {
 
   const openDetails = (invoice) => {
     if (isMock) { setSelectedInvoice(invoice); setActiveModal('details'); }
-    else fetch(`http://localhost:5056/api/accountant/billing/invoices/${invoice.invoiceId}`)
+    else fetch(`http://localhost:5056/api/accountant/billing/invoices/${invoice.invoiceId}`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` } })
       .then(r => r.json()).then(d => { setSelectedInvoice(d); setActiveModal('details'); })
       .catch(() => { setSelectedInvoice(invoice); setActiveModal('details'); });
   };
@@ -102,7 +113,7 @@ export default function PeriodicInvoices() {
       setActiveModal(null);
     } else {
       fetch(`http://localhost:5056/api/accountant/billing/meter-readings/adjust?userId=1`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` },
         body: JSON.stringify({ stallId: adjustForm.stallId, meterType: adjustForm.meterType, month: selectedInvoice.month, year: selectedInvoice.year, oldValue: adjustForm.oldValue, newValue: adjustForm.newValue })
       }).then(r => { if (!r.ok) throw new Error(); showNotification('success', 'Cập nhật thành công!'); setActiveModal(null); fetchInvoices(); })
         .catch(() => showNotification('danger', 'Có lỗi khi cập nhật chỉ số.'));
@@ -116,7 +127,7 @@ export default function PeriodicInvoices() {
       showNotification('success', 'Tạo hóa đơn đột xuất thành công!');
       setActiveModal(null);
     } else {
-      fetch('http://localhost:5056/api/accountant/billing/invoices/ad-hoc', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(adhocForm) })
+      fetch('http://localhost:5056/api/accountant/billing/invoices/ad-hoc', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` }, body: JSON.stringify(adhocForm) })
         .then(r => { if (!r.ok) throw new Error(); showNotification('success', 'Phát hành hóa đơn đột xuất thành công!'); setActiveModal(null); fetchInvoices(); })
         .catch(() => showNotification('danger', 'Lỗi khi tạo hóa đơn.'));
     }
@@ -128,7 +139,7 @@ export default function PeriodicInvoices() {
       setSelectedIds([]); setActiveModal(null);
       showNotification('success', `Đã phát hành ${selectedIds.length} hóa đơn thành công!`);
     } else {
-      fetch('http://localhost:5056/api/accountant/billing/invoices/bulk-approve', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ invoiceIds: selectedIds }) })
+      fetch('http://localhost:5056/api/accountant/billing/invoices/bulk-approve', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` }, body: JSON.stringify({ invoiceIds: selectedIds }) })
         .then(r => { if (!r.ok) throw new Error(); showNotification('success', `Phê duyệt ${selectedIds.length} hóa đơn thành công!`); setSelectedIds([]); setActiveModal(null); fetchInvoices(); })
         .catch(() => showNotification('danger', 'Lỗi khi phê duyệt hàng loạt.'));
     }
@@ -149,9 +160,6 @@ export default function PeriodicInvoices() {
               <span>Phát Hành Hàng Loạt ({selectedIds.length})</span>
             </button>
           )}
-          <button className="btn btn-secondary btn-icon" onClick={fetchInvoices} title="Làm mới">
-            <RefreshCw size={15} />
-          </button>
           <button className="btn btn-primary" onClick={() => setActiveModal('adhoc')}>
             <Plus size={15} />
             <span>Hóa Đơn Đột Xuất</span>
@@ -229,7 +237,7 @@ export default function PeriodicInvoices() {
               </tr>
             </thead>
             <tbody>
-              {invoices.length > 0 ? invoices.map(inv => {
+              {invoices.length > 0 ? invoices.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(inv => {
                 const { cls, label } = getStatusBadge(inv.status);
                 return (
                   <tr key={inv.invoiceId}>
@@ -272,6 +280,38 @@ export default function PeriodicInvoices() {
               )}
             </tbody>
           </table>
+          {invoices.length > itemsPerPage && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, padding: '16px' }}>
+              <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+                Hiển thị {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, invoices.length)} trong tổng số {invoices.length} hóa đơn
+              </span>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <button 
+                  className="btn btn-secondary btn-sm" 
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} 
+                  disabled={currentPage === 1}
+                >
+                  Trước
+                </button>
+                {Array.from({ length: Math.ceil(invoices.length / itemsPerPage) }, (_, i) => i + 1).map(page => (
+                  <button 
+                    key={page} 
+                    className={`btn btn-sm ${currentPage === page ? 'btn-primary' : 'btn-secondary'}`}
+                    onClick={() => setCurrentPage(page)}
+                  >
+                    {page}
+                  </button>
+                ))}
+                <button 
+                  className="btn btn-secondary btn-sm" 
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(invoices.length / itemsPerPage)))} 
+                  disabled={currentPage === Math.ceil(invoices.length / itemsPerPage)}
+                >
+                  Sau
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

@@ -16,18 +16,21 @@ namespace STMM.Business.Services
         private readonly IPaymentRepository _paymentRepository;
         private readonly IInvoiceRepository _invoiceRepository;
         private readonly IViolationRepository _violationRepository;
+        private readonly IUserRepository _userRepository;
 
         public DashboardService(
             IPaymentRepository paymentRepository,
             IInvoiceRepository invoiceRepository,
-            IViolationRepository violationRepository)
+            IViolationRepository violationRepository,
+            IUserRepository userRepository)
         {
             _paymentRepository = paymentRepository;
             _invoiceRepository = invoiceRepository;
             _violationRepository = violationRepository;
+            _userRepository = userRepository;
         }
 
-        public async Task<AccountantDashboardDto> GetAccountantDashboardDataAsync(CancellationToken ct = default)
+        public async Task<AccountantDashboardDto> GetAccountantDashboardDataAsync(int? accountantUserId = null, CancellationToken ct = default)
         {
             var now = DateTime.UtcNow;
             
@@ -38,12 +41,33 @@ namespace STMM.Business.Services
             var lastMonthStart = thisMonthStart.AddMonths(-1);
             var lastMonthEnd = thisMonthStart;
 
+            int? marketId = null;
+            if (accountantUserId.HasValue)
+            {
+                var user = await _userRepository.GetByIdAsync(accountantUserId.Value, ct);
+                if (user?.MarketId != null)
+                {
+                    marketId = user.MarketId;
+                }
+            }
+
+            var paymentQuery = _paymentRepository.Query();
+            var invoiceQuery = _invoiceRepository.Query().Where(i => i.IsDeleted != true);
+            var violationQuery = _violationRepository.Query();
+
+            if (marketId.HasValue)
+            {
+                paymentQuery = paymentQuery.Where(p => p.Invoice.Contract.Stall.Area.MarketId == marketId.Value);
+                invoiceQuery = invoiceQuery.Where(i => i.Contract.Stall.Area.MarketId == marketId.Value);
+                violationQuery = violationQuery.Where(v => v.Stall.Area.MarketId == marketId.Value);
+            }
+
             // 2. Revenue (actual cash received from Payments)
-            var revenueThisMonth = await _paymentRepository.Query()
+            var revenueThisMonth = await paymentQuery
                 .Where(p => p.PaidAt >= thisMonthStart && p.PaidAt < nextMonthStart)
                 .SumAsync(p => (decimal?)p.Amount, ct) ?? 0;
 
-            var revenueLastMonth = await _paymentRepository.Query()
+            var revenueLastMonth = await paymentQuery
                 .Where(p => p.PaidAt >= lastMonthStart && p.PaidAt < lastMonthEnd)
                 .SumAsync(p => (decimal?)p.Amount, ct) ?? 0;
 
@@ -55,15 +79,15 @@ namespace STMM.Business.Services
             string revChangeStr = revChange >= 0 ? $"+{revChange:F1}%" : $"{revChange:F1}%";
 
             // 3. Periodic Invoices (completed vs total)
-            var invoicesTotal = await _invoiceRepository.Query()
+            var invoicesTotal = await invoiceQuery
                 .Where(i => i.Month == now.Month && i.Year == now.Year)
                 .CountAsync(ct);
 
-            var invoicesPaid = await _invoiceRepository.Query()
+            var invoicesPaid = await invoiceQuery
                 .Where(i => i.Month == now.Month && i.Year == now.Year && i.Status == "Paid")
                 .CountAsync(ct);
 
-            var invoicesPaidLastMonth = await _invoiceRepository.Query()
+            var invoicesPaidLastMonth = await invoiceQuery
                 .Where(i => i.Month == lastMonthStart.Month && i.Year == lastMonthStart.Year && i.Status == "Paid")
                 .CountAsync(ct);
 
@@ -75,7 +99,7 @@ namespace STMM.Business.Services
             string invChangeStr = invChange >= 0 ? $"+{invChange:F1}%" : $"{invChange:F1}%";
 
             // 4. Repair Cost (invoice detail amount where fee category relates to repairs)
-            var repairCostThisMonth = await _invoiceRepository.Query()
+            var repairCostThisMonth = await invoiceQuery
                 .Where(i => i.Month == now.Month && i.Year == now.Year)
                 .SelectMany(i => i.InvoiceDetails)
                 .Where(d => d.FeeType.Name.ToLower().Contains("sửa") || 
@@ -83,7 +107,7 @@ namespace STMM.Business.Services
                             d.Description!.ToLower().Contains("sửa"))
                 .SumAsync(d => (decimal?)d.Amount, ct) ?? 0;
 
-            var repairCostLastMonth = await _invoiceRepository.Query()
+            var repairCostLastMonth = await invoiceQuery
                 .Where(i => i.Month == lastMonthStart.Month && i.Year == lastMonthStart.Year)
                 .SelectMany(i => i.InvoiceDetails)
                 .Where(d => d.FeeType.Name.ToLower().Contains("sửa") || 
@@ -99,11 +123,11 @@ namespace STMM.Business.Services
             string repChangeStr = repChange >= 0 ? $"+{repChange:F1}%" : $"{repChange:F1}%";
 
             // 5. Violations & Penalties Fines
-            var finesThisMonth = await _violationRepository.Query()
+            var finesThisMonth = await violationQuery
                 .Where(v => v.CreatedAt >= thisMonthStart && v.CreatedAt < nextMonthStart)
                 .SumAsync(v => v.FineAmount ?? 0, ct);
 
-            var finesLastMonth = await _violationRepository.Query()
+            var finesLastMonth = await violationQuery
                 .Where(v => v.CreatedAt >= lastMonthStart && v.CreatedAt < lastMonthEnd)
                 .SumAsync(v => v.FineAmount ?? 0, ct);
 
@@ -115,7 +139,7 @@ namespace STMM.Business.Services
             string fineChangeStr = fineChange >= 0 ? $"+{fineChange:F1}%" : $"{fineChange:F1}%";
 
             // 6. Recent Transactions
-            var recentPayments = await _paymentRepository.Query()
+            var recentPayments = await paymentQuery
                 .Include(p => p.Invoice)
                     .ThenInclude(i => i.Contract)
                         .ThenInclude(c => c.Stall)
@@ -150,7 +174,7 @@ namespace STMM.Business.Services
             foreach (var monthStart in chartMonths)
             {
                 var monthEnd = monthStart.AddMonths(1);
-                var revenue = await _paymentRepository.Query()
+                var revenue = await paymentQuery
                     .Where(p => p.PaidAt >= monthStart && p.PaidAt < monthEnd)
                     .SumAsync(p => (decimal?)p.Amount, ct) ?? 0;
                 

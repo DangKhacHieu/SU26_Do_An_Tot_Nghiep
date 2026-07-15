@@ -106,9 +106,9 @@ namespace STMM.API.Controllers
         /// </summary>
         [HttpGet("all")]
         [Authorize(Roles = "Accountant")]
-        public async Task<IActionResult> GetAllViolations(CancellationToken ct)
+        public async Task<IActionResult> GetAllViolations([FromQuery] int? userId, CancellationToken ct)
         {
-            var result = await _violationService.GetAllViolationsAsync(ct);
+            var result = await _violationService.GetAllViolationsAsync(userId, ct);
             return Ok(result);
         }
 
