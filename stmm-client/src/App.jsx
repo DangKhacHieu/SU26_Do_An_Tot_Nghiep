@@ -73,6 +73,7 @@ import UserListAdminSystem from "./pages/FE_AdminSystem/UserListAdminSystem";
 import UserFormAdminSystem from "./pages/FE_AdminSystem/UserFormAdminSystem";
 import UserDetailAdminSystem from "./pages/FE_AdminSystem/UserDetailAdminSystem";
 import MarketApprovalListAdminSystem from "./pages/FE_AdminSystem/MarketApprovalListAdminSystem";
+import AuditLogListAdminSystem from "./pages/FE_AdminSystem/AuditLogListAdminSystem";
 
 // Accountant Layout & Pages
 import AccountantLayout from './components/layout/AccountantLayout';
@@ -228,6 +229,10 @@ const PAGE_TITLES = {
   "admin-user-detail": {
     title: "Chi tiết Tài khoản (Admin)",
     sub: "Thông tin đầy đủ và lịch sử hoạt động của tài khoản.",
+  },
+  "admin-audit-logs": {
+    title: "Nhật ký hoạt động (Admin)",
+    sub: "Giám sát lịch sử thao tác của các tài khoản quản trị.",
   },
 };
 
@@ -695,6 +700,8 @@ function AppContent() {
         );
       case "admin-market-approval":
         return <MarketApprovalListAdminSystem navigate={navigate} addToast={addToast} />;
+      case "admin-audit-logs":
+        return <AuditLogListAdminSystem navigate={navigate} addToast={addToast} />;
 
       default:
         return <DashboardManager addToast={addToast} navigate={navigate} />;

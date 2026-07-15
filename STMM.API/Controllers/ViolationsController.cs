@@ -14,10 +14,12 @@ namespace STMM.API.Controllers
     public class ViolationsController : ControllerBase
     {
         private readonly IViolationService _violationService;
+        private readonly IAuditLogService _auditLogService;
 
-        public ViolationsController(IViolationService violationService)
+        public ViolationsController(IViolationService violationService, IAuditLogService auditLogService)
         {
             _violationService = violationService;
+            _auditLogService = auditLogService;
         }
 
         private int GetUserId()
@@ -72,6 +74,11 @@ namespace STMM.API.Controllers
         {
             userId = GetUserId();
             var result = await _violationService.CreateViolationAsync(userId, request, ct);
+
+            // Ghi nhật ký hoạt động
+            var ipAddress = Request.HttpContext.Connection.RemoteIpAddress?.ToString();
+            await _auditLogService.LogAsync(userId, $"Lập biên bản vi phạm: {result.ViolationTypeName} - Sạp: {result.StallCode} - Số tiền phạt: {request.FineAmount:N0} VNĐ", ipAddress, ct);
+
             return CreatedAtAction(nameof(GetViolationById), new { id = result.ViolationId, userId }, result);
         }
 
@@ -126,7 +133,7 @@ namespace STMM.API.Controllers
         }
 
         /// <summary>
-        /// Lấy toàn bộ danh mục Loại vi phạm (kèm cả loại đã ẩn).
+        /// Lấy toàn bộ danh sách Loại vi phạm (kèm cả loại đã ẩn).
         /// </summary>
         [HttpGet("types/all")]
         [Authorize(Roles = "Accountant")]
@@ -156,6 +163,12 @@ namespace STMM.API.Controllers
         public async Task<IActionResult> CreateViolationType([FromBody] CreateViolationTypeRequest request, CancellationToken ct)
         {
             var result = await _violationService.CreateViolationTypeAsync(request, ct);
+
+            // Ghi nhật ký hoạt động
+            var userId = GetUserId();
+            var ipAddress = Request.HttpContext.Connection.RemoteIpAddress?.ToString();
+            await _auditLogService.LogAsync(userId, $"Tạo loại vi phạm mới: {result.Name} - Mức phạt mặc định: {result.DefaultFine:N0} VNĐ", ipAddress, ct);
+
             return Ok(result);
         }
 
@@ -167,6 +180,12 @@ namespace STMM.API.Controllers
         public async Task<IActionResult> UpdateViolationType(int id, [FromBody] UpdateViolationTypeRequest request, CancellationToken ct)
         {
             var result = await _violationService.UpdateViolationTypeAsync(id, request, ct);
+
+            // Ghi nhật ký hoạt động
+            var userId = GetUserId();
+            var ipAddress = Request.HttpContext.Connection.RemoteIpAddress?.ToString();
+            await _auditLogService.LogAsync(userId, $"Cập nhật loại vi phạm (ID: {id}) - Tên: {result.Name}", ipAddress, ct);
+
             return Ok(result);
         }
 
@@ -178,6 +197,12 @@ namespace STMM.API.Controllers
         public async Task<IActionResult> DeleteViolationType(int id, CancellationToken ct)
         {
             var result = await _violationService.DeleteViolationTypeAsync(id, ct);
+
+            // Ghi nhật ký hoạt động
+            var userId = GetUserId();
+            var ipAddress = Request.HttpContext.Connection.RemoteIpAddress?.ToString();
+            await _auditLogService.LogAsync(userId, $"Xóa/Ẩn loại vi phạm (ID: {id})", ipAddress, ct);
+
             return Ok(result);
         }
     }

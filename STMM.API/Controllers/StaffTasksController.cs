@@ -14,10 +14,12 @@ namespace STMM.API.Controllers
     public class StaffTasksController : ControllerBase
     {
         private readonly IStaffTaskService _staffTaskService;
+        private readonly IAuditLogService _auditLogService;
 
-        public StaffTasksController(IStaffTaskService staffTaskService)
+        public StaffTasksController(IStaffTaskService staffTaskService, IAuditLogService auditLogService)
         {
             _staffTaskService = staffTaskService;
+            _auditLogService = auditLogService;
         }
 
         private int GetUserId()
@@ -72,6 +74,11 @@ namespace STMM.API.Controllers
         {
             userId = GetUserId();
             var result = await _staffTaskService.CompleteTaskAsync(userId, id, request, ct);
+
+            // Ghi nhật ký hoạt động
+            var ipAddress = Request.HttpContext.Connection.RemoteIpAddress?.ToString();
+            await _auditLogService.LogAsync(userId, $"Hoàn thành tác vụ sửa chữa/hỗ trợ kỹ thuật (Tác vụ ID: {id})", ipAddress, ct);
+
             return Ok(result);
         }
     }
