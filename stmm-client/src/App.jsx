@@ -64,6 +64,7 @@ import ViolationDetailsManager from "./pages/FE_Manager/ViolationDetailsManager"
 import IssueListManager from "./pages/FE_Manager/IssueListManager";
 import IssueDetailManager from "./pages/FE_Manager/IssueDetailManager";
 import MeterManagement from "./pages/FE_Manager/MeterManagement";
+import NotificationListManager from "./pages/FE_Manager/NotificationListManager";
 
 // FE Admin System Imports
 import SidebarAdminSystem from "./pages/FE_AdminSystem/SidebarAdminSystem";
@@ -104,6 +105,10 @@ const PAGE_TITLES = {
   dashboard: {
     title: "Tổng quan hệ thống",
     sub: "Thống kê tổng hợp và trạng thái hoạt động của MHMS.",
+  },
+  notifications: {
+    title: "Thông báo hệ thống",
+    sub: "Quản lý và xem các thông báo, cập nhật từ hệ thống gửi tới ban quản lý.",
   },
   users: {
     title: "Quản lý Tài khoản",
@@ -528,6 +533,8 @@ function AppContent() {
         return <ProfileManager navigate={navigate} addToast={addToast} />;
       case "dashboard":
         return <DashboardManager addToast={addToast} navigate={navigate} />;
+      case "notifications":
+        return <NotificationListManager navigate={navigate} addToast={addToast} />;
       case "market-areas":
         return <MarketAreaList user={user} />;
       case "markets":
