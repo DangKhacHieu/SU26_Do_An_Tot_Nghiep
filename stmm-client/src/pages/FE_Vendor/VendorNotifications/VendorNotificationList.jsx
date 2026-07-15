@@ -56,6 +56,20 @@ export default function VendorNotificationList({ onUpdateUnreadCount }) {
         }
     };
 
+    const handleDeleteNotification = async (notiId, e) => {
+        e.stopPropagation(); // Ngăn không cho click truyền lên item để mở modal
+        if (!window.confirm('Bạn có chắc chắn muốn xóa thông báo này?')) return;
+        
+        try {
+            await notificationService.deleteNotification(notiId);
+            const updated = notifications.filter(n => n.notiId !== notiId);
+            setNotifications(updated);
+            updateGlobalCount(updated);
+        } catch (error) {
+            console.error('Failed to delete notification', error);
+        }
+    };
+
     const handleNotificationClick = (noti) => {
         setSelectedNotification(noti);
         if (!noti.isRead) {
@@ -136,7 +150,26 @@ export default function VendorNotificationList({ onUpdateUnreadCount }) {
                                 <p className="noti-excerpt">{noti.content.substring(0, 100)}{noti.content.length > 100 ? '...' : ''}</p>
                                 <span className="noti-time">{formatDateTime(noti.createdAt)}</span>
                             </div>
-                            {!noti.isRead && <div className="noti-unread-dot"></div>}
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
+                                {!noti.isRead && <div className="noti-unread-dot"></div>}
+                                <button 
+                                    className="btn-delete-noti"
+                                    onClick={(e) => handleDeleteNotification(noti.notiId, e)}
+                                    title="Xóa thông báo"
+                                    style={{
+                                        background: 'transparent',
+                                        border: 'none',
+                                        color: '#ef4444',
+                                        cursor: 'pointer',
+                                        fontSize: '18px',
+                                        padding: '4px',
+                                        opacity: '0.6',
+                                        transition: 'opacity 0.2s'
+                                    }}
+                                >
+                                    🗑️
+                                </button>
+                            </div>
                         </div>
                     ))
                 )}
