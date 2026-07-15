@@ -11,10 +11,12 @@ namespace STMM.API.Controllers
     public class PaymentVerificationController : ControllerBase
     {
         private readonly IBillingService _billingService;
+        private readonly IAuditLogService _auditLogService;
 
-        public PaymentVerificationController(IBillingService billingService)
+        public PaymentVerificationController(IBillingService billingService, IAuditLogService auditLogService)
         {
             _billingService = billingService;
+            _auditLogService = auditLogService;
         }
 
         /// <summary>
@@ -38,6 +40,12 @@ namespace STMM.API.Controllers
             CancellationToken ct)
         {
             var result = await _billingService.VerifyPaymentAsync(paymentId, request, userId, ct);
+
+            // Ghi nhật ký hoạt động
+            var ipAddress = Request.HttpContext.Connection.RemoteIpAddress?.ToString();
+            var statusVerb = request.Approve ? "Phê duyệt" : "Từ chối";
+            await _auditLogService.LogAsync(userId, $"{statusVerb} giao dịch thanh toán (ID: {paymentId}) - Lý do từ chối: {request.RejectionNote}", ipAddress, ct);
+
             return Ok(result);
         }
 
@@ -71,6 +79,11 @@ namespace STMM.API.Controllers
             CancellationToken ct)
         {
             var result = await _billingService.SendDebtReminderAsync(request, userId, ct);
+
+            // Ghi nhật ký hoạt động
+            var ipAddress = Request.HttpContext.Connection.RemoteIpAddress?.ToString();
+            await _auditLogService.LogAsync(userId, $"Gửi nhắc nợ cho sạp (ID: {request.StallId}) - Nội dung: {request.CustomMessage}", ipAddress, ct);
+
             return Ok(result);
         }
 
@@ -95,6 +108,12 @@ namespace STMM.API.Controllers
             CancellationToken ct)
         {
             var result = await _billingService.ResolveInvoiceDisputeAsync(requestId, request, userId, ct);
+
+            // Ghi nhật ký hoạt động
+            var ipAddress = Request.HttpContext.Connection.RemoteIpAddress?.ToString();
+            var resolutionVerb = request.Approve ? "Chấp nhận" : "Bác bỏ";
+            await _auditLogService.LogAsync(userId, $"{resolutionVerb} kháng nghị hóa đơn (Yêu cầu ID: {requestId}) - Phản hồi: {request.Feedback}", ipAddress, ct);
+
             return Ok(result);
         }
     }

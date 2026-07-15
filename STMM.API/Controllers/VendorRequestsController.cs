@@ -15,11 +15,16 @@ namespace STMM.API.Controllers
     {
         private readonly IVendorRequestService _vendorRequestService;
         private readonly IVendorRepository _vendorRepository;
+        private readonly IAuditLogService _auditLogService;
 
-        public VendorRequestsController(IVendorRequestService vendorRequestService, STMM.DataAccess.IRepositories.IVendorRepository vendorRepository)
+        public VendorRequestsController(
+            IVendorRequestService vendorRequestService, 
+            IVendorRepository vendorRepository,
+            IAuditLogService auditLogService)
         {
             _vendorRequestService = vendorRequestService;
             _vendorRepository = vendorRepository;
+            _auditLogService = auditLogService;
         }
 
         private async Task<int> GetVendorIdAsync()
@@ -37,6 +42,16 @@ namespace STMM.API.Controllers
                 throw new System.UnauthorizedAccessException("Vendor profile not found for this user.");
             }
             return vendor.VendorId;
+        }
+
+        private int GetUserId()
+        {
+            var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userIdString) || !int.TryParse(userIdString, out int userId))
+            {
+                return 0;
+            }
+            return userId;
         }
 
         [HttpGet]
@@ -80,6 +95,12 @@ namespace STMM.API.Controllers
             {
                 var vendorId = await GetVendorIdAsync();
                 var result = await _vendorRequestService.CreateRequestAsync(vendorId, dto);
+
+                // Ghi nhật ký hoạt động
+                var userId = GetUserId();
+                var ipAddress = Request.HttpContext.Connection.RemoteIpAddress?.ToString();
+                await _auditLogService.LogAsync(userId, $"Tạo yêu cầu mới: {dto.RequestType} - Sạp ID: {dto.StallId}", ipAddress);
+
                 return Ok(new { message = "Tạo yêu cầu thành công.", data = result });
             }
             catch (System.Exception ex)
@@ -95,6 +116,12 @@ namespace STMM.API.Controllers
             {
                 var vendorId = await GetVendorIdAsync();
                 await _vendorRequestService.CancelRequestAsync(vendorId, id);
+
+                // Ghi nhật ký hoạt động
+                var userId = GetUserId();
+                var ipAddress = Request.HttpContext.Connection.RemoteIpAddress?.ToString();
+                await _auditLogService.LogAsync(userId, $"Hủy yêu cầu dịch vụ/sự cố (Yêu cầu ID: {id})", ipAddress);
+
                 return Ok(new { message = "Đã hủy yêu cầu thành công." });
             }
             catch (System.Exception ex)
@@ -110,6 +137,13 @@ namespace STMM.API.Controllers
             {
                 var vendorId = await GetVendorIdAsync();
                 var result = await _vendorRequestService.ResolveRequestQuoteForVendorAsync(vendorId, id, approve);
+
+                // Ghi nhật ký hoạt động
+                var userId = GetUserId();
+                var ipAddress = Request.HttpContext.Connection.RemoteIpAddress?.ToString();
+                var choiceVerb = approve ? "Phê duyệt" : "Từ chối";
+                await _auditLogService.LogAsync(userId, $"{choiceVerb} báo giá dịch vụ (Yêu cầu ID: {id})", ipAddress);
+
                 return Ok(new { message = "Thao tác thành công.", data = result });
             }
             catch (System.Exception ex)

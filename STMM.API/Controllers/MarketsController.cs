@@ -16,10 +16,12 @@ namespace STMM.API.Controllers
     public class MarketsController : ControllerBase
     {
         private readonly IMarketService _marketService;
+        private readonly IAuditLogService _auditLogService;
 
-        public MarketsController(IMarketService marketService)
+        public MarketsController(IMarketService marketService, IAuditLogService auditLogService)
         {
             _marketService = marketService;
+            _auditLogService = auditLogService;
         }
 
         [HttpGet]
@@ -68,6 +70,11 @@ namespace STMM.API.Controllers
                 }
 
                 var market = await _marketService.CreateMarketBulkAsync(request, userId);
+
+                // Ghi nhật ký hoạt động
+                var ipAddress = Request.HttpContext.Connection.RemoteIpAddress?.ToString();
+                await _auditLogService.LogAsync(userId, $"Tạo layout Chợ hàng loạt: {market.MarketName} (ID: {market.MarketId})", ipAddress);
+
                 return Ok(market);
             }
             catch (System.Exception ex)
@@ -83,6 +90,15 @@ namespace STMM.API.Controllers
         {
             var result = await _marketService.DeleteMarketAsync(marketId);
             if (!result) return NotFound(new { message = "Market not found" });
+
+            // Ghi nhật ký hoạt động
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!string.IsNullOrEmpty(userIdClaim) && int.TryParse(userIdClaim, out int userId))
+            {
+                var ipAddress = Request.HttpContext.Connection.RemoteIpAddress?.ToString();
+                await _auditLogService.LogAsync(userId, $"Xóa Chợ (ID: {marketId})", ipAddress);
+            }
+
             return NoContent();
         }
 
@@ -92,6 +108,16 @@ namespace STMM.API.Controllers
         {
             var result = await _marketService.ChangeMarketStatusAsync(marketId, status);
             if (!result) return NotFound(new { message = "Market not found" });
+
+            // Ghi nhật ký hoạt động
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!string.IsNullOrEmpty(userIdClaim) && int.TryParse(userIdClaim, out int userId))
+            {
+                var ipAddress = Request.HttpContext.Connection.RemoteIpAddress?.ToString();
+                var actionVerb = status == "Active" ? "Phê duyệt" : (status == "Rejected" ? "Từ chối" : $"Cập nhật trạng thái thành {status}");
+                await _auditLogService.LogAsync(userId, $"{actionVerb} yêu cầu đăng ký Chợ (ID: {marketId})", ipAddress);
+            }
+
             return Ok(new { message = "Market status updated successfully" });
         }
 
@@ -108,6 +134,11 @@ namespace STMM.API.Controllers
                 }
 
                 var result = await _marketService.DeactivateMarketAsync(marketId, managerId);
+
+                // Ghi nhật ký hoạt động
+                var ipAddress = Request.HttpContext.Connection.RemoteIpAddress?.ToString();
+                await _auditLogService.LogAsync(managerId, $"Hủy kích hoạt Chợ (ID: {marketId})", ipAddress);
+
                 return Ok(new { message = "Market deactivated successfully. You can now create a new layout." });
             }
             catch (System.Exception ex)
