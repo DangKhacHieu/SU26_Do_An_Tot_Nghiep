@@ -317,6 +317,7 @@ function VendorDashboard({ user, onBack, onLogout }) {
                 searchTerm={searchTerm} 
                 setSearchTerm={setSearchTerm}
                 stallId={selectedStallId}
+                onViewMyServices={() => setServiceTab('MY_SERVICES')}
               />
             </div>
           )}

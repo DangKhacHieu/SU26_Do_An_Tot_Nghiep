@@ -11,21 +11,26 @@ const VendorServiceList = ({ vendorId, searchTerm = '', setSearchTerm, onViewMyS
     const [myStalls, setMyStalls] = useState([]);
     const [selectedStalls, setSelectedStalls] = useState([]);
     const [isRegistering, setIsRegistering] = useState(false);
+    const [myServices, setMyServices] = useState([]);
 
     useEffect(() => {
         const fetchServices = async () => {
             try {
                 const token = localStorage.getItem('accessToken');
-                const [servicesRes, stallsRes] = await Promise.all([
+                const [servicesRes, stallsRes, myServicesRes] = await Promise.all([
                     axios.get('http://localhost:5056/api/vendor/services/available', {
                         headers: { Authorization: `Bearer ${token}` }
                     }),
                     axios.get('http://localhost:5056/api/vendor/services/my-stalls', {
                         headers: { Authorization: `Bearer ${token}` }
+                    }),
+                    axios.get('http://localhost:5056/api/vendor/services/my-services', {
+                        headers: { Authorization: `Bearer ${token}` }
                     })
                 ]);
                 setServices(servicesRes.data);
                 setMyStalls(stallsRes.data || []);
+                setMyServices(myServicesRes.data || []);
             } catch (err) {
                 setError('Không thể tải danh sách dịch vụ.');
                 console.error(err);
@@ -67,6 +72,12 @@ const VendorServiceList = ({ vendorId, searchTerm = '', setSearchTerm, onViewMyS
             
             alert('Đăng ký dịch vụ thành công cho các sạp đã chọn! Vui lòng đợi Ban quản lý phê duyệt.');
             setConfirmService(null);
+            
+            // Refetch myServices to update the UI status immediately
+            const myServicesRes = await axios.get('http://localhost:5056/api/vendor/services/my-services', {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setMyServices(myServicesRes.data || []);
         } catch (err) {
             const msg = err.response?.data?.detail || err.response?.data?.message || 'Có lỗi xảy ra khi đăng ký dịch vụ cho một số sạp.';
             alert(msg);
@@ -156,11 +167,34 @@ const VendorServiceList = ({ vendorId, searchTerm = '', setSearchTerm, onViewMyS
                                                 style={{ background: 'transparent', border: '1px solid #e5e7eb', color: '#333', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}>
                                                 Chi tiết
                                             </button>
-                                            <button 
-                                                onClick={() => handleRegisterClick(service)}
-                                                style={{ background: '#000', border: 'none', color: '#fff', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}>
-                                                Đăng ký
-                                            </button>
+                                            {(() => {
+                                                const activeOrPendingRegs = myServices.filter(ms => ms.serviceId === service.serviceId && (ms.status === 'Active' || ms.status === 'Pending'));
+                                                const isFullyRegistered = myStalls.length > 0 && activeOrPendingRegs.length >= myStalls.length;
+                                                const isPending = activeOrPendingRegs.some(ms => ms.status === 'Pending');
+
+                                                if (isFullyRegistered) {
+                                                    return (
+                                                        <span style={{ 
+                                                            fontSize: '11px', fontWeight: 'bold', 
+                                                            color: isPending ? '#92400e' : '#065f46', 
+                                                            padding: '6px 12px', 
+                                                            background: isPending ? '#fef3c7' : '#d1fae5', 
+                                                            borderRadius: '4px',
+                                                            display: 'flex', alignItems: 'center'
+                                                        }}>
+                                                            {isPending ? 'Đang chờ duyệt' : 'Đã đăng ký'}
+                                                        </span>
+                                                    );
+                                                }
+
+                                                return (
+                                                    <button 
+                                                        onClick={() => handleRegisterClick(service)}
+                                                        style={{ background: '#000', border: 'none', color: '#fff', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}>
+                                                        Đăng ký
+                                                    </button>
+                                                );
+                                            })()}
                                         </div>
                                     </td>
                                 </tr>
@@ -266,9 +300,25 @@ const VendorServiceList = ({ vendorId, searchTerm = '', setSearchTerm, onViewMyS
                             {/* Actions */}
                             <div style={{ display: 'flex', gap: '12px' }}>
                                 <button onClick={() => setViewService(null)} style={{ flex: 1, padding: '12px', border: '1px solid #cbd5e1', background: 'white', color: '#475569', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s' }}>Đóng lại</button>
-                                <button onClick={() => { setViewService(null); handleRegisterClick(viewService); }} style={{ flex: 2, padding: '12px', border: 'none', background: '#3b82f6', color: 'white', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', transition: 'background 0.2s', boxShadow: '0 4px 6px -1px rgba(59, 130, 246, 0.2)' }}>
-                                    Đăng ký dịch vụ này
-                                </button>
+                                {(() => {
+                                    const activeOrPendingRegs = myServices.filter(ms => ms.serviceId === viewService.serviceId && (ms.status === 'Active' || ms.status === 'Pending'));
+                                    const isFullyRegistered = myStalls.length > 0 && activeOrPendingRegs.length >= myStalls.length;
+                                    const isPending = activeOrPendingRegs.some(ms => ms.status === 'Pending');
+
+                                    if (isFullyRegistered) {
+                                        return (
+                                            <div style={{ flex: 2, padding: '12px', background: isPending ? '#fef3c7' : '#d1fae5', color: isPending ? '#92400e' : '#065f46', borderRadius: '8px', fontWeight: '600', textAlign: 'center' }}>
+                                                {isPending ? 'Đang chờ duyệt' : 'Đã đăng ký'}
+                                            </div>
+                                        );
+                                    }
+
+                                    return (
+                                        <button onClick={() => { setViewService(null); handleRegisterClick(viewService); }} style={{ flex: 2, padding: '12px', border: 'none', background: '#3b82f6', color: 'white', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', transition: 'background 0.2s', boxShadow: '0 4px 6px -1px rgba(59, 130, 246, 0.2)' }}>
+                                            Đăng ký dịch vụ này
+                                        </button>
+                                    );
+                                })()}
                             </div>
                         </div>
                     </div>
