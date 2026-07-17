@@ -37,3 +37,30 @@ export const submitStallReview = async (stallId, userId, rating, comment) => {
     throw error;
   }
 };
+
+export const updateStallReview = async (reviewId, userId, rating, comment) => {
+  if (!reviewId || !userId || !rating) {
+    throw new Error("reviewId, userId and rating are required");
+  }
+  try {
+    const response = await axios.put(`${REVIEWS_URL}/${reviewId}`, {
+      userId,
+      rating,
+      comment,
+    });
+    return response.data;
+  } catch (error) {
+    console.error(`Error updating review ${reviewId}:`, error);
+    throw error;
+  }
+};
+
+export const getRecentReviews = async (limit = 6) => {
+  try {
+    const response = await axios.get(`${REVIEWS_URL}/recent?limit=${limit}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching recent reviews:", error);
+    throw error;
+  }
+};

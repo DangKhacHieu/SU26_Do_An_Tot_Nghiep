@@ -7,5 +7,7 @@ namespace STMM.Business.Interfaces
     {
         Task<ReviewSummaryDto?> GetReviewsByStallAsync(int stallId);
         Task<ReviewDto?> CreateReviewAsync(CreateReviewRequest request);
+        Task<ReviewDto?> UpdateReviewAsync(int reviewId, UpdateReviewRequest request);
+        Task<System.Collections.Generic.List<ReviewDto>> GetRecentReviewsAsync(int limit);
     }
 }

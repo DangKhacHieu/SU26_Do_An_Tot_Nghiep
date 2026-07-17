@@ -6,25 +6,36 @@ using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using STMM.Business.DTOs.Stall;
 using STMM.Business.Interfaces;
-using STMM.DataAccess.Data;
 using STMM.DataAccess.Entities;
+using STMM.DataAccess.IRepositories;
 
 namespace STMM.Business.Services
 {
     public class StallService : IStallService
     {
-        private readonly AppDbContext _context;
+        private readonly IStallRepository _stallRepository;
+        private readonly IBusinessCategoryRepository _businessCategoryRepository;
+        private readonly IContractRepository _contractRepository;
+        private readonly IReviewRepository _reviewRepository;
         private readonly IMapper _mapper;
 
-        public StallService(AppDbContext context, IMapper mapper)
+        public StallService(
+            IStallRepository stallRepository,
+            IBusinessCategoryRepository businessCategoryRepository,
+            IContractRepository contractRepository,
+            IReviewRepository reviewRepository,
+            IMapper mapper)
         {
-            _context = context;
+            _stallRepository = stallRepository;
+            _businessCategoryRepository = businessCategoryRepository;
+            _contractRepository = contractRepository;
+            _reviewRepository = reviewRepository;
             _mapper = mapper;
         }
 
         public async Task<IEnumerable<StallDto>> GetAllStallsAsync()
         {
-            var stalls = await _context.Stalls
+            var stalls = await _stallRepository.Query()
                 .Include(s => s.Area)
                 .Include(s => s.Category)
                 .Where(s => s.IsDeleted != true)
@@ -35,7 +46,7 @@ namespace STMM.Business.Services
 
         public async Task<IEnumerable<StallDto>> GetAllStallsByAreaIdAsync(int areaId)
         {
-            var stalls = await _context.Stalls
+            var stalls = await _stallRepository.Query()
                 .Include(s => s.Area)
                 .Include(s => s.Category)
                 .Include(s => s.Contracts)
@@ -60,7 +71,7 @@ namespace STMM.Business.Services
 
         public async Task<StallDto?> GetStallByIdAsync(int id)
         {
-            var stall = await _context.Stalls
+            var stall = await _stallRepository.Query()
                 .Include(s => s.Area)
                 .Include(s => s.Category)
                 .Include(s => s.Contracts)
@@ -85,7 +96,7 @@ namespace STMM.Business.Services
             if (!string.IsNullOrWhiteSpace(categoryName))
             {
                 var nameLower = categoryName.ToLower().Trim();
-                var existingCategory = await _context.BusinessCategories
+                var existingCategory = await _businessCategoryRepository.Query()
                     .FirstOrDefaultAsync(c => c.Name.ToLower() == nameLower);
 
                 if (existingCategory != null)
@@ -101,8 +112,8 @@ namespace STMM.Business.Services
                         IsActive = true,
                         CreatedAt = DateTime.UtcNow
                     };
-                    _context.BusinessCategories.Add(newCategory);
-                    await _context.SaveChangesAsync();
+                    await _businessCategoryRepository.AddAsync(newCategory);
+                    await _businessCategoryRepository.SaveChangesAsync();
                     return newCategory.CategoryId;
                 }
             }
@@ -129,15 +140,15 @@ namespace STMM.Business.Services
             stall.MapX ??= 0;
             stall.MapY ??= 0;
 
-            _context.Stalls.Add(stall);
-            await _context.SaveChangesAsync();
+            await _stallRepository.AddAsync(stall);
+            await _stallRepository.SaveChangesAsync();
 
             return await GetStallByIdAsync(stall.StallId) ?? _mapper.Map<StallDto>(stall);
         }
 
         public async Task<StallDto> UpdateStallAsync(int id, UpdateStallDto updateStallDto)
         {
-            var stall = await _context.Stalls.FirstOrDefaultAsync(s => s.StallId == id && s.IsDeleted != true);
+            var stall = await _stallRepository.Query().FirstOrDefaultAsync(s => s.StallId == id && s.IsDeleted != true);
             if (stall == null)
             {
                 throw new KeyNotFoundException($"Stall with id {id} not found.");
@@ -153,19 +164,19 @@ namespace STMM.Business.Services
             }
 
             // Force status to Rented if there is an active contract
-            if (await _context.Contracts.AnyAsync(c => c.StallId == id && c.Status == "Active"))
+            if (await _contractRepository.Query().AnyAsync(c => c.StallId == id && c.Status == "Active"))
             {
                 stall.Status = "Rented";
             }
 
-            await _context.SaveChangesAsync();
+            await _stallRepository.SaveChangesAsync();
 
             return await GetStallByIdAsync(id) ?? _mapper.Map<StallDto>(stall);
         }
 
         public async Task<StallDto> UpdateStallLocationAsync(int id, UpdateStallLocationDto locationDto)
         {
-            var stall = await _context.Stalls.FirstOrDefaultAsync(s => s.StallId == id && s.IsDeleted != true);
+            var stall = await _stallRepository.Query().FirstOrDefaultAsync(s => s.StallId == id && s.IsDeleted != true);
             if (stall == null)
             {
                 throw new KeyNotFoundException($"Stall with id {id} not found.");
@@ -177,28 +188,28 @@ namespace STMM.Business.Services
             if (locationDto.Height.HasValue) stall.Height = locationDto.Height;
             if (locationDto.Rotation.HasValue) stall.Rotation = locationDto.Rotation;
 
-            await _context.SaveChangesAsync();
+            await _stallRepository.SaveChangesAsync();
 
             return await GetStallByIdAsync(id) ?? _mapper.Map<StallDto>(stall);
         }
 
         public async Task<StallDto> UpdateStallStatusAsync(int id, string status)
         {
-            var stall = await _context.Stalls.FirstOrDefaultAsync(s => s.StallId == id && s.IsDeleted != true);
+            var stall = await _stallRepository.Query().FirstOrDefaultAsync(s => s.StallId == id && s.IsDeleted != true);
             if (stall == null)
             {
                 throw new KeyNotFoundException($"Stall with id {id} not found.");
             }
 
             stall.Status = status;
-            await _context.SaveChangesAsync();
+            await _stallRepository.SaveChangesAsync();
 
             return await GetStallByIdAsync(id) ?? _mapper.Map<StallDto>(stall);
         }
 
         public async Task<bool> DeactivateStallAsync(int id)
         {
-            var stall = await _context.Stalls
+            var stall = await _stallRepository.Query()
                 .Include(s => s.Contracts)
                 .FirstOrDefaultAsync(s => s.StallId == id && s.IsDeleted != true);
             
@@ -214,7 +225,7 @@ namespace STMM.Business.Services
 
             stall.IsDeleted = true;
             stall.DeletedAt = DateTime.UtcNow;
-            await _context.SaveChangesAsync();
+            await _stallRepository.SaveChangesAsync();
 
             return true;
         }
@@ -222,7 +233,7 @@ namespace STMM.Business.Services
         public async Task<HighestRatedStallDto?> GetHighestRatedStallAsync()
         {
             // Find the stall with the highest average rating
-            var highestRatedGroup = await _context.Reviews
+            var highestRatedGroup = await _reviewRepository.Query()
                 .GroupBy(r => r.StallId)
                 .Select(g => new
                 {
@@ -237,7 +248,7 @@ namespace STMM.Business.Services
 
             if (highestRatedGroup != null)
             {
-                stall = await _context.Stalls
+                stall = await _stallRepository.Query()
                     .Include(s => s.Area)
                     .Include(s => s.Category)
                     .FirstOrDefaultAsync(s => s.StallId == highestRatedGroup.StallId && s.IsDeleted != true);
@@ -248,14 +259,14 @@ namespace STMM.Business.Services
             // Fallback: get the first rented stall
             if (stall == null)
             {
-                stall = await _context.Stalls
+                stall = await _stallRepository.Query()
                     .Include(s => s.Area)
                     .Include(s => s.Category)
                     .FirstOrDefaultAsync(s => s.IsDeleted != true && s.Status == "Rented");
 
                 if (stall == null)
                 {
-                    stall = await _context.Stalls
+                    stall = await _stallRepository.Query()
                         .Include(s => s.Area)
                         .Include(s => s.Category)
                         .FirstOrDefaultAsync(s => s.IsDeleted != true);

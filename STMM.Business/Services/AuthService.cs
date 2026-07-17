@@ -478,7 +478,7 @@ namespace STMM.Business.Services
 
             return role switch
             {
-                "systemadmin" => "/admin/dashboard",
+                "admin" => "/admin/dashboard",
                 "customer" => "/",
                 "vendor" => "/",
                 "staff" => "/staff/dashboard",

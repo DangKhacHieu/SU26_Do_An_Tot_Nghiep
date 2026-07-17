@@ -19,21 +19,43 @@ declare global {
 
 const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5056/api').replace(/\/$/, '');
 
+const translateVietnameseErrorToEnglish = (msg: string): string => {
+  if (!msg) return msg;
+  const lower = msg.toLowerCase();
+  if (lower.includes("mật khẩu không chính xác") || lower.includes("incorrect password")) return "Incorrect password.";
+  if (lower.includes("tài khoản không tồn tại")) return "Account does not exist.";
+  if (lower.includes("tài khoản đã bị khóa")) return "Account has been locked.";
+  if (lower.includes("chưa được xác nhận email")) return "Email has not been verified.";
+  if (lower.includes("email đã được sử dụng")) return "Email is already in use.";
+  if (lower.includes("số điện thoại đã được sử dụng")) return "Phone number is already in use.";
+  if (lower.includes("không kết nối được api") || lower.includes("err_network")) return "Failed to connect to the API. Please ensure the API server is running.";
+  if (lower.includes("transient failure") || lower.includes("npgsql") || lower.includes("postgresql") || lower.includes("database connection failed")) {
+    return "Database connection failed. Please ensure the database server is running.";
+  }
+  if (lower.includes("đăng nhập thất bại")) return "Login failed.";
+  if (lower.includes("đăng ký thất bại")) return "Registration failed.";
+  if (lower.includes("đổi mật khẩu thất bại")) return "Failed to change password.";
+  if (lower.includes("khôi phục mật khẩu thất bại")) return "Failed to request password reset.";
+  if (lower.includes("xác thực otp thất bại")) return "Invalid OTP code.";
+  if (lower.includes("gửi lại mã xác thực thất bại")) return "Failed to resend verification code.";
+  return msg;
+};
+
 const getApiErrorMessage = (error: any, fallback: string): string => {
   const data = error.response?.data;
+  let rawMessage = fallback;
 
-  if (data?.message) return data.message;
-  if (data?.detail) return data.detail;
-
-  if (data?.errors && typeof data.errors === 'object') {
-    return Object.values(data.errors).flat().join(', ');
+  if (data?.message) {
+    rawMessage = data.message;
+  } else if (data?.detail) {
+    rawMessage = data.detail;
+  } else if (data?.errors && typeof data.errors === 'object') {
+    rawMessage = Object.values(data.errors).flat().join(', ');
+  } else if (error.code === 'ERR_NETWORK') {
+    rawMessage = 'Không kết nối được API. Hãy kiểm tra API đã chạy đúng cổng trong file .env chưa.';
   }
 
-  if (error.code === 'ERR_NETWORK') {
-    return 'Không kết nối được API. Hãy kiểm tra API đã chạy đúng cổng trong file .env chưa.';
-  }
-
-  return fallback;
+  return translateVietnameseErrorToEnglish(rawMessage);
 };
 
 class AuthService {

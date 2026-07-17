@@ -282,7 +282,7 @@ function App() {
   const handleLogout = () => {
     authService.logout();
     setUser(null);
-    navigatePath("/", true); // Clean up the session entry in the history stack
+    window.location.href = "/";
   };
 
   // =========================
@@ -744,60 +744,54 @@ function App() {
 
             <nav className="sidebar-nav">
               <button
-                className={`sidebar-nav-item ${
-                  currentStaffView === "dashboard" ? "active" : ""
-                }`}
+                className={`sidebar-nav-item ${currentStaffView === "dashboard" ? "active" : ""
+                  }`}
                 onClick={() => setCurrentStaffView("dashboard")}
               >
                 <span className="sidebar-nav-icon">📊</span> Dashboard
               </button>
 
               <button
-                className={`sidebar-nav-item ${
-                  currentStaffView === "tasks" ? "active" : ""
-                }`}
+                className={`sidebar-nav-item ${currentStaffView === "tasks" ? "active" : ""
+                  }`}
                 onClick={() => setCurrentStaffView("tasks")}
               >
                 <span className="sidebar-nav-icon">📋</span> Tasks
               </button>
 
               <button
-                className={`sidebar-nav-item ${
-                  ["meters", "meter-details"].includes(currentStaffView)
+                className={`sidebar-nav-item ${["meters", "meter-details"].includes(currentStaffView)
                     ? "active"
                     : ""
-                }`}
+                  }`}
                 onClick={() => setCurrentStaffView("meters")}
               >
                 <span className="sidebar-nav-icon">⚡</span> Meters
               </button>
 
               <button
-                className={`sidebar-nav-item ${
-                  ["violations", "violation-details"].includes(currentStaffView)
+                className={`sidebar-nav-item ${["violations", "violation-details"].includes(currentStaffView)
                     ? "active"
                     : ""
-                }`}
+                  }`}
                 onClick={() => setCurrentStaffView("violations")}
               >
                 <span className="sidebar-nav-icon">⚠️</span> Violations
               </button>
 
               <button
-                className={`sidebar-nav-item ${
-                  ["issues", "issue-details"].includes(currentStaffView)
+                className={`sidebar-nav-item ${["issues", "issue-details"].includes(currentStaffView)
                     ? "active"
                     : ""
-                }`}
+                  }`}
                 onClick={() => setCurrentStaffView("issues")}
               >
                 <span className="sidebar-nav-icon">🔧</span> Issues
               </button>
 
               <button
-                className={`sidebar-nav-item ${
-                  currentStaffView === "stall-list" ? "active" : ""
-                }`}
+                className={`sidebar-nav-item ${currentStaffView === "stall-list" ? "active" : ""
+                  }`}
                 onClick={() => setCurrentStaffView("stall-list")}
               >
                 <span className="sidebar-nav-icon">🏪</span> List Stall
@@ -1112,7 +1106,7 @@ function App() {
     if (isStaff && !path.startsWith("/staff/")) {
       return <div className="loading-state">Đang chuyển hướng đến trang Nhân viên...</div>;
     }
-    
+
     // Prevent logged-in users from seeing auth pages
     if ((role === "customer" || role === "vendor") && ["/login", "/register", "/forgot-password"].includes(path)) {
       return <div className="loading-state">Đang chuyển hướng...</div>;

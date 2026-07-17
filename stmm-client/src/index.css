@@ -94,3 +94,27 @@ code {
   50% { transform: scale(1.05); }
   100% { opacity: 1; transform: scale(1); }
 }
+
+/* Force Times New Roman on all customer-facing views and components */
+.site-header,
+.site-header *,
+.site-footer,
+.site-footer *,
+.homepage,
+.homepage *,
+.auth-modern-page,
+.auth-modern-page *,
+.profile-page,
+.profile-page *,
+.edit-profile-page,
+.edit-profile-page *,
+.change-password-page,
+.change-password-page *,
+.noti-list-page,
+.noti-list-page *,
+.market-map-page,
+.market-map-page *,
+.stall-detail-page,
+.stall-detail-page * {
+  font-family: 'Times New Roman', Times, Baskerville, Georgia, serif !important;
+}

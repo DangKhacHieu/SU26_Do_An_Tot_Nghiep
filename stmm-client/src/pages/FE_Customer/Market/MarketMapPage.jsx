@@ -51,11 +51,11 @@ export default function MarketMapPage({
           setCanvasWidth(max_x + 50);
           setCanvasHeight(max_y + 50);
         } else {
-          setError("Không tìm thấy sơ đồ chợ.");
+          setError("Market map not found.");
         }
       } catch (err) {
         console.error("Lỗi khi tải sơ đồ chợ:", err);
-        setError("Không thể kết nối đến máy chủ để tải sơ đồ chợ.");
+        setError("Could not connect to the server to load the market map.");
       } finally {
         setLoading(false);
       }
@@ -86,13 +86,13 @@ export default function MarketMapPage({
   const getStatusLabel = (status) => {
     switch (status) {
       case "Available":
-        return "Trống (Sẵn sàng thuê)";
+        return "Available";
       case "Rented":
-        return "Đã thuê";
+        return "Rented";
       case "Maintenance":
-        return "Đang bảo trì";
+        return "Maintenance";
       default:
-        return status || "Trống";
+        return status || "Available";
     }
   };
 
@@ -193,14 +193,14 @@ export default function MarketMapPage({
         {loading ? (
           <div className="map-loading-box">
             <div className="spinner"></div>
-            <p>Đang tải sơ đồ và danh sách sạp hàng...</p>
+            <p>Loading market blueprint map and stalls...</p>
           </div>
         ) : error ? (
           <div className="map-error-card">
-            <h2>Lỗi tải dữ liệu</h2>
+            <h2>Error loading data</h2>
             <p>{error}</p>
             <button type="button" className="btn-action-primary" onClick={onBack}>
-              Quay lại Trang chủ
+              Back to Homepage
             </button>
           </div>
         ) : (
@@ -218,7 +218,7 @@ export default function MarketMapPage({
                   <span className="search-icon">🔍</span>
                   <input
                     type="text"
-                    placeholder="Tìm kiếm sạp hàng (Ví dụ: A-01, Rau củ...)"
+                    placeholder="Search stalls (e.g. A-01, Vegetables...)"
                     value={searchQuery}
                     onChange={(e) => {
                       setSearchQuery(e.target.value);
@@ -248,8 +248,8 @@ export default function MarketMapPage({
                         onClick={() => handleSuggestionClick(stall)}
                       >
                         <div className="suggestion-info">
-                          <strong>{stall.businessName ? `${stall.businessName} (Sạp ${stall.code})` : `Sạp ${stall.code}`}</strong>
-                          <span>{stall.categoryName || "Chưa có ngành hàng"}</span>
+                          <strong>{stall.businessName ? `${stall.businessName} (Stall ${stall.code})` : `Stall ${stall.code}`}</strong>
+                          <span>{stall.categoryName || "No category set"}</span>
                         </div>
                         <span className="suggestion-area">{stall.areaName}</span>
                       </li>
@@ -262,15 +262,15 @@ export default function MarketMapPage({
               <div className="map-legend-strip">
                 <div className="legend-item">
                   <span className="legend-color available"></span>
-                  <span>Trống ({allStalls.filter((s) => s.status === "Available").length})</span>
+                  <span>Available ({allStalls.filter((s) => s.status === "Available").length})</span>
                 </div>
                 <div className="legend-item">
                   <span className="legend-color rented"></span>
-                  <span>Đã thuê ({allStalls.filter((s) => s.status === "Rented").length})</span>
+                  <span>Rented ({allStalls.filter((s) => s.status === "Rented").length})</span>
                 </div>
                 <div className="legend-item">
                   <span className="legend-color maintenance"></span>
-                  <span>Bảo trì ({allStalls.filter((s) => s.status === "Maintenance").length})</span>
+                  <span>Maintenance ({allStalls.filter((s) => s.status === "Maintenance").length})</span>
                 </div>
               </div>
 
@@ -335,7 +335,7 @@ export default function MarketMapPage({
                                     )}`,
                                   }}
                                   onClick={() => handleStallClick(stall, area)}
-                                  title={stall.businessName ? `Sạp: ${stall.code} - ${stall.businessName} (${getStatusLabel(stall.status)})` : `Sạp: ${stall.code} (${getStatusLabel(stall.status)})`}
+                                  title={stall.businessName ? `Stall: ${stall.code} - ${stall.businessName} (${getStatusLabel(stall.status)})` : `Stall: ${stall.code} (${getStatusLabel(stall.status)})`}
                                 >
                                   <span className="stall-label-text">
                                     {stall.businessName || stall.code}
@@ -348,7 +348,7 @@ export default function MarketMapPage({
                     })
                   ) : (
                     <div className="map-empty-state">
-                      Chợ hiện chưa có phân khu nào được cấu hình mặt bằng.
+                      This market does not have any areas configured on the map yet.
                     </div>
                   )}
                 </div>
@@ -360,105 +360,104 @@ export default function MarketMapPage({
               {selectedStall ? (
                 <div className="details-drawer-card">
                   <div className="drawer-header">
-                    <span className="drawer-badge">Gian hàng chi tiết</span>
-                    <span
-                      className={`status-badge-bubble ${selectedStall.status.toLowerCase()}`}
-                      style={{
-                        backgroundColor: getStatusColor(selectedStall.status),
-                      }}
-                    >
-                      {getStatusLabel(selectedStall.status)}
-                    </span>
-                  </div>
+                     <span className="drawer-badge">Stall Details</span>
+                     <span
+                       className={`status-badge-bubble ${selectedStall.status.toLowerCase()}`}
+                       style={{
+                         backgroundColor: getStatusColor(selectedStall.status),
+                       }}
+                     >
+                       {getStatusLabel(selectedStall.status)}
+                     </span>
+                   </div>
 
-                  <h2>{selectedStall.businessName || `Sạp ${selectedStall.code}`}</h2>
-                  {selectedStall.businessName && (
-                    <p className="drawer-code-info" style={{ margin: 0, fontSize: "14px", color: "#617157" }}>
-                      Số hiệu sạp: <strong>{selectedStall.code}</strong>
-                    </p>
-                  )}
-                  <p className="drawer-area-info">
-                    Thuộc phân khu: <strong>{selectedStall.areaName}</strong>
-                  </p>
+                   <h2>{selectedStall.businessName || `Stall ${selectedStall.code}`}</h2>
+                   {selectedStall.businessName && (
+                     <p className="drawer-code-info" style={{ margin: 0, fontSize: "14px", color: "#617157" }}>
+                       Stall number: <strong>{selectedStall.code}</strong>
+                     </p>
+                   )}
+                   <p className="drawer-area-info">
+                     Section: <strong>{selectedStall.areaName}</strong>
+                   </p>
 
-                  <div className="drawer-spec-table">
-                    <div className="spec-row">
-                      <span className="spec-label">Ngành kinh doanh:</span>
-                      <strong className="spec-val">
-                        {selectedStall.categoryName || "Chưa thiết lập"}
-                      </strong>
-                    </div>
+                   <div className="drawer-spec-table">
+                     <div className="spec-row">
+                       <span className="spec-label">Business category:</span>
+                       <strong className="spec-val">
+                         {selectedStall.categoryName || "Not set"}
+                       </strong>
+                     </div>
 
-                    <div className="spec-row">
-                      <span className="spec-label">Diện tích sàn:</span>
-                      <strong className="spec-val">
-                        {selectedStall.size ? `${selectedStall.size} m²` : "N/A"}
-                      </strong>
-                    </div>
+                     <div className="spec-row">
+                       <span className="spec-label">Floor area:</span>
+                       <strong className="spec-val">
+                         {selectedStall.size ? `${selectedStall.size} m²` : "N/A"}
+                       </strong>
+                     </div>
 
-                    <div className="spec-row">
-                      <span className="spec-label">Kích thước:</span>
-                      <strong className="spec-val">
-                        {selectedStall.width && selectedStall.height
-                          ? `${Math.round(selectedStall.width / 10)}m x ${Math.round(
-                              selectedStall.height / 10
-                            )}m`
-                          : "N/A"}
-                      </strong>
-                    </div>
+                     <div className="spec-row">
+                       <span className="spec-label">Size:</span>
+                       <strong className="spec-val">
+                         {selectedStall.width && selectedStall.height
+                           ? `${Math.round(selectedStall.width / 10)}m x ${Math.round(
+                               selectedStall.height / 10
+                             )}m`
+                           : "N/A"}
+                       </strong>
+                     </div>
 
-                    {selectedStall.fireInsuranceExpiry && (
-                      <div className="spec-row alert">
-                        <span className="spec-label">Hạn bảo hiểm:</span>
-                        <strong className="spec-val">
-                          {new Date(
-                            selectedStall.fireInsuranceExpiry
-                          ).toLocaleDateString("vi-VN")}
-                        </strong>
-                      </div>
-                    )}
+                     {selectedStall.fireInsuranceExpiry && (
+                       <div className="spec-row alert">
+                         <span className="spec-label">Insurance expiry:</span>
+                         <strong className="spec-val">
+                           {new Date(
+                             selectedStall.fireInsuranceExpiry
+                           ).toLocaleDateString("en-US")}
+                         </strong>
+                       </div>
+                     )}
 
-                    <div className="spec-row">
-                      <span className="spec-label">Đánh giá sạp:</span>
-                      <strong className="spec-val" style={{ color: "#fb8c00" }}>
-                        {ratingSummary && ratingSummary.totalReviews > 0
-                          ? `★ ${ratingSummary.averageRating} (${ratingSummary.totalReviews} đánh giá)`
-                          : "Chưa có đánh giá"}
-                      </strong>
-                    </div>
-                  </div>
+                     <div className="spec-row">
+                       <span className="spec-label">Stall rating:</span>
+                       <strong className="spec-val" style={{ color: "#fb8c00" }}>
+                         {ratingSummary && ratingSummary.totalReviews > 0
+                           ? `★ ${ratingSummary.averageRating} (${ratingSummary.totalReviews} reviews)`
+                           : "No reviews yet"}
+                       </strong>
+                     </div>
+                   </div>
 
-                  <div className="drawer-actions-container">
-                    <button
-                      type="button"
-                      className="btn-drawer-primary"
-                      onClick={() => onGoToStallDetail(selectedStall.stallId)}
-                    >
-                      Xem chi tiết đầy đủ →
-                    </button>
-                    <button
-                      type="button"
-                      className="btn-drawer-secondary"
-                      onClick={() => {
-                        setSelectedStall(null);
-                        setRatingSummary(null);
-                      }}
-                    >
-                      Đóng thông tin nhanh
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="details-placeholder-card">
-                  <div className="placeholder-illustration">🏪</div>
-                  <h3>Thông tin sạp hàng</h3>
-                  <p>
-                    Vui lòng chọn hoặc tìm kiếm bất kỳ gian hàng nào trên sơ đồ
-                    để hiển thị nhanh thông số mặt bằng chi tiết.
-                  </p>
-                </div>
-              )}
-            </div>
+                   <div className="drawer-actions-container">
+                     <button
+                       type="button"
+                       className="btn-drawer-primary"
+                       onClick={() => onGoToStallDetail(selectedStall.stallId)}
+                     >
+                       View full details →
+                     </button>
+                     <button
+                       type="button"
+                       className="btn-drawer-secondary"
+                       onClick={() => {
+                         setSelectedStall(null);
+                         setRatingSummary(null);
+                       }}
+                     >
+                       Close quick info
+                     </button>
+                   </div>
+                 </div>
+               ) : (
+                 <div className="details-placeholder-card">
+                   <div className="placeholder-illustration">🏪</div>
+                   <h3>Stall Information</h3>
+                   <p>
+                     Please select or search for any stall on the map to display its details.
+                   </p>
+                 </div>
+               )}
+             </div>
           </div>
         )}
       </main>

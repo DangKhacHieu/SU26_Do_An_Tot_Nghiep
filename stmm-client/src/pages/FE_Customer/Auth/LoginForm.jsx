@@ -25,7 +25,7 @@ export default function LoginForm({ onBack, onGoToRegister, onGoToForgotPassword
       initGoogle();
     } else {
       const script = document.createElement("script");
-      script.src = "https://accounts.google.com/gsi/client";
+      script.src = "https://accounts.google.com/gsi/client?hl=en";
       script.async = true;
       script.defer = true;
       script.onload = initGoogle;
@@ -40,7 +40,7 @@ export default function LoginForm({ onBack, onGoToRegister, onGoToForgotPassword
       const res = await authService.loginWithGoogle(response.credential);
       onLoginSuccess(res);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Đăng nhập bằng Google thất bại");
+      setError(err instanceof Error ? err.message : "Google login failed");
     } finally {
       setLoading(false);
     }
@@ -57,7 +57,7 @@ export default function LoginForm({ onBack, onGoToRegister, onGoToForgotPassword
       // Gửi nguyên response lên App.jsx để App.jsx lấy user + redirectUrl
       onLoginSuccess(res);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Đăng nhập thất bại");
+      setError(err instanceof Error ? err.message : "Login failed");
     } finally {
       setLoading(false);
     }
@@ -81,8 +81,8 @@ export default function LoginForm({ onBack, onGoToRegister, onGoToForgotPassword
             </h1>
 
             <p>
-              Đăng nhập để quản lý tài khoản, xem hồ sơ cá nhân và tiếp tục sử
-              dụng các chức năng trong hệ thống STMM.
+              Log in to manage your account, view your profile and continue using
+              the functions in the STMM system.
             </p>
 
             <div className="auth-mini-list">
@@ -111,8 +111,8 @@ export default function LoginForm({ onBack, onGoToRegister, onGoToForgotPassword
             </button>
 
             <div>
-              <h2>Đăng nhập</h2>
-              <p>Nhập email và mật khẩu để tiếp tục</p>
+              <h2>Login</h2>
+              <p>Enter email and password to continue</p>
             </div>
           </div>
 
@@ -141,7 +141,7 @@ export default function LoginForm({ onBack, onGoToRegister, onGoToForgotPassword
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   type={showPassword ? "text" : "password"}
-                  placeholder="Nhập mật khẩu"
+                  placeholder="Enter password"
                   required
                 />
 
@@ -171,19 +171,19 @@ export default function LoginForm({ onBack, onGoToRegister, onGoToForgotPassword
               className="auth-submit-btn"
               disabled={loading}
             >
-              {loading ? "Đang đăng nhập..." : "Login"}
+              {loading ? "Logging in..." : "Login"}
               <span>→</span>
             </button>
           </form>
 
           <div className="auth-divider">
-            <span>Hoặc</span>
+            <span>Or</span>
           </div>
 
           <div id="google-login-btn" className="google-btn-container"></div>
 
           <p className="auth-switch-text">
-            Chưa có tài khoản?{" "}
+            Don't have an account?{" "}
             <button type="button" onClick={onGoToRegister}>
               Register now
             </button>

@@ -43,14 +43,14 @@ export default function EditProfileForm({
         formData.name,
         formData.phone
       );
-      setMessage("Cập nhật thông tin thành công!");
+      setMessage("Profile updated successfully!");
       setTimeout(() => {
         if (onProfileUpdated) {
           onProfileUpdated(updatedUser);
         }
       }, 1500);
     } catch (err) {
-      setError(err.message || "Cập nhật thông tin thất bại");
+      setError(err.message || "Failed to update profile");
     } finally {
       setLoading(false);
     }

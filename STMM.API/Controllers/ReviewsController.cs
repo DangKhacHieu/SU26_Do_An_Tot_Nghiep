@@ -65,5 +65,47 @@ namespace STMM.API.Controllers
                 return BadRequest(ex.Message);
             }
         }
+
+        /// <summary>
+        /// Update an existing review.
+        /// </summary>
+        [HttpPut("{reviewId}")]
+        public async Task<IActionResult> UpdateReview(int reviewId, [FromBody] UpdateReviewRequest request)
+        {
+            if (request == null)
+            {
+                return BadRequest("Dữ liệu đánh giá không hợp lệ.");
+            }
+
+            if (request.Rating < 1 || request.Rating > 5)
+            {
+                return BadRequest("Điểm đánh giá phải từ 1 đến 5 sao.");
+            }
+
+            try
+            {
+                var result = await _reviewService.UpdateReviewAsync(reviewId, request);
+                if (result == null)
+                {
+                    return BadRequest("Không thể cập nhật đánh giá.");
+                }
+
+                return Ok(result);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Get recent reviews from the database across all stalls.
+        /// </summary>
+        [HttpGet("recent")]
+        public async Task<IActionResult> GetRecentReviews([FromQuery] int limit = 6)
+        {
+            var reviews = await _reviewService.GetRecentReviewsAsync(limit);
+            return Ok(reviews);
+        }
     }
 }

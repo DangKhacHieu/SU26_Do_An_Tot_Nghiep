@@ -9,30 +9,30 @@ namespace STMM.Business.Validators
         {
             RuleFor(x => x.Name)
                 .Cascade(CascadeMode.Stop)
-                .NotEmpty().WithMessage("Tên không được để trống")
-                .MaximumLength(100).WithMessage("Tên không được vượt quá 100 ký tự");
+                .NotEmpty().WithMessage("Name is required.")
+                .MaximumLength(100).WithMessage("Name cannot exceed 100 characters.");
 
             RuleFor(x => x.Email)
                 .Cascade(CascadeMode.Stop)
-                .NotEmpty().WithMessage("Email không được để trống")
-                .EmailAddress().WithMessage("Email không hợp lệ")
-                .MaximumLength(255).WithMessage("Email không được vượt quá 255 ký tự");
+                .NotEmpty().WithMessage("Email is required.")
+                .EmailAddress().WithMessage("Invalid email address.")
+                .MaximumLength(255).WithMessage("Email cannot exceed 255 characters.");
 
             RuleFor(x => x.Password)
                 .Cascade(CascadeMode.Stop)
-                .NotEmpty().WithMessage("Mật khẩu không được để trống")
+                .NotEmpty().WithMessage("Password is required.")
                 .Matches(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9]).{8,12}$")
-                .WithMessage("Mật khẩu phải từ 8-12 ký tự, bao gồm chữ hoa, chữ thường, số và ký tự đặc biệt");
+                .WithMessage("Password must be 8-12 characters and include uppercase, lowercase, numbers, and special characters.");
 
             RuleFor(x => x.Phone)
                 .Cascade(CascadeMode.Stop)
-                .NotEmpty().WithMessage("Số điện thoại không được để trống")
-                .Matches(@"^\d{9,11}$").WithMessage("Số điện thoại chỉ gồm 9-11 chữ số");
+                .NotEmpty().WithMessage("Phone number is required.")
+                .Matches(@"^\d{9,11}$").WithMessage("Phone number must contain 9 to 11 digits.");
 
             RuleFor(x => x.Cccd)
                 .Cascade(CascadeMode.Stop)
-                .NotEmpty().WithMessage("CCCD không được để trống")
-                .Matches(@"^\d{9,12}$").WithMessage("CCCD chỉ gồm 9-12 chữ số");
+                .NotEmpty().WithMessage("CCCD is required.")
+                .Matches(@"^\d{9,12}$").WithMessage("CCCD must contain 9 to 12 digits.");
         }
     }
 }

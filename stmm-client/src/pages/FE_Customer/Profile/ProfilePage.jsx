@@ -77,13 +77,13 @@ export default function ProfilePage({
         />
         <main className="profile-page profile-page-empty">
           <section className="profile-empty-card">
-            <h2>Không tìm thấy người dùng</h2>
+            <h2>User not found</h2>
             <button
               type="button"
               className="profile-empty-back"
               onClick={onBack}
             >
-              Quay lại
+              Back
             </button>
           </section>
         </main>
@@ -166,7 +166,7 @@ export default function ProfilePage({
               <div className="profile-detail-list">
                 <div className="profile-detail-item">
                   <span>Phone number</span>
-                  <strong>{user.phone || "Chưa cập nhật"}</strong>
+                  <strong>{user.phone || "Not updated"}</strong>
                 </div>
                 <div className="profile-detail-item">
                   <span>Account status</span>
@@ -215,7 +215,7 @@ export default function ProfilePage({
                     className="link-button"
                     onClick={onGoToNotifications}
                   >
-                    Xem tất cả
+                    View all
                   </button>
                 )}
               </div>
@@ -223,11 +223,11 @@ export default function ProfilePage({
               <ul className="activity-list">
                 {loading ? (
                   <li className="activity-item-empty">
-                    <span>Đang tải thông báo...</span>
+                    <span>Loading notifications...</span>
                   </li>
                 ) : notifications.length === 0 ? (
                   <li className="activity-item-empty">
-                    <span>Không có thông báo nào.</span>
+                    <span>No notifications available.</span>
                   </li>
                 ) : (
                   displayedNotifications.map((item, index) => (
@@ -239,7 +239,7 @@ export default function ProfilePage({
                     >
                       <div className="activity-item-header">
                         <div className="activity-item-title-row">
-                          {!item.isRead && <span className="unread-dot" title="Chưa đọc"></span>}
+                          {!item.isRead && <span className="unread-dot" title="Unread"></span>}
                           <h4 className="activity-item-title">{item.title}</h4>
                         </div>
                         {item.notiType && (
@@ -251,7 +251,7 @@ export default function ProfilePage({
                       <p className="activity-item-content">{item.content}</p>
                       <span className="activity-item-time">
                         {item.createdAt
-                          ? new Date(item.createdAt).toLocaleString("vi-VN", {
+                          ? new Date(item.createdAt).toLocaleString("en-US", {
                             hour: "2-digit",
                             minute: "2-digit",
                             day: "2-digit",
@@ -274,7 +274,7 @@ export default function ProfilePage({
           <div className="noti-modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="noti-modal-header">
               <span className={`activity-item-tag ${selectedNoti.notiType ? selectedNoti.notiType.toLowerCase() : "default"}`}>
-                {selectedNoti.notiType || "Thông báo"}
+                {selectedNoti.notiType || "Notification"}
               </span>
               <button className="noti-modal-close" onClick={() => setSelectedNoti(null)}>
                 &times;
@@ -284,10 +284,10 @@ export default function ProfilePage({
             <p className="noti-modal-body">{selectedNoti.content}</p>
             <div className="noti-modal-footer">
               <span className="noti-modal-time">
-                Nhận lúc: {selectedNoti.createdAt ? new Date(selectedNoti.createdAt).toLocaleString("vi-VN") : ""}
+                Received at: {selectedNoti.createdAt ? new Date(selectedNoti.createdAt).toLocaleString("en-US") : ""}
               </span>
               <button className="noti-modal-btn" onClick={() => setSelectedNoti(null)}>
-                Đóng
+                Close
               </button>
             </div>
           </div>
