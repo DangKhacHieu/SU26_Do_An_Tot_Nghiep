@@ -7,5 +7,6 @@ namespace STMM.DataAccess.IRepositories
         Task<Invoice?> GetInvoiceDetailsWithRelationsAsync(int invoiceId, CancellationToken ct = default);
         Task<Invoice?> GetInvoiceWithRelationsForPaymentAsync(int invoiceId, CancellationToken ct = default);
         Task<List<Invoice>> GetUnpaidInvoicesByStallAsync(int stallId, CancellationToken ct = default);
+        Task<List<Invoice>> GetInvoicesByVendorAsync(int userId, int? stallId, int? month, int? year, CancellationToken ct = default);
     }
 }

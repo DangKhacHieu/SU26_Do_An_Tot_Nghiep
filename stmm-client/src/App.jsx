@@ -64,6 +64,7 @@ import ViolationDetailsManager from "./pages/FE_Manager/ViolationDetailsManager"
 import IssueListManager from "./pages/FE_Manager/IssueListManager";
 import IssueDetailManager from "./pages/FE_Manager/IssueDetailManager";
 import MeterManagement from "./pages/FE_Manager/MeterManagement";
+import NotificationListManager from "./pages/FE_Manager/NotificationListManager";
 
 // FE Admin System Imports
 import SidebarAdminSystem from "./pages/FE_AdminSystem/SidebarAdminSystem";
@@ -72,6 +73,7 @@ import UserListAdminSystem from "./pages/FE_AdminSystem/UserListAdminSystem";
 import UserFormAdminSystem from "./pages/FE_AdminSystem/UserFormAdminSystem";
 import UserDetailAdminSystem from "./pages/FE_AdminSystem/UserDetailAdminSystem";
 import MarketApprovalListAdminSystem from "./pages/FE_AdminSystem/MarketApprovalListAdminSystem";
+import AuditLogListAdminSystem from "./pages/FE_AdminSystem/AuditLogListAdminSystem";
 
 // Accountant Layout & Pages
 import AccountantLayout from './components/layout/AccountantLayout';
@@ -104,6 +106,10 @@ const PAGE_TITLES = {
   dashboard: {
     title: "Tổng quan hệ thống",
     sub: "Thống kê tổng hợp và trạng thái hoạt động của MHMS.",
+  },
+  notifications: {
+    title: "Thông báo hệ thống",
+    sub: "Quản lý và xem các thông báo, cập nhật từ hệ thống gửi tới ban quản lý.",
   },
   users: {
     title: "Quản lý Tài khoản",
@@ -223,6 +229,10 @@ const PAGE_TITLES = {
   "admin-user-detail": {
     title: "Chi tiết Tài khoản (Admin)",
     sub: "Thông tin đầy đủ và lịch sử hoạt động của tài khoản.",
+  },
+  "admin-audit-logs": {
+    title: "Nhật ký hoạt động (Admin)",
+    sub: "Giám sát lịch sử thao tác của các tài khoản quản trị.",
   },
 };
 
@@ -527,7 +537,9 @@ function AppContent() {
       case "manager-profile":
         return <ProfileManager navigate={navigate} addToast={addToast} />;
       case "dashboard":
-        return <DashboardManager addToast={addToast} navigate={navigate} />;
+        return <DashboardManager addToast={addToast} navigate={navigate} baseUrl={baseUrl} user={user} />;
+      case "notifications":
+        return <NotificationListManager navigate={navigate} addToast={addToast} />;
       case "market-areas":
         return <MarketAreaList user={user} />;
       case "markets":
@@ -688,6 +700,8 @@ function AppContent() {
         );
       case "admin-market-approval":
         return <MarketApprovalListAdminSystem navigate={navigate} addToast={addToast} />;
+      case "admin-audit-logs":
+        return <AuditLogListAdminSystem navigate={navigate} addToast={addToast} />;
 
       default:
         return <DashboardManager addToast={addToast} navigate={navigate} />;

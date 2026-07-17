@@ -5,7 +5,6 @@ using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using STMM.Business.DTOs.Area;
 using STMM.Business.Interfaces;
-using STMM.DataAccess.Data;
 using STMM.DataAccess.Entities;
 using STMM.DataAccess.IRepositories;
 
@@ -14,14 +13,20 @@ namespace STMM.Business.Services
     public class AreaService : IAreaService
     {
         private readonly IAreaRepository _areaRepository;
+        private readonly IBusinessCategoryRepository _categoryRepository;
+        private readonly IStallRepository _stallRepository;
         private readonly IMapper _mapper;
-        private readonly AppDbContext _context;
 
-        public AreaService(IAreaRepository areaRepository, IMapper mapper, AppDbContext context)
+        public AreaService(
+            IAreaRepository areaRepository, 
+            IBusinessCategoryRepository categoryRepository,
+            IStallRepository stallRepository,
+            IMapper mapper)
         {
             _areaRepository = areaRepository;
+            _categoryRepository = categoryRepository;
+            _stallRepository = stallRepository;
             _mapper = mapper;
-            _context = context;
         }
 
         public async Task<IEnumerable<AreaDto>> GetAllAreasAsync(int? marketId = null)
@@ -41,8 +46,7 @@ namespace STMM.Business.Services
             if (!string.IsNullOrWhiteSpace(categoryName))
             {
                 var nameLower = categoryName.ToLower().Trim();
-                // We use EF Core directly via AppDbContext to simplify category resolution
-                var existingCategory = await _context.Set<BusinessCategory>()
+                var existingCategory = await _categoryRepository.Query()
                     .FirstOrDefaultAsync(c => c.Name.ToLower() == nameLower);
 
                 if (existingCategory != null)
@@ -58,8 +62,8 @@ namespace STMM.Business.Services
                         IsActive = true,
                         CreatedAt = DateTime.UtcNow
                     };
-                    _context.Set<BusinessCategory>().Add(newCategory);
-                    await _context.SaveChangesAsync();
+                    await _categoryRepository.AddAsync(newCategory);
+                    await _categoryRepository.SaveChangesAsync();
                     return newCategory.CategoryId;
                 }
             }
@@ -104,7 +108,7 @@ namespace STMM.Business.Services
 
             if (request.Size.HasValue)
             {
-                var totalStallsSize = await _context.Stalls
+                var totalStallsSize = await _stallRepository.Query()
                     .Where(s => s.AreaId == id && s.IsDeleted != true)
                     .SumAsync(s => s.Size ?? 0);
 
@@ -130,7 +134,7 @@ namespace STMM.Business.Services
             }
 
             // Check if any stall in this area has an active contract
-            var hasActiveContracts = await _context.Stalls
+            var hasActiveContracts = await _stallRepository.Query()
                 .Include(s => s.Contracts)
                 .AnyAsync(s => s.AreaId == id && s.IsDeleted != true && s.Contracts.Any(c => c.Status == "Active"));
 

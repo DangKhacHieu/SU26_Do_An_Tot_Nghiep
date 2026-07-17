@@ -14,6 +14,7 @@ using STMM.Business.DTOs.Request;
 
 using STMM.Business.DTOs.Market;
 using STMM.Business.DTOs.Review;
+using STMM.Business.DTOs.AuditLog;
 
 namespace STMM.Business.Mappers
 {
@@ -21,6 +22,12 @@ namespace STMM.Business.Mappers
     {
         public MappingProfile()
         {
+            // AuditLog mapping
+            CreateMap<AuditLog, AuditLogDto>()
+                .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => src.User != null ? src.User.Name : "Unknown"))
+                .ForMember(dest => dest.UserEmail, opt => opt.MapFrom(src => src.User != null ? src.User.Email : "Unknown"))
+                .ForMember(dest => dest.RoleName, opt => opt.MapFrom(src => src.User != null && src.User.Role != null ? src.User.Role.Name : "Unknown"));
+
             // BusinessCategory mappings
             CreateMap<BusinessCategory, BusinessCategoryDto>()
                 .ForMember(dest => dest.StallsCount, opt => opt.Ignore())

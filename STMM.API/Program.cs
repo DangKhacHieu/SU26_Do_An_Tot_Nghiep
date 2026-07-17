@@ -117,6 +117,7 @@ builder.Services.AddAutoMapper(cfg =>
 builder.Services.AddValidatorsFromAssembly(typeof(MappingProfile).Assembly);
 
 // Register Business Services
+builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 builder.Services.AddScoped<IViolationService, ViolationService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IBillingService, BillingService>();
@@ -148,6 +149,7 @@ builder.Services.AddScoped<IContractService, ContractService>();
 builder.Services.AddScoped<IRequestService, RequestService>();
 builder.Services.AddScoped<IVendorRequestService, VendorRequestService>();
 builder.Services.AddScoped<IVendorViolationService, VendorViolationService>();
+builder.Services.AddScoped<IVendorInvoiceService, VendorInvoiceService>();
 builder.Services.AddScoped<IMarketService, MarketService>();
 builder.Services.AddScoped<IReviewService, ReviewService>();
 
@@ -208,6 +210,7 @@ builder.Services.AddAuthentication(options =>
 });
 
 builder.Services.AddAuthorization();
+builder.Services.AddSignalR();
 
 var app = builder.Build();
 
@@ -230,5 +233,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<STMM.Business.Hubs.AuditLogHub>("/hubs/audit-logs");
 
 app.Run();

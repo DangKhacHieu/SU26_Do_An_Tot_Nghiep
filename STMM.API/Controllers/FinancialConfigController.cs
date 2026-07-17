@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using STMM.Business.DTOs.Dashboard;
 using STMM.Business.Interfaces;
+using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -11,10 +12,22 @@ namespace STMM.API.Controllers
     public class FinancialConfigController : ControllerBase
     {
         private readonly IFinancialConfigService _configService;
+        private readonly IAuditLogService _auditLogService;
 
-        public FinancialConfigController(IFinancialConfigService configService)
+        public FinancialConfigController(IFinancialConfigService configService, IAuditLogService auditLogService)
         {
             _configService = configService;
+            _auditLogService = auditLogService;
+        }
+
+        private int GetUserId()
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
+            {
+                return 0;
+            }
+            return userId;
         }
 
         // --- FEE TYPES ---
@@ -29,6 +42,12 @@ namespace STMM.API.Controllers
         public async Task<IActionResult> CreateFeeType([FromBody] CreateFeeTypeRequest request, CancellationToken ct)
         {
             var result = await _configService.CreateFeeTypeAsync(request, ct);
+
+            // Ghi nhật ký hoạt động
+            var userId = GetUserId();
+            var ipAddress = Request.HttpContext.Connection.RemoteIpAddress?.ToString();
+            await _auditLogService.LogAsync(userId, $"Tạo loại phí mới: {result.Name} (ID: {result.FeeTypeId}) - Đơn vị: {result.Unit}", ipAddress, ct);
+
             return Ok(result);
         }
 
@@ -36,6 +55,12 @@ namespace STMM.API.Controllers
         public async Task<IActionResult> UpdateFeeType(int id, [FromBody] UpdateFeeTypeRequest request, CancellationToken ct)
         {
             var result = await _configService.UpdateFeeTypeAsync(id, request, ct);
+
+            // Ghi nhật ký hoạt động
+            var userId = GetUserId();
+            var ipAddress = Request.HttpContext.Connection.RemoteIpAddress?.ToString();
+            await _auditLogService.LogAsync(userId, $"Cập nhật loại phí: {result.Name} (ID: {id})", ipAddress, ct);
+
             return Ok(result);
         }
 
@@ -43,6 +68,12 @@ namespace STMM.API.Controllers
         public async Task<IActionResult> DeleteFeeType(int id, CancellationToken ct)
         {
             var result = await _configService.DeleteFeeTypeAsync(id, ct);
+
+            // Ghi nhật ký hoạt động
+            var userId = GetUserId();
+            var ipAddress = Request.HttpContext.Connection.RemoteIpAddress?.ToString();
+            await _auditLogService.LogAsync(userId, $"Xóa loại phí (ID: {id})", ipAddress, ct);
+
             return Ok(result);
         }
 
@@ -58,6 +89,12 @@ namespace STMM.API.Controllers
         public async Task<IActionResult> CreateService([FromBody] CreateServiceRequest request, CancellationToken ct)
         {
             var result = await _configService.CreateServiceAsync(request, ct);
+
+            // Ghi nhật ký hoạt động
+            var userId = GetUserId();
+            var ipAddress = Request.HttpContext.Connection.RemoteIpAddress?.ToString();
+            await _auditLogService.LogAsync(userId, $"Đăng ký dịch vụ tiện ích mới: {result.Name} (ID: {result.ServiceId}) - Giá: {result.Price:N0} VNĐ", ipAddress, ct);
+
             return Ok(result);
         }
 
@@ -65,6 +102,12 @@ namespace STMM.API.Controllers
         public async Task<IActionResult> UpdateService(int id, [FromBody] UpdateServiceRequest request, CancellationToken ct)
         {
             var result = await _configService.UpdateServiceAsync(id, request, ct);
+
+            // Ghi nhật ký hoạt động
+            var userId = GetUserId();
+            var ipAddress = Request.HttpContext.Connection.RemoteIpAddress?.ToString();
+            await _auditLogService.LogAsync(userId, $"Cập nhật dịch vụ tiện ích: {result.Name} (ID: {id})", ipAddress, ct);
+
             return Ok(result);
         }
 
@@ -72,6 +115,12 @@ namespace STMM.API.Controllers
         public async Task<IActionResult> DeleteService(int id, CancellationToken ct)
         {
             var result = await _configService.DeleteServiceAsync(id, ct);
+
+            // Ghi nhật ký hoạt động
+            var userId = GetUserId();
+            var ipAddress = Request.HttpContext.Connection.RemoteIpAddress?.ToString();
+            await _auditLogService.LogAsync(userId, $"Xóa dịch vụ tiện ích (ID: {id})", ipAddress, ct);
+
             return Ok(result);
         }
 
@@ -87,6 +136,12 @@ namespace STMM.API.Controllers
         public async Task<IActionResult> UpdateSystemConfig([FromBody] UpdateSystemConfigRequest request, CancellationToken ct)
         {
             var result = await _configService.UpdateSystemConfigAsync(request, ct);
+
+            // Ghi nhật ký hoạt động
+            var userId = GetUserId();
+            var ipAddress = Request.HttpContext.Connection.RemoteIpAddress?.ToString();
+            await _auditLogService.LogAsync(userId, $"Cập nhật cấu hình hệ thống: {request.ConfigKey} -> {request.ConfigValue}", ipAddress, ct);
+
             return Ok(result);
         }
 
@@ -102,6 +157,12 @@ namespace STMM.API.Controllers
         public async Task<IActionResult> UpdateTiers([FromBody] UpdateTiersRequest request, CancellationToken ct)
         {
             var result = await _configService.UpdateTiersAsync(request, ct);
+
+            // Ghi nhật ký hoạt động
+            var userId = GetUserId();
+            var ipAddress = Request.HttpContext.Connection.RemoteIpAddress?.ToString();
+            await _auditLogService.LogAsync(userId, $"Cập nhật biểu phí lũy tiến cho khóa: {request.ConfigKey}", ipAddress, ct);
+
             return Ok(result);
         }
     }

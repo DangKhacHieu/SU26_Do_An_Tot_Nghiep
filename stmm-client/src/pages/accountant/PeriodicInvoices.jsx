@@ -280,6 +280,38 @@ export default function PeriodicInvoices() {
               )}
             </tbody>
           </table>
+          {invoices.length > itemsPerPage && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, padding: '16px' }}>
+              <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+                Hiển thị {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, invoices.length)} trong tổng số {invoices.length} hóa đơn
+              </span>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <button 
+                  className="btn btn-secondary btn-sm" 
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} 
+                  disabled={currentPage === 1}
+                >
+                  Trước
+                </button>
+                {Array.from({ length: Math.ceil(invoices.length / itemsPerPage) }, (_, i) => i + 1).map(page => (
+                  <button 
+                    key={page} 
+                    className={`btn btn-sm ${currentPage === page ? 'btn-primary' : 'btn-secondary'}`}
+                    onClick={() => setCurrentPage(page)}
+                  >
+                    {page}
+                  </button>
+                ))}
+                <button 
+                  className="btn btn-secondary btn-sm" 
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(invoices.length / itemsPerPage)))} 
+                  disabled={currentPage === Math.ceil(invoices.length / itemsPerPage)}
+                >
+                  Sau
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
