@@ -76,10 +76,6 @@ namespace STMM.API.Controllers
             {
                 var vendorId = await GetVendorIdAsync();
                 var result = await _vendorRequestService.GetRequestDetailAsync(vendorId, id);
-                if (result == null)
-                {
-                    return NotFound(new { message = "Yêu cầu không tồn tại hoặc bạn không có quyền xem." });
-                }
                 return Ok(result);
             }
             catch (System.Exception ex)
@@ -122,7 +118,7 @@ namespace STMM.API.Controllers
                 var ipAddress = Request.HttpContext.Connection.RemoteIpAddress?.ToString();
                 await _auditLogService.LogAsync(userId, $"Hủy yêu cầu dịch vụ/sự cố (Yêu cầu ID: {id})", ipAddress);
 
-                return Ok(new { message = "Đã hủy yêu cầu thành công." });
+                return Ok(new { message = "Yêu cầu đã được hủy thành công." });
             }
             catch (System.Exception ex)
             {
