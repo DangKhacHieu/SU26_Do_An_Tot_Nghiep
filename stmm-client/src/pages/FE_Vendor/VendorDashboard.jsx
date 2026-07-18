@@ -121,6 +121,25 @@ function VendorDashboard({ user, onBack, onLogout }) {
     if (user) fetchUnreadCount();
   }, [user]);
 
+  // Handle URL Params for Redirects (e.g., from MoMo Payment)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const menuParam = params.get('menu');
+    const paymentParam = params.get('payment');
+    
+    if (menuParam) {
+      setActiveMenu(menuParam);
+    }
+    
+    if (paymentParam === 'success') {
+      setTimeout(() => alert('Thanh toán hóa đơn qua MoMo thành công!'), 500);
+      window.history.replaceState({}, '', '/vendor/dashboard');
+    } else if (paymentParam === 'error') {
+      setTimeout(() => alert('Thanh toán thất bại hoặc có lỗi xảy ra!'), 500);
+      window.history.replaceState({}, '', '/vendor/dashboard');
+    }
+  }, []);
+
   const MENU_ITEMS = [
     { id: 'DASHBOARD', label: 'OVERVIEW', icon: <IconHome /> },
     { id: 'SERVICES', label: 'SERVICES', icon: <IconServices /> },
