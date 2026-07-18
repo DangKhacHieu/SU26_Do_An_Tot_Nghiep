@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { vendorInvoiceApi } from '../../../services/vendorInvoiceApi';
+import { paymentApi } from '../../../services/paymentApi';
 import './VendorBillsList.css';
 
 export default function VendorBillsList({ vendorId, stallId }) {
@@ -42,6 +43,22 @@ export default function VendorBillsList({ vendorId, stallId }) {
 
     const handleSearch = () => {
         fetchInvoices();
+    };
+
+    const handlePayment = async (invoiceId, requestType) => {
+        try {
+            setLoading(true);
+            const { payUrl } = await paymentApi.createMomoPayment(invoiceId, requestType);
+            if (payUrl) {
+                window.location.href = payUrl; // Chuyển hướng sang MoMo
+            }
+        } catch (err) {
+            console.error('Lỗi khởi tạo thanh toán MoMo:', err);
+            const errorMsg = err.response?.data?.message || err.message;
+            alert('Đã xảy ra lỗi khi tạo yêu cầu thanh toán MoMo: ' + errorMsg);
+        } finally {
+            setLoading(false);
+        }
     };
 
     const formatCurrency = (amount) => {
@@ -137,6 +154,7 @@ export default function VendorBillsList({ vendorId, stallId }) {
                                             <button 
                                                 className={`btn-pay ${inv.status?.toLowerCase() === 'paid' ? 'disabled' : ''}`}
                                                 disabled={inv.status?.toLowerCase() === 'paid'}
+                                                onClick={() => setSelectedInvoice(inv)}
                                                 title={inv.status?.toLowerCase() === 'paid' ? 'Hóa đơn đã thanh toán' : 'Thanh toán trực tuyến'}
                                             >
                                                 Thanh toán
@@ -194,6 +212,22 @@ export default function VendorBillsList({ vendorId, stallId }) {
                             </table>
                         </div>
                         <div className="bill-modal-footer">
+                            {selectedInvoice.status?.toLowerCase() !== 'paid' && (
+                                <div className="payment-options" style={{ display: 'flex', gap: '10px' }}>
+                                    <button 
+                                        className="btn-pay-momo" 
+                                        style={{ backgroundColor: '#a50064', color: 'white', padding: '8px 16px', borderRadius: '4px', border: 'none', cursor: 'pointer' }}
+                                        onClick={() => handlePayment(selectedInvoice.invoiceId, 'captureWallet')}>
+                                        Quét mã QR MoMo
+                                    </button>
+                                    <button 
+                                        className="btn-pay-atm" 
+                                        style={{ backgroundColor: '#334155', color: 'white', padding: '8px 16px', borderRadius: '4px', border: 'none', cursor: 'pointer' }}
+                                        onClick={() => handlePayment(selectedInvoice.invoiceId, 'payWithATM')}>
+                                        Thanh toán Thẻ ATM
+                                    </button>
+                                </div>
+                            )}
                             <button className="btn-cancel" onClick={() => setSelectedInvoice(null)}>Đóng</button>
                         </div>
                     </div>
