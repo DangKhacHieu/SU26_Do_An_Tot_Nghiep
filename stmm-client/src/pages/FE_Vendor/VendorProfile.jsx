@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { showSuccess, showError } from '../../utils/alert';
 import './VendorProfile.css';
 
 const IconShield = () => (
@@ -50,7 +51,7 @@ export default function VendorProfile() {
                 }
             } catch (err) {
                 console.error("Error fetching profile:", err);
-                alert("Không thể tải thông tin tài khoản.");
+                showError('Thất bại', 'Không thể tải thông tin tài khoản.');
             } finally {
                 setLoading(false);
             }
@@ -70,11 +71,11 @@ export default function VendorProfile() {
             }, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            alert("Cập nhật thông tin thành công!");
+            await showSuccess('Thành công', 'Cập nhật thông tin thành công!');
         } catch (err) {
             console.error("Error updating profile:", err);
             const msg = err.response?.data?.message || err.response?.data || "Có lỗi xảy ra khi cập nhật.";
-            alert("Lỗi: " + msg);
+            showError('Thất bại', msg);
         } finally {
             setSaving(false);
         }

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { showSuccess, showError, showConfirm } from '../../../utils/alert';
 
 const VendorRequestDetail = ({ requestId, onBack, onSuccess }) => {
     const [request, setRequest] = useState(null);
@@ -17,7 +18,7 @@ const VendorRequestDetail = ({ requestId, onBack, onSuccess }) => {
                 setRequest(response.data);
             } catch (err) {
                 console.error('Lỗi khi tải chi tiết yêu cầu:', err);
-                alert('Không thể tải chi tiết yêu cầu.');
+                showError('Thất bại', 'Không thể tải chi tiết yêu cầu.');
                 onBack();
             } finally {
                 setLoading(false);
@@ -30,7 +31,8 @@ const VendorRequestDetail = ({ requestId, onBack, onSuccess }) => {
     }, [requestId, onBack]);
 
     const handleCancelRequest = async () => {
-        if (!window.confirm('Bạn có chắc chắn muốn hủy yêu cầu này không? Hành động này không thể hoàn tác.')) {
+        const result = await showConfirm('Xác nhận hủy', 'Bạn có chắc chắn muốn hủy yêu cầu này không? Hành động này không thể hoàn tác.');
+        if (!result.isConfirmed) {
             return;
         }
 
@@ -40,12 +42,12 @@ const VendorRequestDetail = ({ requestId, onBack, onSuccess }) => {
             await axios.post(`http://localhost:5056/api/vendor/requests/${requestId}/cancel`, {}, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            alert('Đã hủy yêu cầu thành công.');
+            await showSuccess('Thành công', 'Đã hủy yêu cầu thành công.');
             onSuccess();
         } catch (err) {
             console.error('Lỗi khi hủy yêu cầu:', err);
             const msg = err.response?.data?.message || 'Có lỗi xảy ra khi hủy yêu cầu.';
-            alert(msg);
+            showError('Thất bại', msg);
         } finally {
             setIsCancelling(false);
         }
@@ -55,7 +57,8 @@ const VendorRequestDetail = ({ requestId, onBack, onSuccess }) => {
         const confirmMsg = approve 
             ? 'Bạn có chắc chắn muốn DUYỆT báo giá này và ĐỒNG Ý chi trả chi phí sửa chữa không?' 
             : 'Bạn có chắc chắn muốn TỪ CHỐI báo giá này không?';
-        if (!window.confirm(confirmMsg)) {
+        const result = await showConfirm('Xác nhận', confirmMsg);
+        if (!result.isConfirmed) {
             return;
         }
 
@@ -65,12 +68,12 @@ const VendorRequestDetail = ({ requestId, onBack, onSuccess }) => {
             await axios.post(`http://localhost:5056/api/vendor/requests/${requestId}/resolve-quote?approve=${approve}`, {}, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            alert(approve ? 'Đã duyệt báo giá thành công.' : 'Đã từ chối báo giá thành công.');
+            await showSuccess('Thành công', approve ? 'Đã duyệt báo giá thành công.' : 'Đã từ chối báo giá thành công.');
             onSuccess();
         } catch (err) {
             console.error('Lỗi khi xử lý báo giá:', err);
             const msg = err.response?.data?.message || 'Có lỗi xảy ra khi xử lý báo giá.';
-            alert(msg);
+            showError('Thất bại', msg);
         } finally {
             setIsResolvingQuote(false);
         }

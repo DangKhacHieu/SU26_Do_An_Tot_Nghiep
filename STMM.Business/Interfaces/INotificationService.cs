@@ -31,6 +31,6 @@ namespace STMM.Business.Interfaces
         /// <summary>
         /// Delete a notification.
         /// </summary>
-        Task DeleteAsync(int notiId, CancellationToken ct = default);
+        Task DeleteAsync(int notiId, int userId, string? roleName, CancellationToken ct = default);
     }
 }

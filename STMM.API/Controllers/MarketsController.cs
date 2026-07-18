@@ -103,7 +103,7 @@ namespace STMM.API.Controllers
         }
 
         [HttpPut("{marketId}/status")]
-        // [Authorize(Roles = "Admin")] // Uncomment if you want to restrict to Admin
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult> ChangeStatus(int marketId, [FromBody] string status)
         {
             var result = await _marketService.ChangeMarketStatusAsync(marketId, status);

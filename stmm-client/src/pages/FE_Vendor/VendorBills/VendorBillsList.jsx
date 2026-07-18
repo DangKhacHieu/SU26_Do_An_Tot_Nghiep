@@ -1,15 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { vendorInvoiceApi } from '../../../services/vendorInvoiceApi';
+import { showError } from '../../../utils/alert';
 import './VendorBillsList.css';
 
 export default function VendorBillsList({ vendorId, stallId }) {
     const [invoices, setInvoices] = useState([]);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
 
     // Filter states
     const [month, setMonth] = useState('');
     const [year, setYear] = useState('');
+
+    // Pagination state
+    const [pageNumber, setPageNumber] = useState(1);
+    const [pageSize, setPageSize] = useState(10);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalCount, setTotalCount] = useState(0);
 
     // Modal state
     const [selectedInvoice, setSelectedInvoice] = useState(null);
@@ -19,29 +25,42 @@ export default function VendorBillsList({ vendorId, stallId }) {
 
     useEffect(() => {
         fetchInvoices();
-    }, [stallId]);
+    }, [stallId, pageNumber]); // Fetch when stallId or pageNumber changes
 
     const fetchInvoices = async () => {
         if (!vendorId) return;
         setLoading(true);
-        setError(null);
         try {
             const data = await vendorInvoiceApi.getVendorInvoices(
                 stallId,
                 month ? parseInt(month) : null,
-                year ? parseInt(year) : null
+                year ? parseInt(year) : null,
+                pageNumber,
+                pageSize
             );
-            setInvoices(data || []);
+            if (data && data.items) {
+                setInvoices(data.items);
+                setTotalPages(Math.ceil(data.totalCount / data.pageSize));
+                setTotalCount(data.totalCount);
+            } else {
+                setInvoices(data || []);
+                setTotalPages(1);
+                setTotalCount((data || []).length);
+            }
         } catch (err) {
             console.error('Lỗi khi tải hóa đơn:', err);
-            setError('Đã xảy ra lỗi khi tải danh sách hóa đơn.');
+            showError('Thất bại', 'Đã xảy ra lỗi khi tải danh sách hóa đơn.');
         } finally {
             setLoading(false);
         }
     };
 
     const handleSearch = () => {
-        fetchInvoices();
+        if (pageNumber === 1) {
+            fetchInvoices();
+        } else {
+            setPageNumber(1); // Will trigger useEffect
+        }
     };
 
     const formatCurrency = (amount) => {
@@ -91,8 +110,6 @@ export default function VendorBillsList({ vendorId, stallId }) {
                     {loading ? 'Đang tìm...' : 'Tìm kiếm'}
                 </button>
             </div>
-
-            {error && <div className="bills-error-msg">{error}</div>}
 
             <div className="bills-content">
                 {loading ? (
@@ -146,6 +163,27 @@ export default function VendorBillsList({ vendorId, stallId }) {
                                 ))}
                             </tbody>
                         </table>
+                    </div>
+                )}
+
+                {/* Pagination Controls */}
+                {!loading && invoices.length > 0 && totalPages > 1 && (
+                    <div className="pagination-controls" style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginTop: '20px', alignItems: 'center' }}>
+                        <button 
+                            style={{ padding: '8px 16px', border: '1px solid #cbd5e1', borderRadius: '4px', background: '#fff', cursor: 'pointer' }}
+                            disabled={pageNumber <= 1}
+                            onClick={() => setPageNumber(prev => Math.max(1, prev - 1))}
+                        >
+                            Trang trước
+                        </button>
+                        <span style={{ fontSize: '14px', color: '#475569' }}>Trang {pageNumber} / {totalPages}</span>
+                        <button 
+                            style={{ padding: '8px 16px', border: '1px solid #cbd5e1', borderRadius: '4px', background: '#fff', cursor: 'pointer' }}
+                            disabled={pageNumber >= totalPages}
+                            onClick={() => setPageNumber(prev => Math.min(totalPages, prev + 1))}
+                        >
+                            Trang sau
+                        </button>
                     </div>
                 )}
             </div>

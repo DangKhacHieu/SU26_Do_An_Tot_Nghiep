@@ -152,14 +152,12 @@ namespace STMM.Business.Services
                     throw new BadRequestException("Không tìm thấy biên bản vi phạm hoặc bạn không có quyền kháng nghị biên bản này.");
                 }
 
-                if (vendorViolation.Status == "Appealed")
+                if (vendorViolation.Status == "Appealed" || 
+                    vendorViolation.Status == "Approved" || 
+                    vendorViolation.Status == "Rejected" || 
+                    vendorViolation.Status == "Finalized")
                 {
-                    throw new BadRequestException("Biên bản này đã được kháng nghị rồi.");
-                }
-
-                if (vendorViolation.Status == "Finalized")
-                {
-                    throw new BadRequestException("Biên bản này đã chốt, không thể kháng nghị thêm.");
+                    throw new BadRequestException("Biên bản này đang trong quá trình xử lý kháng nghị hoặc đã có kết quả, không thể kháng nghị lại.");
                 }
 
                 vendorViolation.Status = "Appealed";

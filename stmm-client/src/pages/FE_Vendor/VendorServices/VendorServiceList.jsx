@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { showSuccess, showError } from '../../../utils/alert';
 import '../../../AppDashboard.css';
 
 const VendorServiceList = ({ vendorId, searchTerm = '', setSearchTerm, onViewMyServices }) => {
@@ -52,7 +53,7 @@ const VendorServiceList = ({ vendorId, searchTerm = '', setSearchTerm, onViewMyS
 
     const handleConfirmRegister = async () => {
         if (selectedStalls.length === 0) {
-            alert('Vui lòng chọn ít nhất một Sạp để đăng ký dịch vụ.');
+            showError('Thất bại', 'Vui lòng chọn ít nhất một Sạp để đăng ký dịch vụ.');
             return;
         }
 
@@ -70,7 +71,7 @@ const VendorServiceList = ({ vendorId, searchTerm = '', setSearchTerm, onViewMyS
 
             await Promise.all(promises);
             
-            alert('Đăng ký dịch vụ thành công cho các sạp đã chọn! Vui lòng đợi Ban quản lý phê duyệt.');
+            await showSuccess('Thành công', 'Đăng ký dịch vụ thành công cho các sạp đã chọn! Vui lòng đợi Ban quản lý phê duyệt.');
             setConfirmService(null);
             
             // Refetch myServices to update the UI status immediately
@@ -80,7 +81,7 @@ const VendorServiceList = ({ vendorId, searchTerm = '', setSearchTerm, onViewMyS
             setMyServices(myServicesRes.data || []);
         } catch (err) {
             const msg = err.response?.data?.detail || err.response?.data?.message || 'Có lỗi xảy ra khi đăng ký dịch vụ cho một số sạp.';
-            alert(msg);
+            showError('Thất bại', msg);
         } finally {
             setIsRegistering(false);
         }
@@ -171,18 +172,19 @@ const VendorServiceList = ({ vendorId, searchTerm = '', setSearchTerm, onViewMyS
                                                 const activeOrPendingRegs = myServices.filter(ms => ms.serviceId === service.serviceId && (ms.status === 'Active' || ms.status === 'Pending'));
                                                 const isFullyRegistered = myStalls.length > 0 && activeOrPendingRegs.length >= myStalls.length;
                                                 const isPending = activeOrPendingRegs.some(ms => ms.status === 'Pending');
+                                                const isAutoRenewCancelled = activeOrPendingRegs.length > 0 && activeOrPendingRegs.every(ms => ms.status === 'Active' && ms.isAutoRenew === false);
 
                                                 if (isFullyRegistered) {
                                                     return (
                                                         <span style={{ 
                                                             fontSize: '11px', fontWeight: 'bold', 
-                                                            color: isPending ? '#92400e' : '#065f46', 
+                                                            color: isPending ? '#92400e' : isAutoRenewCancelled ? '#92400e' : '#065f46', 
                                                             padding: '6px 12px', 
-                                                            background: isPending ? '#fef3c7' : '#d1fae5', 
+                                                            background: isPending ? '#fef3c7' : isAutoRenewCancelled ? '#fef3c7' : '#d1fae5', 
                                                             borderRadius: '4px',
                                                             display: 'flex', alignItems: 'center'
                                                         }}>
-                                                            {isPending ? 'Đang chờ duyệt' : 'Đã đăng ký'}
+                                                            {isPending ? 'Đang chờ duyệt' : isAutoRenewCancelled ? 'Đã hủy gia hạn' : 'Đã đăng ký'}
                                                         </span>
                                                     );
                                                 }
@@ -218,7 +220,7 @@ const VendorServiceList = ({ vendorId, searchTerm = '', setSearchTerm, onViewMyS
             </div>
 
             {confirmService && (
-                <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+                <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
                     <div style={{ background: 'white', padding: '32px', borderRadius: '12px', minWidth: '400px', boxShadow: '0 10px 30px rgba(0,0,0,0.2)' }}>
                         <h3 style={{ marginTop: 0, borderBottom: '1px solid #eee', paddingBottom: '16px' }}>Xác nhận Đăng ký Dịch vụ</h3>
                         <p style={{ marginTop: '16px' }}>Bạn đang yêu cầu đăng ký dịch vụ: <strong>{confirmService.name}</strong></p>
@@ -258,7 +260,7 @@ const VendorServiceList = ({ vendorId, searchTerm = '', setSearchTerm, onViewMyS
             )}
 
             {viewService && (
-                <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+                <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
                     <div style={{ background: 'white', borderRadius: '16px', width: '100%', maxWidth: '500px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', overflow: 'hidden', animation: 'fadeIn 0.3s ease-out' }}>
                         {/* Header Image/Gradient */}
                         <div style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #1e40af 100%)', padding: '32px 24px', color: 'white', position: 'relative' }}>
@@ -304,11 +306,12 @@ const VendorServiceList = ({ vendorId, searchTerm = '', setSearchTerm, onViewMyS
                                     const activeOrPendingRegs = myServices.filter(ms => ms.serviceId === viewService.serviceId && (ms.status === 'Active' || ms.status === 'Pending'));
                                     const isFullyRegistered = myStalls.length > 0 && activeOrPendingRegs.length >= myStalls.length;
                                     const isPending = activeOrPendingRegs.some(ms => ms.status === 'Pending');
+                                    const isAutoRenewCancelled = activeOrPendingRegs.length > 0 && activeOrPendingRegs.every(ms => ms.status === 'Active' && ms.isAutoRenew === false);
 
                                     if (isFullyRegistered) {
                                         return (
-                                            <div style={{ flex: 2, padding: '12px', background: isPending ? '#fef3c7' : '#d1fae5', color: isPending ? '#92400e' : '#065f46', borderRadius: '8px', fontWeight: '600', textAlign: 'center' }}>
-                                                {isPending ? 'Đang chờ duyệt' : 'Đã đăng ký'}
+                                            <div style={{ flex: 2, padding: '12px', background: isPending ? '#fef3c7' : isAutoRenewCancelled ? '#fef3c7' : '#d1fae5', color: isPending ? '#92400e' : isAutoRenewCancelled ? '#92400e' : '#065f46', borderRadius: '8px', fontWeight: '600', textAlign: 'center' }}>
+                                                {isPending ? 'Đang chờ duyệt' : isAutoRenewCancelled ? 'Đã hủy gia hạn' : 'Đã đăng ký'}
                                             </div>
                                         );
                                     }

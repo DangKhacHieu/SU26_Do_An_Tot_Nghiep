@@ -27,6 +27,11 @@ namespace STMM.Business.Services
 
         public async Task<IEnumerable<MarketDto>> GetAllMarketsAsync(int currentUserId, string currentUserRole)
         {
+            if (currentUserId < 0)
+            {
+                throw new STMM.Business.Exceptions.BadRequestException("ID người dùng không hợp lệ.");
+            }
+
             var query = _marketRepository.Query()
                 .Include(m => m.Areas)
                     .ThenInclude(a => a.Stalls)
@@ -232,12 +237,23 @@ namespace STMM.Business.Services
 
         public async Task<bool> ChangeMarketStatusAsync(int marketId, string status)
         {
-            var market = await _context.Markets.FirstOrDefaultAsync(m => m.MarketId == marketId);
+            if (marketId <= 0)
+            {
+                throw new STMM.Business.Exceptions.BadRequestException("ID chợ không hợp lệ.");
+            }
+
+            var allowedStatuses = new[] { "Active", "Rejected", "Inactive", "Pending" };
+            if (!allowedStatuses.Contains(status))
+            {
+                throw new STMM.Business.Exceptions.BadRequestException("Trạng thái không hợp lệ.");
+            }
+
+            var market = await _marketRepository.GetByIdAsync(marketId);
             if (market == null) return false;
 
             market.Status = status;
-            _context.Markets.Update(market);
-            await _context.SaveChangesAsync();
+            _marketRepository.Update(market);
+            await _marketRepository.SaveChangesAsync();
             return true;
         }
 
