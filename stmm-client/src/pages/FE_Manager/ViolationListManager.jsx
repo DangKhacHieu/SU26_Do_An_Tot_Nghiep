@@ -132,10 +132,6 @@ export default function ViolationListManager({ navigate, addToast }) {
             <option value="desc">Mới nhất trước</option>
             <option value="asc">Cũ nhất trước</option>
           </select>
-
-          <button type="button" className="vl-reset-btn" onClick={handleReset} title="Xóa bộ lọc">
-            <IconReset /> Làm mới
-          </button>
         </div>
       </div>
 

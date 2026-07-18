@@ -8,10 +8,12 @@ obj/
 .vs/
 
 # Secrets
+.env
 secrets.json
 appsettings.*.json
 !appsettings.json
 !appsettings.Development.json
+
 
 # Node / React
 node_modules/
@@ -29,3 +31,7 @@ yarn-error.log*
 
 # Test project (Local execution only)
 STMM.Tests/
+
+# Agent config (Local execution only)
+.agents/
+.claude/

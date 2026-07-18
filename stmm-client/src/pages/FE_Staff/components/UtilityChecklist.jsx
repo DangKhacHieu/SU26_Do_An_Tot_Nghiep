@@ -1,10 +1,14 @@
 import React, { useState, useEffect } from 'react';
+import RecordMeterReadingModal from '../RecordMeterReadingModal';
 
-export default function UtilityChecklist({ taskId, userId, baseUrl, onShowNotification }) {
+export default function UtilityChecklist({ taskId, userId, baseUrl, onShowNotification, onProgressChange }) {
   const [expanded, setExpanded] = useState(false);
   const [stalls, setStalls] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  
+  // State for recording readings directly from checklist
+  const [selectedStallForReading, setSelectedStallForReading] = useState(null);
   
   // Cache stats
   const [stats, setStats] = useState({ completed: 0, total: 0 });
@@ -24,6 +28,9 @@ export default function UtilityChecklist({ taskId, userId, baseUrl, onShowNotifi
       const total = data.length;
       const completed = data.filter(s => s.hasReadingThisMonth).length;
       setStats({ completed, total });
+      if (onProgressChange) {
+        onProgressChange(completed, total);
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -80,6 +87,7 @@ export default function UtilityChecklist({ taskId, userId, baseUrl, onShowNotifi
                     <th>Stall Code</th>
                     <th>Operation Status</th>
                     <th style={{ textAlign: 'center' }}>Reading Status</th>
+                    <th style={{ textAlign: 'center' }}>Action</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -102,6 +110,20 @@ export default function UtilityChecklist({ taskId, userId, baseUrl, onShowNotifi
                           </span>
                         )}
                       </td>
+                      <td style={{ textAlign: 'center' }}>
+                        {!s.hasReadingThisMonth ? (
+                          <button
+                            type="button"
+                            className="btn-primary-dark"
+                            style={{ padding: '4px 10px', fontSize: '11px', minWidth: '80px', borderRadius: '4px' }}
+                            onClick={() => setSelectedStallForReading(s)}
+                          >
+                            📝 Record
+                          </button>
+                        ) : (
+                          <span style={{ fontSize: '11px', color: '#6b7280', fontStyle: 'italic' }}>Complete</span>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -110,9 +132,26 @@ export default function UtilityChecklist({ taskId, userId, baseUrl, onShowNotifi
           )}
           
           <div className="checklist-footer-note">
-            💡 *Please use the **Meters** tab in the sidebar navigation to record readings for each stall.*
+            💡 *You can record readings for each stall directly using the <strong>Record</strong> button, or by using the **Meters** tab in the sidebar.*
           </div>
         </div>
+      )}
+
+      {/* Record readings modal directly from checklist context */}
+      {selectedStallForReading && (
+        <RecordMeterReadingModal
+          stallId={selectedStallForReading.stallId}
+          baseUrl={baseUrl}
+          userId={userId}
+          onClose={() => setSelectedStallForReading(null)}
+          onSuccess={async () => {
+            setSelectedStallForReading(null);
+            await fetchStalls(true);
+            if (onShowNotification) {
+              onShowNotification(`Recorded meter reading for stall ${selectedStallForReading.stallCode} successfully!`, 'success');
+            }
+          }}
+        />
       )}
     </div>
   );

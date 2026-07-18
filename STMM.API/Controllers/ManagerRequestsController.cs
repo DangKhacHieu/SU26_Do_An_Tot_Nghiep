@@ -53,5 +53,18 @@ namespace STMM.API.Controllers
             var result = await _requestService.ResolveViolationAppealAsync(id, approve, ct);
             return Ok(result);
         }
+
+        /// <summary>
+        /// UC-xx: Resolve Request Quote — Manager duyệt hoặc từ chối báo giá (chỉ áp dụng khi BQL chịu phí).
+        /// </summary>
+        [HttpPost("{id}/resolve-quote")]
+        public async Task<IActionResult> ResolveQuote(
+            int id,
+            [FromQuery] bool approve,
+            CancellationToken ct)
+        {
+            var result = await _requestService.ResolveRequestQuoteAsync(id, approve, ct);
+            return Ok(result);
+        }
     }
 }

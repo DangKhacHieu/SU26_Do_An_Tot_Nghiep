@@ -5,12 +5,14 @@ namespace STMM.Business.DTOs.Stall
 {
     public class CreateStallDto
     {
-        [Required]
         [StringLength(50)]
-        public string Code { get; set; } = null!;
+        public string? Code { get; set; }
 
         [Required]
         public int AreaId { get; set; }
+
+        public int? ElectricityMeterId { get; set; }
+        public int? WaterMeterId { get; set; }
 
         public int? CategoryId { get; set; }
 

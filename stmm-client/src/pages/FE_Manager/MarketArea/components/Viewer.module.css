@@ -1,0 +1,153 @@
+/* MarketMapViewer - inherits light design system from LayoutEditor.module.css */
+
+/* Override Viewer to use light theme variables */
+.viewerContainer {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: #f1f5f9;
+  overflow: hidden;
+}
+
+.viewerHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 0 32px;
+  height: 68px;
+  background: #ffffff;
+  border-bottom: 1.5px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0,0,0,.06);
+  flex-shrink: 0;
+}
+
+.viewerHeader h1 {
+  font-size: 18px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+  letter-spacing: -.02em;
+}
+
+.viewerContent {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.viewerMapWrapper {
+  flex: 1;
+  background:
+    radial-gradient(circle, #cbd5e1 1px, transparent 1px);
+  background-size: 24px 24px;
+  background-color: #f1f5f9;
+  position: relative;
+  overflow: hidden;
+}
+
+.viewerSidebar {
+  width: 300px;
+  flex-shrink: 0;
+  background: #ffffff;
+  border-left: 1.5px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  padding: 24px 20px;
+  gap: 18px;
+  overflow-y: auto;
+}
+
+.statGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.statCard {
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px 14px;
+  text-align: center;
+  transition: border-color .2s;
+}
+.statCard:hover { border-color: #bfdbfe; }
+
+.statValue {
+  font-size: 28px;
+  font-weight: 800;
+  color: #3b82f6;
+  letter-spacing: -.03em;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.statLabel {
+  font-size: 11px;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
+.legendTitle {
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  padding-bottom: 10px;
+  border-bottom: 1.5px solid #e2e8f0;
+}
+
+.viewerLegendItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1.5px solid #e2e8f0;
+  background: #f8fafc;
+  transition: all .2s;
+}
+.viewerLegendItem:hover { border-color: #bfdbfe; transform: translateX(3px); }
+
+.legendBox {
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  flex-shrink: 0;
+}
+
+.legendItemText strong { font-size: 13px; font-weight: 600; color: #0f172a; display: block; }
+.legendItemText small  { font-size: 11px; color: #94a3b8; }
+
+.activeAreaBanner {
+  padding: 14px;
+  background: #ecfdf5;
+  border: 1.5px solid #a7f3d0;
+  border-radius: 10px;
+  margin-top: auto;
+}
+.activeAreaBanner strong { display: block; color: #059669; font-size: 13px; margin-bottom: 4px; }
+.activeAreaBanner span   { font-size: 12px; color: #047857; }
+
+/* Buttons (same as LayoutEditor) */
+.secondaryBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #ffffff;
+  color: #475569;
+  border: 1.5px solid #e2e8f0;
+  padding: 10px 22px;
+  border-radius: 8px;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all .2s;
+}
+.secondaryBtn:hover { background: #f8fafc; border-color: #cbd5e1; color: #0f172a; }

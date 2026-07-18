@@ -1,12 +1,25 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import axios from 'axios';
 import "./VendorDashboard.css";
 import VendorServiceList from "../FE_Vendor/VendorServices/VendorServiceList";
 import VendorMyServices from "../FE_Vendor/VendorServices/VendorMyServices";
 import VendorRequestList from "./VendorRequests/VendorRequestList";
 import VendorViolationList from "./VendorViolations/VendorViolationList";
 import VendorProfile from "./VendorProfile";
+import VendorBillsList from "./VendorBills/VendorBillsList";
+import VendorNotificationList from "./VendorNotifications/VendorNotificationList";
+import VendorFeedbackList from "./VendorFeedbacks/VendorFeedbackList";
+import notificationService from "../../services/notificationService";
 
 // Icons
+const IconHome = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="3" width="7" height="7" />
+    <rect x="14" y="3" width="7" height="7" />
+    <rect x="14" y="14" width="7" height="7" />
+    <rect x="3" y="14" width="7" height="7" />
+  </svg>
+);
 const IconServices = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
@@ -73,11 +86,43 @@ const IconSetting = () => (
 
 function VendorDashboard({ user, onBack, onLogout }) {
   const vendorId = user?.userId;
-  const [activeMenu, setActiveMenu] = useState('REQUESTS');
+  const [activeMenu, setActiveMenu] = useState('DASHBOARD');
   const [searchTerm, setSearchTerm] = useState('');
   const [serviceTab, setServiceTab] = useState('AVAILABLE'); // 'AVAILABLE' | 'MY_SERVICES'
+  const [rentedStalls, setRentedStalls] = useState([]);
+  const [selectedStallId, setSelectedStallId] = useState('ALL');
+  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
+
+  useEffect(() => {
+    const fetchStalls = async () => {
+      try {
+        const token = localStorage.getItem('accessToken');
+        const res = await axios.get('http://localhost:5056/api/vendor/stalls', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setRentedStalls(res.data || []);
+      } catch (err) {
+        console.error("Failed to fetch stalls", err);
+      }
+    };
+    if (user) fetchStalls();
+  }, [user]);
+
+  useEffect(() => {
+    const fetchUnreadCount = async () => {
+      try {
+        const data = await notificationService.getNotifications();
+        const unread = (data || []).filter(n => !n.isRead).length;
+        setUnreadNotificationCount(unread);
+      } catch (err) {
+        console.error("Failed to fetch notifications", err);
+      }
+    };
+    if (user) fetchUnreadCount();
+  }, [user]);
 
   const MENU_ITEMS = [
+    { id: 'DASHBOARD', label: 'OVERVIEW', icon: <IconHome /> },
     { id: 'SERVICES', label: 'SERVICES', icon: <IconServices /> },
     { id: 'REQUESTS', label: 'REQUESTS', icon: <IconRequests /> },
     { id: 'FEEDBACK', label: 'FEEDBACK', icon: <IconFeedback /> },
@@ -85,6 +130,29 @@ function VendorDashboard({ user, onBack, onLogout }) {
     { id: 'BILLS', label: 'BILLS', icon: <IconBills /> },
     { id: 'VIOLATIONS', label: 'VIOLATIONS', icon: <IconViolations /> },
   ];
+
+  // SEO Update
+  useEffect(() => {
+    const titleMap = {
+      'SERVICES': 'Dịch vụ của tôi',
+      'REQUESTS': 'Yêu cầu hỗ trợ',
+      'FEEDBACK': 'Góp ý',
+      'NOTIFICATIONS': 'Thông báo',
+      'BILLS': 'Hóa đơn',
+      'VIOLATIONS': 'Lỗi vi phạm',
+      'PROFILE': 'Hồ sơ cá nhân'
+    };
+    document.title = `${titleMap[activeMenu] || 'Dashboard'} - Vendor Portal | STMM`;
+    
+    // Update meta description
+    let metaDescription = document.querySelector('meta[name="description"]');
+    if (!metaDescription) {
+      metaDescription = document.createElement('meta');
+      metaDescription.name = "description";
+      document.head.appendChild(metaDescription);
+    }
+    metaDescription.content = `Quản lý ${titleMap[activeMenu] || 'thông tin'} dành cho tiểu thương tại chợ thông minh STMM.`;
+  }, [activeMenu]);
 
   return (
     <div className="vendor-portal-container">
@@ -131,6 +199,18 @@ function VendorDashboard({ user, onBack, onLogout }) {
           <div className="vendor-topbar-title">VendorPortal</div>
           
           <div className="vendor-topbar-right">
+            {rentedStalls.length > 0 && (
+              <select 
+                value={selectedStallId} 
+                onChange={(e) => setSelectedStallId(e.target.value)}
+                style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none', background: '#f8fafc', color: '#1e293b', fontWeight: 600, cursor: 'pointer' }}
+              >
+                <option value="ALL">Tất cả sạp ({rentedStalls.length})</option>
+                {rentedStalls.map(s => (
+                  <option key={s.stallId} value={s.stallId}>Sạp {s.code}</option>
+                ))}
+              </select>
+            )}
             <div className="vendor-search-bar">
               <IconSearch />
               <input 
@@ -141,7 +221,28 @@ function VendorDashboard({ user, onBack, onLogout }) {
               />
             </div>
             <div className="vendor-topbar-icons">
-              <IconNotifications />
+              <div 
+                style={{ cursor: 'pointer', position: 'relative' }} 
+                onClick={() => setActiveMenu('NOTIFICATIONS')}
+              >
+                <IconNotifications />
+                {unreadNotificationCount > 0 && (
+                  <span style={{
+                    position: 'absolute',
+                    top: '-4px',
+                    right: '-4px',
+                    background: '#ef4444',
+                    color: 'white',
+                    fontSize: '10px',
+                    fontWeight: 'bold',
+                    padding: '2px 6px',
+                    borderRadius: '10px',
+                    border: '2px solid white'
+                  }}>
+                    {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
+                  </span>
+                )}
+              </div>
               <div style={{ cursor: 'pointer' }} onClick={() => setActiveMenu('PROFILE')}>
                   <IconUser />
               </div>
@@ -152,12 +253,70 @@ function VendorDashboard({ user, onBack, onLogout }) {
 
         {/* Content */}
         <main className="vendor-content">
+          {activeMenu === 'DASHBOARD' && (
+            <div className="vendor-overview-container" style={{ animation: 'fadeIn 0.4s ease-out' }}>
+              
+              {/* Row 1: 4 small cards */}
+              <div className="vendor-overview-top-row">
+                <div className="dashboard-card">
+                  <h3 style={{ fontSize: '14px', color: '#64748b', margin: 0, marginBottom: '8px' }}>Active Stalls</h3>
+                  <div style={{ fontSize: '28px', fontWeight: 700, color: '#0f172a' }}>2</div>
+                </div>
+                <div className="dashboard-card">
+                  <h3 style={{ fontSize: '14px', color: '#64748b', margin: 0, marginBottom: '8px' }}>Pending Requests</h3>
+                  <div style={{ fontSize: '28px', fontWeight: 700, color: '#3b82f6' }}>5</div>
+                </div>
+                <div className="dashboard-card">
+                  <h3 style={{ fontSize: '14px', color: '#64748b', margin: 0, marginBottom: '8px' }}>Unpaid Bills</h3>
+                  <div style={{ fontSize: '28px', fontWeight: 700, color: '#ef4444' }}>1</div>
+                </div>
+                <div className="dashboard-card">
+                  <h3 style={{ fontSize: '14px', color: '#64748b', margin: 0, marginBottom: '8px' }}>Violations</h3>
+                  <div style={{ fontSize: '28px', fontWeight: 700, color: '#d97706' }}>0</div>
+                </div>
+              </div>
+
+              {/* Bottom Area: 2 Columns */}
+              <div className="vendor-overview-bottom-area">
+                {/* Left Column (2 large blocks) */}
+                <div className="vendor-overview-left-col">
+                  <div className="dashboard-card large-panel" style={{ flex: 1.5 }}>
+                    <h3 style={{ fontSize: '16px', color: '#0f172a', margin: 0, marginBottom: '16px' }}>Overview Chart</h3>
+                    <div style={{ flex: 1, background: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>[Chart Placeholder]</div>
+                  </div>
+                  <div className="dashboard-card large-panel" style={{ flex: 1 }}>
+                    <h3 style={{ fontSize: '16px', color: '#0f172a', margin: 0, marginBottom: '16px' }}>Recent Activity</h3>
+                    <div style={{ flex: 1, background: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>[Table/List Placeholder]</div>
+                  </div>
+                </div>
+                
+                {/* Right Column (3 smaller stacked blocks) */}
+                <div className="vendor-overview-right-col">
+                  <div className="dashboard-card" style={{ flex: 1 }}>
+                    <h3 style={{ fontSize: '16px', color: '#0f172a', margin: 0, marginBottom: '16px' }}>Notifications</h3>
+                    <div style={{ flex: 1, background: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1' }}></div>
+                  </div>
+                  <div className="dashboard-card" style={{ flex: 1 }}>
+                    <h3 style={{ fontSize: '16px', color: '#0f172a', margin: 0, marginBottom: '16px' }}>Upcoming Payments</h3>
+                    <div style={{ flex: 1, background: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1' }}></div>
+                  </div>
+                  <div className="dashboard-card" style={{ flex: 1 }}>
+                    <h3 style={{ fontSize: '16px', color: '#0f172a', margin: 0, marginBottom: '16px' }}>Quick Actions</h3>
+                    <div style={{ flex: 1, background: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1' }}></div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          )}
+
           {activeMenu === 'SERVICES' && serviceTab === 'AVAILABLE' && (
             <div style={{ height: '100%' }}>
               <VendorServiceList 
                 vendorId={vendorId} 
                 searchTerm={searchTerm} 
                 setSearchTerm={setSearchTerm}
+                stallId={selectedStallId}
                 onViewMyServices={() => setServiceTab('MY_SERVICES')}
               />
             </div>
@@ -169,6 +328,7 @@ function VendorDashboard({ user, onBack, onLogout }) {
                 vendorId={vendorId} 
                 searchTerm={searchTerm} 
                 setSearchTerm={setSearchTerm}
+                stallId={selectedStallId}
                 onAddService={() => setServiceTab('AVAILABLE')} 
               />
             </div>
@@ -182,17 +342,40 @@ function VendorDashboard({ user, onBack, onLogout }) {
 
           {activeMenu === 'REQUESTS' && (
             <div style={{ height: '100%' }}>
-              <VendorRequestList />
+              <VendorRequestList 
+                vendorId={vendorId} 
+                searchTerm={searchTerm} 
+                setSearchTerm={setSearchTerm}
+                stallId={selectedStallId}
+              />
+            </div>
+          )}
+
+          {activeMenu === 'FEEDBACK' && (
+            <div style={{ height: '100%' }}>
+              <VendorFeedbackList stallId={selectedStallId} rentedStalls={rentedStalls} />
+            </div>
+          )}
+
+          {activeMenu === 'NOTIFICATIONS' && (
+            <div style={{ height: '100%' }}>
+              <VendorNotificationList onUpdateUnreadCount={setUnreadNotificationCount} />
+            </div>
+          )}
+
+          {activeMenu === 'BILLS' && (
+            <div style={{ height: '100%' }}>
+              <VendorBillsList vendorId={vendorId} stallId={selectedStallId} />
             </div>
           )}
 
           {activeMenu === 'VIOLATIONS' && (
             <div style={{ height: '100%' }}>
-              <VendorViolationList />
+              <VendorViolationList stallId={selectedStallId} />
             </div>
           )}
 
-          {activeMenu !== 'SERVICES' && activeMenu !== 'PROFILE' && activeMenu !== 'REQUESTS' && activeMenu !== 'VIOLATIONS' && (
+          {activeMenu !== 'SERVICES' && activeMenu !== 'PROFILE' && activeMenu !== 'REQUESTS' && activeMenu !== 'VIOLATIONS' && activeMenu !== 'DASHBOARD' && activeMenu !== 'FEEDBACK' && activeMenu !== 'NOTIFICATIONS' && activeMenu !== 'BILLS' && (
             <div style={{ color: '#888', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
               <h2>Chức năng {activeMenu} đang được phát triển.</h2>
             </div>

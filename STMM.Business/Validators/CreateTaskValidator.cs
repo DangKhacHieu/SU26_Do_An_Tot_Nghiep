@@ -6,7 +6,7 @@ namespace STMM.Business.Validators
 {
     public class CreateTaskValidator : AbstractValidator<CreateTaskRequest>
     {
-        private static readonly string[] AllowedTypes = { "Repair", "Maintenance", "UtilityReading", "CashCollection" };
+        private static readonly string[] AllowedTypes = { "Repair", "Maintenance", "UtilityReading" };
 
         public CreateTaskValidator()
         {

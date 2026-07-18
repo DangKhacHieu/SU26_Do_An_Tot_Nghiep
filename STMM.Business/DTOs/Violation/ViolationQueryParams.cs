@@ -6,6 +6,7 @@ namespace STMM.Business.DTOs.Violation
         public int PageSize { get; set; } = 10;
         public string? Status { get; set; }
         public string? SearchTerm { get; set; }
+        public int? StallId { get; set; }
         public bool SortDescending { get; set; } = true;
     }
 }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace STMM.DataAccess.Entities;
@@ -33,5 +33,32 @@ public partial class Market
     /// </summary>
     public bool? IsDeleted { get; set; }
 
+    /// <summary>
+    /// Diện tích (size)
+    /// </summary>
+    public double? Size { get; set; }
+
+    /// <summary>
+    /// Vòng đời: Draft, Pending, Active, Rejected
+    /// </summary>
+    public string? Status { get; set; }
+
+    /// <summary>
+    /// Chuỗi dữ liệu vẽ vector hình dạng chợ tự do
+    /// </summary>
+    public string? SvgPath { get; set; }
+
+    public double? MinX { get; set; }
+    public double? MinY { get; set; }
+    public double? MaxX { get; set; }
+    public double? MaxY { get; set; }
+
     public virtual ICollection<Area> Areas { get; set; } = new List<Area>();
+
+    public virtual ICollection<User> Users { get; set; } = new List<User>();
+
+    public int? CreatorId { get; set; }
+    public virtual User? Creator { get; set; }
+
+    public virtual ICollection<Meter> Meters { get; set; } = new List<Meter>();
 }

@@ -12,6 +12,8 @@ namespace STMM.Business.DTOs.Task
         public int? IssueId { get; set; }
         public int? AreaId { get; set; }
         public string? AreaName { get; set; }
+        public int? StallId { get; set; }
+        public string? StallCode { get; set; }
         public string TaskType { get; set; } = null!;
         public string Title { get; set; } = null!;
         public string? Description { get; set; }
@@ -21,6 +23,7 @@ namespace STMM.Business.DTOs.Task
         public decimal? ActualCost { get; set; }
         public DateTime? CompletedAt { get; set; }
         public DateTime? CreatedAt { get; set; }
+        public string? RequestPaidBy { get; set; }
         public List<TaskMaterialDto> Materials { get; set; } = new List<TaskMaterialDto>();
     }
 }

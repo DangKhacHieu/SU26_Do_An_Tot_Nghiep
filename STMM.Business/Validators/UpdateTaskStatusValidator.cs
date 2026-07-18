@@ -6,7 +6,7 @@ namespace STMM.Business.Validators
 {
     public class UpdateTaskStatusValidator : AbstractValidator<UpdateTaskStatusRequest>
     {
-        private static readonly string[] AllowedStatuses = { "In_Progress", "Cancelled" };
+        private static readonly string[] AllowedStatuses = { "In_Progress", "Cancelled", "Pending" };
 
         public UpdateTaskStatusValidator()
         {

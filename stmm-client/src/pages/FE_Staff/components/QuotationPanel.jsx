@@ -17,6 +17,16 @@ export default function QuotationPanel({ taskId, userId, baseUrl, taskStatus, in
   const [customUnitPrice, setCustomUnitPrice] = useState('');
   const [submittingMaterial, setSubmittingMaterial] = useState(false);
   const [submittingQuotation, setSubmittingQuotation] = useState(false);
+  const [paidBy, setPaidBy] = useState('');
+
+  // Custom Confirm Modal state
+  const [confirmModal, setConfirmModal] = useState({ 
+    isOpen: false, 
+    type: 'primary', 
+    title: '', 
+    message: '', 
+    onConfirm: null 
+  });
 
   // Fetch quotation from backend in Edit Mode
   const fetchQuotation = async () => {
@@ -78,15 +88,15 @@ export default function QuotationPanel({ taskId, userId, baseUrl, taskStatus, in
   const handleAddMaterial = async (e) => {
     e.preventDefault();
     if (!selectedCatalogId) {
-      alert('Please select a material from the catalog.');
+      onShowNotification('Please select a material from the catalog.', 'error');
       return;
     }
     if (quantity <= 0) {
-      alert('Quantity must be greater than 0.');
+      onShowNotification('Quantity must be greater than 0.', 'error');
       return;
     }
     if (isCustomPriceRequired && (!customUnitPrice || parseFloat(customUnitPrice) <= 0)) {
-      alert('Please enter a valid unit price for the custom item.');
+      onShowNotification('Please enter a valid unit price for the custom item.', 'error');
       return;
     }
 
@@ -119,17 +129,13 @@ export default function QuotationPanel({ taskId, userId, baseUrl, taskStatus, in
       setCustomUnitPrice('');
       onShowNotification('Material added successfully.', 'success');
     } catch (err) {
-      alert(err.message);
+      onShowNotification(err.message, 'error');
     } finally {
       setSubmittingMaterial(false);
     }
   };
 
-  const handleRemoveMaterial = async (materialId) => {
-    if (!window.confirm('Are you sure you want to remove this material from the quotation?')) {
-      return;
-    }
-
+  const executeRemoveMaterial = async (materialId) => {
     try {
       const response = await fetch(`${baseUrl}/api/staff/tasks/${taskId}/quotation/${materialId}?userId=${userId}`, {
         method: 'DELETE'
@@ -143,23 +149,24 @@ export default function QuotationPanel({ taskId, userId, baseUrl, taskStatus, in
       await fetchQuotation();
       onShowNotification('Material removed successfully.', 'success');
     } catch (err) {
-      alert(err.message);
+      onShowNotification(err.message, 'error');
     }
   };
 
-  const handleSubmitQuotation = async () => {
-    if (quotation.materials.length === 0) {
-      alert('The quotation must contain at least one material item before submission.');
-      return;
-    }
+  const handleRemoveMaterial = (materialId) => {
+    setConfirmModal({
+      isOpen: true,
+      type: 'danger',
+      title: 'Xác nhận xóa vật tư',
+      message: 'Bạn có chắc chắn muốn xóa vật tư này khỏi bảng báo giá không?',
+      onConfirm: () => executeRemoveMaterial(materialId)
+    });
+  };
 
-    if (!window.confirm('After submission, you will not be able to modify the materials list. Confirm submit?')) {
-      return;
-    }
-
+  const executeSubmitQuotation = async () => {
     setSubmittingQuotation(true);
     try {
-      const response = await fetch(`${baseUrl}/api/staff/tasks/${taskId}/submit-quotation?userId=${userId}`, {
+      const response = await fetch(`${baseUrl}/api/staff/tasks/${taskId}/submit-quotation?userId=${userId}&paidBy=${paidBy}`, {
         method: 'PATCH'
       });
 
@@ -171,10 +178,31 @@ export default function QuotationPanel({ taskId, userId, baseUrl, taskStatus, in
       onShowNotification('Quotation has been submitted for approval successfully!', 'success');
       onRefreshTask(); // Reload the whole task details to show read-only mode and status update
     } catch (err) {
-      alert(err.message);
+      onShowNotification(err.message, 'error');
     } finally {
       setSubmittingQuotation(false);
     }
+  };
+
+  const handleSubmitQuotation = () => {
+    if (quotation.materials.length === 0) {
+      onShowNotification('The quotation must contain at least one material item before submission.', 'error');
+      return;
+    }
+
+    if (!paidBy) {
+      onShowNotification('Vui lòng chọn bên chịu phí trước khi gửi báo giá.', 'error');
+      return;
+    }
+
+    const paidByLabel = paidBy === 'Market' ? 'BQL chợ chịu phí' : 'Tiểu thương chịu phí';
+    setConfirmModal({
+      isOpen: true,
+      type: 'primary',
+      title: 'Gửi duyệt báo giá',
+      message: `Bên chịu phí: ${paidByLabel}. Sau khi gửi, bạn sẽ không thể chỉnh sửa danh mục vật tư này nữa. Bạn có chắc chắn muốn gửi báo giá không?`,
+      onConfirm: () => executeSubmitQuotation()
+    });
   };
 
   const formatVnd = (amount) => {
@@ -186,7 +214,86 @@ export default function QuotationPanel({ taskId, userId, baseUrl, taskStatus, in
     <div className="quotation-panel">
       <div className="panel-header-with-action">
         <h3 className="card-section-title">🔧 Repair Materials & Parts Quotation</h3>
-        {isEditMode && quotation.materials.length > 0 && (
+      </div>
+
+      {/* Paid By selector — only in Edit Mode with materials */}
+      {isEditMode && quotation.materials.length > 0 && (
+        <div style={{
+          margin: '0 0 16px 0',
+          padding: '16px',
+          background: '#f0f9ff',
+          borderRadius: '10px',
+          border: '1px solid #bae6fd'
+        }}>
+          <p style={{ margin: '0 0 10px 0', fontWeight: '600', fontSize: '0.9rem', color: '#0c4a6e' }}>
+            💰 Bên chịu phí sửa chữa <span style={{ color: '#ef4444' }}>*</span>
+          </p>
+          <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+            <label style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '10px 16px',
+              borderRadius: '8px',
+              border: paidBy === 'Market' ? '2px solid #10b981' : '2px solid #d1d5db',
+              background: paidBy === 'Market' ? '#ecfdf5' : '#ffffff',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+              flex: '1 1 180px',
+              fontWeight: paidBy === 'Market' ? '600' : '400',
+              fontSize: '0.88rem'
+            }}>
+              <input
+                type="radio"
+                name="paidBy"
+                value="Market"
+                checked={paidBy === 'Market'}
+                onChange={(e) => setPaidBy(e.target.value)}
+                style={{ accentColor: '#10b981' }}
+              />
+              🏢 BQL chợ chịu phí
+            </label>
+            <label style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '10px 16px',
+              borderRadius: '8px',
+              border: paidBy === 'Vendor' ? '2px solid #3b82f6' : '2px solid #d1d5db',
+              background: paidBy === 'Vendor' ? '#eff6ff' : '#ffffff',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+              flex: '1 1 180px',
+              fontWeight: paidBy === 'Vendor' ? '600' : '400',
+              fontSize: '0.88rem'
+            }}>
+              <input
+                type="radio"
+                name="paidBy"
+                value="Vendor"
+                checked={paidBy === 'Vendor'}
+                onChange={(e) => setPaidBy(e.target.value)}
+                style={{ accentColor: '#3b82f6' }}
+              />
+              👤 Tiểu thương chịu phí
+            </label>
+          </div>
+          {paidBy === 'Market' && (
+            <p style={{ margin: '10px 0 0 0', fontSize: '0.8rem', color: '#065f46', fontStyle: 'italic' }}>
+              → Báo giá sẽ gửi cho Manager duyệt ngân sách chợ.
+            </p>
+          )}
+          {paidBy === 'Vendor' && (
+            <p style={{ margin: '10px 0 0 0', fontSize: '0.8rem', color: '#1e40af', fontStyle: 'italic' }}>
+              → Báo giá sẽ gửi cho Tiểu thương duyệt trên portal.
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Submit button — only when materials exist and paidBy is selected */}
+      {isEditMode && quotation.materials.length > 0 && (
+        <div style={{ marginBottom: '16px', textAlign: 'right' }}>
           <button 
             type="button" 
             onClick={handleSubmitQuotation} 
@@ -195,8 +302,8 @@ export default function QuotationPanel({ taskId, userId, baseUrl, taskStatus, in
           >
             {submittingQuotation ? 'Sending...' : '🚀 Submit for Approval'}
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
       {isEditMode && (
         <form onSubmit={handleAddMaterial} className="add-material-form">
@@ -321,6 +428,45 @@ export default function QuotationPanel({ taskId, userId, baseUrl, taskStatus, in
               )}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Custom Confirmation Modal */}
+      {confirmModal.isOpen && (
+        <div className="custom-confirm-overlay">
+          <div className="custom-confirm-modal">
+            <div className="custom-confirm-header">
+              <h4>{confirmModal.title}</h4>
+            </div>
+            <div className="custom-confirm-body">
+              <p>{confirmModal.message}</p>
+            </div>
+            <div className="custom-confirm-actions">
+              <button 
+                type="button" 
+                className="btn-secondary" 
+                onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+              >
+                HỦY
+              </button>
+              <button 
+                type="button" 
+                className="btn-primary-dark" 
+                style={{ 
+                  backgroundColor: confirmModal.type === 'danger' ? '#ef4444' : 'var(--primary-color)',
+                  borderColor: confirmModal.type === 'danger' ? '#ef4444' : 'var(--primary-color)',
+                  padding: '8px 16px',
+                  fontSize: '13px'
+                }}
+                onClick={() => {
+                  if (confirmModal.onConfirm) confirmModal.onConfirm();
+                  setConfirmModal(prev => ({ ...prev, isOpen: false }));
+                }}
+              >
+                XÁC NHẬN
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

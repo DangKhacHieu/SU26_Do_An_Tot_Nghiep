@@ -32,6 +32,11 @@ namespace STMM.Business.Services
 
         public async Task<ReviewSummaryDto?> GetReviewsByStallAsync(int stallId)
         {
+            if (stallId <= 0)
+            {
+                throw new ArgumentException("ID sạp hàng không hợp lệ.");
+            }
+
             var stallExists = await _stallRepository.Query()
                 .AnyAsync(s => s.StallId == stallId && s.IsDeleted != true);
 

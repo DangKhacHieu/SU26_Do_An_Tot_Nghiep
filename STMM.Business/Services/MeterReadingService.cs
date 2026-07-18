@@ -58,8 +58,19 @@ namespace STMM.Business.Services
             var dto = _mapper.Map<MeterDto>(meter);
             var latest = await _readingRepo.GetLatestReadingByMeterIdAsync(meterId, ct);
             dto.LastReadingValue = latest?.NewValue;
+            dto.LastReadingImageUrl = latest?.ImageUrl;
 
             return dto;
+        }
+
+        public async Task<IEnumerable<MeterDto>> GetUnassignedMetersAsync(string? type, CancellationToken ct = default)
+        {
+            var meters = await _meterRepo.FindAsync(m => m.StallId == null && m.IsActive == true);
+            if (!string.IsNullOrEmpty(type))
+            {
+                meters = meters.Where(m => m.Type == type);
+            }
+            return _mapper.Map<IEnumerable<MeterDto>>(meters);
         }
 
         public async Task<IEnumerable<MeterDto>> GetMetersByStallIdAsync(int stallId, CancellationToken ct = default)
@@ -101,10 +112,10 @@ namespace STMM.Business.Services
 
             // 5. Get latest reading to auto-fill OldValue
             var latest = await _readingRepo.GetLatestReadingByMeterIdAsync(request.MeterId, ct);
-            var oldValue = latest?.NewValue ?? 0;
+            var oldValue = request.IsReplaced ? 0 : (latest?.NewValue ?? 0);
 
             // 6. Validate new_value >= old_value
-            if (request.NewValue < oldValue)
+            if (!request.IsReplaced && request.NewValue < oldValue)
                 throw new BadRequestException($"New value ({request.NewValue}) must be >= previous value ({oldValue}).");
 
             // 7. Create entity

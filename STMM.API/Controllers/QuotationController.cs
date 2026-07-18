@@ -76,15 +76,17 @@ namespace STMM.API.Controllers
 
         /// <summary>
         /// UC-Submit-Quotation: Staff xác nhận gửi báo giá — task chuyển sang PendingApproval.
+        /// Staff phải chọn bên chịu phí (paidBy = "Market" hoặc "Vendor").
         /// </summary>
         [HttpPatch("~/api/staff/tasks/{taskId}/submit-quotation")]
         public async Task<IActionResult> SubmitQuotation(
             int taskId,
             [FromQuery] int userId,
+            [FromQuery] string paidBy,
             CancellationToken ct)
         {
             userId = GetUserId();
-            var result = await _quotationService.SubmitQuotationAsync(taskId, userId, ct);
+            var result = await _quotationService.SubmitQuotationAsync(taskId, userId, paidBy, ct);
             return Ok(result);
         }
     }

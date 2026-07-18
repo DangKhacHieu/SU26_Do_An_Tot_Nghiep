@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { createStall, updateStall, updateStallStatus, updateStallLocation } from '../api/stallApi';
+import { createStall, updateStall, updateStallStatus, updateStallLocation, getUnassignedMeters } from '../api/stallApi';
 import { getAllCategories } from '../api/categoryApi';
 import styles from './MarketAreaForm.module.css';
 
@@ -12,9 +12,13 @@ const StallForm = ({ initialData, areaId, areaWidth, areaHeight, onSave, onCance
         size: '',
         description: '',
         width: 100,
-        height: 100
+        height: 100,
+        electricityMeterId: '',
+        waterMeterId: ''
     });
     const [categories, setCategories] = useState([]);
+    const [unassignedElectricityMeters, setUnassignedElectricityMeters] = useState([]);
+    const [unassignedWaterMeters, setUnassignedWaterMeters] = useState([]);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
@@ -27,8 +31,21 @@ const StallForm = ({ initialData, areaId, areaWidth, areaHeight, onSave, onCance
                 console.error("Failed to fetch categories", err);
             }
         };
+        const fetchMeters = async () => {
+            try {
+                if (!initialData) {
+                    const eMeters = await getUnassignedMeters('Electricity');
+                    const wMeters = await getUnassignedMeters('Water');
+                    setUnassignedElectricityMeters(eMeters);
+                    setUnassignedWaterMeters(wMeters);
+                }
+            } catch (err) {
+                console.error("Failed to fetch unassigned meters", err);
+            }
+        };
         fetchCats();
-    }, []);
+        fetchMeters();
+    }, [initialData]);
 
     useEffect(() => {
         if (initialData) {
@@ -44,12 +61,31 @@ const StallForm = ({ initialData, areaId, areaWidth, areaHeight, onSave, onCance
         }
     }, [initialData]);
 
+    const PX_PER_M2 = 900; // 1 m2 = 900 pixels vuông (30px * 30px)
+
     const handleChange = (e) => {
         const { name, value } = e.target;
-        setFormData(prev => ({
-            ...prev,
-            [name]: value
-        }));
+        setFormData(prev => {
+            const newData = { ...prev, [name]: value };
+            
+            // Đồng bộ 2 chiều (Cách 3)
+            if (name === 'size' && value) {
+                const numSize = parseFloat(value);
+                if (!isNaN(numSize) && numSize > 0) {
+                    const dimension = Math.round(Math.sqrt(numSize * PX_PER_M2));
+                    newData.width = dimension;
+                    newData.height = dimension;
+                }
+            } else if ((name === 'width' || name === 'height') && value) {
+                const w = parseFloat(name === 'width' ? value : prev.width);
+                const h = parseFloat(name === 'height' ? value : prev.height);
+                if (!isNaN(w) && !isNaN(h) && w > 0 && h > 0) {
+                    newData.size = Math.round((w * h) / PX_PER_M2 * 100) / 100;
+                }
+            }
+            
+            return newData;
+        });
     };
 
     const handleSubmit = async (e) => {
@@ -60,7 +96,9 @@ const StallForm = ({ initialData, areaId, areaWidth, areaHeight, onSave, onCance
         try {
             const payload = {
                 ...formData,
-                size: formData.size ? parseFloat(formData.size) : null
+                size: formData.size ? parseFloat(formData.size) : null,
+                electricityMeterId: formData.electricityMeterId ? parseInt(formData.electricityMeterId) : null,
+                waterMeterId: formData.waterMeterId ? parseInt(formData.waterMeterId) : null
             };
 
             if (initialData?.stallId) {
@@ -94,7 +132,21 @@ const StallForm = ({ initialData, areaId, areaWidth, areaHeight, onSave, onCance
             onSave();
         } catch (err) {
             console.error('Error saving stall:', err);
-            setError('Failed to save stall. Please check the inputs.');
+            let errorMessage = 'Failed to save stall. Please check the inputs.';
+            if (!err.response) {
+                errorMessage = `Lỗi kết nối tới Server: ${err.message}. Vui lòng kiểm tra lại Backend đã chạy chưa.`;
+            } else if (err.response?.data?.errors) {
+                // Validation error from ASP.NET
+                const errors = err.response.data.errors;
+                errorMessage = Object.values(errors).flat().join(' ');
+            } else if (err.response?.data?.message) {
+                errorMessage = err.response.data.message;
+            } else if (err.response?.data?.title) {
+                errorMessage = `Lỗi Server (500): ${err.response.data.title}`;
+            } else if (typeof err.response?.data === 'string') {
+                errorMessage = err.response.data;
+            }
+            setError(errorMessage);
         } finally {
             setLoading(false);
         }
@@ -112,22 +164,33 @@ const StallForm = ({ initialData, areaId, areaWidth, areaHeight, onSave, onCance
                 {error && <div style={{color: '#ff4d4f', marginBottom: 16, fontSize: 13}}>{error}</div>}
                 
                 <form onSubmit={handleSubmit}>
-                    <div className={styles.formGroup}>
-                        <label htmlFor="code">Mã sạp (Stall Code) <span style={{color: '#ff4d4f'}}>*</span></label>
-                        <input
-                            className={styles.input}
-                            type="text"
-                            id="code"
-                            name="code"
-                            value={formData.code}
-                            onChange={handleChange}
-                            required
-                            disabled={!!initialData}
-                            title={initialData ? "Không được phép sửa Mã sạp" : ""}
-                            placeholder="e.g., A-101"
-                            style={{ backgroundColor: initialData ? '#f5f5f5' : 'white', cursor: initialData ? 'not-allowed' : 'text' }}
-                        />
-                    </div>
+                    {!initialData ? (
+                        <div className={styles.formGroup}>
+                            <label htmlFor="code">Mã sạp (Stall Code)</label>
+                            <input
+                                className={styles.input}
+                                type="text"
+                                id="code"
+                                value="Sẽ được tự động tạo"
+                                disabled
+                                style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed', fontStyle: 'italic', color: '#888' }}
+                            />
+                        </div>
+                    ) : (
+                        <div className={styles.formGroup}>
+                            <label htmlFor="code">Mã sạp (Stall Code)</label>
+                            <input
+                                className={styles.input}
+                                type="text"
+                                id="code"
+                                name="code"
+                                value={formData.code}
+                                disabled
+                                title="Không được phép sửa Mã sạp"
+                                style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed' }}
+                            />
+                        </div>
+                    )}
                     
                     <div className={styles.formGroup}>
                         <label htmlFor="categoryName">Tên sạp / Ngành hàng (Category) <span style={{color: '#ff4d4f'}}>*</span></label>
@@ -148,6 +211,22 @@ const StallForm = ({ initialData, areaId, areaWidth, areaHeight, onSave, onCance
                                 <option key={c.categoryId} value={c.name} />
                             ))}
                         </datalist>
+                    </div>
+
+                    <div className={styles.formGroup}>
+                        <label htmlFor="size">Diện tích vật lý (m²) <span style={{color: '#ff4d4f'}}>*</span></label>
+                        <input
+                            className={styles.input}
+                            type="number"
+                            step="0.01"
+                            min="0.1"
+                            id="size"
+                            name="size"
+                            value={formData.size}
+                            onChange={handleChange}
+                            required
+                            placeholder="e.g., 20.5"
+                        />
                     </div>
 
                     <div className={styles.formGroup}>
@@ -213,6 +292,43 @@ const StallForm = ({ initialData, areaId, areaWidth, areaHeight, onSave, onCance
                             />
                         </div>
                     </div>
+
+                    {/* Tạm thời ẩn phần chọn Đồng hồ theo yêu cầu
+                    {!initialData && (
+                        <div className={styles.formGroup} style={{display: 'flex', gap: 12}}>
+                            <div style={{flex: 1}}>
+                                <label htmlFor="electricityMeterId">Đồng hồ điện (Tùy chọn)</label>
+                                <select
+                                    className={styles.select}
+                                    id="electricityMeterId"
+                                    name="electricityMeterId"
+                                    value={formData.electricityMeterId}
+                                    onChange={handleChange}
+                                >
+                                    <option value="">-- Tạo mới tự động --</option>
+                                    {unassignedElectricityMeters.map(m => (
+                                        <option key={m.meterId} value={m.meterId}>{m.serialNumber}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div style={{flex: 1}}>
+                                <label htmlFor="waterMeterId">Đồng hồ nước (Tùy chọn)</label>
+                                <select
+                                    className={styles.select}
+                                    id="waterMeterId"
+                                    name="waterMeterId"
+                                    value={formData.waterMeterId}
+                                    onChange={handleChange}
+                                >
+                                    <option value="">-- Tạo mới tự động --</option>
+                                    {unassignedWaterMeters.map(m => (
+                                        <option key={m.meterId} value={m.meterId}>{m.serialNumber}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+                    )}
+                    */}
                     
                     <div className={styles.actions}>
                         <button type="submit" className={styles.btnPrimary} disabled={loading}>

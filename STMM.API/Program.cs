@@ -32,13 +32,25 @@ if (dotenvPath != null)
     Console.WriteLine($"[INFO] Loaded configuration from env file: {dotenvPath}");
     foreach (var line in File.ReadAllLines(dotenvPath))
     {
-        if (string.IsNullOrWhiteSpace(line) || line.StartsWith("#")) continue;
-        var parts = line.Split('=', 2);
-        if (parts.Length == 2)
+        if (string.IsNullOrWhiteSpace(line) || line.StartsWith('#'))
+            continue;
+
+        var separatorIndex = line.IndexOf('=');
+        if (separatorIndex > 0)
         {
-            var envKey = parts[0].Trim();
-            var envVal = parts[1].Trim();
-            Environment.SetEnvironmentVariable(envKey, envVal);
+            var envKey = line.Substring(0, separatorIndex).Trim();
+            var value = line.Substring(separatorIndex + 1).Trim();
+            
+            if (value.StartsWith("\"") && value.EndsWith("\"") && value.Length >= 2)
+            {
+                value = value.Substring(1, value.Length - 2);
+            }
+            else if (value.StartsWith("'") && value.EndsWith("'") && value.Length >= 2)
+            {
+                value = value.Substring(1, value.Length - 2);
+            }
+            
+            System.Environment.SetEnvironmentVariable(envKey, value);
         }
     }
 }
@@ -105,14 +117,24 @@ builder.Services.AddAutoMapper(cfg =>
 builder.Services.AddValidatorsFromAssembly(typeof(MappingProfile).Assembly);
 
 // Register Business Services
+builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 builder.Services.AddScoped<IViolationService, ViolationService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IBillingService, BillingService>();
 builder.Services.AddScoped<IIssueService, IssueService>();
 builder.Services.AddScoped<IStallTaskService, StallTaskService>();
+
+// Accountant Portal Services
+builder.Services.AddScoped<IDashboardService, DashboardService>();
+builder.Services.AddScoped<IFinancialConfigService, FinancialConfigService>();
+builder.Services.AddScoped<IRepairPriceService, RepairPriceService>();
+builder.Services.AddScoped<IUserProfileService, UserProfileService>();
+
+// Other Services from Merge_Code
 builder.Services.AddScoped<IStaffTaskService, StaffTaskService>();
 builder.Services.AddScoped<IQuotationService, QuotationService>();
 builder.Services.AddScoped<IMeterReadingService, MeterReadingService>();
+builder.Services.AddScoped<IMeterService, MeterService>();
 builder.Services.AddScoped<IFileStorageService, CloudinaryStorageService>();
 builder.Services.AddScoped<IVendorServiceManagement, VendorServiceManagement>();
 builder.Services.AddScoped<IUserService, UserService>();
@@ -127,17 +149,21 @@ builder.Services.AddScoped<IContractService, ContractService>();
 builder.Services.AddScoped<IRequestService, RequestService>();
 builder.Services.AddScoped<IVendorRequestService, VendorRequestService>();
 builder.Services.AddScoped<IVendorViolationService, VendorViolationService>();
+builder.Services.AddScoped<IVendorInvoiceService, VendorInvoiceService>();
 builder.Services.AddScoped<IMarketService, MarketService>();
 builder.Services.AddScoped<IReviewService, ReviewService>();
 
+// Register Background Services
+builder.Services.AddHostedService<STMM.API.BackgroundServices.MonthlyBillingWorker>();
 
 // 1. Controllers & JSON Options
 builder.Services.AddControllers()
-    .AddJsonOptions(option =>
+    .AddJsonOptions(options =>
     {
-        option.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
-        option.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.Never;
-        option.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+        options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+        options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+        options.JsonSerializerOptions.NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals;
+        options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
     });
 
 // 4. CORS Policy (Cho phép React Client kết nối)
@@ -152,37 +178,10 @@ builder.Services.AddCors(options =>
     });
 });
 
-// 5. Swagger Configuration & Bearer JWT (Để dạng comment chờ login)
+// 5. Swagger Configuration & Bearer JWT
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
-    /*
-    // Cần cài đặt Package: Microsoft.AspNetCore.Authentication.JwtBearer
-    options.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
-    {
-        Name = "Authorization",
-        Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
-        Scheme = "bearer",
-        BearerFormat = "JWT",
-        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
-        Description = "Nhập: Bearer {your JWT token}"
-    });
-
-    options.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
-    {
-        {
-            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
-            {
-                Reference = new Microsoft.OpenApi.Models.OpenApiReference
-                {
-                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
-                    Id = "Bearer"
-                }
-            },
-            Array.Empty<string>()
-        }
-    });
-    */
 });
 
 // 3. JWT Authentication & Authorization
@@ -211,15 +210,7 @@ builder.Services.AddAuthentication(options =>
 });
 
 builder.Services.AddAuthorization();
-
-
-
-// 6. EPPlus Excel License (Để dạng comment chờ sử dụng Excel)
-// Cần cài đặt Package: EPPlus
-// OfficeOpenXml.ExcelPackage.License.SetNonCommercialOrganization("STMM");
-
-// 7. SignalR Configuration (Để dạng comment chờ notification)
-// builder.Services.AddSignalR();
+builder.Services.AddSignalR();
 
 var app = builder.Build();
 
@@ -237,10 +228,11 @@ app.UseHttpsRedirection();
 // Kích hoạt CORS (Phải đặt trước Auth)
 app.UseCors("AllowReact");
 
-// Phân quyền (Mở comment UseAuthentication khi có chức năng login)
+// Phân quyền
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<STMM.Business.Hubs.AuditLogHub>("/hubs/audit-logs");
 
 app.Run();

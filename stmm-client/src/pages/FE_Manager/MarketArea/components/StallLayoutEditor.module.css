@@ -68,7 +68,7 @@
     border: none;
     border-radius: 0;
     position: relative;
-    overflow: hidden;
+    overflow: visible;
     min-height: unset;
     height: 100%;
 }

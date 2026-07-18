@@ -9,5 +9,6 @@ namespace STMM.Business.DTOs.Stall
         public double? Width { get; set; }
         public double? Height { get; set; }
         public double? Rotation { get; set; }
+        public double? Size { get; set; }
     }
 }

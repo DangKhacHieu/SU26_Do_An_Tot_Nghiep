@@ -1,11 +1,17 @@
 using AutoMapper;
 using FluentValidation;
+using Microsoft.EntityFrameworkCore;
 using STMM.Business.DTOs.Common;
 using STMM.Business.DTOs.Violation;
 using STMM.Business.Exceptions;
 using STMM.Business.Interfaces;
 using STMM.DataAccess.Entities;
 using STMM.DataAccess.IRepositories;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace STMM.Business.Services
 {
@@ -17,6 +23,7 @@ namespace STMM.Business.Services
         private readonly IMapper _mapper;
         private readonly IValidator<CreateViolationRequest> _createValidator;
         private readonly INotificationService _notificationService;
+        private readonly IUserRepository _userRepository;
 
         public ViolationService(
             IViolationRepository violationRepository,
@@ -24,7 +31,8 @@ namespace STMM.Business.Services
             IViolationTypeRepository violationTypeRepository,
             IMapper mapper,
             IValidator<CreateViolationRequest> createValidator,
-            INotificationService notificationService)
+            INotificationService notificationService,
+            IUserRepository userRepository)
         {
             _violationRepository = violationRepository;
             _stallRepository = stallRepository;
@@ -32,6 +40,7 @@ namespace STMM.Business.Services
             _mapper = mapper;
             _createValidator = createValidator;
             _notificationService = notificationService;
+            _userRepository = userRepository;
         }
 
         public async Task<PagedResult<ViolationDto>> GetViolationsAsync(
@@ -70,7 +79,6 @@ namespace STMM.Business.Services
         public async Task<ViolationDto> CreateViolationAsync(
             int userId, CreateViolationRequest request, CancellationToken ct = default)
         {
-            // Validate request
             var validationResult = await _createValidator.ValidateAsync(request, ct);
             if (!validationResult.IsValid)
             {
@@ -78,7 +86,6 @@ namespace STMM.Business.Services
                     string.Join("; ", validationResult.Errors.Select(e => e.ErrorMessage)));
             }
 
-            // Check stall exists and is not deleted
             var stalls = await _stallRepository.FindAsync(s => s.StallId == request.StallId && s.IsDeleted != true, ct);
             var stall = stalls.FirstOrDefault();
 
@@ -87,7 +94,6 @@ namespace STMM.Business.Services
                 throw new NotFoundException($"Stall with ID {request.StallId} not found.");
             }
 
-            // Check violation type exists and is active
             var types = await _violationTypeRepository.FindAsync(vt => vt.ViolationTypeId == request.ViolationTypeId && vt.IsActive != false, ct);
             var violationType = types.FirstOrDefault();
 
@@ -96,14 +102,12 @@ namespace STMM.Business.Services
                 throw new NotFoundException($"Violation type with ID {request.ViolationTypeId} was not found or is inactive.");
             }
 
-            // Map and create
             var violation = _mapper.Map<Violation>(request);
             violation.CreatedByUserId = userId;
             violation.Status = "Pending";
             violation.CreatedAt = DateTime.UtcNow;
             violation.UpdatedAt = DateTime.UtcNow;
 
-            // Auto-fill FineAmount if not specified (or is 0) and default fine exists
             if ((violation.FineAmount == null || violation.FineAmount == 0) && violationType.DefaultFine.HasValue)
             {
                 violation.FineAmount = violationType.DefaultFine.Value;
@@ -112,11 +116,9 @@ namespace STMM.Business.Services
             await _violationRepository.AddAsync(violation, ct);
             await _violationRepository.SaveChangesAsync(ct);
 
-            // Assign navigation properties for DTO mapping
             violation.Stall = stall;
             violation.ViolationType = violationType;
 
-            // Send notification to Manager role
             await _notificationService.CreateAsync(new DTOs.Notification.CreateNotificationRequest
             {
                 Title = "New Violation Report",
@@ -132,7 +134,6 @@ namespace STMM.Business.Services
         public async Task<IEnumerable<ViolationTypeDto>> GetViolationTypesAsync(CancellationToken ct = default)
         {
             var types = await _violationTypeRepository.FindAsync(vt => vt.IsActive != false, ct);
-
             return _mapper.Map<IEnumerable<ViolationTypeDto>>(types);
         }
 
@@ -172,6 +173,89 @@ namespace STMM.Business.Services
         public async Task<bool> SimulateViolationAppealAsync(int violationId, CancellationToken ct = default)
         {
             return await _violationRepository.SimulateViolationAppealAsync(violationId, ct);
+        }
+
+        // --- ACCOUNTANT ADDITIONS ---
+
+        public async Task<IEnumerable<ViolationDto>> GetAllViolationsAsync(int? accountantUserId = null, CancellationToken ct = default)
+        {
+            IQueryable<Violation> query = _violationRepository.Query()
+                .Include(v => v.Stall)
+                .Include(v => v.ViolationType);
+
+            if (accountantUserId.HasValue)
+            {
+                var user = await _userRepository.GetByIdAsync(accountantUserId.Value, ct);
+                if (user?.MarketId != null)
+                {
+                    query = query.Where(v => v.Stall.Area.MarketId == user.MarketId);
+                }
+            }
+
+            var list = await query
+                .OrderByDescending(v => v.ViolationId)
+                .ToListAsync(ct);
+
+            return _mapper.Map<IEnumerable<ViolationDto>>(list);
+        }
+
+        public async Task<IEnumerable<ViolationTypeDto>> GetAllViolationTypesWithInactiveAsync(CancellationToken ct = default)
+        {
+            var list = await _violationTypeRepository.GetAllAsync(ct);
+            return _mapper.Map<IEnumerable<ViolationTypeDto>>(list);
+        }
+
+        public async Task<ViolationTypeDto> CreateViolationTypeAsync(CreateViolationTypeRequest request, CancellationToken ct = default)
+        {
+            if (string.IsNullOrEmpty(request.Name))
+            {
+                throw new BadRequestException("Tên loại vi phạm không được để trống.");
+            }
+
+            var vt = new ViolationType
+            {
+                Name = request.Name,
+                Description = request.Description,
+                DefaultFine = request.DefaultFine,
+                IsActive = true
+            };
+
+            await _violationTypeRepository.AddAsync(vt, ct);
+            await _violationTypeRepository.SaveChangesAsync(ct);
+
+            return _mapper.Map<ViolationTypeDto>(vt);
+        }
+
+        public async Task<ViolationTypeDto> UpdateViolationTypeAsync(int id, UpdateViolationTypeRequest request, CancellationToken ct = default)
+        {
+            var vt = await _violationTypeRepository.GetByIdAsync(id, ct);
+            if (vt == null)
+            {
+                throw new NotFoundException($"Không tìm thấy Loại vi phạm ID {id}.");
+            }
+
+            vt.Name = request.Name;
+            vt.Description = request.Description;
+            vt.DefaultFine = request.DefaultFine;
+            vt.IsActive = request.IsActive;
+
+            _violationTypeRepository.Update(vt);
+            await _violationTypeRepository.SaveChangesAsync(ct);
+
+            return _mapper.Map<ViolationTypeDto>(vt);
+        }
+
+        public async Task<bool> DeleteViolationTypeAsync(int id, CancellationToken ct = default)
+        {
+            var vt = await _violationTypeRepository.GetByIdAsync(id, ct);
+            if (vt == null) return false;
+
+            // Xóa mềm: ẩn hoạt động
+            vt.IsActive = false;
+            _violationTypeRepository.Update(vt);
+
+            await _violationTypeRepository.SaveChangesAsync(ct);
+            return true;
         }
     }
 }

@@ -63,6 +63,13 @@ namespace STMM.API.Middleware
                     problemDetails.Detail = badRequestEx.Message;
                     break;
 
+                case ForbiddenException forbiddenEx:
+                    context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                    problemDetails.Status = StatusCodes.Status403Forbidden;
+                    problemDetails.Title = "Forbidden";
+                    problemDetails.Detail = forbiddenEx.Message;
+                    break;
+
                 default:
                     context.Response.StatusCode = StatusCodes.Status500InternalServerError;
                     problemDetails.Status = StatusCodes.Status500InternalServerError;

@@ -9,6 +9,7 @@ namespace STMM.DataAccess.IRepositories
     {
         Task<(IEnumerable<Request> Items, int TotalCount)> GetRequestsPagedAsync(
             int? vendorId,
+            int? stallId,
             string? status,
             string? requestType,
             string? searchTerm,

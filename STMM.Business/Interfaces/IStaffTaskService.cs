@@ -17,6 +17,7 @@ namespace STMM.Business.Interfaces
 
         // Staff APIs
         Task<PagedResult<TaskSummaryDto>> GetTasksForStaffAsync(int staffUserId, TaskQueryParams q, CancellationToken ct = default);
+        Task<TaskDto> GetTaskByIdForStaffAsync(int taskId, int staffUserId, CancellationToken ct = default);
         Task<TaskDto> CompleteTaskAsync(int staffUserId, int taskId, CompleteTaskRequest req, CancellationToken ct = default);
         Task<List<UtilityStallChecklistDto>> GetStallsForUtilityTaskAsync(int taskId, int staffUserId, CancellationToken ct = default);
     }

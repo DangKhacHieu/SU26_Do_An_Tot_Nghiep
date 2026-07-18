@@ -231,7 +231,7 @@ export default function TaskList({ userId, baseUrl, onViewDetails }) {
                   {tasks.map((task) => (
                     <tr key={task.taskId}>
                       <td className="task-id-cell">{task.taskId}</td>
-                      <td className="task-title-cell">
+                      <td className="task-title-td">
                         <div className="task-title-text" title={task.title}>{task.title}</div>
                         {task.areaName && <span className="task-area-tag">📍 {task.areaName}</span>}
                       </td>

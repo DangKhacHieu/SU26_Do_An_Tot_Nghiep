@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
 using STMM.Business.DTOs.Auth;
 using STMM.Business.Interfaces;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace STMM.API.Controllers
 {
@@ -11,10 +13,12 @@ namespace STMM.API.Controllers
     public class AuthController : ControllerBase
     {
         private readonly IAuthService _authService;
+        private readonly IAuditLogService _auditLogService;
 
-        public AuthController(IAuthService authService)
+        public AuthController(IAuthService authService, IAuditLogService auditLogService)
         {
             _authService = authService;
+            _auditLogService = auditLogService;
         }
 
         /// <summary>
@@ -26,6 +30,11 @@ namespace STMM.API.Controllers
             CancellationToken ct)
         {
             var result = await _authService.LoginAsync(request, ct);
+
+            // Ghi nhật ký đăng nhập thành công
+            var ipAddress = Request.HttpContext.Connection.RemoteIpAddress?.ToString();
+            await _auditLogService.LogAsync(result.User.UserId, $"Đăng nhập thành công ({result.User.RoleName})", ipAddress, ct);
+
             return Ok(result);
         }
 
@@ -62,6 +71,11 @@ namespace STMM.API.Controllers
             CancellationToken ct)
         {
             var result = await _authService.VerifyEmailAsync(request, ct);
+
+            // Ghi nhật ký khi người dùng hoàn thành OTP và kích hoạt tài khoản
+            var ipAddress = Request.HttpContext.Connection.RemoteIpAddress?.ToString();
+            await _auditLogService.LogAsync(result.User.UserId, $"Xác thực email OTP thành công - Kích hoạt tài khoản ({result.User.RoleName})", ipAddress, ct);
+
             return Ok(result);
         }
 
@@ -122,6 +136,11 @@ namespace STMM.API.Controllers
             CancellationToken ct)
         {
             var result = await _authService.LoginWithGoogleAsync(request, ct);
+
+            // Ghi nhật ký đăng nhập Google thành công
+            var ipAddress = Request.HttpContext.Connection.RemoteIpAddress?.ToString();
+            await _auditLogService.LogAsync(result.User.UserId, $"Đăng nhập thành công bằng Google ({result.User.RoleName})", ipAddress, ct);
+
             return Ok(result);
         }
 
@@ -141,6 +160,11 @@ namespace STMM.API.Controllers
             }
 
             await _authService.ChangePasswordAsync(userId, request, ct);
+
+            // Ghi nhật ký đổi mật khẩu thành công
+            var ipAddress = Request.HttpContext.Connection.RemoteIpAddress?.ToString();
+            await _auditLogService.LogAsync(userId, "Thay đổi mật khẩu tài khoản cá nhân", ipAddress, ct);
+
             return Ok(new { message = "Đổi mật khẩu thành công." });
         }
     }

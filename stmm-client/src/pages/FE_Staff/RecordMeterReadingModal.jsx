@@ -1,6 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import './RecordMeterReadingModal.css';
 
+const parseErrorMessage = (rawError) => {
+  if (!rawError) return "Có lỗi xảy ra, vui lòng thử lại.";
+  try {
+    const parsed = JSON.parse(rawError);
+    return parsed.detail || parsed.title || rawError;
+  } catch {
+    try {
+      return JSON.parse(`"${rawError}"`);
+    } catch {
+      return rawError.replace(/\\u([0-9a-fA-F]{4})/g, (match, grp) => 
+        String.fromCharCode(parseInt(grp, 16))
+      );
+    }
+  }
+};
+
 export default function RecordMeterReadingModal({ stallId, baseUrl, userId, onClose, onSuccess }) {
   const [meters, setMeters] = useState([]);
   const [meterId, setMeterId] = useState('');
@@ -17,6 +33,7 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, userId, onCl
     return `${yyyy}-${mm}-${dd}`;
   });
   const [imageUrl, setImageUrl] = useState('');
+  const [isReplaced, setIsReplaced] = useState(false);
 
   // UI state
   const [loading, setLoading] = useState(false);
@@ -151,7 +168,7 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, userId, onCl
 
     if (newValue === '' || isNaN(Number(newValue)) || Number(newValue) < 0) {
       errors.newValue = "New value must be a non-negative number.";
-    } else if (selectedMeter && selectedMeter.lastReadingValue !== null && Number(newValue) < selectedMeter.lastReadingValue) {
+    } else if (!isReplaced && selectedMeter && selectedMeter.lastReadingValue !== null && Number(newValue) < selectedMeter.lastReadingValue) {
       errors.newValue = `New value must be greater than or equal to the previous value (${selectedMeter.lastReadingValue}).`;
     }
 
@@ -184,7 +201,8 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, userId, onCl
       meterId: parseInt(meterId),
       newValue: parseFloat(newValue),
       recordedAt: recordedAt,
-      imageUrl: imageUrl
+      imageUrl: imageUrl,
+      isReplaced: isReplaced
     };
 
     try {
@@ -204,7 +222,7 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, userId, onCl
       const result = await response.json();
       onSuccess(result);
     } catch (err) {
-      setSubmitError(err.message);
+      setSubmitError(parseErrorMessage(err.message));
     } finally {
       setLoading(false);
     }
@@ -269,6 +287,21 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, userId, onCl
               className={`form-input ${formErrors.newValue ? 'error-border' : ''}`}
             />
             {formErrors.newValue && <span className="error-text">{formErrors.newValue}</span>}
+          </div>
+
+          {/* Checkbox Reset/Replacement */}
+          <div className="form-group-checkbox">
+            <label className="checkbox-container">
+              <input
+                type="checkbox"
+                checked={isReplaced}
+                onChange={(e) => setIsReplaced(e.target.checked)}
+              />
+              <span className="checkbox-label">⚠️ Thay thế công tơ mới (Reset chỉ số)</span>
+            </label>
+            <p className="helper-text-checkbox">
+              Tích chọn nếu thay mới công tơ. Hệ thống sẽ cho phép nhập chỉ số mới nhỏ hơn chỉ số cũ và đặt lại chỉ số cũ về 0.
+            </p>
           </div>
 
           {/* Recorded Date */}

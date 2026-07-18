@@ -6,11 +6,12 @@ import UtilityChecklist from './components/UtilityChecklist';
 import CompleteTaskForm from './components/CompleteTaskForm';
 import './TaskDetail.css';
 
-export default function TaskDetail({ taskId, userId, baseUrl, onBack, onShowNotification }) {
+export default function TaskDetail({ taskId, userId, baseUrl, onBack, onShowNotification, onViewIssueDetails }) {
   const [task, setTask] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [forbidden, setForbidden] = useState(false);
+  const [utilityProgress, setUtilityProgress] = useState({ completed: 0, total: 0 });
 
   const fetchTaskDetails = async () => {
     setLoading(true);
@@ -120,63 +121,69 @@ export default function TaskDetail({ taskId, userId, baseUrl, onBack, onShowNoti
       </div>
 
       <div className="detail-layout">
-        {/* Task main read-only info card */}
-        <TaskInfoCard task={task} />
+        <div className="detail-left-col">
+          {/* Task main read-only info card */}
+          <TaskInfoCard task={task} onViewIssueDetails={onViewIssueDetails} />
 
-        {/* Quotation management for Repair tasks */}
-        {task.taskType === TASK_TYPE.REPAIR && (
-          <QuotationPanel 
-            taskId={task.taskId}
-            userId={userId}
-            baseUrl={baseUrl}
-            taskStatus={task.status}
-            initialMaterials={task.materials}
-            onRefreshTask={fetchTaskDetails}
-            onShowNotification={onShowNotification}
-          />
-        )}
+          {/* Quotation management for Repair tasks */}
+          {task.taskType === TASK_TYPE.REPAIR && (
+            <QuotationPanel 
+              taskId={task.taskId}
+              userId={userId}
+              baseUrl={baseUrl}
+              taskStatus={task.status}
+              initialMaterials={task.materials}
+              onRefreshTask={fetchTaskDetails}
+              onShowNotification={onShowNotification}
+            />
+          )}
 
-        {/* Stall checklist for Utility reading tasks */}
-        {task.taskType === TASK_TYPE.UTILITY_READING && (
-          <UtilityChecklist 
-            taskId={task.taskId}
-            userId={userId}
-            baseUrl={baseUrl}
-            onShowNotification={onShowNotification}
-          />
-        )}
+          {/* Stall checklist for Utility reading tasks */}
+          {task.taskType === TASK_TYPE.UTILITY_READING && (
+            <UtilityChecklist 
+              taskId={task.taskId}
+              userId={userId}
+              baseUrl={baseUrl}
+              onShowNotification={onShowNotification}
+              onProgressChange={(completed, total) => setUtilityProgress({ completed, total })}
+            />
+          )}
+        </div>
 
-        {/* Read-only evidence preview if task is already completed */}
-        {task.status === TASK_STATUS.COMPLETED && (task.imageBeforeUrl || task.imageAfterUrl) && (
-          <div className="evidence-panel">
-            <h3 className="card-section-title">📸 Completion Evidence Photos</h3>
-            <div className="evidence-images-grid">
-              {task.imageBeforeUrl && (
-                <div className="evidence-image-wrapper">
-                  <div className="evidence-label">BEFORE PHOTO</div>
-                  <img src={task.imageBeforeUrl} alt="Before repair" className="evidence-img-large" />
-                </div>
-              )}
-              {task.imageAfterUrl && (
-                <div className="evidence-image-wrapper">
-                  <div className="evidence-label">AFTER PHOTO</div>
-                  <img src={task.imageAfterUrl} alt="After repair" className="evidence-img-large" />
-                </div>
-              )}
+        <div className="detail-right-col">
+          {/* Read-only evidence preview if task is already completed */}
+          {task.status === TASK_STATUS.COMPLETED && (task.imageBeforeUrl || task.imageAfterUrl) && (
+            <div className="evidence-panel">
+              <h3 className="card-section-title">📸 Completion Evidence Photos</h3>
+              <div className="evidence-images-grid">
+                {task.imageBeforeUrl && (
+                  <div className="evidence-image-wrapper">
+                    <div className="evidence-label">BEFORE PHOTO</div>
+                    <img src={task.imageBeforeUrl} alt="Before repair" className="evidence-img-large" />
+                  </div>
+                )}
+                {task.imageAfterUrl && (
+                  <div className="evidence-image-wrapper">
+                    <div className="evidence-label">AFTER PHOTO</div>
+                    <img src={task.imageAfterUrl} alt="After repair" className="evidence-img-large" />
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Complete Task Form */}
-        {shouldShowCompleteForm() && (
-          <CompleteTaskForm 
-            task={task}
-            userId={userId}
-            baseUrl={baseUrl}
-            onRefreshTask={fetchTaskDetails}
-            onShowNotification={onShowNotification}
-          />
-        )}
+          {/* Complete Task Form */}
+          {shouldShowCompleteForm() && (
+            <CompleteTaskForm 
+              task={task}
+              userId={userId}
+              baseUrl={baseUrl}
+              onRefreshTask={fetchTaskDetails}
+              onShowNotification={onShowNotification}
+              utilityProgress={task.taskType === TASK_TYPE.UTILITY_READING ? utilityProgress : null}
+            />
+          )}
+        </div>
       </div>
     </div>
   );

@@ -14,6 +14,7 @@ using STMM.Business.DTOs.Request;
 
 using STMM.Business.DTOs.Market;
 using STMM.Business.DTOs.Review;
+using STMM.Business.DTOs.AuditLog;
 
 namespace STMM.Business.Mappers
 {
@@ -21,6 +22,12 @@ namespace STMM.Business.Mappers
     {
         public MappingProfile()
         {
+            // AuditLog mapping
+            CreateMap<AuditLog, AuditLogDto>()
+                .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => src.User != null ? src.User.Name : "Unknown"))
+                .ForMember(dest => dest.UserEmail, opt => opt.MapFrom(src => src.User != null ? src.User.Email : "Unknown"))
+                .ForMember(dest => dest.RoleName, opt => opt.MapFrom(src => src.User != null && src.User.Role != null ? src.User.Role.Name : "Unknown"));
+
             // BusinessCategory mappings
             CreateMap<BusinessCategory, BusinessCategoryDto>()
                 .ForMember(dest => dest.StallsCount, opt => opt.Ignore())
@@ -83,11 +90,16 @@ namespace STMM.Business.Mappers
             CreateMap<StaffTask, TaskDto>()
                 .ForMember(dest => dest.AssignedToName, opt => opt.MapFrom(src => src.AssignedToUser != null ? src.AssignedToUser.Name : string.Empty))
                 .ForMember(dest => dest.AreaName, opt => opt.MapFrom(src => src.Area != null ? src.Area.Name : string.Empty))
-                .ForMember(dest => dest.Materials, opt => opt.MapFrom(src => src.TaskMaterials));
+                .ForMember(dest => dest.RequestPaidBy, opt => opt.MapFrom(src => src.Request != null ? src.Request.PaidBy : null))
+                .ForMember(dest => dest.Materials, opt => opt.MapFrom(src => src.TaskMaterials))
+                .ForMember(dest => dest.StallId, opt => opt.MapFrom(src => src.Request != null ? src.Request.StallId : (src.Issue != null ? src.Issue.StallId : (int?)null)))
+                .ForMember(dest => dest.StallCode, opt => opt.MapFrom(src => src.Request != null && src.Request.Stall != null ? src.Request.Stall.Code : (src.Issue != null && src.Issue.Stall != null ? src.Issue.Stall.Code : null)));
 
             CreateMap<StaffTask, TaskSummaryDto>()
                 .ForMember(dest => dest.AssignedToName, opt => opt.MapFrom(src => src.AssignedToUser != null ? src.AssignedToUser.Name : string.Empty))
-                .ForMember(dest => dest.AreaName, opt => opt.MapFrom(src => src.Area != null ? src.Area.Name : string.Empty));
+                .ForMember(dest => dest.AreaName, opt => opt.MapFrom(src => src.Area != null ? src.Area.Name : string.Empty))
+                .ForMember(dest => dest.StallId, opt => opt.MapFrom(src => src.Request != null ? src.Request.StallId : (src.Issue != null ? src.Issue.StallId : (int?)null)))
+                .ForMember(dest => dest.StallCode, opt => opt.MapFrom(src => src.Request != null && src.Request.Stall != null ? src.Request.Stall.Code : (src.Issue != null && src.Issue.Stall != null ? src.Issue.Stall.Code : null)));
 
             CreateMap<TaskMaterial, TaskMaterialDto>();
 

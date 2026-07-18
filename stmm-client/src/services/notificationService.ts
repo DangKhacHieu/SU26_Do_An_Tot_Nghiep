@@ -1,6 +1,7 @@
 import axios, { AxiosInstance } from 'axios';
 
-const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5056/api').replace(/\/$/, '');
+const _rawUrl = (import.meta.env.VITE_API_URL || 'http://localhost:5056/api').replace(/\/$/, '');
+const API_BASE_URL = _rawUrl.endsWith('/api') ? _rawUrl : `${_rawUrl}/api`;
 
 export interface NotificationDto {
   notiId: number;
@@ -38,13 +39,9 @@ class NotificationService {
   /**
    * Lấy danh sách thông báo của user hiện tại
    */
-  async getNotifications(userId: number, roleName?: string): Promise<NotificationDto[]> {
+  async getNotifications(): Promise<NotificationDto[]> {
     try {
-      const params: any = { userId };
-      if (roleName) {
-        params.roleName = roleName;
-      }
-      const response = await this.api.get<NotificationDto[]>('/notifications', { params });
+      const response = await this.api.get<NotificationDto[]>('/notifications');
       return response.data;
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Không thể lấy danh sách thông báo');
@@ -65,13 +62,9 @@ class NotificationService {
   /**
    * Đánh dấu tất cả thông báo là đã đọc
    */
-  async markAllAsRead(userId: number, roleName?: string): Promise<void> {
+  async markAllAsRead(): Promise<void> {
     try {
-      const params: any = { userId };
-      if (roleName) {
-        params.roleName = roleName;
-      }
-      await this.api.put('/notifications/read-all', null, { params });
+      await this.api.put('/notifications/read-all');
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Không thể đánh dấu tất cả thông báo là đã đọc');
     }

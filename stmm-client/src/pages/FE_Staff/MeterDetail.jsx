@@ -97,6 +97,19 @@ export default function MeterDetail({ meterId, baseUrl, onBack }) {
               </span>
             </div>
           )}
+
+          {meter.lastReadingImageUrl && (
+            <div className="info-block" style={{ marginTop: '20px', borderTop: '1px dashed #ccc', paddingTop: '15px' }}>
+              <span className="info-label">LATEST READING EVIDENCE PHOTO</span>
+              <div className="meter-evidence-photo-container" style={{ marginTop: '10px' }}>
+                <img 
+                  src={meter.lastReadingImageUrl} 
+                  alt="Latest Meter Reading Evidence" 
+                  style={{ maxWidth: '100%', maxHeight: '320px', borderRadius: '8px', border: '1px solid #cbd5e1', display: 'block', objectFit: 'contain' }} 
+                />
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -8,6 +8,13 @@ namespace STMM.Business.DTOs.Market
         public int MarketId { get; set; }
         public string MarketName { get; set; } = null!;
         public string? Address { get; set; }
+        public double? Size { get; set; }
+        public string? SvgPath { get; set; }
+        public double? MinX { get; set; }
+        public double? MinY { get; set; }
+        public double? MaxX { get; set; }
+        public double? MaxY { get; set; }
+        public string? Status { get; set; }
         public List<AreaMapDto> Areas { get; set; } = new List<AreaMapDto>();
     }
 
@@ -19,6 +26,8 @@ namespace STMM.Business.DTOs.Market
         public string? CategoryName { get; set; }
         public string Name { get; set; } = null!;
         public string? Description { get; set; }
+        public double? Size { get; set; }
+        public string? SvgPath { get; set; }
         public double? MinX { get; set; }
         public double? MinY { get; set; }
         public double? MaxX { get; set; }

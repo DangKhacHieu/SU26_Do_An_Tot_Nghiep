@@ -1,12 +1,14 @@
 export interface MeterDto {
   meterId: number;
-  stallId: number;
+  stallId: number | null;
+  marketId: number;
   stallCode: string;
   type: string;
   serialNumber: string;
   installedAt: string | null;
   isActive: boolean | null;
   lastReadingValue: number | null;
+  lastReadingImageUrl?: string | null;
 }
 
 export interface MeterReadingDto {
@@ -29,10 +31,33 @@ export interface CreateMeterReadingRequest {
   newValue: number;
   recordedAt: string;
   imageUrl: string;
+  isReplaced?: boolean;
 }
 
 export interface MeterReadingQueryParams {
   pageNumber?: number;
   pageSize?: number;
   meterType?: string | null;
+}
+
+export interface CreateMeterRequest {
+  serialNumber: string;
+  type: string;
+}
+
+export interface UpdateMeterRequest {
+  serialNumber: string;
+  type: string;
+  isActive: boolean;
+}
+
+
+
+export interface MeterQueryParameters {
+  pageNumber: number;
+  pageSize: number;
+  type?: string;
+  isActive?: boolean;
+  isAssigned?: boolean;
+  search?: string;
 }
