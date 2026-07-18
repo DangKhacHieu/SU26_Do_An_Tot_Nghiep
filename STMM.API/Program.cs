@@ -153,6 +153,11 @@ builder.Services.AddScoped<IVendorInvoiceService, VendorInvoiceService>();
 builder.Services.AddScoped<IMarketService, MarketService>();
 builder.Services.AddScoped<IReviewService, ReviewService>();
 
+// Register MoMo Payment Service
+builder.Services.Configure<STMM.Business.DTOs.Payment.MomoConfig>(builder.Configuration.GetSection("MomoConfig"));
+builder.Services.AddHttpClient();
+builder.Services.AddScoped<IMomoService, MomoService>();
+
 // Register Background Services
 builder.Services.AddHostedService<STMM.API.BackgroundServices.MonthlyBillingWorker>();
 
