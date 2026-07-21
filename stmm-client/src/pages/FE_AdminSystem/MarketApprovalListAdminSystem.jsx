@@ -48,7 +48,7 @@ export default function MarketApprovalListAdminSystem({ navigate, addToast }) {
     setActionLoading(true);
     try {
       await changeMarketStatus(targetMarket.marketId, 'Active');
-      addToast('Phê duyệt chợ thành công!', 'success');
+      addToast(modalType === 'reactivate' ? 'Mở lại hoạt động chợ thành công!' : 'Phê duyệt chợ thành công!', 'success');
       closeModal();
       fetchMarkets();
     } catch (error) {
@@ -68,6 +68,21 @@ export default function MarketApprovalListAdminSystem({ navigate, addToast }) {
       fetchMarkets();
     } catch (error) {
       addToast('Lỗi khi từ chối chợ.', 'error');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleInactiveConfirm = async () => {
+    if (!targetMarket) return;
+    setActionLoading(true);
+    try {
+      await changeMarketStatus(targetMarket.marketId, 'Inactive');
+      addToast('Đã ngừng hoạt động chợ.', 'success');
+      closeModal();
+      fetchMarkets();
+    } catch (error) {
+      addToast('Lỗi khi ngừng hoạt động chợ.', 'error');
     } finally {
       setActionLoading(false);
     }
@@ -328,6 +343,26 @@ export default function MarketApprovalListAdminSystem({ navigate, addToast }) {
                             </button>
                           </>
                         )}
+                        {m.status === 'Active' && (
+                          <button 
+                            className="btn-icon lock reject-btn" 
+                            title="Ngừng hoạt động"
+                            onClick={() => openModal('inactive', m)}
+                            disabled={actionLoading}
+                          >
+                            <IconX />
+                          </button>
+                        )}
+                        {m.status === 'Inactive' && (
+                          <button 
+                            className="btn-icon unlock approve-btn" 
+                            title="Mở lại hoạt động"
+                            onClick={() => openModal('reactivate', m)}
+                            disabled={actionLoading}
+                          >
+                            <IconCheck />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -343,18 +378,27 @@ export default function MarketApprovalListAdminSystem({ navigate, addToast }) {
         <div className="modal-overlay" onClick={closeModal}>
           <div className="modal-box" onClick={(e) => e.stopPropagation()}>
             <div className="modal-head">
-              <h3>{modalType === 'approve' ? 'Phê duyệt Sơ đồ Chợ' : 'Từ chối Sơ đồ Chợ'}</h3>
+              <h3>{
+                modalType === 'approve' ? 'Phê duyệt Sơ đồ Chợ' : 
+                modalType === 'reject' ? 'Từ chối Sơ đồ Chợ' :
+                modalType === 'inactive' ? 'Ngừng hoạt động Chợ' :
+                'Mở lại hoạt động Chợ'
+              }</h3>
               <button className="modal-close" onClick={closeModal}>&times;</button>
             </div>
             <div className="modal-body">
-              <div className={`modal-icon-wrap ${modalType === 'approve' ? 'success' : 'danger'}`}>
-                {modalType === 'approve' ? <IconCheck /> : <IconX />}
+              <div className={`modal-icon-wrap ${modalType === 'approve' || modalType === 'reactivate' ? 'success' : 'danger'}`}>
+                {modalType === 'approve' || modalType === 'reactivate' ? <IconCheck /> : <IconX />}
               </div>
 
               <p className="modal-desc">
                 {modalType === 'approve' 
                   ? 'Bạn có chắc chắn muốn PHÊ DUYỆT sơ đồ mặt bằng chợ này? Sau khi phê duyệt, Manager có thể thiết kế sạp và quản lý trực tiếp.'
-                  : 'Bạn có chắc chắn muốn TỪ CHỐI yêu cầu tạo chợ này? Manager sẽ cần sửa đổi thông tin thiết lập hoặc liên hệ quản trị.'}
+                  : modalType === 'reject'
+                  ? 'Bạn có chắc chắn muốn TỪ CHỐI yêu cầu tạo chợ này? Manager sẽ cần sửa đổi thông tin thiết lập hoặc liên hệ quản trị.'
+                  : modalType === 'inactive'
+                  ? 'Bạn có chắc chắn muốn NGỪNG HOẠT ĐỘNG chợ này? Chợ sẽ bị khóa.'
+                  : 'Bạn có chắc chắn muốn MỞ LẠI HOẠT ĐỘNG chợ này?'}
               </p>
 
               {/* Market Summary Card inside Modal */}
@@ -397,15 +441,17 @@ export default function MarketApprovalListAdminSystem({ navigate, addToast }) {
             </div>
             <div className="modal-foot">
               <button className="btn-secondary" onClick={closeModal} disabled={actionLoading}>Hủy bỏ</button>
-              {modalType === 'approve' ? (
-                <button className="btn-success" onClick={handleApproveConfirm} disabled={actionLoading}>
-                  {actionLoading ? 'Đang duyệt...' : 'Phê duyệt ngay'}
-                </button>
-              ) : (
-                <button className="btn-danger" onClick={handleRejectConfirm} disabled={actionLoading}>
-                  {actionLoading ? 'Đang từ chối...' : 'Xác nhận từ chối'}
-                </button>
-              )}
+              <button 
+                className={modalType === 'approve' || modalType === 'reactivate' ? 'btn-success' : 'btn-danger'} 
+                onClick={
+                  modalType === 'approve' || modalType === 'reactivate' ? handleApproveConfirm : 
+                  modalType === 'reject' ? handleRejectConfirm : 
+                  handleInactiveConfirm
+                }
+                disabled={actionLoading}
+              >
+                {actionLoading ? 'Đang xử lý...' : 'Xác nhận'}
+              </button>
             </div>
           </div>
         </div>

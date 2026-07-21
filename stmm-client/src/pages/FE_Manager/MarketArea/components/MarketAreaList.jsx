@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import styles from './MarketAreaList.module.css';
 import MarketAreaForm from './MarketAreaForm';
 import { getAllAreas, createArea, updateArea, deleteArea } from '../api/marketAreaApi';
+import { getAllStallsByAreaId } from '../api/stallApi';
 import { getAllMarkets, deactivateMarket } from '../../../../services/marketApi';
 import { Rnd } from 'react-rnd';
 import StallLayoutEditor from './StallLayoutEditor';
@@ -10,6 +11,7 @@ const MarketAreaList = ({ user }) => {
   const [areas, setAreas] = useState([]);
   const [marketStatus, setMarketStatus] = useState(null);
   const [marketSvgPath, setMarketSvgPath] = useState(null);
+  const [marketSize, setMarketSize] = useState(0);
 
   // --- Pan Canvas State ---
   const containerRef = useRef(null);
@@ -45,6 +47,7 @@ const MarketAreaList = ({ user }) => {
   const [renderKey, setRenderKey] = useState(0); // To force re-render when needed
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const [infoArea, setInfoArea] = useState(null);
+  const [infoAreaStallCount, setInfoAreaStallCount] = useState(null);
   
   // Track hovered area to show action buttons
   const [hoveredAreaId, setHoveredAreaId] = useState(null);
@@ -72,6 +75,7 @@ const MarketAreaList = ({ user }) => {
       const myMarket = marketsData.find(m => m.marketId === marketId);
       setMarketStatus(myMarket?.status || null);
       setMarketSvgPath(myMarket?.svgPath || null);
+      setMarketSize(myMarket?.size || 0);
 
       // 2. Fetch areas
       const data = await getAllAreas(marketId); 
@@ -126,6 +130,19 @@ const MarketAreaList = ({ user }) => {
     setDeleteConfirmId(id);
   };
 
+  const handleShowInfo = async (e, area) => {
+    e.stopPropagation();
+    setInfoArea(area);
+    setInfoAreaStallCount(null); // Set to loading state initially
+    try {
+      const stalls = await getAllStallsByAreaId(area.areaId);
+      setInfoAreaStallCount(stalls.length);
+    } catch (error) {
+      console.error('Error fetching stalls for area info:', error);
+      setInfoAreaStallCount(0); // fallback
+    }
+  };
+
   const confirmDelete = async () => {
     if (!deleteConfirmId) return;
     try {
@@ -152,25 +169,25 @@ const MarketAreaList = ({ user }) => {
           description: formData.description,
           categoryName: formData.categoryName,
           size: formData.size,
-          minX: selectedArea.minX,
-          minY: selectedArea.minY,
-          maxX: selectedArea.minX !== null ? selectedArea.minX + formData.width : formData.width,
-          maxY: selectedArea.minY !== null ? selectedArea.minY + formData.height : formData.height
+          minX: formData.minX !== undefined ? formData.minX : selectedArea.minX,
+          minY: formData.minY !== undefined ? formData.minY : selectedArea.minY,
+          maxX: formData.maxX !== undefined ? formData.maxX : (formData.minX !== undefined ? formData.minX : selectedArea.minX) + formData.width,
+          maxY: formData.maxY !== undefined ? formData.maxY : (formData.minY !== undefined ? formData.minY : selectedArea.minY) + formData.height,
+          svgPath: formData.svgPath
         };
         await updateArea(selectedArea.areaId, updatePayload);
       } else {
-        // Create new area. Place it at some default coordinates if we want, 
-        // but backend expects minX, minY, maxX, maxY.
         const createPayload = {
           name: formData.name,
           description: formData.description,
           categoryName: formData.categoryName,
           size: formData.size,
           marketId: marketId,
-          minX: 24, // default starting X
-          minY: 24, // default starting Y
-          maxX: 24 + formData.width,
-          maxY: 24 + formData.height
+          minX: formData.minX !== undefined ? formData.minX : 24,
+          minY: formData.minY !== undefined ? formData.minY : 24,
+          maxX: formData.maxX !== undefined ? formData.maxX : (formData.minX !== undefined ? formData.minX : 24) + formData.width,
+          maxY: formData.maxY !== undefined ? formData.maxY : (formData.minY !== undefined ? formData.minY : 24) + formData.height,
+          svgPath: formData.svgPath
         };
         await createArea(createPayload);
       }
@@ -181,11 +198,83 @@ const MarketAreaList = ({ user }) => {
     }
   };
 
+  const categoryColors = {
+    'Thời trang': '#9333ea',
+    'Ẩm thực': '#eab308',
+    'Khu vui chơi': '#3b82f6',
+    'Trang sức': '#ec4899',
+    'Đồ gia dụng': '#f97316'
+  };
+
+  const getCategoryColor = (name) => {
+    return categoryColors[name] || '#10b981';
+  };
+
   const toggleAreaExpand = (e, areaId) => {
     e.stopPropagation();
     setExpandedAreas(prev => 
       prev.includes(areaId) ? prev.filter(id => id !== areaId) : [...prev, areaId]
     );
+  };
+
+  const getPolygonClipPath = (area) => {
+    if (!area.svgPath) return null;
+    const matches = [...area.svgPath.matchAll(/(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)/g)];
+    if (matches.length === 0) return null;
+    const xs = matches.map(m => parseFloat(m[1]));
+    const ys = matches.map(m => parseFloat(m[2]));
+    const pMinX = Math.min(...xs);
+    const pMinY = Math.min(...ys);
+    const pMaxX = Math.max(...xs);
+    const pMaxY = Math.max(...ys);
+    const width = pMaxX - pMinX;
+    const height = pMaxY - pMinY;
+    
+    const points = matches.map(m => {
+        const x = parseFloat(m[1]);
+        const y = parseFloat(m[2]);
+        const px = ((x - pMinX) / width) * 100;
+        const py = ((y - pMinY) / height) * 100;
+        return `${px}% ${py}%`;
+    });
+    return `polygon(${points.join(', ')})`;
+  };
+
+  const pointInPolygon = (point, vs) => {
+    let x = point[0], y = point[1];
+    let inside = false;
+    for (let i = 0, j = vs.length - 1; i < vs.length; j = i++) {
+      let xi = vs[i][0], yi = vs[i][1];
+      let xj = vs[j][0], yj = vs[j][1];
+      let intersect = ((yi > y) != (yj > y))
+          && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+      if (intersect) inside = !inside;
+    }
+    return inside;
+  };
+
+  const validateStallBounds = (area, x, y, w, h) => {
+    if (!area.svgPath) return true;
+    const matches = [...area.svgPath.matchAll(/(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)/g)];
+    if (matches.length === 0) return true;
+    const xs = matches.map(m => parseFloat(m[1]));
+    const ys = matches.map(m => parseFloat(m[2]));
+    const pMinX = Math.min(...xs);
+    const pMinY = Math.min(...ys);
+    
+    const polygon = matches.map(m => [
+        parseFloat(m[1]) - pMinX,
+        parseFloat(m[2]) - pMinY
+    ]);
+    
+    const corners = [
+        [x, y],
+        [x + w, y],
+        [x, y + h],
+        [x + w, y + h]
+    ];
+    
+    return corners.every(c => pointInPolygon(c, polygon));
   };
 
   // Helper to check collision between areas
@@ -216,7 +305,7 @@ const MarketAreaList = ({ user }) => {
       let offsetY = 0;
       
       if (marketSvgPath) {
-          const matches = [...marketSvgPath.matchAll(/(\d+(?:\.\d+)?),(\d+(?:\.\d+)?)/g)];
+          const matches = [...marketSvgPath.matchAll(/(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)/g)];
           if (matches.length > 0) {
               const xs = matches.map(m => parseFloat(m[1]));
               const ys = matches.map(m => parseFloat(m[2]));
@@ -247,7 +336,7 @@ const MarketAreaList = ({ user }) => {
   // Parse market boundary points
   const marketPolygon = React.useMemo(() => {
     if (!marketSvgPath) return null;
-    const matches = [...marketSvgPath.matchAll(/(\d+(?:\.\d+)?),(\d+(?:\.\d+)?)/g)];
+    const matches = [...marketSvgPath.matchAll(/(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)/g)];
     if (matches.length > 0) {
       return matches.map(m => [parseFloat(m[1]), parseFloat(m[2])]);
     }
@@ -292,11 +381,31 @@ const MarketAreaList = ({ user }) => {
       const dbX = d.x - svgOffsetX;
       const dbY = d.y - svgOffsetY;
 
-      // Don't update if position didn't actually change
-      if (area.minX === dbX && area.minY === dbY) return;
+      // Don't update if position didn't actually change much (tolerance for accidental clicks)
+      if (Math.abs(area.minX - dbX) <= 2 && Math.abs(area.minY - dbY) <= 2) return;
       
-      const width = (area.maxX !== null && area.minX !== null) ? (area.maxX - area.minX) : 180;
-      const height = (area.maxY !== null && area.minY !== null) ? (area.maxY - area.minY) : 140;
+      let width = 180;
+      let height = 140;
+
+      if (area.maxX !== null && area.minX !== null) {
+          width = area.maxX - area.minX;
+      } else if (area.svgPath) {
+          const matches = [...area.svgPath.matchAll(/(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)/g)];
+          if (matches.length > 0) {
+              const xs = matches.map(m => parseFloat(m[1]));
+              width = Math.max(...xs) - Math.min(...xs);
+          }
+      }
+
+      if (area.maxY !== null && area.minY !== null) {
+          height = area.maxY - area.minY;
+      } else if (area.svgPath) {
+          const matches = [...area.svgPath.matchAll(/(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)/g)];
+          if (matches.length > 0) {
+              const ys = matches.map(m => parseFloat(m[2]));
+              height = Math.max(...ys) - Math.min(...ys);
+          }
+      }
 
       if (!isRectInsidePolygon(dbX, dbY, dbX + width, dbY + height, marketPolygon)) {
           setErrorMessage('Không thể di chuyển: Khu vực này bị kéo ra ngoài ranh giới của Chợ!');
@@ -319,7 +428,8 @@ const MarketAreaList = ({ user }) => {
         minX: dbX,
         minY: dbY,
         maxX: dbX + width,
-        maxY: dbY + height
+        maxY: dbY + height,
+        svgPath: area.svgPath
       };
 
       // Update local state immediately for smooth UI
@@ -341,6 +451,15 @@ const MarketAreaList = ({ user }) => {
       const width = parseInt(ref.style.width, 10);
       const height = parseInt(ref.style.height, 10);
       
+      // If position didn't change and size didn't change much, ignore
+      let oldWidth = 180;
+      let oldHeight = 140;
+      if (area.maxX !== null && area.minX !== null) oldWidth = area.maxX - area.minX;
+      if (area.maxY !== null && area.minY !== null) oldHeight = area.maxY - area.minY;
+      
+      if (Math.abs(area.minX - dbX) <= 2 && Math.abs(area.minY - dbY) <= 2 &&
+          Math.abs(oldWidth - width) <= 2 && Math.abs(oldHeight - height) <= 2) return;
+      
       if (!isRectInsidePolygon(dbX, dbY, dbX + width, dbY + height, marketPolygon)) {
           setErrorMessage('Không thể thay đổi kích thước: Khu vực này vượt ra ngoài ranh giới của Chợ!');
           setRenderKey(prev => prev + 1); // Force Rnd to revert
@@ -354,7 +473,7 @@ const MarketAreaList = ({ user }) => {
       }
       
       const PX_PER_M2 = 900;
-      const newSize = Math.round((width * height) / PX_PER_M2 * 100) / 100;
+      const newSize = area.svgPath ? area.size : Math.round((width * height) / PX_PER_M2 * 100) / 100;
 
       const updateData = {
         name: area.name,
@@ -365,7 +484,8 @@ const MarketAreaList = ({ user }) => {
         minX: dbX,
         minY: dbY,
         maxX: dbX + width,
-        maxY: dbY + height
+        maxY: dbY + height,
+        svgPath: area.svgPath
       };
 
       // Update local state immediately for smooth UI
@@ -424,6 +544,12 @@ const MarketAreaList = ({ user }) => {
             existingAreas={areas}
             onSave={handleSave} 
             onCancel={() => setIsFormVisible(false)} 
+            marketPolygon={marketPolygon}
+            marketSize={marketSize}
+            svgOffsetX={svgOffsetX}
+            svgOffsetY={svgOffsetY}
+            cWidth={cWidth}
+            cHeight={cHeight}
           />
         )}
 
@@ -478,7 +604,9 @@ const MarketAreaList = ({ user }) => {
               <div style={{marginTop: '24px'}}>
                 <p style={{margin: '12px 0', color: 'var(--text-primary)', fontSize: '15px'}}><strong>Tên khu vực:</strong> {infoArea.name}</p>
                 <p style={{margin: '12px 0', color: 'var(--text-primary)', fontSize: '15px'}}><strong>Mô tả:</strong> {infoArea.description || 'Không có mô tả'}</p>
-                <p style={{margin: '12px 0', color: 'var(--text-primary)', fontSize: '15px'}}><strong>Kích thước hiển thị:</strong> {infoArea.maxX - infoArea.minX}px x {infoArea.maxY - infoArea.minY}px</p>
+                <p style={{margin: '12px 0', color: 'var(--text-primary)', fontSize: '15px'}}><strong>Thể loại hàng hóa:</strong> {infoArea.categoryName || 'Không có'}</p>
+                <p style={{margin: '12px 0', color: 'var(--text-primary)', fontSize: '15px'}}><strong>Số lượng sạp hiện có:</strong> {infoAreaStallCount === null ? 'Đang tải...' : `${infoAreaStallCount} sạp`}</p>
+                <p style={{margin: '12px 0', color: 'var(--text-primary)', fontSize: '15px'}}><strong>Diện tích:</strong> {infoArea.size ? `${infoArea.size} m²` : 'Đang cập nhật'}</p>
               </div>
               <div style={{display: 'flex', justifyContent: 'flex-end', marginTop: '32px'}}>
                 <button onClick={() => setInfoArea(null)} style={{padding: '10px 24px', border: 'none', background: 'var(--color-primary)', color: 'white', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold'}}>Đóng lại</button>
@@ -542,24 +670,55 @@ const MarketAreaList = ({ user }) => {
           </div>
         </div>
 
+        {/* Legend Overlay */}
+        <div style={{ position: 'absolute', right: 24, bottom: 24, background: 'rgba(255, 255, 255, 0.95)', padding: '16px', borderRadius: '12px', boxShadow: '0 4px 16px rgba(0,0,0,0.1)', zIndex: 900, minWidth: '220px', border: '1px solid #e2e8f0' }}>
+           <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#1e293b', borderBottom: '1px solid #cbd5e1', paddingBottom: '8px' }}>CHÚ THÍCH DANH MỤC</h4>
+           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {Object.entries(categoryColors).map(([name, color]) => (
+                 <div key={name} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{ width: '24px', height: '16px', background: color, borderRadius: '4px', border: '1px solid rgba(0,0,0,0.1)' }}></div>
+                    <span style={{ fontSize: '13px', color: '#475569', fontWeight: 'bold' }}>{name}</span>
+                 </div>
+              ))}
+           </div>
+        </div>
+
         {/* Canvas / List Area */}
-        <div className={styles.canvasArea}>
+        <div className={styles.canvasArea} style={{ position: 'relative' }}>
           <div 
             ref={containerRef}
             className={styles.canvasContainer} 
             style={{ 
-              overflow: 'auto', 
+              overflow: 'hidden', 
               flex: 1, 
-              display: 'flex', 
-              justifyContent: 'center', 
-              alignItems: 'center',
-              cursor: isPanning ? 'grabbing' : 'grab'
+              position: 'relative',
+              cursor: isPanning ? 'grabbing' : 'grab',
+              backgroundColor: 'var(--bg-main)'
             }}
             onMouseDown={handlePanStart}
             onMouseLeave={handlePanEnd}
             onMouseUp={handlePanEnd}
             onMouseMove={handlePanMove}
           >
+            {/* Rulers */}
+            <div style={{ position: 'absolute', top: 0, left: 30, right: 0, height: 30, backgroundColor: '#f1f5f9', borderBottom: '1px solid #cbd5e1', zIndex: 90, display: 'flex', alignItems: 'center', overflow: 'hidden' }}>
+              <div style={{ display: 'flex', transform: `translateX(${panOffset.x}px) scale(${zoom})`, transformOrigin: '0 0', height: '100%' }}>
+                {Array.from({ length: 50 }).map((_, i) => (
+                  <div key={i} style={{ width: 100, flexShrink: 0, borderLeft: '1px solid #cbd5e1', paddingLeft: 4, fontSize: 12, fontWeight: 'bold', color: '#64748b' }}>
+                    {i + 1}
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div style={{ position: 'absolute', top: 30, left: 0, bottom: 0, width: 30, backgroundColor: '#f1f5f9', borderRight: '1px solid #cbd5e1', zIndex: 90, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', transform: `translateY(${panOffset.y}px) scale(${zoom})`, transformOrigin: '0 0', width: '100%' }}>
+                {Array.from({ length: 50 }).map((_, i) => (
+                  <div key={i} style={{ height: 100, flexShrink: 0, borderTop: '1px solid #cbd5e1', paddingTop: 4, textAlign: 'center', fontSize: 12, fontWeight: 'bold', color: '#64748b' }}>
+                    {String.fromCharCode(65 + i)}
+                  </div>
+                ))}
+              </div>
+            </div>
             
             <div 
               className={styles.gridBg} 
@@ -568,7 +727,9 @@ const MarketAreaList = ({ user }) => {
                 minHeight: `${cHeight}px`, 
                 width: `${cWidth}px`, 
                 height: `${cHeight}px`, 
-                position: 'relative',
+                position: 'absolute',
+                left: 30,
+                top: 30,
                 transform: `translate(${panOffset.x}px, ${panOffset.y}px)`,
                 transition: isPanning ? 'none' : 'transform 0.1s',
                 backgroundColor: '#f8fafc',
@@ -597,8 +758,28 @@ const MarketAreaList = ({ user }) => {
                   const x = dbX + svgOffsetX;
                   const y = dbY + svgOffsetY;
                   
-                  const width = (area.maxX !== null && area.minX !== null) ? (area.maxX - area.minX) : 180;
-                  const height = (area.maxY !== null && area.minY !== null) ? (area.maxY - area.minY) : 140;
+                  let width = 180;
+                  let height = 140;
+
+                  if (area.maxX !== null && area.minX !== null) {
+                      width = area.maxX - area.minX;
+                  } else if (area.svgPath) {
+                      const matches = [...area.svgPath.matchAll(/(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)/g)];
+                      if (matches.length > 0) {
+                          const xs = matches.map(m => parseFloat(m[1]));
+                          width = Math.max(...xs) - Math.min(...xs);
+                      }
+                  }
+
+                  if (area.maxY !== null && area.minY !== null) {
+                      height = area.maxY - area.minY;
+                  } else if (area.svgPath) {
+                      const matches = [...area.svgPath.matchAll(/(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)/g)];
+                      if (matches.length > 0) {
+                          const ys = matches.map(m => parseFloat(m[2]));
+                          height = Math.max(...ys) - Math.min(...ys);
+                      }
+                  }
                   const isInteractive = isEditMode;
 
                   return (
@@ -620,10 +801,10 @@ const MarketAreaList = ({ user }) => {
                         flexDirection: 'column',
                         cursor: isInteractive ? 'move' : 'default',
                         transition: 'all 0.2s',
-                        zIndex: isInteractive ? 50 : 1,
-                        border: '1px solid #10b981',
-                        borderRadius: '2px',
-                        background: 'rgba(16, 185, 129, 0.05)',
+                        zIndex: isInteractive ? (hoveredAreaId === area.areaId ? 100 : 50) : (hoveredAreaId === area.areaId ? 10 : 1),
+                        border: area.svgPath ? 'none' : '1px solid #10b981',
+                        borderRadius: area.svgPath ? '0' : '2px',
+                        background: area.svgPath ? 'transparent' : 'rgba(16, 185, 129, 0.05)',
                       }}
                       onMouseEnter={() => setHoveredAreaId(area.areaId)}
                       onMouseLeave={() => setHoveredAreaId(null)}
@@ -632,7 +813,7 @@ const MarketAreaList = ({ user }) => {
                       {area.svgPath && (
                         <svg style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: -1, overflow: 'visible' }} preserveAspectRatio="none" 
                              viewBox={(() => {
-                                 const matches = [...area.svgPath.matchAll(/(\d+(?:\.\d+)?),(\d+(?:\.\d+)?)/g)];
+                                 const matches = [...area.svgPath.matchAll(/(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)/g)];
                                  if(matches.length > 0) {
                                      const xs = matches.map(m => parseFloat(m[1]));
                                      const ys = matches.map(m => parseFloat(m[2]));
@@ -645,39 +826,77 @@ const MarketAreaList = ({ user }) => {
                                  return "0 0 100 100";
                              })()}
                         >
-                          <path d={area.svgPath} fill={isInteractive ? 'rgba(16, 185, 129, 0.1)' : 'rgba(16, 185, 129, 0.05)'} stroke="#10b981" strokeWidth="1.5" vectorEffect="non-scaling-stroke" strokeLinejoin="round" />
+                          <path d={area.svgPath} fill={getCategoryColor(area.categoryName)} stroke="rgba(255,255,255,0.5)" strokeWidth="2" strokeDasharray="none" vectorEffect="non-scaling-stroke" strokeLinejoin="round" />
                         </svg>
                       )}
 
-                      <div style={{ width: '100%', height: '100%', position: 'relative', display: 'flex', flexDirection: 'column' }}>
+                      <div 
+                        style={{ width: '100%', height: '100%', position: 'relative', display: 'flex', flexDirection: 'column', cursor: !isEditMode ? 'pointer' : 'default' }}
+                        onClick={(e) => { if (!isEditMode) toggleAreaExpand(e, area.areaId); }}
+                      >
+                        {/* Area Label Overlay */}
+                        {!expandedAreas.includes(area.areaId) && (
+                          <div style={{
+                              position: 'absolute',
+                              top: '50%',
+                              left: '50%',
+                              transform: 'translate(-50%, -50%)',
+                              pointerEvents: 'none',
+                              color: 'white',
+                              fontWeight: 'bold',
+                              fontSize: '18px',
+                              textShadow: '0px 1px 4px rgba(0,0,0,0.6)',
+                              textAlign: 'center',
+                              zIndex: 10
+                          }}>
+                              <div>{area.name}</div>
+                              {area.categoryName && (
+                                  <div style={{ fontSize: '13px', fontWeight: 'normal', opacity: 0.9, marginTop: '2px' }}>
+                                      {area.categoryName}
+                                  </div>
+                              )}
+                          </div>
+                        )}
+
                         {/* Hover Action Menu */}
                         {hoveredAreaId === area.areaId && (
-                          <div style={{ position: 'absolute', top: -30, right: 0, display: 'flex', gap: '4px', background: 'rgba(255,255,255,0.95)', padding: '4px', borderRadius: '4px', boxShadow: '0 2px 8px rgba(0,0,0,0.15)', zIndex: 100 }}>
+                          <div style={{ position: 'absolute', top: 4, right: 4, display: 'flex', gap: '4px', background: 'rgba(255,255,255,0.95)', padding: '4px', borderRadius: '4px', boxShadow: '0 2px 8px rgba(0,0,0,0.15)', zIndex: 100 }}>
                             <div style={{ padding: '0 8px', fontSize: '11px', fontWeight: 'bold', color: '#0f172a', display: 'flex', alignItems: 'center', borderRight: '1px solid #e2e8f0' }}>
                               {area.name}
                             </div>
+                            
+                            <button onMouseDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); toggleAreaExpand(e, area.areaId); }} style={{background: '#10b981', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', padding: '2px 8px', fontSize: '11px', fontWeight: 'bold'}} title={expandedAreas.includes(area.areaId) ? "Ẩn Sạp" : "Hiện Sạp"}>
+                              {expandedAreas.includes(area.areaId) ? '👁️‍🗨️ Ẩn' : '👁️ Hiện Sạp'}
+                            </button>
+                            
                             {isEditMode ? (
                               <>
                                 <button onMouseDown={(e) => e.stopPropagation()} onClick={(e) => handleEdit(e, area)} style={{background: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', padding: '2px 8px', fontSize: '11px', fontWeight: 'bold'}} title="Sửa Khu vực">✎ Sửa</button>
                                 <button onMouseDown={(e) => e.stopPropagation()} onClick={(e) => requestDelete(e, area.areaId)} style={{background: '#ef4444', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', padding: '2px 8px', fontSize: '11px', fontWeight: 'bold'}} title="Xóa Khu vực">✕ Xóa</button>
                               </>
                             ) : (
-                              <button onMouseDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); setInfoArea(area); }} style={{background: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', padding: '2px 8px', fontSize: '11px', fontWeight: 'bold'}} title="Thông tin Khu vực">ℹ Chi tiết</button>
+                              <button onMouseDown={(e) => e.stopPropagation()} onClick={(e) => handleShowInfo(e, area)} style={{background: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', padding: '2px 8px', fontSize: '11px', fontWeight: 'bold'}} title="Thông tin Khu vực">ℹ Chi tiết</button>
                             )}
                           </div>
                         )}
                         
-                        {/* Always show StallLayoutEditor */}
-                        <div style={{ flex: 1, position: 'relative', overflow: 'visible' }}>
-                          <StallLayoutEditor 
-                            areaId={area.areaId} 
-                            areaName={area.name}
-                            isEditMode={isEditMode}
-                            zoom={zoom}
-                            areaWidth={width}
-                            areaHeight={height}
-                          />
-                        </div>
+                        {/* Conditionally show StallLayoutEditor only if expanded */}
+                        {(isEditMode || zoom > 0.7) && expandedAreas.includes(area.areaId) && (
+                          <div style={{ flex: 1, position: 'relative', overflow: 'visible' }}>
+                            <StallLayoutEditor 
+                              areaId={area.areaId} 
+                              areaName={area.name}
+                              isEditMode={isEditMode}
+                              zoom={zoom}
+                              areaWidth={width}
+                              areaHeight={height}
+                              areaSize={area.size}
+                              svgPath={area.svgPath}
+                              polygonClipPath={getPolygonClipPath(area)}
+                              validateStallBounds={(x, y, w, h) => validateStallBounds(area, x, y, w, h)}
+                            />
+                          </div>
+                        )}
                       </div>
                     </Rnd>
                   );

@@ -76,6 +76,9 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // Register MemoryCache
 builder.Services.AddMemoryCache();
 
+// Register HttpContextAccessor
+builder.Services.AddHttpContextAccessor();
+
 // Register Repositories
 builder.Services.AddScoped<IAreaRepository, AreaRepository>();
 builder.Services.AddScoped<IAuditLogRepository, AuditLogRepository>();

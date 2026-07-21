@@ -77,11 +77,15 @@ namespace STMM.API.Controllers
 
                 return Ok(market);
             }
+            catch (STMM.Business.Exceptions.BadRequestException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
             catch (System.Exception ex)
             {
                 var msg = ex.Message;
                 if (ex.InnerException != null) msg += " Inner: " + ex.InnerException.Message;
-                return BadRequest(new { message = msg });
+                return StatusCode(500, new { message = msg });
             }
         }
 

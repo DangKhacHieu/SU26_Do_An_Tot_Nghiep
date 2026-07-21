@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using STMM.Business.DTOs.Area;
+using STMM.Business.Exceptions;
 using STMM.Business.Interfaces;
 
 namespace STMM.API.Controllers
@@ -25,6 +26,10 @@ namespace STMM.API.Controllers
             {
                 var areas = await _areaService.GetAllAreasAsync(marketId);
                 return Ok(areas);
+            }
+            catch (BadRequestException ex)
+            {
+                return BadRequest(new { message = ex.Message });
             }
             catch (Exception ex)
             {
@@ -58,6 +63,14 @@ namespace STMM.API.Controllers
                 var createdArea = await _areaService.CreateAreaAsync(request);
                 return CreatedAtAction(nameof(GetAreaById), new { id = createdArea.AreaId }, createdArea);
             }
+            catch (BadRequestException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = ex.Message });
@@ -72,16 +85,16 @@ namespace STMM.API.Controllers
                 var updatedArea = await _areaService.UpdateAreaAsync(id, request);
                 return Ok(updatedArea);
             }
-            catch (ArgumentException ex)
+            catch (BadRequestException ex)
             {
                 return BadRequest(new { message = ex.Message });
             }
+            catch (NotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
             catch (Exception ex)
             {
-                if (ex.Message == "Area not found")
-                {
-                    return NotFound(new { message = ex.Message });
-                }
                 return StatusCode(500, new { message = ex.Message });
             }
         }
@@ -91,12 +104,16 @@ namespace STMM.API.Controllers
         {
             try
             {
-                var result = await _areaService.DeleteAreaAsync(id);
-                if (!result)
-                {
-                    return NotFound(new { message = "Area not found" });
-                }
+                await _areaService.DeleteAreaAsync(id);
                 return NoContent();
+            }
+            catch (BadRequestException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (NotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
             }
             catch (Exception ex)
             {

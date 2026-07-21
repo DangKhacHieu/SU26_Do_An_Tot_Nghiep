@@ -161,20 +161,32 @@ const MarketMapViewer = ({ marketId, onBack }) => {
 
                                             return (
                                             <g key={stall.stallId || sIdx} transform={`translate(${renderX}, ${renderY})`} id={`stall-${stall.stallId || stall.code}`}>
-                                                <rect
-                                                    width={stall.width}
-                                                    height={stall.height}
-                                                    fill={isSelected ? "#2563eb" : "#3b82f6"}
-                                                    stroke="#ffffff"
-                                                    strokeWidth="1.5"
-                                                    rx="4"
-                                                    style={{ transition: 'fill 0.2s', cursor: 'pointer' }}
-                                                    onMouseEnter={(e) => e.target.setAttribute('fill', '#1d4ed8')}
-                                                    onMouseLeave={(e) => e.target.setAttribute('fill', isSelected ? '#2563eb' : '#3b82f6')}
-                                                />
+                                                {stall.svgPath ? (
+                                                    <path
+                                                        d={stall.svgPath}
+                                                        fill={isSelected ? "#2563eb" : "#3b82f6"}
+                                                        stroke="#ffffff"
+                                                        strokeWidth="1.5"
+                                                        style={{ transition: 'fill 0.2s', cursor: 'pointer' }}
+                                                        onMouseEnter={(e) => e.target.setAttribute('fill', '#1d4ed8')}
+                                                        onMouseLeave={(e) => e.target.setAttribute('fill', isSelected ? '#2563eb' : '#3b82f6')}
+                                                    />
+                                                ) : (
+                                                    <rect
+                                                        width={stall.width}
+                                                        height={stall.height}
+                                                        fill={isSelected ? "#2563eb" : "#3b82f6"}
+                                                        stroke="#ffffff"
+                                                        strokeWidth="1.5"
+                                                        rx="4"
+                                                        style={{ transition: 'fill 0.2s', cursor: 'pointer' }}
+                                                        onMouseEnter={(e) => e.target.setAttribute('fill', '#1d4ed8')}
+                                                        onMouseLeave={(e) => e.target.setAttribute('fill', isSelected ? '#2563eb' : '#3b82f6')}
+                                                    />
+                                                )}
                                                 <text
-                                                    x={stall.width / 2}
-                                                    y={stall.height / 2}
+                                                    x={stall.svgPath ? stall.width / 2 : stall.width / 2}
+                                                    y={stall.svgPath ? stall.height / 2 : stall.height / 2}
                                                     textAnchor="middle"
                                                     dominantBaseline="middle"
                                                     fill="#ffffff"
