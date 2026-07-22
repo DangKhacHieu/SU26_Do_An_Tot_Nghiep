@@ -56,8 +56,23 @@ namespace STMM.Business.Services
         }
 
         /// <inheritdoc />
-        public async Task<PagedResult<TaskSummaryDto>> GetTasksForManagerAsync(TaskQueryParams q, CancellationToken ct = default)
+        public async Task<PagedResult<TaskSummaryDto>> GetTasksForManagerAsync(TaskQueryParams q, int? managerUserId = null, CancellationToken ct = default)
         {
+            if (managerUserId.HasValue)
+            {
+                var manager = await _userRepository.GetByIdAsync(managerUserId.Value, ct);
+                if (manager != null && manager.MarketId == null)
+                {
+                    return new PagedResult<TaskSummaryDto>
+                    {
+                        Items = new List<TaskSummaryDto>(),
+                        TotalCount = 0,
+                        PageNumber = q.PageNumber,
+                        PageSize = q.PageSize
+                    };
+                }
+            }
+
             var (items, totalCount) = await _staffTaskRepository.GetTasksPagedAsync(
                 staffUserId: q.AssignedToUserId,
                 status: q.Status,
@@ -66,6 +81,16 @@ namespace STMM.Business.Services
                 pageNumber: q.PageNumber,
                 pageSize: q.PageSize,
                 ct: ct);
+
+            if (managerUserId.HasValue)
+            {
+                var manager = await _userRepository.GetByIdAsync(managerUserId.Value, ct);
+                if (manager?.MarketId != null)
+                {
+                    items = items.Where(t => t.AssignedToUser?.MarketId == manager.MarketId.Value || t.Issue?.Stall?.Area?.MarketId == manager.MarketId.Value);
+                    totalCount = items.Count();
+                }
+            }
 
             return new PagedResult<TaskSummaryDto>
             {
@@ -98,12 +123,30 @@ namespace STMM.Business.Services
         }
 
         /// <inheritdoc />
-        public async Task<TaskDto> GetTaskByIdAsync(int taskId, CancellationToken ct = default)
+        public async Task<TaskDto> GetTaskByIdAsync(int taskId, int? managerUserId = null, CancellationToken ct = default)
         {
+            if (managerUserId.HasValue)
+            {
+                var manager = await _userRepository.GetByIdAsync(managerUserId.Value, ct);
+                if (manager != null && manager.MarketId == null)
+                {
+                    throw new NotFoundException($"Task with ID {taskId} not found.");
+                }
+            }
+
             var task = await _staffTaskRepository.GetTaskByIdWithRelationsAsync(taskId, ct);
             if (task == null)
             {
                 throw new NotFoundException($"Task with ID {taskId} not found.");
+            }
+
+            if (managerUserId.HasValue)
+            {
+                var manager = await _userRepository.GetByIdAsync(managerUserId.Value, ct);
+                if (manager?.MarketId != null && task.AssignedToUser?.MarketId != manager.MarketId.Value && task.Issue?.Stall?.Area?.MarketId != manager.MarketId.Value)
+                {
+                    throw new NotFoundException($"Task with ID {taskId} not found.");
+                }
             }
 
             return _mapper.Map<TaskDto>(task);
@@ -112,7 +155,7 @@ namespace STMM.Business.Services
         /// <inheritdoc />
         public async Task<TaskDto> GetTaskByIdForStaffAsync(int taskId, int staffUserId, CancellationToken ct = default)
         {
-            var task = await GetTaskByIdAsync(taskId, ct);
+            var task = await GetTaskByIdAsync(taskId, ct: ct);
             if (task.AssignedToUserId != staffUserId)
             {
                 throw new ForbiddenException("You are not assigned to this task.");

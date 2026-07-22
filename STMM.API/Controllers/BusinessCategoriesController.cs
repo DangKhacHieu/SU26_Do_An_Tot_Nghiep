@@ -19,6 +19,13 @@ namespace STMM.API.Controllers
             _categoryService = categoryService;
         }
 
+        private int? GetUserId()
+        {
+            var claim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (int.TryParse(claim, out int uid)) return uid;
+            return null;
+        }
+
         [HttpGet]
         public async Task<ActionResult<IEnumerable<BusinessCategoryDto>>> GetAllCategories(
             [FromQuery] string? search = null,
@@ -27,7 +34,8 @@ namespace STMM.API.Controllers
         {
             try
             {
-                var categories = await _categoryService.GetAllCategoriesAsync(search, isActive, ct);
+                var currentUserId = GetUserId();
+                var categories = await _categoryService.GetAllCategoriesAsync(search, isActive, currentUserId, ct);
                 return Ok(categories);
             }
             catch (Exception ex)
@@ -41,7 +49,8 @@ namespace STMM.API.Controllers
         {
             try
             {
-                var category = await _categoryService.GetCategoryByIdAsync(id, ct);
+                var currentUserId = GetUserId();
+                var category = await _categoryService.GetCategoryByIdAsync(id, currentUserId, ct);
                 if (category == null)
                 {
                     return NotFound(new { message = "Không tìm thấy danh mục kinh doanh." });
@@ -61,7 +70,8 @@ namespace STMM.API.Controllers
         {
             try
             {
-                var created = await _categoryService.CreateCategoryAsync(request, ct);
+                var currentUserId = GetUserId();
+                var created = await _categoryService.CreateCategoryAsync(request, currentUserId, ct);
                 return CreatedAtAction(nameof(GetCategoryById), new { id = created.CategoryId }, created);
             }
             catch (InvalidOperationException ex)
@@ -82,7 +92,8 @@ namespace STMM.API.Controllers
         {
             try
             {
-                var updated = await _categoryService.UpdateCategoryAsync(id, request, ct);
+                var currentUserId = GetUserId();
+                var updated = await _categoryService.UpdateCategoryAsync(id, request, currentUserId, ct);
                 return Ok(updated);
             }
             catch (KeyNotFoundException ex)
@@ -104,7 +115,8 @@ namespace STMM.API.Controllers
         {
             try
             {
-                var result = await _categoryService.DeleteCategoryAsync(id, ct);
+                var currentUserId = GetUserId();
+                var result = await _categoryService.DeleteCategoryAsync(id, currentUserId, ct);
                 if (!result)
                 {
                     return NotFound(new { message = "Không tìm thấy danh mục kinh doanh." });

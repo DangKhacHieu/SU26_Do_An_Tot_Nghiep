@@ -19,6 +19,13 @@ namespace STMM.API.Controllers
             _issueService = issueService;
         }
 
+        private int? GetUserId()
+        {
+            var claim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (int.TryParse(claim, out int uid)) return uid;
+            return null;
+        }
+
         /// <summary>
         /// UC-xx: View Issues List for Manager — Manager xem danh sách sự cố hạ tầng chợ.
         /// </summary>
@@ -27,7 +34,8 @@ namespace STMM.API.Controllers
             [FromQuery] IssueQueryParams queryParams,
             CancellationToken ct)
         {
-            var result = await _issueService.GetIssuesForManagerAsync(queryParams, ct);
+            var managerUserId = GetUserId();
+            var result = await _issueService.GetIssuesForManagerAsync(queryParams, managerUserId, ct);
             return Ok(result);
         }
 
@@ -39,7 +47,8 @@ namespace STMM.API.Controllers
             int id,
             CancellationToken ct)
         {
-            var result = await _issueService.GetIssueByIdForManagerAsync(id, ct);
+            var managerUserId = GetUserId();
+            var result = await _issueService.GetIssueByIdForManagerAsync(id, managerUserId, ct);
             return Ok(result);
         }
     }

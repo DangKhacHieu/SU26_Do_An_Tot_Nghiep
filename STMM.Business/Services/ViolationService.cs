@@ -138,8 +138,23 @@ namespace STMM.Business.Services
         }
 
         public async Task<PagedResult<ViolationDto>> GetViolationsForManagerAsync(
-            ViolationQueryParams queryParams, CancellationToken ct = default)
+            ViolationQueryParams queryParams, int? managerUserId = null, CancellationToken ct = default)
         {
+            if (managerUserId.HasValue)
+            {
+                var manager = await _userRepository.GetByIdAsync(managerUserId.Value, ct);
+                if (manager != null && manager.MarketId == null)
+                {
+                    return new PagedResult<ViolationDto>
+                    {
+                        Items = new List<ViolationDto>(),
+                        TotalCount = 0,
+                        PageNumber = queryParams.PageNumber,
+                        PageSize = queryParams.PageSize
+                    };
+                }
+            }
+
             var (items, totalCount) = await _violationRepository.GetViolationsPagedForManagerAsync(
                 queryParams.Status,
                 queryParams.SearchTerm,
@@ -147,6 +162,16 @@ namespace STMM.Business.Services
                 queryParams.PageNumber,
                 queryParams.PageSize,
                 ct);
+
+            if (managerUserId.HasValue)
+            {
+                var manager = await _userRepository.GetByIdAsync(managerUserId.Value, ct);
+                if (manager?.MarketId != null)
+                {
+                    items = items.Where(v => v.Stall?.Area?.MarketId == manager.MarketId.Value);
+                    totalCount = items.Count();
+                }
+            }
 
             return new PagedResult<ViolationDto>
             {
@@ -158,13 +183,31 @@ namespace STMM.Business.Services
         }
 
         public async Task<ViolationDto> GetViolationByIdForManagerAsync(
-            int id, CancellationToken ct = default)
+            int id, int? managerUserId = null, CancellationToken ct = default)
         {
+            if (managerUserId.HasValue)
+            {
+                var manager = await _userRepository.GetByIdAsync(managerUserId.Value, ct);
+                if (manager != null && manager.MarketId == null)
+                {
+                    throw new NotFoundException($"Violation with ID {id} not found.");
+                }
+            }
+
             var violation = await _violationRepository.GetViolationDetailsForManagerAsync(id, ct);
 
             if (violation == null)
             {
                 throw new NotFoundException($"Violation with ID {id} not found.");
+            }
+
+            if (managerUserId.HasValue)
+            {
+                var manager = await _userRepository.GetByIdAsync(managerUserId.Value, ct);
+                if (manager?.MarketId != null && violation.Stall?.Area?.MarketId != manager.MarketId.Value)
+                {
+                    throw new NotFoundException($"Violation with ID {id} not found.");
+                }
             }
 
             return _mapper.Map<ViolationDto>(violation);
@@ -185,10 +228,17 @@ namespace STMM.Business.Services
 
             if (accountantUserId.HasValue)
             {
-                var user = await _userRepository.GetByIdAsync(accountantUserId.Value, ct);
-                if (user?.MarketId != null)
+                var user = await _userRepository.Query().Include(u => u.Role).FirstOrDefaultAsync(u => u.UserId == accountantUserId.Value, ct);
+                if (user != null)
                 {
-                    query = query.Where(v => v.Stall.Area.MarketId == user.MarketId);
+                    if (!user.MarketId.HasValue && (user.Role?.Name == "Manager" || user.Role?.Name == "Accountant"))
+                    {
+                        return new List<ViolationDto>();
+                    }
+                    if (user.MarketId.HasValue)
+                    {
+                        query = query.Where(v => v.Stall.Area.MarketId == user.MarketId.Value);
+                    }
                 }
             }
 

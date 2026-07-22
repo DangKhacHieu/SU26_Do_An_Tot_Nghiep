@@ -6,7 +6,7 @@ namespace STMM.Business.Interfaces
 {
     public interface IAreaService
     {
-        Task<IEnumerable<AreaDto>> GetAllAreasAsync(int? marketId = null);
+        Task<IEnumerable<AreaDto>> GetAllAreasAsync(int? marketId = null, int? currentUserId = null);
         Task<AreaDto?> GetAreaByIdAsync(int id);
         Task<AreaDto> CreateAreaAsync(CreateAreaRequest request);
         Task<AreaDto> UpdateAreaAsync(int id, UpdateAreaRequest request);

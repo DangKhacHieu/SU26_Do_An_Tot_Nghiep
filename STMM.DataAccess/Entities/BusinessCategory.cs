@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace STMM.DataAccess.Entities;
@@ -33,7 +33,14 @@ public partial class BusinessCategory
     /// </summary>
     public bool? IsActive { get; set; }
 
+    /// <summary>
+    /// Thuộc chợ nào (Nullable nếu là ngành hàng chung toàn hệ thống)
+    /// </summary>
+    public int? MarketId { get; set; }
+
     public DateTime? CreatedAt { get; set; }
+
+    public virtual Market? Market { get; set; }
 
     public virtual ICollection<Area> Areas { get; set; } = new List<Area>();
 

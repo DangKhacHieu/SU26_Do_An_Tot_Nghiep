@@ -9,8 +9,8 @@ namespace STMM.Business.Interfaces
     public interface IStaffTaskService
     {
         // Manager APIs
-        Task<PagedResult<TaskSummaryDto>> GetTasksForManagerAsync(TaskQueryParams q, CancellationToken ct = default);
-        Task<TaskDto> GetTaskByIdAsync(int taskId, CancellationToken ct = default);
+        Task<PagedResult<TaskSummaryDto>> GetTasksForManagerAsync(TaskQueryParams q, int? managerUserId = null, CancellationToken ct = default);
+        Task<TaskDto> GetTaskByIdAsync(int taskId, int? managerUserId = null, CancellationToken ct = default);
         Task<TaskDto> CreateTaskAsync(int managerUserId, CreateTaskRequest req, CancellationToken ct = default);
         Task<TaskDto> UpdateTaskStatusAsync(int taskId, UpdateTaskStatusRequest req, CancellationToken ct = default);
         Task<TaskDto> AssignTaskAsync(int taskId, int staffUserId, CancellationToken ct = default);

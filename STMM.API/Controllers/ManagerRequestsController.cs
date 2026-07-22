@@ -17,6 +17,13 @@ namespace STMM.API.Controllers
             _requestService = requestService;
         }
 
+        private int? GetUserId()
+        {
+            var claim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (int.TryParse(claim, out int uid)) return uid;
+            return null;
+        }
+
         /// <summary>
         /// UC-xx: View Requests List — Manager xem danh sách yêu cầu.
         /// </summary>
@@ -25,7 +32,8 @@ namespace STMM.API.Controllers
             [FromQuery] RequestQueryParams queryParams,
             CancellationToken ct)
         {
-            var result = await _requestService.GetRequestsForManagerAsync(queryParams, ct);
+            var managerUserId = GetUserId();
+            var result = await _requestService.GetRequestsForManagerAsync(queryParams, managerUserId, ct);
             return Ok(result);
         }
 
@@ -37,7 +45,8 @@ namespace STMM.API.Controllers
             int id,
             CancellationToken ct)
         {
-            var result = await _requestService.GetRequestByIdForManagerAsync(id, ct);
+            var managerUserId = GetUserId();
+            var result = await _requestService.GetRequestByIdForManagerAsync(id, managerUserId, ct);
             return Ok(result);
         }
 

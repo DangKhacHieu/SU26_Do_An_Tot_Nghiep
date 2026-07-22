@@ -29,35 +29,106 @@ namespace STMM.Business.Services
             _context = context;
         }
 
-        public async Task<IEnumerable<BusinessCategoryDto>> GetAllCategoriesAsync(string? searchTerm, bool? isActive, CancellationToken ct)
+        public async Task<IEnumerable<BusinessCategoryDto>> GetAllCategoriesAsync(string? searchTerm, bool? isActive, int? currentUserId = null, CancellationToken ct = default)
         {
-            var categories = await _categoryRepository.GetAllCategoriesAsync(searchTerm, isActive, ct);
+            int? managerMarketId = null;
+            bool isManagerWithoutMarket = false;
+            if (currentUserId.HasValue)
+            {
+                var user = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.UserId == currentUserId.Value, ct);
+                if (user != null && string.Equals(user.Role?.Name, "Manager", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (!user.MarketId.HasValue)
+                    {
+                        isManagerWithoutMarket = true;
+                    }
+                    else
+                    {
+                        managerMarketId = user.MarketId.Value;
+                    }
+                }
+            }
+
+            if (isManagerWithoutMarket)
+            {
+                return new List<BusinessCategoryDto>();
+            }
+
+            var categories = await _categoryRepository.GetAllCategoriesAsync(searchTerm, isActive, managerMarketId, ct);
 
             var dtos = new List<BusinessCategoryDto>();
             foreach (var cat in categories)
             {
                 var dto = _mapper.Map<BusinessCategoryDto>(cat);
-                dto.StallsCount = await _context.Stalls.CountAsync(s => s.CategoryId == cat.CategoryId && s.IsDeleted != true, ct);
-                dto.AreasCount = await _context.Areas.CountAsync(a => a.CategoryId == cat.CategoryId && a.IsDeleted != true, ct);
+                if (managerMarketId.HasValue)
+                {
+                    dto.StallsCount = await _context.Stalls.CountAsync(s => s.CategoryId == cat.CategoryId && s.Area.MarketId == managerMarketId.Value && s.IsDeleted != true, ct);
+                    dto.AreasCount = await _context.Areas.CountAsync(a => a.CategoryId == cat.CategoryId && a.MarketId == managerMarketId.Value && a.IsDeleted != true, ct);
+                }
+                else
+                {
+                    dto.StallsCount = await _context.Stalls.CountAsync(s => s.CategoryId == cat.CategoryId && s.IsDeleted != true, ct);
+                    dto.AreasCount = await _context.Areas.CountAsync(a => a.CategoryId == cat.CategoryId && a.IsDeleted != true, ct);
+                }
                 dtos.Add(dto);
             }
 
             return dtos;
         }
 
-        public async Task<BusinessCategoryDto?> GetCategoryByIdAsync(int id, CancellationToken ct)
+        public async Task<BusinessCategoryDto?> GetCategoryByIdAsync(int id, int? currentUserId = null, CancellationToken ct = default)
         {
+            int? managerMarketId = null;
+            bool isManagerWithoutMarket = false;
+            if (currentUserId.HasValue)
+            {
+                var user = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.UserId == currentUserId.Value, ct);
+                if (user != null && string.Equals(user.Role?.Name, "Manager", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (!user.MarketId.HasValue)
+                    {
+                        isManagerWithoutMarket = true;
+                    }
+                    else
+                    {
+                        managerMarketId = user.MarketId.Value;
+                    }
+                }
+            }
+
+            if (isManagerWithoutMarket)
+            {
+                return null;
+            }
+
             var category = await _categoryRepository.GetCategoryByIdAsync(id, ct);
             if (category == null) return null;
 
             var dto = _mapper.Map<BusinessCategoryDto>(category);
-            dto.StallsCount = await _context.Stalls.CountAsync(s => s.CategoryId == id && s.IsDeleted != true, ct);
-            dto.AreasCount = await _context.Areas.CountAsync(a => a.CategoryId == id && a.IsDeleted != true, ct);
+            if (managerMarketId.HasValue)
+            {
+                dto.StallsCount = await _context.Stalls.CountAsync(s => s.CategoryId == id && s.Area.MarketId == managerMarketId.Value && s.IsDeleted != true, ct);
+                dto.AreasCount = await _context.Areas.CountAsync(a => a.CategoryId == id && a.MarketId == managerMarketId.Value && a.IsDeleted != true, ct);
+            }
+            else
+            {
+                dto.StallsCount = await _context.Stalls.CountAsync(s => s.CategoryId == id && s.IsDeleted != true, ct);
+                dto.AreasCount = await _context.Areas.CountAsync(a => a.CategoryId == id && a.IsDeleted != true, ct);
+            }
             return dto;
         }
 
-        public async Task<BusinessCategoryDto> CreateCategoryAsync(CreateBusinessCategoryRequest request, CancellationToken ct)
+        public async Task<BusinessCategoryDto> CreateCategoryAsync(CreateBusinessCategoryRequest request, int? currentUserId = null, CancellationToken ct = default)
         {
+            if (currentUserId.HasValue)
+            {
+                var user = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.UserId == currentUserId.Value, ct);
+                if (user != null && string.Equals(user.Role?.Name, "Manager", StringComparison.OrdinalIgnoreCase) && !user.MarketId.HasValue)
+                {
+                    throw new InvalidOperationException("Tài khoản Quản lý chưa sở hữu chợ nào được phê duyệt. Bạn chỉ có thể tạo danh mục kinh doanh sau khi chợ được phê duyệt.");
+                }
+            }
+
             // Check code uniqueness
             var codeUpper = request.Code.Trim().ToUpper();
             var codeExists = await _context.BusinessCategories.AnyAsync(c => c.Code.ToUpper() == codeUpper, ct);
@@ -78,14 +149,29 @@ namespace STMM.Business.Services
             category.Code = codeUpper;
             category.CreatedAt = DateTime.UtcNow;
 
+            if (currentUserId.HasValue)
+            {
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == currentUserId.Value, ct);
+                category.MarketId = user?.MarketId;
+            }
+
             await _categoryRepository.AddAsync(category, ct);
             await _categoryRepository.SaveChangesAsync(ct);
 
             return _mapper.Map<BusinessCategoryDto>(category);
         }
 
-        public async Task<BusinessCategoryDto> UpdateCategoryAsync(int id, UpdateBusinessCategoryRequest request, CancellationToken ct)
+        public async Task<BusinessCategoryDto> UpdateCategoryAsync(int id, UpdateBusinessCategoryRequest request, int? currentUserId = null, CancellationToken ct = default)
         {
+            if (currentUserId.HasValue)
+            {
+                var user = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.UserId == currentUserId.Value, ct);
+                if (user != null && string.Equals(user.Role?.Name, "Manager", StringComparison.OrdinalIgnoreCase) && !user.MarketId.HasValue)
+                {
+                    throw new InvalidOperationException("Tài khoản Quản lý chưa sở hữu chợ nào được phê duyệt.");
+                }
+            }
+
             var category = await _categoryRepository.GetCategoryByIdAsync(id, ct);
             if (category == null)
             {
@@ -114,8 +200,17 @@ namespace STMM.Business.Services
             return dto;
         }
 
-        public async Task<bool> DeleteCategoryAsync(int id, CancellationToken ct)
+        public async Task<bool> DeleteCategoryAsync(int id, int? currentUserId = null, CancellationToken ct = default)
         {
+            if (currentUserId.HasValue)
+            {
+                var user = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.UserId == currentUserId.Value, ct);
+                if (user != null && string.Equals(user.Role?.Name, "Manager", StringComparison.OrdinalIgnoreCase) && !user.MarketId.HasValue)
+                {
+                    throw new InvalidOperationException("Tài khoản Quản lý chưa sở hữu chợ nào được phê duyệt.");
+                }
+            }
+
             var category = await _categoryRepository.GetCategoryByIdAsync(id, ct);
             if (category == null) return false;
 

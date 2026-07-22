@@ -14,11 +14,13 @@ namespace STMM.Business.Services
     public class NotificationService : INotificationService
     {
         private readonly INotificationRepository _notificationRepository;
+        private readonly IUserRepository _userRepository;
         private readonly IMapper _mapper;
 
-        public NotificationService(INotificationRepository notificationRepository, IMapper mapper)
+        public NotificationService(INotificationRepository notificationRepository, IUserRepository userRepository, IMapper mapper)
         {
             _notificationRepository = notificationRepository;
+            _userRepository = userRepository;
             _mapper = mapper;
         }
 
@@ -63,11 +65,14 @@ namespace STMM.Business.Services
             var targetRoleLower = roleName?.Trim().ToLower();
             var limitDate = DateTime.UtcNow.AddDays(-60);
 
+            var user = await _userRepository.GetUserByIdWithRoleAsync(userId, ct);
+            bool isManagerWithoutMarket = user != null && string.Equals(user.Role?.Name, "Manager", StringComparison.OrdinalIgnoreCase) && !user.MarketId.HasValue;
+
             var notifications = await _notificationRepository.FindAsync(n =>
                 (n.CreatedAt >= limitDate) &&
                 ((n.TargetUserId == userId) ||
-                (!string.IsNullOrWhiteSpace(n.TargetRole) && n.TargetRole.ToLower() == targetRoleLower) ||
-                (!string.IsNullOrWhiteSpace(n.TargetRole) && n.TargetRole.ToLower() == "public")),
+                (!isManagerWithoutMarket && !string.IsNullOrWhiteSpace(n.TargetRole) && n.TargetRole.ToLower() == targetRoleLower) ||
+                (!isManagerWithoutMarket && !string.IsNullOrWhiteSpace(n.TargetRole) && n.TargetRole.ToLower() == "public")),
                 ct);
 
             var sortedNotifications = notifications.OrderByDescending(n => n.CreatedAt ?? DateTime.MinValue);
@@ -95,12 +100,15 @@ namespace STMM.Business.Services
             var targetRoleLower = roleName?.Trim().ToLower();
             var limitDate = DateTime.UtcNow.AddDays(-60);
 
+            var user = await _userRepository.GetUserByIdWithRoleAsync(userId, ct);
+            bool isManagerWithoutMarket = user != null && string.Equals(user.Role?.Name, "Manager", StringComparison.OrdinalIgnoreCase) && !user.MarketId.HasValue;
+
             var notifications = await _notificationRepository.FindAsync(n =>
                 (n.IsRead == false || n.IsRead == null) &&
                 (n.CreatedAt >= limitDate) &&
                 ((n.TargetUserId == userId) ||
-                (!string.IsNullOrWhiteSpace(n.TargetRole) && n.TargetRole.ToLower() == targetRoleLower) ||
-                (!string.IsNullOrWhiteSpace(n.TargetRole) && n.TargetRole.ToLower() == "public")),
+                (!isManagerWithoutMarket && !string.IsNullOrWhiteSpace(n.TargetRole) && n.TargetRole.ToLower() == targetRoleLower) ||
+                (!isManagerWithoutMarket && !string.IsNullOrWhiteSpace(n.TargetRole) && n.TargetRole.ToLower() == "public")),
                 ct);
 
             foreach (var notification in notifications)

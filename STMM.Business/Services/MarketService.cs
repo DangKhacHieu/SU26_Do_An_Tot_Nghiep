@@ -137,13 +137,6 @@ namespace STMM.Business.Services
                 _context.Markets.Add(newMarket);
                 await _context.SaveChangesAsync();
 
-                if (user != null && user.Role?.Name == "Manager")
-                {
-                    user.MarketId = newMarket.MarketId;
-                    _context.Users.Update(user);
-                    await _context.SaveChangesAsync();
-                }
-
                 foreach (var areaReq in request.Areas)
                 {
                         var newArea = new Area
@@ -187,14 +180,6 @@ namespace STMM.Business.Services
                     await _context.SaveChangesAsync();
                 }
 
-                // 4. Update the logged-in Manager to own this new Market
-                if (user != null && user.Role != null && user.Role.Name == "Manager")
-                {
-                    user.MarketId = newMarket.MarketId;
-                    _context.Users.Update(user);
-                    await _context.SaveChangesAsync();
-                }
-
                 await transaction.CommitAsync();
 
                 return _mapper.Map<MarketDto>(newMarket);
@@ -225,6 +210,14 @@ namespace STMM.Business.Services
             _context.Areas.RemoveRange(market.Areas);
             _context.Markets.Remove(market);
 
+            // Detach any user assigned to this market
+            var usersInMarket = await _context.Users.Where(u => u.MarketId == marketId).ToListAsync();
+            foreach (var u in usersInMarket)
+            {
+                u.MarketId = null;
+                _context.Users.Update(u);
+            }
+
             await _context.SaveChangesAsync();
             
             return true;
@@ -237,6 +230,26 @@ namespace STMM.Business.Services
 
             market.Status = status;
             _context.Markets.Update(market);
+
+            if (status.Equals("Active", StringComparison.OrdinalIgnoreCase) || status.Equals("Approved", StringComparison.OrdinalIgnoreCase))
+            {
+                var creator = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.UserId == market.CreatorId);
+                if (creator != null && creator.Role?.Name == "Manager")
+                {
+                    creator.MarketId = market.MarketId;
+                    _context.Users.Update(creator);
+                }
+            }
+            else if (status.Equals("Rejected", StringComparison.OrdinalIgnoreCase) || status.Equals("Inactive", StringComparison.OrdinalIgnoreCase))
+            {
+                var creator = await _context.Users.FirstOrDefaultAsync(u => u.MarketId == marketId);
+                if (creator != null)
+                {
+                    creator.MarketId = null;
+                    _context.Users.Update(creator);
+                }
+            }
+
             await _context.SaveChangesAsync();
             return true;
         }

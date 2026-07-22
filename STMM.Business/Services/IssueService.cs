@@ -199,14 +199,39 @@ namespace STMM.Business.Services
         }
 
         public async Task<PagedResult<IssueDto>> GetIssuesForManagerAsync(
-            IssueQueryParams queryParams, CancellationToken ct = default)
+            IssueQueryParams queryParams, int? managerUserId = null, CancellationToken ct = default)
         {
+            if (managerUserId.HasValue)
+            {
+                var manager = await _userRepository.GetByIdAsync(managerUserId.Value, ct);
+                if (manager != null && manager.MarketId == null)
+                {
+                    return new PagedResult<IssueDto>
+                    {
+                        Items = new List<IssueDto>(),
+                        TotalCount = 0,
+                        PageNumber = queryParams.PageNumber,
+                        PageSize = queryParams.PageSize
+                    };
+                }
+            }
+
             var (items, totalCount) = await _issueRepository.GetIssuesForManagerPagedAsync(
                 queryParams.Status,
                 queryParams.SortDescending,
                 queryParams.PageNumber,
                 queryParams.PageSize,
                 ct);
+
+            if (managerUserId.HasValue)
+            {
+                var manager = await _userRepository.GetByIdAsync(managerUserId.Value, ct);
+                if (manager?.MarketId != null)
+                {
+                    items = items.Where(i => i.Stall?.Area?.MarketId == manager.MarketId.Value);
+                    totalCount = items.Count();
+                }
+            }
 
             return new PagedResult<IssueDto>
             {
@@ -218,12 +243,30 @@ namespace STMM.Business.Services
         }
 
         public async Task<IssueDto> GetIssueByIdForManagerAsync(
-            int issueId, CancellationToken ct = default)
+            int issueId, int? managerUserId = null, CancellationToken ct = default)
         {
+            if (managerUserId.HasValue)
+            {
+                var manager = await _userRepository.GetByIdAsync(managerUserId.Value, ct);
+                if (manager != null && manager.MarketId == null)
+                {
+                    throw new NotFoundException($"Issue with ID {issueId} not found.");
+                }
+            }
+
             var issue = await _issueRepository.GetIssueWithRelationsAsync(issueId, tracking: false, ct);
             if (issue == null)
             {
                 throw new NotFoundException($"Issue with ID {issueId} not found.");
+            }
+
+            if (managerUserId.HasValue)
+            {
+                var manager = await _userRepository.GetByIdAsync(managerUserId.Value, ct);
+                if (manager?.MarketId != null && issue.Stall?.Area?.MarketId != manager.MarketId.Value)
+                {
+                    throw new NotFoundException($"Issue with ID {issueId} not found.");
+                }
             }
 
             return MapIssueToDto(issue);

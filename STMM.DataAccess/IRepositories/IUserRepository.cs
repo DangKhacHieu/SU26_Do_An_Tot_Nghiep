@@ -8,7 +8,7 @@ namespace STMM.DataAccess.IRepositories
     public interface IUserRepository : IBaseRepository<User>
     {
         Task<bool> IsActiveStaffAsync(int userId, CancellationToken ct = default);
-        Task<IEnumerable<User>> GetUsersWithRolesAsync(string? roleName, string? search, bool limitToManageableRoles = false, CancellationToken ct = default);
+        Task<IEnumerable<User>> GetUsersWithRolesAsync(string? roleName, string? search, bool limitToManageableRoles = false, int? marketId = null, CancellationToken ct = default);
         Task<User?> GetUserByIdWithRoleAsync(int id, CancellationToken ct = default);
         Task<User?> GetFirstManagerOrAdminAsync(CancellationToken ct = default);
         /// <summary>

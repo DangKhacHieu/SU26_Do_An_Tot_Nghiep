@@ -37,7 +37,7 @@ namespace STMM.API.Controllers
         public async Task<IActionResult> GetMyProfile(CancellationToken ct)
         {
             var userId = GetUserId();
-            var result = await _userService.GetUserByIdAsync(userId, ct);
+            var result = await _userService.GetUserByIdAsync(userId, ct: ct);
             return Ok(result);
         }
 

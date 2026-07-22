@@ -17,12 +17,20 @@ namespace STMM.API.Controllers
             _staffTaskService = staffTaskService;
         }
 
+        private int? GetUserId()
+        {
+            var claim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (int.TryParse(claim, out int uid)) return uid;
+            return null;
+        }
+
         [HttpGet]
         public async Task<IActionResult> GetTasks(
             [FromQuery] TaskQueryParams queryParams,
             CancellationToken ct)
         {
-            var result = await _staffTaskService.GetTasksForManagerAsync(queryParams, ct);
+            var managerUserId = GetUserId();
+            var result = await _staffTaskService.GetTasksForManagerAsync(queryParams, managerUserId, ct);
             return Ok(result);
         }
 
@@ -31,7 +39,8 @@ namespace STMM.API.Controllers
             int id,
             CancellationToken ct)
         {
-            var result = await _staffTaskService.GetTaskByIdAsync(id, ct);
+            var managerUserId = GetUserId();
+            var result = await _staffTaskService.GetTaskByIdAsync(id, managerUserId, ct);
             return Ok(result);
         }
 

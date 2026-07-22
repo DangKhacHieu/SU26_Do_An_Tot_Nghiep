@@ -35,3 +35,8 @@ STMM.Tests/
 # Agent config (Local execution only)
 .agents/
 .claude/
+
+# macOS / Local
+.DS_Store
+Library/
+.nuget/

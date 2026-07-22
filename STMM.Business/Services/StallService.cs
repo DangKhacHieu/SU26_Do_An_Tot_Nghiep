@@ -22,19 +22,50 @@ namespace STMM.Business.Services
             _mapper = mapper;
         }
 
-        public async Task<IEnumerable<StallDto>> GetAllStallsAsync()
+        public async Task<IEnumerable<StallDto>> GetAllStallsAsync(int? currentUserId = null)
         {
-            var stalls = await _context.Stalls
+            var query = _context.Stalls
                 .Include(s => s.Area)
                 .Include(s => s.Category)
-                .Where(s => s.IsDeleted != true)
-                .ToListAsync();
+                .Where(s => s.IsDeleted != true);
+
+            if (currentUserId.HasValue)
+            {
+                var user = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.UserId == currentUserId.Value);
+                if (user != null && string.Equals(user.Role?.Name, "Manager", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (!user.MarketId.HasValue)
+                    {
+                        return new List<StallDto>();
+                    }
+                    query = query.Where(s => s.Area.MarketId == user.MarketId.Value);
+                }
+            }
+
+            var stalls = await query.ToListAsync();
 
             return _mapper.Map<IEnumerable<StallDto>>(stalls);
         }
 
-        public async Task<IEnumerable<StallDto>> GetAllStallsByAreaIdAsync(int areaId)
+        public async Task<IEnumerable<StallDto>> GetAllStallsByAreaIdAsync(int areaId, int? currentUserId = null)
         {
+            if (currentUserId.HasValue)
+            {
+                var user = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.UserId == currentUserId.Value);
+                if (user != null && string.Equals(user.Role?.Name, "Manager", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (!user.MarketId.HasValue)
+                    {
+                        return new List<StallDto>();
+                    }
+                    var area = await _context.Areas.FirstOrDefaultAsync(a => a.AreaId == areaId);
+                    if (area == null || area.MarketId != user.MarketId.Value)
+                    {
+                        return new List<StallDto>();
+                    }
+                }
+            }
+
             var stalls = await _context.Stalls
                 .Include(s => s.Area)
                 .Include(s => s.Category)

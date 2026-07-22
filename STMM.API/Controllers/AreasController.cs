@@ -23,7 +23,10 @@ namespace STMM.API.Controllers
         {
             try
             {
-                var areas = await _areaService.GetAllAreasAsync(marketId);
+                var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                int? currentUserId = int.TryParse(userIdClaim, out int uid) ? uid : null;
+
+                var areas = await _areaService.GetAllAreasAsync(marketId, currentUserId);
                 return Ok(areas);
             }
             catch (Exception ex)

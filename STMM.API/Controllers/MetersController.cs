@@ -33,6 +33,13 @@ namespace STMM.API.Controllers
             return Ok(result);
         }
 
+        private int? GetUserId()
+        {
+            var claim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (int.TryParse(claim, out int uid)) return uid;
+            return null;
+        }
+
         /// <summary>
         /// Get meter detail by ID (for Staff and Manager).
         /// </summary>
@@ -40,7 +47,8 @@ namespace STMM.API.Controllers
         [Authorize(Roles = "Staff,Manager")]
         public async Task<IActionResult> GetMeterById(int id, CancellationToken ct)
         {
-            var result = await _meterService.GetMeterByIdAsync(id, ct);
+            var userId = GetUserId();
+            var result = await _meterService.GetMeterByIdAsync(id, userId, ct);
             return Ok(result);
         }
 
@@ -51,8 +59,7 @@ namespace STMM.API.Controllers
         [Authorize(Roles = "Manager")]
         public async Task<IActionResult> GetMeters([FromQuery] MeterQueryParameters queryParams, CancellationToken ct)
         {
-            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var userId = int.Parse(userIdClaim!);
+            var userId = GetUserId() ?? 0;
             var result = await _meterService.GetMetersAsync(queryParams, userId, ct);
             return Ok(result);
         }
@@ -64,8 +71,7 @@ namespace STMM.API.Controllers
         [Authorize(Roles = "Manager")]
         public async Task<IActionResult> CreateMeter([FromBody] CreateMeterRequest request, CancellationToken ct)
         {
-            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var userId = int.Parse(userIdClaim!);
+            var userId = GetUserId() ?? 0;
             var result = await _meterService.CreateMeterAsync(request, userId, ct);
             return CreatedAtAction(nameof(GetMeterById), new { id = result.MeterId }, result);
         }
@@ -77,7 +83,8 @@ namespace STMM.API.Controllers
         [Authorize(Roles = "Manager")]
         public async Task<IActionResult> UpdateMeter(int id, [FromBody] UpdateMeterRequest request, CancellationToken ct)
         {
-            var result = await _meterService.UpdateMeterAsync(id, request, ct);
+            var userId = GetUserId();
+            var result = await _meterService.UpdateMeterAsync(id, request, userId, ct);
             return Ok(result);
         }
 
@@ -88,7 +95,8 @@ namespace STMM.API.Controllers
         [Authorize(Roles = "Manager")]
         public async Task<IActionResult> DeleteMeter(int id, CancellationToken ct)
         {
-            var result = await _meterService.DeleteMeterAsync(id, ct);
+            var userId = GetUserId();
+            var result = await _meterService.DeleteMeterAsync(id, userId, ct);
             return Ok(result);
         }
 

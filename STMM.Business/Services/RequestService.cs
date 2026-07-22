@@ -18,22 +18,40 @@ namespace STMM.Business.Services
         private readonly IRequestRepository _requestRepository;
         private readonly IStaffTaskRepository _staffTaskRepository;
         private readonly INotificationService _notificationService;
+        private readonly IUserRepository _userRepository;
         private readonly IMapper _mapper;
 
         public RequestService(
             IRequestRepository requestRepository, 
             IStaffTaskRepository staffTaskRepository, 
             INotificationService notificationService,
+            IUserRepository userRepository,
             IMapper mapper)
         {
             _requestRepository = requestRepository;
             _staffTaskRepository = staffTaskRepository;
             _notificationService = notificationService;
+            _userRepository = userRepository;
             _mapper = mapper;
         }
 
-        public async Task<PagedResult<RequestDto>> GetRequestsForManagerAsync(RequestQueryParams queryParams, CancellationToken ct = default)
+        public async Task<PagedResult<RequestDto>> GetRequestsForManagerAsync(RequestQueryParams queryParams, int? managerUserId = null, CancellationToken ct = default)
         {
+            if (managerUserId.HasValue)
+            {
+                var manager = await _userRepository.GetByIdAsync(managerUserId.Value, ct);
+                if (manager != null && manager.MarketId == null)
+                {
+                    return new PagedResult<RequestDto>
+                    {
+                        Items = new List<RequestDto>(),
+                        TotalCount = 0,
+                        PageNumber = queryParams.PageNumber,
+                        PageSize = queryParams.PageSize
+                    };
+                }
+            }
+
             var (items, totalCount) = await _requestRepository.GetRequestsPagedAsync(
                 null, // vendorId
                 queryParams.StallId, // stallId
@@ -44,6 +62,16 @@ namespace STMM.Business.Services
                 queryParams.PageNumber,
                 queryParams.PageSize,
                 ct);
+
+            if (managerUserId.HasValue)
+            {
+                var manager = await _userRepository.GetByIdAsync(managerUserId.Value, ct);
+                if (manager?.MarketId != null)
+                {
+                    items = items.Where(r => r.Stall?.Area?.MarketId == manager.MarketId.Value || r.Vendor?.User?.MarketId == manager.MarketId.Value);
+                    totalCount = items.Count();
+                }
+            }
 
             var dtos = _mapper.Map<IEnumerable<RequestDto>>(items);
 
@@ -56,8 +84,17 @@ namespace STMM.Business.Services
             };
         }
 
-        public async Task<RequestDto> GetRequestByIdForManagerAsync(int id, CancellationToken ct = default)
+        public async Task<RequestDto> GetRequestByIdForManagerAsync(int id, int? managerUserId = null, CancellationToken ct = default)
         {
+            if (managerUserId.HasValue)
+            {
+                var manager = await _userRepository.GetByIdAsync(managerUserId.Value, ct);
+                if (manager != null && manager.MarketId == null)
+                {
+                    throw new NotFoundException($"Không tìm thấy yêu cầu có ID {id}.");
+                }
+            }
+
             var request = await _requestRepository.GetRequestWithRelationsAsync(id, ct);
 
             if (request == null)

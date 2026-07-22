@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using STMM.DataAccess.Data;
 using STMM.DataAccess.Entities;
 using STMM.DataAccess.IRepositories;
@@ -22,11 +22,16 @@ namespace STMM.DataAccess.Repositories
                 .AnyAsync(u => u.UserId == userId && u.Role.Name == "Staff" && u.Status == "Active" && u.IsDeleted != true, ct);
         }
 
-        public async Task<IEnumerable<User>> GetUsersWithRolesAsync(string? roleName, string? search, bool limitToManageableRoles = false, CancellationToken ct = default)
+        public async Task<IEnumerable<User>> GetUsersWithRolesAsync(string? roleName, string? search, bool limitToManageableRoles = false, int? marketId = null, CancellationToken ct = default)
         {
             var query = _dbSet
                 .Include(u => u.Role)
                 .Where(u => u.IsDeleted != true);
+
+            if (marketId.HasValue)
+            {
+                query = query.Where(u => u.MarketId == marketId.Value);
+            }
 
             if (!string.IsNullOrEmpty(roleName))
             {

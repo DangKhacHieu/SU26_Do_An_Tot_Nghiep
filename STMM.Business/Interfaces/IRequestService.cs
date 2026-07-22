@@ -7,8 +7,8 @@ namespace STMM.Business.Interfaces
 {
     public interface IRequestService
     {
-        Task<PagedResult<RequestDto>> GetRequestsForManagerAsync(RequestQueryParams queryParams, CancellationToken ct = default);
-        Task<RequestDto> GetRequestByIdForManagerAsync(int id, CancellationToken ct = default);
+        Task<PagedResult<RequestDto>> GetRequestsForManagerAsync(RequestQueryParams queryParams, int? managerUserId = null, CancellationToken ct = default);
+        Task<RequestDto> GetRequestByIdForManagerAsync(int id, int? managerUserId = null, CancellationToken ct = default);
         Task<RequestDto> ResolveViolationAppealAsync(int requestId, bool approve, CancellationToken ct = default);
         Task<RequestDto> ResolveRequestQuoteAsync(int requestId, bool approve, CancellationToken ct = default);
     }

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using STMM.Business.DTOs.Content;
 using STMM.Business.Interfaces;
+using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -17,20 +18,29 @@ namespace STMM.API.Controllers
             _contentService = contentService;
         }
 
+        private int? GetUserId()
+        {
+            var claim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (int.TryParse(claim, out int uid)) return uid;
+            return null;
+        }
+
         [HttpGet]
         public async Task<IActionResult> GetContents(
             [FromQuery] string? type,
             [FromQuery] string? targetRole,
             CancellationToken ct)
         {
-            var contents = await _contentService.GetContentsAsync(type, targetRole, ct);
+            var userId = GetUserId();
+            var contents = await _contentService.GetContentsAsync(type, targetRole, userId, ct);
             return Ok(contents);
         }
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetContentById(int id, CancellationToken ct)
         {
-            var content = await _contentService.GetContentByIdAsync(id, ct);
+            var userId = GetUserId();
+            var content = await _contentService.GetContentByIdAsync(id, userId, ct);
             return Ok(content);
         }
 
@@ -39,7 +49,8 @@ namespace STMM.API.Controllers
             [FromBody] CreateContentRequest request,
             CancellationToken ct)
         {
-            var result = await _contentService.CreateContentAsync(request, ct);
+            var userId = GetUserId();
+            var result = await _contentService.CreateContentAsync(request, userId, ct);
             return CreatedAtAction(nameof(GetContentById), new { id = result.NotiId }, result);
         }
 
@@ -49,14 +60,16 @@ namespace STMM.API.Controllers
             [FromBody] UpdateContentRequest request,
             CancellationToken ct)
         {
-            var result = await _contentService.UpdateContentAsync(id, request, ct);
+            var userId = GetUserId();
+            var result = await _contentService.UpdateContentAsync(id, request, userId, ct);
             return Ok(result);
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteContent(int id, CancellationToken ct)
         {
-            await _contentService.DeleteContentAsync(id, ct);
+            var userId = GetUserId();
+            await _contentService.DeleteContentAsync(id, userId, ct);
             return NoContent();
         }
     }
