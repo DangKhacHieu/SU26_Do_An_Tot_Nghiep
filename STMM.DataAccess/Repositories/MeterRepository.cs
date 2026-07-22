@@ -89,12 +89,14 @@ namespace STMM.DataAccess.Repositories
         }
 
         public async Task<IReadOnlyList<Meter>> GetMetersForMarketAsync(
-            int marketId,
+            int? marketId,
             CancellationToken ct = default)
         {
+            if (marketId == null) return new List<Meter>();
+
             return await _context.Meters
                 .Include(m => m.Stall)
-                .Where(m => m.MarketId == marketId)
+                .Where(m => m.MarketId == marketId.Value)
                 .OrderBy(m => m.MeterId)
                 .AsNoTracking()
                 .ToListAsync(ct);

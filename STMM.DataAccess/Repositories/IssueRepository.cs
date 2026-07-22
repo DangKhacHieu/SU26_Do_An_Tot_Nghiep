@@ -67,7 +67,7 @@ namespace STMM.DataAccess.Repositories
         }
 
         public async Task<(IEnumerable<Issue> Items, int TotalCount)> GetIssuesForManagerPagedAsync(
-            int marketId,
+            int? marketId,
             string? status,
             string? searchTerm,
             bool sortDescending,
@@ -75,11 +75,16 @@ namespace STMM.DataAccess.Repositories
             int pageSize,
             CancellationToken ct = default)
         {
+            if (marketId == null)
+            {
+                return (new List<Issue>(), 0);
+            }
+
             var query = _context.Issues
                 .Include(i => i.Stall)
                 .Include(i => i.CreatedByUser)
                 .Include(i => i.StaffTasks)
-                .Where(i => i.Stall.Area.MarketId == marketId);
+                .Where(i => i.Stall.Area.MarketId == marketId.Value);
 
             if (!string.IsNullOrWhiteSpace(status))
             {
@@ -112,16 +117,18 @@ namespace STMM.DataAccess.Repositories
 
         public Task<Issue?> GetIssueForManagerAsync(
             int issueId,
-            int marketId,
+            int? marketId,
             CancellationToken ct = default)
         {
+            if (marketId == null) return Task.FromResult<Issue?>(null);
+
             return _context.Issues
                 .Include(i => i.Stall)
                 .Include(i => i.CreatedByUser)
                 .Include(i => i.StaffTasks)
                 .AsNoTracking()
                 .FirstOrDefaultAsync(i =>
-                    i.IssueId == issueId && i.Stall.Area.MarketId == marketId,
+                    i.IssueId == issueId && i.Stall.Area.MarketId == marketId.Value,
                     ct);
         }
     }

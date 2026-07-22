@@ -15,7 +15,7 @@ namespace STMM.DataAccess.IRepositories
         Task<bool> IsCreatorAsync(int issueId, int staffUserId, CancellationToken ct = default);
 
         Task<(IEnumerable<Issue> Items, int TotalCount)> GetIssuesForManagerPagedAsync(
-            int marketId,
+            int? marketId,
             string? status,
             string? searchTerm,
             bool sortDescending,
@@ -23,6 +23,6 @@ namespace STMM.DataAccess.IRepositories
             int pageSize,
             CancellationToken ct = default);
 
-        Task<Issue?> GetIssueForManagerAsync(int issueId, int marketId, CancellationToken ct = default);
+        Task<Issue?> GetIssueForManagerAsync(int issueId, int? marketId, CancellationToken ct = default);
     }
 }

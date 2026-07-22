@@ -32,7 +32,7 @@ namespace STMM.DataAccess.Repositories
         }
 
         public async Task<(IEnumerable<Violation> Items, int TotalCount)> GetViolationsPagedForManagerAsync(
-            int marketId,
+            int? marketId,
             string? status,
             string? searchTerm,
             bool sortDescending,
@@ -40,11 +40,16 @@ namespace STMM.DataAccess.Repositories
             int pageSize,
             CancellationToken ct = default)
         {
+            if (marketId == null)
+            {
+                return (new List<Violation>(), 0);
+            }
+
             var query = _context.Violations
                 .Include(v => v.Stall)
                 .Include(v => v.ViolationType)
                 .Include(v => v.CreatedByUser)
-                .Where(v => v.Stall.Area.MarketId == marketId);
+                .Where(v => v.Stall.Area.MarketId == marketId.Value);
 
             if (!string.IsNullOrWhiteSpace(status))
             {
@@ -57,17 +62,14 @@ namespace STMM.DataAccess.Repositories
                 var term = searchTerm.Trim().ToLower();
                 query = query.Where(v => v.Title.ToLower().Contains(term)
                                          || v.Description.ToLower().Contains(term)
-                                         || v.Stall.Code.ToLower().Contains(term)
-                                         || v.ViolationType.Name.ToLower().Contains(term)
-                                         || (v.CreatedByUser != null && v.CreatedByUser.Name.ToLower().Contains(term)));
+                                         || v.Stall.Code.ToLower().Contains(term));
             }
-
-            var totalCount = await query.CountAsync(ct);
 
             query = sortDescending
                 ? query.OrderByDescending(v => v.CreatedAt)
                 : query.OrderBy(v => v.CreatedAt);
 
+            var totalCount = await query.CountAsync(ct);
             var items = await query
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
@@ -77,8 +79,10 @@ namespace STMM.DataAccess.Repositories
             return (items, totalCount);
         }
 
-        public async Task<Violation?> GetViolationDetailsForManagerAsync(int id, int marketId, CancellationToken ct = default)
+        public async Task<Violation?> GetViolationDetailsForManagerAsync(int id, int? marketId, CancellationToken ct = default)
         {
+            if (marketId == null) return null;
+
             return await _context.Violations
                 .Include(v => v.Stall)
                 .Include(v => v.ViolationType)
@@ -86,7 +90,7 @@ namespace STMM.DataAccess.Repositories
                 .Include(v => v.Requests)
                 .AsNoTracking()
                 .FirstOrDefaultAsync(v =>
-                    v.ViolationId == id && v.Stall.Area.MarketId == marketId,
+                    v.ViolationId == id && v.Stall.Area.MarketId == marketId.Value,
                     ct);
         }
 
