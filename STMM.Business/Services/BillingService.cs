@@ -669,7 +669,7 @@ namespace STMM.Business.Services
                 }
 
                 var unpaidViolations = s.Violations
-                    .Where(v => v.Status == "Unpaid")
+                      .Where(v => v.Status == "Pending" || v.Status == "Notified" || v.Status == "Appealed" || v.Status == "Rejected")
                     .ToList();
 
                 decimal violationDebt = unpaidViolations.Sum(v => v.FineAmount ?? v.ViolationType?.DefaultFine ?? 0);
@@ -732,8 +732,8 @@ namespace STMM.Business.Services
                 })
                 .ToList();
 
-            var unpaidViolations = stall.Violations
-                .Where(v => v.Status == "Unpaid")
+              var unpaidViolations = stall.Violations
+                  .Where(v => v.Status == "Pending" || v.Status == "Notified" || v.Status == "Appealed" || v.Status == "Rejected")
                 .OrderByDescending(v => v.CreatedAt)
                 .Select(v => new UnpaidViolationDetailDto
                 {
@@ -835,9 +835,12 @@ namespace STMM.Business.Services
                 CreatedAt = r.CreatedAt,
                 StallCode = r.Stall?.Code ?? "N/A",
                 TenantName = r.Vendor?.User?.Name ?? "N/A",
+                VendorBankName = r.Vendor?.BankName,
+                VendorBankAccount = r.Vendor?.BankAccount,
                 InvoiceMonth = r.Invoice?.Month ?? 0,
                 InvoiceYear = r.Invoice?.Year ?? 0,
-                InvoiceTotalAmount = r.Invoice?.TotalAmount ?? 0
+                InvoiceTotalAmount = r.Invoice?.TotalAmount ?? 0,
+                InvoiceStatus = r.Invoice?.Status ?? "Unpaid"
             });
         }
 
@@ -854,12 +857,57 @@ namespace STMM.Business.Services
             dispute.Status = request.Approve ? "Approved" : "Rejected";
             dispute.UpdatedAt = DateTime.UtcNow;
             _requestRepository.Update(dispute);
+            
+            string refundMsg = "";
+            if (request.Approve && request.IsRefund && request.RefundAmount > 0 && dispute.InvoiceId.HasValue)
+            {
+                var invoice = await _invoiceRepository.GetInvoiceDetailsWithRelationsAsync(dispute.InvoiceId.Value, ct);
+                if (invoice != null)
+                {
+                    if (invoice.Status == "Paid")
+                    {
+                        var payment = new Payment
+                        {
+                            InvoiceId = dispute.InvoiceId.Value,
+                            Amount = -request.RefundAmount.Value, // Negative amount for refund
+                            Method = request.RefundMethod ?? "Cash",
+                            TransactionCode = string.IsNullOrWhiteSpace(request.TransactionCode) ? $"RF-REQ-{requestId}" : request.TransactionCode,
+                            PaidAt = DateTime.UtcNow
+                        };
+                        await _paymentRepository.AddAsync(payment, ct);
+                        
+                        string methodText = request.RefundMethod == "Transfer" ? "Chuyển khoản" : "Tiền mặt";
+                        refundMsg = $" Ban quản lý đã hoàn lại số tiền {request.RefundAmount.Value:#,##0} VNĐ qua hình thức {methodText}.";
+                    }
+                    else if (invoice.Status == "Unpaid" || invoice.Status == "Draft")
+                    {
+                        var feeTypeId = invoice.InvoiceDetails.FirstOrDefault()?.FeeTypeId ?? 1;
+                        var detail = new InvoiceDetail
+                        {
+                            InvoiceId = invoice.InvoiceId,
+                            Description = "Giảm trừ do giải quyết khiếu nại hóa đơn",
+                            Amount = -request.RefundAmount.Value,
+                            UnitPrice = -request.RefundAmount.Value,
+                            Quantity = 1,
+                            FeeTypeId = feeTypeId
+                        };
+
+                        invoice.InvoiceDetails.Add(detail);
+                        invoice.TotalAmount -= request.RefundAmount.Value;
+                        if (invoice.TotalAmount < 0) invoice.TotalAmount = 0;
+                        
+                        _invoiceRepository.Update(invoice);
+                        
+                        refundMsg = $" Hóa đơn của bạn đã được điều chỉnh giảm trừ số tiền {request.RefundAmount.Value:#,##0} VNĐ.";
+                    }
+                }
+            }
 
             var targetUserId = dispute.Vendor?.UserId ?? 0;
             if (targetUserId > 0)
             {
                 var content = request.Approve
-                    ? $"Kháng nghị hóa đơn sạp {dispute.Stall?.Code} của bạn đã ĐƯỢC CHẤP NHẬN. Kế toán sẽ thực hiện điều chỉnh hóa đơn sớm nhất. Phản hồi: {request.Feedback}"
+                    ? $"Kháng nghị hóa đơn sạp {dispute.Stall?.Code} của bạn đã ĐƯỢC CHẤP NHẬN.{refundMsg} Kế toán sẽ thực hiện điều chỉnh hóa đơn sớm nhất. Phản hồi: {request.Feedback}"
                     : $"Kháng nghị hóa đơn sạp {dispute.Stall?.Code} của bạn đã BỊ TỪ CHỐI. Phản hồi của Kế toán: {request.Feedback ?? "Không chấp nhận yêu cầu"}";
 
                 await _notificationService.CreateAsync(new CreateNotificationRequest

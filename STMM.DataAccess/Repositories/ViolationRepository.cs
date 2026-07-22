@@ -241,7 +241,7 @@ namespace STMM.DataAccess.Repositories
 
         public async Task<decimal> GetTotalFinesAsync(DateTime startDate, DateTime endDate, int? marketId = null, CancellationToken ct = default)
         {
-            var query = _context.Violations.Where(v => v.CreatedAt >= startDate && v.CreatedAt < endDate);
+            var query = _context.Violations.Where(v => v.CreatedAt >= startDate && v.CreatedAt < endDate && v.Status != "Approved");
             if (marketId.HasValue)
             {
                 query = query.Where(v => v.Stall.Area.MarketId == marketId.Value);
