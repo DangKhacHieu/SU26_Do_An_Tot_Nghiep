@@ -80,13 +80,13 @@ namespace STMM.Tests.Services
                 _requestRepoMock.Object,
                 _mapper,
                 _notificationServiceMock.Object,
-                _validatorMock.Object,
                 _emailServiceMock.Object,
                 _userRepoMock.Object,
                 _systemConfigRepoMock.Object,
                 _serviceRegistrationRepoMock.Object,
                 _stallRepoMock.Object,
-                NullLogger<BillingService>.Instance);
+                NullLogger<BillingService>.Instance,
+                _validatorMock.Object);
         }
 
         [Fact]
