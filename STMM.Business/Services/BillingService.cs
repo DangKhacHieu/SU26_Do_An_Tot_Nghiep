@@ -1,5 +1,7 @@
 using AutoMapper;
 using FluentValidation;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using STMM.Business.DTOs.Billing;
 using STMM.Business.DTOs.Notification;
 using STMM.Business.Exceptions;
@@ -30,6 +32,8 @@ namespace STMM.Business.Services
         private readonly IUserRepository _userRepository;
         private readonly ISystemConfigRepository _systemConfigRepository;
         private readonly IServiceRegistrationRepository _serviceRegistrationRepository;
+        private readonly IStallRepository _stallRepository;
+        private readonly ILogger<BillingService> _logger;
 
         public BillingService(
             IInvoiceRepository invoiceRepository,
@@ -45,7 +49,9 @@ namespace STMM.Business.Services
             IEmailService emailService,
             IUserRepository userRepository,
             ISystemConfigRepository systemConfigRepository,
-            IServiceRegistrationRepository serviceRegistrationRepository)
+            IServiceRegistrationRepository serviceRegistrationRepository,
+            IStallRepository stallRepository,
+            ILogger<BillingService> logger)
         {
             _invoiceRepository = invoiceRepository;
             _paymentRepository = paymentRepository;
@@ -61,25 +67,32 @@ namespace STMM.Business.Services
             _userRepository = userRepository;
             _systemConfigRepository = systemConfigRepository;
             _serviceRegistrationRepository = serviceRegistrationRepository;
+            _stallRepository = stallRepository;
+            _logger = logger;
         }
 
-        /// <inheritdoc />
-        public async Task<InvoiceDto> GetInvoiceDetailAsync(int invoiceId, int accountantUserId, CancellationToken ct = default)
+        public async Task<InvoiceDto> GetInvoiceDetailAsync(
+            int invoiceId,
+            CancellationToken ct = default)
         {
             var invoice = await _invoiceRepository.GetInvoiceDetailsWithRelationsAsync(invoiceId, ct);
-
             if (invoice == null)
             {
                 throw new NotFoundException($"Invoice with ID {invoiceId} not found.");
             }
 
-            var accountantUser = await _userRepository.GetByIdAsync(accountantUserId, ct);
-            if (accountantUser != null && accountantUser.MarketId.HasValue)
+            return MapInvoiceToDto(invoice);
+        }
+
+        /// <inheritdoc />
+        public async Task<InvoiceDto> GetInvoiceDetailAsync(int staffUserId, int invoiceId, CancellationToken ct = default)
+        {
+            var marketId = await GetUserMarketIdAsync(staffUserId, ct);
+            var invoice = await _invoiceRepository.GetInvoiceDetailsWithRelationsAsync(invoiceId, marketId, ct);
+
+            if (invoice == null)
             {
-                if (invoice.Contract?.Stall?.Area?.MarketId != accountantUser.MarketId)
-                {
-                    throw new ForbiddenException("Bạn không có quyền xem chi tiết hóa đơn của chợ khác.");
-                }
+                throw new NotFoundException($"Invoice with ID {invoiceId} not found.");
             }
 
             return MapInvoiceToDto(invoice);
@@ -89,22 +102,27 @@ namespace STMM.Business.Services
         public async Task<PaymentResultDto> ReceiveCashPaymentAsync(
             int staffUserId, ReceiveCashPaymentRequest request, CancellationToken ct = default)
         {
-            // Load invoice with relations
-            var invoice = await _invoiceRepository.GetInvoiceWithRelationsForPaymentAsync(request.InvoiceId, ct: ct);
+            var validationResult = await _paymentValidator.ValidateAsync(request, ct);
+            if (!validationResult.IsValid)
+            {
+                throw new BadRequestException(
+                    string.Join("; ", validationResult.Errors.Select(e => e.ErrorMessage)));
+            }
+
+            var marketId = await GetUserMarketIdAsync(staffUserId, ct);
+            var invoice = await _invoiceRepository.GetInvoiceWithRelationsForPaymentAsync(request.InvoiceId, marketId, ct);
 
             if (invoice == null)
             {
                 throw new NotFoundException($"Invoice with ID {request.InvoiceId} not found.");
             }
 
-            // Only unpaid invoices can be collected
             if (invoice.Status != "Unpaid")
             {
                 throw new BadRequestException(
                     $"Invoice is in status '{invoice.Status}'. Payment can only be collected for 'Unpaid' invoices.");
             }
 
-            // Create payment record - collect 100% of amount
             var transactionCode = $"CASH-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..8].ToUpper()}";
             var payment = new Payment
             {
@@ -117,25 +135,33 @@ namespace STMM.Business.Services
 
             await _paymentRepository.AddAsync(payment, ct);
 
-            // Set status to pending confirmation
             invoice.Status = "Pending Confirmation";
 
-            // Send notification to Vendor
             var vendor = invoice.Contract.Vendor;
             var stall = invoice.Contract.Stall;
 
-            await _notificationService.CreateAsync(new CreateNotificationRequest
+            try
             {
-                Title = "Cash Payment Recorded",
-                Content = $"Staff recorded cash payment for invoice of month {invoice.Month}/{invoice.Year} " +
-                          $"at stall {stall.Code} for amount {invoice.TotalAmount:#,##0} VND. " +
-                          $"Please wait for accountant confirmation.",
-                NotiType = "Invoice",
-                CreatedByUserId = staffUserId,
-                TargetUserId = vendor.UserId
-            }, ct);
+                await _notificationService.CreateAsync(new CreateNotificationRequest
+                {
+                    Title = "Cash Payment Recorded",
+                    Content = $"Staff recorded cash payment for invoice of month {invoice.Month}/{invoice.Year} " +
+                              $"at stall {stall.Code} for amount {invoice.TotalAmount:#,##0} VND. " +
+                              $"Please wait for accountant confirmation.",
+                    NotiType = "Invoice",
+                    CreatedByUserId = staffUserId,
+                    TargetUserId = vendor.UserId
+                }, ct);
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError(
+                    exception,
+                    "Unable to notify vendor {VendorUserId} about cash payment for invoice {InvoiceId}.",
+                    vendor.UserId,
+                    invoice.InvoiceId);
+            }
 
-            // Save all changes in 1 transaction
             await _invoiceRepository.SaveChangesAsync(ct);
 
             return new PaymentResultDto
@@ -151,9 +177,22 @@ namespace STMM.Business.Services
         }
 
         /// <inheritdoc />
-        public async Task<List<UnpaidInvoiceSummaryDto>> GetUnpaidInvoicesByStallAsync(int stallId, CancellationToken ct = default)
+        public async Task<List<UnpaidInvoiceSummaryDto>> GetUnpaidInvoicesByStallAsync(
+            int staffUserId,
+            int stallId,
+            CancellationToken ct = default)
         {
-            var invoices = await _invoiceRepository.GetUnpaidInvoicesByStallAsync(stallId, ct);
+            var marketId = await GetUserMarketIdAsync(staffUserId, ct);
+            var invoices = await _invoiceRepository.GetUnpaidInvoicesByStallAsync(stallId, marketId, ct);
+            if (invoices.Count == 0)
+            {
+                var stall = await _stallRepository.GetStallForMarketAsync(stallId, marketId, ct);
+                if (stall == null)
+                {
+                    throw new NotFoundException($"Stall with ID {stallId} not found.");
+                }
+            }
+
             return invoices.Select(i => new UnpaidInvoiceSummaryDto
             {
                 InvoiceId = i.InvoiceId,
@@ -166,6 +205,17 @@ namespace STMM.Business.Services
                     .Where(name => !string.IsNullOrEmpty(name))
                     .Distinct())
             }).ToList();
+        }
+
+        private async Task<int> GetUserMarketIdAsync(int userId, CancellationToken ct)
+        {
+            var user = await _userRepository.GetUserByIdWithRoleAsync(userId, ct);
+            if (user?.MarketId == null)
+            {
+                throw new ForbiddenException("The staff account is not assigned to a market.");
+            }
+
+            return user.MarketId.Value;
         }
 
         /// <inheritdoc />

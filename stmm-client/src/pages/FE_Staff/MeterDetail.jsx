@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import readProblemDetail from '../../utils/readProblemDetail';
 import './MeterDetail.css';
 
 export default function MeterDetail({ meterId, baseUrl, onBack }) {
@@ -13,7 +14,7 @@ export default function MeterDetail({ meterId, baseUrl, onBack }) {
       try {
         const response = await fetch(`${baseUrl}/api/meters/${meterId}`);
         if (!response.ok) {
-          throw new Error(`Failed to load meter details: ${response.statusText}`);
+          throw new Error(await readProblemDetail(response, 'Unable to load meter details.'));
         }
         const data = await response.json();
         setMeter(data);

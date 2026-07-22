@@ -24,13 +24,20 @@ namespace STMM.API.Controllers
         [HttpGet("stall/{stallId}")]
         public async Task<IActionResult> GetReviewsByStall(int stallId)
         {
-            var summary = await _reviewService.GetReviewsByStallAsync(stallId);
-            if (summary == null)
+            try
             {
-                return NotFound("Không tìm thấy thông tin sạp hàng.");
-            }
+                var summary = await _reviewService.GetReviewsByStallAsync(stallId);
+                if (summary == null)
+                {
+                    return NotFound("Không tìm thấy thông tin sạp hàng.");
+                }
 
-            return Ok(summary);
+                return Ok(summary);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         /// <summary>

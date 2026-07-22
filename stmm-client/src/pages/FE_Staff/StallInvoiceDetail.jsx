@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import ReceiveCashModal from './ReceiveCashModal';
+import readProblemDetail from '../../utils/readProblemDetail';
 import './StallInvoiceDetail.css';
 
-export default function StallInvoiceDetail({ stallId, stallCode, baseUrl, userId, onBack, onShowNotification }) {
+export default function StallInvoiceDetail({ stallId, stallCode, baseUrl, onBack, onShowNotification }) {
   const [unpaidInvoices, setUnpaidInvoices] = useState([]);
   const [selectedInvoiceId, setSelectedInvoiceId] = useState(null);
   const [invoiceDetail, setInvoiceDetail] = useState(null);
@@ -11,21 +12,19 @@ export default function StallInvoiceDetail({ stallId, stallCode, baseUrl, userId
   const [listError, setListError] = useState(null);
   const [detailError, setDetailError] = useState(null);
 
-  // Modal cash collection state
   const [showCashModal, setShowCashModal] = useState(false);
 
-  const fetchUnpaidInvoices = async () => {
+  const fetchUnpaidInvoices = useCallback(async () => {
     setLoadingList(true);
     setListError(null);
     try {
       const response = await fetch(`${baseUrl}/api/staff/billing/invoices/stall/${stallId}/unpaid`);
       if (!response.ok) {
-        throw new Error(`Failed to load unpaid invoices: ${response.statusText}`);
+        throw new Error(await readProblemDetail(response, 'Unable to load unpaid invoices.'));
       }
       const data = await response.json();
       setUnpaidInvoices(data);
       if (data.length > 0) {
-        // Automatically select the first invoice if none is selected
         setSelectedInvoiceId(data[0].invoiceId);
       } else {
         setSelectedInvoiceId(null);
@@ -37,15 +36,15 @@ export default function StallInvoiceDetail({ stallId, stallCode, baseUrl, userId
     } finally {
       setLoadingList(false);
     }
-  };
+  }, [baseUrl, stallId]);
 
-  const fetchInvoiceDetail = async (invoiceId) => {
+  const fetchInvoiceDetail = useCallback(async (invoiceId) => {
     setLoadingDetail(true);
     setDetailError(null);
     try {
       const response = await fetch(`${baseUrl}/api/staff/billing/invoices/${invoiceId}`);
       if (!response.ok) {
-        throw new Error(`Failed to load invoice details: ${response.statusText}`);
+        throw new Error(await readProblemDetail(response, 'Unable to load invoice details.'));
       }
       const data = await response.json();
       setInvoiceDetail(data);
@@ -56,17 +55,17 @@ export default function StallInvoiceDetail({ stallId, stallCode, baseUrl, userId
     } finally {
       setLoadingDetail(false);
     }
-  };
+  }, [baseUrl]);
 
   useEffect(() => {
     fetchUnpaidInvoices();
-  }, [stallId, baseUrl]);
+  }, [fetchUnpaidInvoices]);
 
   useEffect(() => {
     if (selectedInvoiceId) {
       fetchInvoiceDetail(selectedInvoiceId);
     }
-  }, [selectedInvoiceId]);
+  }, [fetchInvoiceDetail, selectedInvoiceId]);
 
   const handlePaymentSuccess = (result) => {
     setShowCashModal(false);
@@ -74,7 +73,7 @@ export default function StallInvoiceDetail({ stallId, stallCode, baseUrl, userId
       `Invoice payment recorded successfully. Amount: ${result.amount.toLocaleString('vi-VN')} VND`, 
       'success'
     );
-    fetchUnpaidInvoices(); // Reload the unpaid invoices list
+    fetchUnpaidInvoices();
   };
 
   const formatDate = (dateString) => {
@@ -92,7 +91,6 @@ export default function StallInvoiceDetail({ stallId, stallCode, baseUrl, userId
       </div>
 
       <div className="invoice-split-layout">
-        {/* Left column: List of Invoices */}
         <div className="invoice-list-column">
           <h3 className="column-title">Unpaid Invoices ({unpaidInvoices.length})</h3>
 
@@ -131,7 +129,6 @@ export default function StallInvoiceDetail({ stallId, stallCode, baseUrl, userId
           )}
         </div>
 
-        {/* Right column: Invoice Details */}
         <div className="invoice-detail-column">
           {selectedInvoiceId ? (
             loadingDetail ? (
@@ -155,7 +152,6 @@ export default function StallInvoiceDetail({ stallId, stallCode, baseUrl, userId
 
                 <hr className="detail-divider" />
 
-                {/* Vendor & Stall info */}
                 <div className="invoice-relations-info">
                   <div className="relation-col">
                     <span className="info-label">Vendor Name</span>
@@ -200,7 +196,6 @@ export default function StallInvoiceDetail({ stallId, stallCode, baseUrl, userId
                   </table>
                 </div>
 
-                {/* Action panel */}
                 {invoiceDetail.status === 'Unpaid' && (
                   <div className="invoice-action-panel">
                     <div className="action-text">
@@ -225,13 +220,12 @@ export default function StallInvoiceDetail({ stallId, stallCode, baseUrl, userId
         </div>
       </div>
 
-      {/* Cash Collection Modal popup */}
       {showCashModal && (
         <ReceiveCashModal
           stallId={stallId}
           stallCode={stallCode}
+          invoiceId={selectedInvoiceId}
           baseUrl={baseUrl}
-          userId={userId}
           onClose={() => setShowCashModal(false)}
           onSuccess={handlePaymentSuccess}
         />

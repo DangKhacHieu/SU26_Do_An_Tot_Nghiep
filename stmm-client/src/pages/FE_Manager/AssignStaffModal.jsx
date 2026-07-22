@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import './AssignStaffModal.css';
 
+const getAuthHeaders = () => {
+  const token = localStorage.getItem('token') || localStorage.getItem('accessToken');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
 export default function AssignStaffModal({ taskId, currentStaffId, baseUrl, onClose, onSuccess, addToast }) {
   const [staffs, setStaffs] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -12,7 +17,9 @@ export default function AssignStaffModal({ taskId, currentStaffId, baseUrl, onCl
     const fetchStaffs = async () => {
       setLoading(true);
       try {
-        const res = await fetch(`${baseUrl}/api/manager/users?roleName=Staff`);
+        const res = await fetch(`${baseUrl}/api/manager/users?roleName=Staff`, {
+          headers: getAuthHeaders()
+        });
         if (res.ok) {
           const data = await res.json();
           // Filter only active staff members
@@ -52,7 +59,10 @@ export default function AssignStaffModal({ taskId, currentStaffId, baseUrl, onCl
     try {
       const res = await fetch(`${baseUrl}/api/manager/tasks/${taskId}/assign`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          ...getAuthHeaders(),
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify({ staffUserId: parseInt(selectedStaffId) })
       });
 
@@ -62,7 +72,14 @@ export default function AssignStaffModal({ taskId, currentStaffId, baseUrl, onCl
         onSuccess(updatedTask);
       } else {
         const errText = await res.text();
-        addToast(errText || 'Failed to assign staff.', 'error');
+        let errorMsg = 'Failed to assign staff.';
+        try {
+          const errJson = JSON.parse(errText);
+          errorMsg = errJson.detail || errJson.message || errorMsg;
+        } catch {
+          errorMsg = errText || errorMsg;
+        }
+        addToast(errorMsg, 'error');
       }
     } catch (err) {
       console.error('Error assigning staff:', err);

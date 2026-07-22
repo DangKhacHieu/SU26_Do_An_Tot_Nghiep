@@ -1,4 +1,3 @@
-import React from 'react';
 import { TASK_STATUS, TASK_TYPE } from '../../../constants/taskEnums';
 
 export default function TaskInfoCard({ task, onViewIssueDetails }) {
@@ -40,7 +39,6 @@ export default function TaskInfoCard({ task, onViewIssueDetails }) {
       case TASK_TYPE.REPAIR: return 'Repair';
       case TASK_TYPE.MAINTENANCE: return 'Maintenance';
       case TASK_TYPE.UTILITY_READING: return 'Meter Reading';
-      case TASK_TYPE.CASH_COLLECTION: return 'Cash Collection';
       default: return type;
     }
   };
@@ -50,7 +48,6 @@ export default function TaskInfoCard({ task, onViewIssueDetails }) {
       case TASK_TYPE.REPAIR: return 'badge-repair';
       case TASK_TYPE.MAINTENANCE: return 'badge-maintenance';
       case TASK_TYPE.UTILITY_READING: return 'badge-utility';
-      case TASK_TYPE.CASH_COLLECTION: return 'badge-cash';
       default: return 'badge-default';
     }
   };
@@ -89,7 +86,7 @@ export default function TaskInfoCard({ task, onViewIssueDetails }) {
 
         <div className="info-item">
           <span className="info-label">Area/Location:</span>
-          <span className="info-value">{task.areaName || 'Khu vực hạ tầng chung (Chợ)'}</span>
+          <span className="info-value">{task.stallCode || task.areaName || 'Location not specified'}</span>
         </div>
 
         <div className="info-item">

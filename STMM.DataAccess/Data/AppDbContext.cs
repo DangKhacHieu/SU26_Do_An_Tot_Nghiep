@@ -803,6 +803,14 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.PaidBy)
                 .HasComment("Đối tượng chi trả: Vendor=Tiểu thương chịu | Market=Chợ chịu. Quyết định ai duyệt báo giá khi status=Quoted")
                 .HasColumnName("paid_by");
+            entity.Property(e => e.PayerContractClause)
+                .HasMaxLength(500)
+                .HasComment("Điều khoản hợp đồng làm căn cứ xác định bên chịu phí")
+                .HasColumnName("payer_contract_clause");
+            entity.Property(e => e.PayerDecisionNote)
+                .HasMaxLength(1000)
+                .HasComment("Ghi chú cho quyết định xử lý báo giá gần nhất của Manager")
+                .HasColumnName("payer_decision_note");
             entity.Property(e => e.QuotationAmount)
                 .HasPrecision(18, 2)
                 .HasComment("Tổng chi phí báo giá dự kiến (VNĐ)")
@@ -835,6 +843,10 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.VendorId)
                 .HasComment("Tiểu thương gửi yêu cầu")
                 .HasColumnName("vendor_id");
+            entity.Property(e => e.VendorRejectReason)
+                .HasMaxLength(1000)
+                .HasComment("Lý do Vendor từ chối báo giá gần nhất")
+                .HasColumnName("vendor_reject_reason");
             entity.Property(e => e.ViolationId)
                 .HasComment("Điền nếu Kháng nghị vi phạm")
                 .HasColumnName("violation_id");

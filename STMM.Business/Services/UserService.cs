@@ -40,19 +40,25 @@ namespace STMM.Business.Services
             _editProfileValidator = editProfileValidator ?? throw new ArgumentNullException(nameof(editProfileValidator));
         }
 
-        public async Task<IEnumerable<UserDto>> GetUsersAsync(string? roleName, string? search, CancellationToken ct = default)
+        public async Task<IEnumerable<UserDto>> GetUsersAsync(string? roleName, string? search, int? marketId = null, CancellationToken ct = default)
         {
             var users = await _userRepository.GetUsersWithRolesAsync(
                 roleName,
                 search,
                 limitToManageableRoles: true,
-                ct);
+                marketId: marketId,
+                ct: ct);
 
             return _mapper.Map<IEnumerable<UserDto>>(users);
         }
 
         public async Task<UserDetailDto> GetUserByIdAsync(int id, CancellationToken ct = default)
         {
+            if (id <= 0)
+            {
+                throw new BadRequestException("ID người dùng không hợp lệ.");
+            }
+
             var user = await _userRepository.GetUserByIdWithRoleAsync(id, ct);
 
             if (user == null)
@@ -214,6 +220,16 @@ namespace STMM.Business.Services
 
         public async Task<UserDto> UpdateProfileAsync(int userId, EditProfileRequest request, CancellationToken ct = default)
         {
+            if (userId <= 0)
+            {
+                throw new BadRequestException("ID người dùng không hợp lệ.");
+            }
+
+            if (request == null)
+            {
+                throw new BadRequestException("Dữ liệu không hợp lệ.");
+            }
+
             var validationResult = await _editProfileValidator.ValidateAsync(request, ct);
 
             if (!validationResult.IsValid)
@@ -330,7 +346,8 @@ namespace STMM.Business.Services
                 roleName,
                 search,
                 limitToManageableRoles: false,
-                ct);
+                marketId: null,
+                ct: ct);
 
             return _mapper.Map<IEnumerable<UserDto>>(users);
         }

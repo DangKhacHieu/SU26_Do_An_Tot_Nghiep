@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using STMM.Business.DTOs.Service;
 using STMM.Business.Interfaces;
+using STMM.Business.Exceptions;
 using STMM.DataAccess.Data;
 
 namespace STMM.API.Controllers;
@@ -56,6 +57,33 @@ public class VendorServicesController : ControllerBase
         return Ok(myServices);
     }
 
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetServiceDetail(int id, CancellationToken ct)
+    {
+        var vendorId = await GetVendorIdAsync(ct);
+        try
+        {
+            var serviceDetail = await _vendorServiceManagement.GetServiceDetailAsync(vendorId, id, ct);
+            return Ok(serviceDetail);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
     [HttpGet("my-stalls")]
     public async Task<IActionResult> GetMyStalls(CancellationToken ct)
     {
@@ -67,16 +95,38 @@ public class VendorServicesController : ControllerBase
     [HttpPost("register")]
     public async Task<IActionResult> RegisterService([FromBody] RegisterServiceRequest request, CancellationToken ct)
     {
-        var vendorId = await GetVendorIdAsync(ct);
-        var result = await _vendorServiceManagement.RegisterServiceAsync(vendorId, request, ct);
-        return Ok(new { message = "Đăng ký thành công. Vui lòng đợi Ban quản lý phê duyệt để kích hoạt dịch vụ.", data = result });
+        try
+        {
+            var vendorId = await GetVendorIdAsync(ct);
+            var result = await _vendorServiceManagement.RegisterServiceAsync(vendorId, request, ct);
+            return Ok(new { message = "Đăng ký thành công. Vui lòng đợi Ban quản lý phê duyệt để kích hoạt dịch vụ.", data = result });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (BadRequestException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     [HttpPost("{id}/cancel")]
     public async Task<IActionResult> CancelService(int id, CancellationToken ct)
     {
-        var vendorId = await GetVendorIdAsync(ct);
-        await _vendorServiceManagement.CancelServiceAsync(vendorId, id, ct);
-        return Ok(new { message = "Yêu cầu hủy dịch vụ đã được ghi nhận thành công." });
+        try
+        {
+            var vendorId = await GetVendorIdAsync(ct);
+            await _vendorServiceManagement.CancelServiceAsync(vendorId, id, ct);
+            return Ok(new { message = "Yêu cầu hủy dịch vụ đã được ghi nhận thành công." });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (BadRequestException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 }

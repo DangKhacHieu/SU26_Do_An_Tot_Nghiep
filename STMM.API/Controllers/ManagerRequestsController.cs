@@ -1,6 +1,8 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using STMM.Business.DTOs.Request;
 using STMM.Business.Interfaces;
+using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -8,6 +10,7 @@ namespace STMM.API.Controllers
 {
     [ApiController]
     [Route("api/manager/requests")]
+    [Authorize(Roles = "Manager")]
     public class ManagerRequestsController : ControllerBase
     {
         private readonly IRequestService _requestService;
@@ -15,6 +18,17 @@ namespace STMM.API.Controllers
         public ManagerRequestsController(IRequestService requestService)
         {
             _requestService = requestService;
+        }
+
+        private int GetManagerUserId()
+        {
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!int.TryParse(userIdClaim, out var userId))
+            {
+                throw new System.UnauthorizedAccessException("User ID not found in token.");
+            }
+
+            return userId;
         }
 
         /// <summary>
@@ -55,15 +69,17 @@ namespace STMM.API.Controllers
         }
 
         /// <summary>
-        /// UC-xx: Resolve Request Quote — Manager duyệt hoặc từ chối báo giá (chỉ áp dụng khi BQL chịu phí).
+        /// Manager xác định bên chịu phí và bước xử lý tiếp theo của báo giá.
         /// </summary>
-        [HttpPost("{id}/resolve-quote")]
-        public async Task<IActionResult> ResolveQuote(
+        [HttpPost("{id}/resolve-quotation")]
+        public async Task<IActionResult> ResolveQuotation(
             int id,
-            [FromQuery] bool approve,
+            [FromBody] ManagerQuotationDecisionRequest decision,
             CancellationToken ct)
         {
-            var result = await _requestService.ResolveRequestQuoteAsync(id, approve, ct);
+            var managerUserId = GetManagerUserId();
+            var result = await _requestService.ResolveRequestQuotationAsync(
+                id, managerUserId, decision, ct);
             return Ok(result);
         }
     }

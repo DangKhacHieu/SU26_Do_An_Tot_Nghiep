@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { vendorFeedbackApi } from '../../../services/vendorFeedbackApi';
+import { showError, showWarning } from '../../../utils/alert';
 import './VendorFeedbackList.css';
 
 export default function VendorFeedbackList({ stallId, rentedStalls }) {
@@ -27,6 +28,7 @@ export default function VendorFeedbackList({ stallId, rentedStalls }) {
             }
         } catch (error) {
             console.error('Failed to fetch feedbacks', error);
+            showError('Thất bại', 'Không thể tải danh sách đánh giá.');
         } finally {
             setLoading(false);
         }
@@ -179,7 +181,7 @@ export default function VendorFeedbackList({ stallId, rentedStalls }) {
                                         <span className="verified-badge">
                                             ✓ Đã mua hàng
                                         </span>
-                                        <button className="btn-reply" onClick={() => alert('Chức năng phản hồi đang được phát triển.')}>
+                                        <button className="btn-reply" onClick={() => showWarning('Tính năng', 'Chức năng phản hồi đang được phát triển.')}>
                                             <span className="reply-icon">💬</span> Phản hồi
                                         </button>
                                     </footer>

@@ -96,20 +96,6 @@ class MeterService {
   }
 
   /**
-   * Xóa công tơ (dành cho Manager)
-   */
-  async deleteMeter(id: number): Promise<boolean> {
-    try {
-      const response = await this.api.delete<boolean>(`/meters/${id}`);
-      return response.data;
-    } catch (error: any) {
-      throw new Error(getApiErrorMessage(error, `Xóa công tơ #${id} thất bại`));
-    }
-  }
-
-
-
-  /**
    * Lấy danh sách công tơ chưa gán cho sạp (để gán sạp hoặc thay thế)
    */
   async getUnassignedMeters(type?: string): Promise<MeterDto[]> {

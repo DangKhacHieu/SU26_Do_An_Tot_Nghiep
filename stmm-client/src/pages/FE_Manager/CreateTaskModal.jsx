@@ -62,7 +62,6 @@ const formatCompactDate = (dateStr) => {
 };
 
 export default function CreateTaskModal({
-  userId,
   baseUrl,
   onClose,
   onSuccess,
@@ -399,7 +398,7 @@ export default function CreateTaskModal({
       description: description.trim() || null,
       areaId: taskType === 'UtilityReading' ? parseInt(areaId) : null,
       requestId: (linkSource === 'request' && (taskType === 'Repair' || taskType === 'Maintenance') && requestId) ? parseInt(requestId) : null,
-      issueId: preFilledIssueId
+      issueId: taskType !== 'UtilityReading' && preFilledIssueId
         ? parseInt(preFilledIssueId)
         : (linkSource === 'issue' && (taskType === 'Repair' || taskType === 'Maintenance') && issueId)
           ? parseInt(issueId)
@@ -407,7 +406,7 @@ export default function CreateTaskModal({
     };
 
     try {
-      const res = await fetch(`${baseUrl}/api/manager/tasks?userId=${userId}`, {
+      const res = await fetch(`${baseUrl}/api/manager/tasks`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -578,7 +577,7 @@ export default function CreateTaskModal({
                 </div>
               )}
 
-              {preFilledIssueId ? (
+              {preFilledIssueId && (taskType === 'Repair' || taskType === 'Maintenance') ? (
                 <div className="ctm-linked-panel">
                   <div className="ctm-linked-icon">
                     <Link2 size={15} />

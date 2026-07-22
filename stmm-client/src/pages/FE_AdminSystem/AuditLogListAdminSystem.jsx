@@ -110,7 +110,6 @@ export default function AuditLogListAdminSystem({ navigate, addToast }) {
 
         await connection.start();
         setHubConnected(true);
-        addToast('Đã kết nối thời gian thực qua WebSockets.', 'success');
       } catch (err) {
         console.error("SignalR Audit Log Hub connection failed:", err);
         setHubConnected(false);

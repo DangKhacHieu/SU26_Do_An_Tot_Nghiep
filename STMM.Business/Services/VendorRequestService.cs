@@ -18,6 +18,7 @@ namespace STMM.Business.Services
         private readonly IRequestRepository _requestRepository;
         private readonly IContractRepository _contractRepository;
         private readonly IViolationRepository _violationRepository;
+        private readonly IInvoiceRepository _invoiceRepository;
         private readonly IStaffTaskRepository _staffTaskRepository;
         private readonly IMapper _mapper;
 
@@ -25,24 +26,46 @@ namespace STMM.Business.Services
             IRequestRepository requestRepository, 
             IContractRepository contractRepository, 
             IViolationRepository violationRepository, 
+            IInvoiceRepository invoiceRepository,
             IStaffTaskRepository staffTaskRepository,
             IMapper mapper)
         {
             _requestRepository = requestRepository;
             _contractRepository = contractRepository;
             _violationRepository = violationRepository;
+            _invoiceRepository = invoiceRepository;
             _staffTaskRepository = staffTaskRepository;
             _mapper = mapper;
         }
 
         public async Task<PagedResult<RequestDto>> GetMyRequestsAsync(int vendorId, RequestQueryParams queryParams)
         {
+            if (queryParams.PageNumber < 1)
+                throw new BadRequestException("Số trang không hợp lệ.");
+            
+            if (queryParams.PageSize <= 0 || queryParams.PageSize > 100)
+                throw new BadRequestException("Kích thước trang phải từ 1 đến 100.");
+
+            if (!string.IsNullOrWhiteSpace(queryParams.RequestType))
+            {
+                var validTypes = new[] { "FacilityIssue", "ViolationAppeal", "InvoiceDispute" };
+                if (!validTypes.Contains(queryParams.RequestType.Trim()))
+                    throw new BadRequestException("Loại yêu cầu không hợp lệ.");
+            }
+
+            if (!string.IsNullOrWhiteSpace(queryParams.Status))
+            {
+                var validStatuses = new[] { "Pending", "Approved", "Rejected", "Cancelled", "In_Progress" };
+                if (!validStatuses.Contains(queryParams.Status.Trim()))
+                    throw new BadRequestException("Trạng thái yêu cầu không hợp lệ.");
+            }
+
             var (items, totalCount) = await _requestRepository.GetRequestsPagedAsync(
                 vendorId,
                 queryParams.StallId,
-                queryParams.Status,
-                queryParams.RequestType,
-                queryParams.SearchTerm,
+                queryParams.Status?.Trim(),
+                queryParams.RequestType?.Trim(),
+                queryParams.SearchTerm?.Trim(),
                 queryParams.SortDescending,
                 queryParams.PageNumber,
                 queryParams.PageSize);
@@ -58,12 +81,15 @@ namespace STMM.Business.Services
             };
         }
 
-        public async Task<RequestDto?> GetRequestDetailAsync(int vendorId, int requestId)
+        public async Task<RequestDto> GetRequestDetailAsync(int vendorId, int requestId)
         {
+            if (requestId <= 0)
+                throw new BadRequestException("ID yêu cầu không hợp lệ.");
+
             var request = await _requestRepository.GetRequestWithRelationsAsync(requestId);
             if (request == null || request.VendorId != vendorId)
             {
-                return null;
+                throw new NotFoundException("Không tìm thấy yêu cầu hoặc bạn không có quyền xem.");
             }
 
             return _mapper.Map<RequestDto>(request);
@@ -71,6 +97,45 @@ namespace STMM.Business.Services
 
         public async Task<RequestDto> CreateRequestAsync(int vendorId, CreateRequestDto dto)
         {
+            if (dto.StallId <= 0)
+                throw new BadRequestException("Vui lòng chọn sạp (StallId) hợp lệ.");
+
+            if (string.IsNullOrWhiteSpace(dto.Title))
+                throw new BadRequestException("Tiêu đề không được để trống.");
+
+            if (string.IsNullOrWhiteSpace(dto.Description))
+                throw new BadRequestException("Mô tả không được để trống.");
+
+            var validTypes = new[] { "FacilityIssue", "ViolationAppeal", "InvoiceDispute" };
+            if (!validTypes.Contains(dto.RequestType))
+                throw new BadRequestException("Loại yêu cầu không hợp lệ.");
+
+            if (dto.RequestType == "ViolationAppeal")
+            {
+                if (!dto.ViolationId.HasValue)
+                    throw new BadRequestException("Vui lòng cung cấp ID biên bản vi phạm cần kháng nghị.");
+            }
+            else
+            {
+                if (dto.ViolationId.HasValue)
+                    throw new BadRequestException("Loại yêu cầu này không được phép đính kèm biên bản vi phạm.");
+            }
+
+            if (dto.RequestType == "InvoiceDispute")
+            {
+                if (!dto.InvoiceId.HasValue)
+                    throw new BadRequestException("Vui lòng cung cấp ID hóa đơn cần khiếu nại.");
+                
+                var invoice = await _invoiceRepository.GetByIdAsync(dto.InvoiceId.Value);
+                if (invoice == null)
+                    throw new BadRequestException("Không tìm thấy hóa đơn cần khiếu nại.");
+            }
+            else
+            {
+                if (dto.InvoiceId.HasValue)
+                    throw new BadRequestException("Loại yêu cầu này không được phép đính kèm hóa đơn.");
+            }
+
             // Verify if vendor has a contract for this stall
             var contracts = await _contractRepository.FindAsync(c => c.VendorId == vendorId && c.StallId == dto.StallId && c.IsDeleted != true && c.Status != "Terminated" && c.Status != "Expired");
             if (!contracts.Any())
@@ -87,14 +152,12 @@ namespace STMM.Business.Services
                     throw new BadRequestException("Không tìm thấy biên bản vi phạm hoặc bạn không có quyền kháng nghị biên bản này.");
                 }
 
-                if (vendorViolation.Status == "Appealed")
+                if (vendorViolation.Status == "Appealed" || 
+                    vendorViolation.Status == "Approved" || 
+                    vendorViolation.Status == "Rejected" || 
+                    vendorViolation.Status == "Finalized")
                 {
-                    throw new BadRequestException("Biên bản này đã được kháng nghị rồi.");
-                }
-
-                if (vendorViolation.Status == "Finalized")
-                {
-                    throw new BadRequestException("Biên bản này đã chốt, không thể kháng nghị thêm.");
+                    throw new BadRequestException("Biên bản này đang trong quá trình xử lý kháng nghị hoặc đã có kết quả, không thể kháng nghị lại.");
                 }
 
                 vendorViolation.Status = "Appealed";
@@ -126,6 +189,9 @@ namespace STMM.Business.Services
 
         public async Task<bool> CancelRequestAsync(int vendorId, int requestId)
         {
+            if (requestId <= 0)
+                throw new BadRequestException("ID yêu cầu không hợp lệ.");
+
             var request = await _requestRepository.GetRequestWithRelationsAsync(requestId);
             if (request == null || request.VendorId != vendorId)
             {

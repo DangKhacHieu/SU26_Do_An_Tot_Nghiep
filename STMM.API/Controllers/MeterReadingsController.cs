@@ -39,7 +39,7 @@ namespace STMM.API.Controllers
             [FromQuery] MeterReadingQueryParams query,
             CancellationToken ct)
         {
-            var result = await _service.GetReadingsByStallIdAsync(stallId, query, ct);
+            var result = await _service.GetReadingsByStallIdAsync(GetUserId(), stallId, query, ct);
             return Ok(result);
         }
 
@@ -48,12 +48,10 @@ namespace STMM.API.Controllers
         /// </summary>
         [HttpPost]
         public async Task<IActionResult> CreateReading(
-            [FromQuery] int userId,
             [FromBody] CreateMeterReadingRequest request,
             CancellationToken ct)
         {
-            userId = GetUserId();
-            var result = await _service.CreateReadingAsync(userId, request, ct);
+            var result = await _service.CreateReadingAsync(GetUserId(), request, ct);
             return CreatedAtAction(null, result);
         }
     }

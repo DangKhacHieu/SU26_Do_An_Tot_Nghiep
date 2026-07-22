@@ -381,6 +381,17 @@
 .status-completed::before { background: #6d28d9; }
 .status-rejected  { background: #fef2f2; color: #dc2626; border-color: #fecaca; }
 .status-rejected::before  { background: #dc2626; }
+.status-review { background: #fff7ed; color: #9a3412; border-color: #fdba74; }
+.status-review::before { background: #ea580c; }
+
+.rl-row-needs-review {
+  background: #fffaf5;
+  box-shadow: inset 3px 0 0 #f97316;
+}
+
+.rl-row-needs-review:hover {
+  background: #fff3e8;
+}
 
 /* view button */
 .rl-view-btn {

@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { showSuccess, showError, showConfirm } from '../../../utils/alert';
 import '../../../AppDashboard.css';
 
 const VendorMyServices = ({ vendorId, searchTerm = '', setSearchTerm, onAddService }) => {
     const [myServices, setMyServices] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [cancelService, setCancelService] = useState(null);
     const [viewMyService, setViewMyService] = useState(null);
+    const [loadingDetailId, setLoadingDetailId] = useState(null);
     const [statusFilter, setStatusFilter] = useState('All');
 
     const fetchMyServices = async () => {
@@ -18,7 +18,7 @@ const VendorMyServices = ({ vendorId, searchTerm = '', setSearchTerm, onAddServi
             });
             setMyServices(response.data);
         } catch (err) {
-            setError('Không thể tải danh sách dịch vụ của bạn.');
+            showError('Thất bại', 'Không thể tải danh sách dịch vụ của bạn.');
             console.error(err);
         } finally {
             setLoading(false);
@@ -29,27 +29,47 @@ const VendorMyServices = ({ vendorId, searchTerm = '', setSearchTerm, onAddServi
         fetchMyServices();
     }, []);
 
-    const handleCancelClick = (service) => {
-        setCancelService(service);
+    const handleCancelClick = async (service) => {
+        const text = service.status === 'Pending' 
+            ? 'Bạn có chắc chắn muốn rút lại yêu cầu đăng ký dịch vụ này không?' 
+            : `Dịch vụ này sẽ không được gia hạn vào tháng tới, nhưng bạn vẫn có thể sử dụng đến hết ngày ${service.endDate ? new Date(service.endDate).toLocaleDateString('vi-VN') : 'cuối kỳ'}. Bạn có chắc chắn muốn hủy?`;
+        
+        const result = await showConfirm('Xác nhận Hủy', text);
+        if (result.isConfirmed) {
+            handleConfirmCancel(service);
+        }
     };
 
-    const handleConfirmCancel = async () => {
+    const handleViewDetailClick = async (service) => {
+        setLoadingDetailId(service.registrationId);
         try {
             const token = localStorage.getItem('accessToken');
-            const response = await axios.post(`http://localhost:5056/api/vendor/services/${cancelService.registrationId}/cancel`, {}, {
+            const response = await axios.get(`http://localhost:5056/api/vendor/services/${service.registrationId}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            alert(response.data.message);
-            setCancelService(null);
+            setViewMyService(response.data);
+        } catch (err) {
+            showError('Thất bại', err.response?.data?.message || 'Không thể lấy thông tin chi tiết dịch vụ.');
+        } finally {
+            setLoadingDetailId(null);
+        }
+    };
+
+    const handleConfirmCancel = async (service) => {
+        try {
+            const token = localStorage.getItem('accessToken');
+            const response = await axios.post(`http://localhost:5056/api/vendor/services/${service.registrationId}/cancel`, {}, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            await showSuccess('Thành công', response.data.message);
             fetchMyServices(); // Refresh list
         } catch (err) {
             const msg = err.response?.data?.message || 'Có lỗi xảy ra khi hủy dịch vụ.';
-            alert(msg);
+            showError('Thất bại', msg);
         }
     };
 
     if (loading) return <div style={{ padding: '24px' }}>Đang tải dữ liệu...</div>;
-    if (error) return <div style={{ padding: '24px', color: 'red' }}>{error}</div>;
 
     const filteredMyServices = myServices.filter(s => 
         ((s?.serviceName?.toLowerCase() || s?.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) || 
@@ -121,21 +141,22 @@ const VendorMyServices = ({ vendorId, searchTerm = '', setSearchTerm, onAddServi
                                     <td style={{ padding: '16px', color: '#555' }}>{new Date(service.registeredAt).toLocaleDateString('vi-VN')}</td>
                                     <td style={{ padding: '16px' }}>
                                         <span style={{ 
-                                            background: service.status === 'Active' ? '#d1fae5' : service.status === 'Pending' ? '#fef3c7' : '#fee2e2', 
-                                            color: service.status === 'Active' ? '#065f46' : service.status === 'Pending' ? '#92400e' : '#991b1b',
+                                            background: service.status === 'Active' && service.isAutoRenew !== false ? '#d1fae5' : service.status === 'Active' && service.isAutoRenew === false ? '#fef3c7' : service.status === 'Pending' ? '#fef3c7' : '#fee2e2', 
+                                            color: service.status === 'Active' && service.isAutoRenew !== false ? '#065f46' : service.status === 'Active' && service.isAutoRenew === false ? '#92400e' : service.status === 'Pending' ? '#92400e' : '#991b1b',
                                             padding: '4px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold'
                                         }}>
-                                            {service.status}
+                                            {service.status === 'Active' && service.isAutoRenew === false ? 'Đã hủy gia hạn' : service.status === 'Active' ? 'Đang hoạt động' : service.status === 'Pending' ? 'Chờ duyệt' : 'Đã hủy'}
                                         </span>
                                     </td>
                                     <td style={{ padding: '16px', textAlign: 'center' }}>
                                         <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
                                             <button 
-                                                onClick={() => setViewMyService(service)}
-                                                style={{ background: 'transparent', border: '1px solid #e5e7eb', color: '#333', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}>
-                                                Chi tiết
+                                                onClick={() => handleViewDetailClick(service)}
+                                                disabled={loadingDetailId === service.registrationId}
+                                                style={{ background: 'transparent', border: '1px solid #e5e7eb', color: '#333', padding: '6px 12px', borderRadius: '4px', cursor: loadingDetailId === service.registrationId ? 'wait' : 'pointer', fontSize: '12px', fontWeight: 'bold' }}>
+                                                {loadingDetailId === service.registrationId ? 'Đang tải...' : 'Chi tiết'}
                                             </button>
-                                            {service.status !== 'Cancelled' && (
+                                            {service.status !== 'Cancelled' && !(service.status === 'Active' && service.isAutoRenew === false) && (
                                                 <button 
                                                     onClick={() => handleCancelClick(service)}
                                                     style={{ background: '#fef2f2', border: '1px solid #fca5a5', color: '#ef4444', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}>
@@ -166,24 +187,6 @@ const VendorMyServices = ({ vendorId, searchTerm = '', setSearchTerm, onAddServi
                 </div>
             </div>
 
-            {cancelService && (
-                <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
-                    <div style={{ background: 'white', padding: '32px', borderRadius: '12px', minWidth: '400px', boxShadow: '0 10px 30px rgba(0,0,0,0.2)' }}>
-                        <h3 style={{ marginTop: 0, color: '#ff4d4f', borderBottom: '1px solid #eee', paddingBottom: '16px' }}>Xác nhận Hủy</h3>
-                        <p style={{ marginTop: '16px', lineHeight: '1.5' }}>
-                            {cancelService.status === 'Pending' 
-                                ? 'Bạn có chắc chắn muốn rút lại yêu cầu đăng ký dịch vụ này không?' 
-                                : `Dịch vụ này sẽ không được gia hạn vào tháng tới, nhưng bạn vẫn có thể sử dụng đến hết ngày ${cancelService.endDate ? new Date(cancelService.endDate).toLocaleDateString('vi-VN') : 'cuối kỳ'}. Bạn có chắc chắn muốn hủy?`}
-                        </p>
-                        
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '32px' }}>
-                            <button onClick={() => setCancelService(null)} style={{ padding: '10px 20px', border: '1px solid #ccc', background: 'transparent', borderRadius: '6px', cursor: 'pointer' }}>Quay lại</button>
-                            <button onClick={handleConfirmCancel} style={{ padding: '10px 20px', border: 'none', background: '#ff4d4f', color: 'white', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>Đồng ý Hủy</button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
             {viewMyService && (
                 <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
                     <div style={{ background: 'white', borderRadius: '16px', width: '100%', maxWidth: '500px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', overflow: 'hidden', animation: 'fadeIn 0.3s ease-out' }}>
@@ -192,10 +195,10 @@ const VendorMyServices = ({ vendorId, searchTerm = '', setSearchTerm, onAddServi
                             <button onClick={() => setViewMyService(null)} style={{ position: 'absolute', top: '16px', right: '16px', background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white', width: '32px', height: '32px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', transition: 'background 0.2s' }}>✕</button>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
                                 <span style={{ 
-                                    background: viewMyService.status === 'Active' ? '#059669' : viewMyService.status === 'Pending' ? '#d97706' : '#dc2626', 
+                                    background: viewMyService.status === 'Active' && viewMyService.isAutoRenew !== false ? '#059669' : viewMyService.status === 'Active' && viewMyService.isAutoRenew === false ? '#d97706' : viewMyService.status === 'Pending' ? '#d97706' : '#dc2626', 
                                     padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: '600', color: 'white' 
                                 }}>
-                                    {viewMyService.status === 'Active' ? 'Đang hoạt động' : viewMyService.status === 'Pending' ? 'Chờ duyệt' : 'Đã hủy'}
+                                    {viewMyService.status === 'Active' && viewMyService.isAutoRenew === false ? 'Đã hủy gia hạn' : viewMyService.status === 'Active' ? 'Đang hoạt động' : viewMyService.status === 'Pending' ? 'Chờ duyệt' : 'Đã hủy'}
                                 </span>
                                 <span style={{ background: 'rgba(255,255,255,0.2)', padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: '600' }}>
                                     Sạp: {viewMyService.stallCode}
@@ -238,7 +241,7 @@ const VendorMyServices = ({ vendorId, searchTerm = '', setSearchTerm, onAddServi
                             {/* Actions */}
                             <div style={{ display: 'flex', gap: '12px' }}>
                                 <button onClick={() => setViewMyService(null)} style={{ flex: 1, padding: '12px', border: '1px solid #cbd5e1', background: 'white', color: '#475569', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s' }}>Đóng lại</button>
-                                {viewMyService.status !== 'Cancelled' && (
+                                {viewMyService.status !== 'Cancelled' && !(viewMyService.status === 'Active' && viewMyService.isAutoRenew === false) && (
                                     <button onClick={() => { setViewMyService(null); handleCancelClick(viewMyService); }} style={{ flex: 1, padding: '12px', border: 'none', background: '#fee2e2', color: '#dc2626', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', transition: 'background 0.2s' }}>
                                         Hủy dịch vụ này
                                     </button>

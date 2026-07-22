@@ -7,10 +7,12 @@ namespace STMM.Business.Interfaces
 {
     public interface IBillingService
     {
+        Task<InvoiceDto> GetInvoiceDetailAsync(int invoiceId, CancellationToken ct = default);
+
         /// <summary>
         /// Get invoice detail including InvoiceDetails, FeeType, Stall, and Vendor information.
         /// </summary>
-        Task<InvoiceDto> GetInvoiceDetailAsync(int invoiceId, int accountantUserId, CancellationToken ct = default);
+        Task<InvoiceDto> GetInvoiceDetailAsync(int staffUserId, int invoiceId, CancellationToken ct = default);
 
         /// <summary>
         /// Record cash payment collected at the stall.
@@ -21,7 +23,7 @@ namespace STMM.Business.Interfaces
         /// <summary>
         /// Get list of unpaid invoices for a specific stall.
         /// </summary>
-        Task<List<UnpaidInvoiceSummaryDto>> GetUnpaidInvoicesByStallAsync(int stallId, CancellationToken ct = default);
+        Task<List<UnpaidInvoiceSummaryDto>> GetUnpaidInvoicesByStallAsync(int staffUserId, int stallId, CancellationToken ct = default);
 
         /// <summary>
         /// Get a list of invoices with filters for Month, Year, Status, and search term.

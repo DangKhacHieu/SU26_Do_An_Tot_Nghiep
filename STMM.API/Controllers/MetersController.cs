@@ -29,7 +29,7 @@ namespace STMM.API.Controllers
         [Authorize(Roles = "Staff")]
         public async Task<IActionResult> GetMetersByStallId(int stallId, CancellationToken ct)
         {
-            var result = await _readingService.GetMetersByStallIdAsync(stallId, ct);
+            var result = await _readingService.GetMetersByStallIdAsync(GetUserId(), stallId, ct);
             return Ok(result);
         }
 
@@ -40,8 +40,19 @@ namespace STMM.API.Controllers
         [Authorize(Roles = "Staff,Manager")]
         public async Task<IActionResult> GetMeterById(int id, CancellationToken ct)
         {
-            var result = await _meterService.GetMeterByIdAsync(id, ct);
+            var result = await _meterService.GetMeterByIdAsync(id, GetUserId(), ct);
             return Ok(result);
+        }
+
+        private int GetUserId()
+        {
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!int.TryParse(userIdClaim, out var userId))
+            {
+                throw new System.UnauthorizedAccessException("User ID not found in token.");
+            }
+
+            return userId;
         }
 
         /// <summary>
@@ -77,26 +88,12 @@ namespace STMM.API.Controllers
         [Authorize(Roles = "Manager")]
         public async Task<IActionResult> UpdateMeter(int id, [FromBody] UpdateMeterRequest request, CancellationToken ct)
         {
-            var result = await _meterService.UpdateMeterAsync(id, request, ct);
-            return Ok(result);
-        }
-
-        /// <summary>
-        /// Delete meter (for Manager).
-        /// </summary>
-        [HttpDelete("{id}")]
-        [Authorize(Roles = "Manager")]
-        public async Task<IActionResult> DeleteMeter(int id, CancellationToken ct)
-        {
-            var result = await _meterService.DeleteMeterAsync(id, ct);
+            var result = await _meterService.UpdateMeterAsync(id, GetUserId(), request, ct);
             return Ok(result);
         }
 
 
 
-        /// <summary>
-        /// Get unassigned active meters (for Manager/Hải's Stall assign usecase).
-        /// </summary>
         [HttpGet("unassigned")]
         [Authorize(Roles = "Manager")]
         public async Task<IActionResult> GetUnassignedMeters([FromQuery] string? type, CancellationToken ct)

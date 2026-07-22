@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { showError } from '../../../utils/alert';
 import VendorRequestCreate from './VendorRequestCreate';
 import VendorRequestDetail from './VendorRequestDetail';
 
 const VendorRequestList = ({ vendorId, searchTerm, setSearchTerm, stallId }) => {
     const [requests, setRequests] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
     const [statusFilter, setStatusFilter] = useState('All');
     
     // Default search term if not provided
@@ -38,7 +38,7 @@ const VendorRequestList = ({ vendorId, searchTerm, setSearchTerm, stallId }) => 
             setRequests(response.data.items || []);
             setTotalCount(response.data.totalCount || 0);
         } catch (err) {
-            setError('Không thể tải danh sách yêu cầu.');
+            showError('Thất bại', 'Không thể tải danh sách yêu cầu.');
             console.error(err);
         } finally {
             setLoading(false);
@@ -118,8 +118,6 @@ const VendorRequestList = ({ vendorId, searchTerm, setSearchTerm, stallId }) => 
                     </select>
                 </div>
             </div>
-
-            {error && <div style={{ color: 'red', marginBottom: '16px' }}>{error}</div>}
 
             <div style={{ border: '1px solid #e5e7eb', borderRadius: '8px', overflow: 'hidden' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>

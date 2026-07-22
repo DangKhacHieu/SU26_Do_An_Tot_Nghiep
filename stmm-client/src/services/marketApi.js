@@ -9,12 +9,13 @@ const MARKETS_URL = `${API_ROOT}/markets`;
 
 const getAuthHeaders = () => {
   let token = localStorage.getItem('accessToken');
-  // Fallback: if Login.jsx saved token inside user_session object
   if (!token) {
     try {
       const session = JSON.parse(localStorage.getItem('user_session') || '{}');
       token = session.token || null;
-    } catch (e) { /* ignore */ }
+    } catch {
+      token = null;
+    }
   }
   const headers = { 'Content-Type': 'application/json' };
   if (token) {
@@ -74,5 +75,20 @@ export const deactivateMarket = async (marketId) => {
   } catch (error) {
     console.error(`Error deactivating market ${marketId}:`, error);
     throw error;
+  }
+};
+
+export const getStaffMarketMap = async () => {
+  try {
+    const response = await axios.get(`${API_ROOT}/staff/market-map`, { headers: getAuthHeaders() });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching Staff market map:", error);
+    throw new Error(
+      error.response?.data?.detail ||
+        error.response?.data?.title ||
+        "Unable to load the Staff market map.",
+      { cause: error }
+    );
   }
 };

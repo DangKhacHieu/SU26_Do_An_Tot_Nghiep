@@ -32,54 +32,39 @@ namespace STMM.API.Controllers
             return userId;
         }
 
-        /// <summary>
-        /// UC-54: View Violation List — Staff xem danh sách vi phạm do mình tạo.
-        /// </summary>
         [HttpGet]
         [Authorize(Roles = "Staff")]
         public async Task<IActionResult> GetViolations(
-            [FromQuery] int userId,
             [FromQuery] ViolationQueryParams queryParams,
             CancellationToken ct)
         {
-            userId = GetUserId();
-            var result = await _violationService.GetViolationsAsync(userId, queryParams, ct);
+            var result = await _violationService.GetViolationsAsync(GetUserId(), queryParams, ct);
             return Ok(result);
         }
 
-        /// <summary>
-        /// UC-56: View Violation Details — Staff xem chi tiết một vi phạm.
-        /// </summary>
         [HttpGet("{id}")]
         [Authorize(Roles = "Staff")]
         public async Task<IActionResult> GetViolationById(
             int id,
-            [FromQuery] int userId,
             CancellationToken ct)
         {
-            userId = GetUserId();
-            var result = await _violationService.GetViolationByIdAsync(id, userId, ct);
+            var result = await _violationService.GetViolationByIdAsync(id, GetUserId(), ct);
             return Ok(result);
         }
 
-        /// <summary>
-        /// UC-55: Create Violation Report — Staff lập biên bản vi phạm mới.
-        /// </summary>
         [HttpPost]
         [Authorize(Roles = "Staff")]
         public async Task<IActionResult> CreateViolation(
-            [FromQuery] int userId,
             [FromBody] CreateViolationRequest request,
             CancellationToken ct)
         {
-            userId = GetUserId();
+            var userId = GetUserId();
             var result = await _violationService.CreateViolationAsync(userId, request, ct);
 
-            // Ghi nhật ký hoạt động
             var ipAddress = Request.HttpContext.Connection.RemoteIpAddress?.ToString();
             await _auditLogService.LogAsync(userId, $"Lập biên bản vi phạm: {result.ViolationTypeName} - Sạp: {result.StallCode} - Số tiền phạt: {request.FineAmount:N0} VNĐ", ipAddress, ct);
 
-            return CreatedAtAction(nameof(GetViolationById), new { id = result.ViolationId, userId }, result);
+            return CreatedAtAction(nameof(GetViolationById), new { id = result.ViolationId }, result);
         }
 
         /// <summary>
@@ -93,16 +78,13 @@ namespace STMM.API.Controllers
             return Ok(result);
         }
 
-        /// <summary>
-        /// UC-xx: View Violations List for Manager — Manager xem tất cả vi phạm.
-        /// </summary>
         [HttpGet("~/api/manager/violations")]
         [Authorize(Roles = "Manager")]
         public async Task<IActionResult> GetViolationsForManager(
             [FromQuery] ViolationQueryParams queryParams,
             CancellationToken ct)
         {
-            var result = await _violationService.GetViolationsForManagerAsync(queryParams, ct);
+            var result = await _violationService.GetViolationsForManagerAsync(GetUserId(), queryParams, ct);
             return Ok(result);
         }
 
@@ -146,7 +128,7 @@ namespace STMM.API.Controllers
             int id,
             CancellationToken ct)
         {
-            var result = await _violationService.GetViolationByIdForManagerAsync(id, ct);
+            var result = await _violationService.GetViolationByIdForManagerAsync(GetUserId(), id, ct);
             return Ok(result);
         }
 
@@ -161,9 +143,6 @@ namespace STMM.API.Controllers
             return Ok(result);
         }
 
-        /// <summary>
-        /// Mock/Simulate creating an appeal request for a violation (for demo/testing purposes)
-        /// </summary>
         [HttpPost("~/api/manager/violations/{id:int}/simulate-appeal")]
         [Authorize(Roles = "Manager")]
         public async Task<IActionResult> SimulateAppeal(int id, CancellationToken ct)

@@ -1,5 +1,6 @@
 using STMM.Business.DTOs.Common;
 using STMM.Business.DTOs.StallTask;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -11,5 +12,6 @@ namespace STMM.Business.Interfaces
         /// UC-48: View List Stall Tasks — Xem danh sách các sạp có nhiệm vụ hoặc hóa đơn chưa thanh toán.
         /// </summary>
         Task<PagedResult<StallTaskSummaryDto>> GetStallTasksAsync(int staffUserId, StallTaskQueryParams queryParams, CancellationToken ct = default);
+        Task<IEnumerable<StaffStallLookupDto>> GetStallLookupAsync(int staffUserId, string? search, CancellationToken ct = default);
     }
 }
