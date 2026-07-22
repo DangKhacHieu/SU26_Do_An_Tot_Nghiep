@@ -1,9 +1,13 @@
-using Microsoft.EntityFrameworkCore;
+
 using STMM.Business.DTOs.Dashboard;
 using STMM.Business.Interfaces;
 using STMM.DataAccess.IRepositories;
 using STMM.DataAccess.Entities;
 using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using ClosedXML.Excel;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -51,25 +55,9 @@ namespace STMM.Business.Services
                 }
             }
 
-            var paymentQuery = _paymentRepository.Query();
-            var invoiceQuery = _invoiceRepository.Query().Where(i => i.IsDeleted != true);
-            var violationQuery = _violationRepository.Query();
-
-            if (marketId.HasValue)
-            {
-                paymentQuery = paymentQuery.Where(p => p.Invoice.Contract.Stall.Area.MarketId == marketId.Value);
-                invoiceQuery = invoiceQuery.Where(i => i.Contract.Stall.Area.MarketId == marketId.Value);
-                violationQuery = violationQuery.Where(v => v.Stall.Area.MarketId == marketId.Value);
-            }
-
             // 2. Revenue (actual cash received from Payments)
-            var revenueThisMonth = await paymentQuery
-                .Where(p => p.PaidAt >= thisMonthStart && p.PaidAt < nextMonthStart)
-                .SumAsync(p => (decimal?)p.Amount, ct) ?? 0;
-
-            var revenueLastMonth = await paymentQuery
-                .Where(p => p.PaidAt >= lastMonthStart && p.PaidAt < lastMonthEnd)
-                .SumAsync(p => (decimal?)p.Amount, ct) ?? 0;
+            var revenueThisMonth = await _paymentRepository.GetTotalRevenueAsync(thisMonthStart, nextMonthStart, marketId, ct);
+            var revenueLastMonth = await _paymentRepository.GetTotalRevenueAsync(lastMonthStart, lastMonthEnd, marketId, ct);
 
             decimal revChange = 0;
             if (revenueLastMonth > 0)
@@ -79,17 +67,9 @@ namespace STMM.Business.Services
             string revChangeStr = revChange >= 0 ? $"+{revChange:F1}%" : $"{revChange:F1}%";
 
             // 3. Periodic Invoices (completed vs total)
-            var invoicesTotal = await invoiceQuery
-                .Where(i => i.Month == now.Month && i.Year == now.Year)
-                .CountAsync(ct);
-
-            var invoicesPaid = await invoiceQuery
-                .Where(i => i.Month == now.Month && i.Year == now.Year && i.Status == "Paid")
-                .CountAsync(ct);
-
-            var invoicesPaidLastMonth = await invoiceQuery
-                .Where(i => i.Month == lastMonthStart.Month && i.Year == lastMonthStart.Year && i.Status == "Paid")
-                .CountAsync(ct);
+            var invoicesTotal = await _invoiceRepository.CountInvoicesAsync(now.Month, now.Year, null, marketId, ct);
+            var invoicesPaid = await _invoiceRepository.CountInvoicesAsync(now.Month, now.Year, "Paid", marketId, ct);
+            var invoicesPaidLastMonth = await _invoiceRepository.CountInvoicesAsync(lastMonthStart.Month, lastMonthStart.Year, "Paid", marketId, ct);
 
             decimal invChange = 0;
             if (invoicesPaidLastMonth > 0)
@@ -99,21 +79,8 @@ namespace STMM.Business.Services
             string invChangeStr = invChange >= 0 ? $"+{invChange:F1}%" : $"{invChange:F1}%";
 
             // 4. Repair Cost (invoice detail amount where fee category relates to repairs)
-            var repairCostThisMonth = await invoiceQuery
-                .Where(i => i.Month == now.Month && i.Year == now.Year)
-                .SelectMany(i => i.InvoiceDetails)
-                .Where(d => d.FeeType.Name.ToLower().Contains("sửa") || 
-                            d.FeeType.Name.ToLower().Contains("repair") || 
-                            d.Description!.ToLower().Contains("sửa"))
-                .SumAsync(d => (decimal?)d.Amount, ct) ?? 0;
-
-            var repairCostLastMonth = await invoiceQuery
-                .Where(i => i.Month == lastMonthStart.Month && i.Year == lastMonthStart.Year)
-                .SelectMany(i => i.InvoiceDetails)
-                .Where(d => d.FeeType.Name.ToLower().Contains("sửa") || 
-                            d.FeeType.Name.ToLower().Contains("repair") || 
-                            d.Description!.ToLower().Contains("sửa"))
-                .SumAsync(d => (decimal?)d.Amount, ct) ?? 0;
+            var repairCostThisMonth = await _invoiceRepository.GetTotalRepairCostAsync(now.Month, now.Year, marketId, ct);
+            var repairCostLastMonth = await _invoiceRepository.GetTotalRepairCostAsync(lastMonthStart.Month, lastMonthStart.Year, marketId, ct);
 
             decimal repChange = 0;
             if (repairCostLastMonth > 0)
@@ -123,13 +90,8 @@ namespace STMM.Business.Services
             string repChangeStr = repChange >= 0 ? $"+{repChange:F1}%" : $"{repChange:F1}%";
 
             // 5. Violations & Penalties Fines
-            var finesThisMonth = await violationQuery
-                .Where(v => v.CreatedAt >= thisMonthStart && v.CreatedAt < nextMonthStart)
-                .SumAsync(v => v.FineAmount ?? 0, ct);
-
-            var finesLastMonth = await violationQuery
-                .Where(v => v.CreatedAt >= lastMonthStart && v.CreatedAt < lastMonthEnd)
-                .SumAsync(v => v.FineAmount ?? 0, ct);
+            var finesThisMonth = await _violationRepository.GetTotalFinesAsync(thisMonthStart, nextMonthStart, marketId, ct);
+            var finesLastMonth = await _violationRepository.GetTotalFinesAsync(lastMonthStart, lastMonthEnd, marketId, ct);
 
             decimal fineChange = 0;
             if (finesLastMonth > 0)
@@ -139,17 +101,7 @@ namespace STMM.Business.Services
             string fineChangeStr = fineChange >= 0 ? $"+{fineChange:F1}%" : $"{fineChange:F1}%";
 
             // 6. Recent Transactions
-            var recentPayments = await paymentQuery
-                .Include(p => p.Invoice)
-                    .ThenInclude(i => i.Contract)
-                        .ThenInclude(c => c.Stall)
-                .Include(p => p.Invoice)
-                    .ThenInclude(i => i.Contract)
-                        .ThenInclude(c => c.Vendor)
-                            .ThenInclude(v => v.User)
-                .OrderByDescending(p => p.PaidAt)
-                .Take(5)
-                .ToListAsync(ct);
+            var recentPayments = await _paymentRepository.GetRecentPaymentsAsync(5, marketId, ct);
 
             var transactionsList = recentPayments.Select(p => new DashboardTransactionDto
             {
@@ -174,9 +126,7 @@ namespace STMM.Business.Services
             foreach (var monthStart in chartMonths)
             {
                 var monthEnd = monthStart.AddMonths(1);
-                var revenue = await paymentQuery
-                    .Where(p => p.PaidAt >= monthStart && p.PaidAt < monthEnd)
-                    .SumAsync(p => (decimal?)p.Amount, ct) ?? 0;
+                var revenue = await _paymentRepository.GetTotalRevenueAsync(monthStart, monthEnd, marketId, ct);
                 
                 monthlyAmounts.Add(revenue);
                 
@@ -220,6 +170,91 @@ namespace STMM.Business.Services
                 RecentTransactions = transactionsList,
                 MonthlyRevenueChart = monthlyChartList
             };
+        }
+        
+        public async Task<byte[]> ExportDashboardReportAsync(int? accountantUserId = null, CancellationToken ct = default)
+        {
+            var data = await GetAccountantDashboardDataAsync(accountantUserId, ct);
+
+            using var workbook = new XLWorkbook();
+            
+            // Sheet 1: Revenue Summary
+            var wsRev = workbook.Worksheets.Add("Doanh Thu");
+            wsRev.Cell("A1").Value = "BÁO CÁO TỔNG QUAN DOANH THU";
+            wsRev.Range("A1:C1").Merge().Style.Font.SetBold().Font.SetFontSize(14);
+            
+            wsRev.Cell("A3").Value = "Chỉ số";
+            wsRev.Cell("B3").Value = "Giá trị";
+            wsRev.Cell("C3").Value = "Biến động";
+            wsRev.Range("A3:C3").Style.Font.SetBold().Fill.SetBackgroundColor(XLColor.LightGray);
+            
+            wsRev.Cell("A4").Value = "Doanh thu tháng này";
+            wsRev.Cell("B4").Value = data.RevenueThisMonth;
+            wsRev.Cell("C4").Value = data.RevenueChangePercent;
+            
+            wsRev.Cell("A5").Value = "Hóa đơn đã thu";
+            wsRev.Cell("B5").Value = $"{data.InvoicesPaidCount} / {data.InvoicesTotalCount}";
+            wsRev.Cell("C5").Value = data.InvoicesChangePercent;
+            
+            wsRev.Cell("A6").Value = "Chi phí sửa chữa";
+            wsRev.Cell("B6").Value = data.RepairCostThisMonth;
+            wsRev.Cell("C6").Value = data.RepairCostChangePercent;
+            
+            wsRev.Cell("A7").Value = "Tiền phạt vi phạm";
+            wsRev.Cell("B7").Value = data.ViolationFinesThisMonth;
+            wsRev.Cell("C7").Value = data.ViolationFinesChangePercent;
+            
+            wsRev.Columns().AdjustToContents();
+
+            // Sheet 2: Recent Transactions
+            var wsTrans = workbook.Worksheets.Add("Lịch Sử Giao Dịch");
+            wsTrans.Cell("A1").Value = "LỊCH SỬ GIAO DỊCH GẦN ĐÂY";
+            wsTrans.Range("A1:F1").Merge().Style.Font.SetBold().Font.SetFontSize(14);
+            
+            var transHeaders = new[] { "Mã Giao Dịch", "Tên Tiểu Thương", "Mã Sạp", "Số Tiền", "Phương Thức", "Trạng Thái", "Ngày Thu" };
+            for(int i = 0; i < transHeaders.Length; i++)
+            {
+                wsTrans.Cell(3, i + 1).Value = transHeaders[i];
+            }
+            wsTrans.Range(3, 1, 3, transHeaders.Length).Style.Font.SetBold().Fill.SetBackgroundColor(XLColor.LightGray);
+
+            int row = 4;
+            foreach (var tx in data.RecentTransactions)
+            {
+                wsTrans.Cell(row, 1).Value = tx.TransactionId;
+                wsTrans.Cell(row, 2).Value = tx.TenantName;
+                wsTrans.Cell(row, 3).Value = tx.StallCode;
+                wsTrans.Cell(row, 4).Value = tx.Amount;
+                wsTrans.Cell(row, 5).Value = tx.Type;
+                wsTrans.Cell(row, 6).Value = tx.Status;
+                wsTrans.Cell(row, 7).Value = tx.Date;
+                row++;
+            }
+            wsTrans.Columns().AdjustToContents();
+            
+            // Sheet 3: Monthly Chart
+            var wsChart = workbook.Worksheets.Add("Biểu Đồ Doanh Thu");
+            wsChart.Cell("A1").Value = "BIỂU ĐỒ DOANH THU 12 THÁNG QUA";
+            wsChart.Range("A1:C1").Merge().Style.Font.SetBold().Font.SetFontSize(14);
+            
+            wsChart.Cell("A3").Value = "Tháng/Năm";
+            wsChart.Cell("B3").Value = "Doanh thu (VND)";
+            wsChart.Cell("C3").Value = "Tỷ lệ (%)";
+            wsChart.Range("A3:C3").Style.Font.SetBold().Fill.SetBackgroundColor(XLColor.LightGray);
+
+            int chartRow = 4;
+            foreach(var item in data.MonthlyRevenueChart)
+            {
+                wsChart.Cell(chartRow, 1).Value = item.Label;
+                wsChart.Cell(chartRow, 2).Value = item.Amount;
+                wsChart.Cell(chartRow, 3).Value = item.Value;
+                chartRow++;
+            }
+            wsChart.Columns().AdjustToContents();
+
+            using var stream = new MemoryStream();
+            workbook.SaveAs(stream);
+            return stream.ToArray();
         }
     }
 }

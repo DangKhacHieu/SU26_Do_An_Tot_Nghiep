@@ -12,7 +12,8 @@ namespace STMM.Business.Validators
                 .MaximumLength(150).WithMessage("Tên dịch vụ không vượt quá 150 ký tự.");
 
             RuleFor(x => x.Price)
-                .GreaterThanOrEqualTo(0).WithMessage("Đơn giá dịch vụ phải lớn hơn hoặc bằng 0.");
+                .GreaterThanOrEqualTo(0).WithMessage("Đơn giá dịch vụ phải lớn hơn hoặc bằng 0.")
+                .LessThan(1000000000).WithMessage("Đơn giá dịch vụ quá lớn (vượt quá 1 tỷ).");
 
             RuleFor(x => x.BillingCycle)
                 .NotEmpty().WithMessage("Chu kỳ tính phí không được để trống.")

@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+using FluentValidation;
 using STMM.Business.DTOs.RepairPrice;
 using STMM.Business.Exceptions;
 using STMM.Business.Interfaces;
@@ -16,24 +16,24 @@ namespace STMM.Business.Services
     {
         private readonly IRepairPriceRepository _repairPriceRepository;
         private readonly ITaskMaterialRepository _taskMaterialRepository;
-
+        private readonly IUserRepository _userRepository;
         public RepairPriceService(
             IRepairPriceRepository repairPriceRepository,
-            ITaskMaterialRepository taskMaterialRepository)
+            ITaskMaterialRepository taskMaterialRepository,
+            IUserRepository userRepository)
         {
             _repairPriceRepository = repairPriceRepository;
             _taskMaterialRepository = taskMaterialRepository;
+            _userRepository = userRepository;
         }
 
-        public async Task<IEnumerable<RepairPriceDto>> GetRepairPricesAsync(CancellationToken ct = default)
+        public async Task<IEnumerable<RepairPriceDto>> GetRepairPricesAsync(int userId, CancellationToken ct = default)
         {
-            var items = await _repairPriceRepository.GetAllAsync(ct);
+            var user = await _userRepository.GetByIdAsync(userId, ct);
+            var items = await _repairPriceRepository.GetAllAsync(user?.MarketId, ct);
             
             // Get usage counts grouped by RepairPriceId
-            var usageCounts = await _taskMaterialRepository.Query()
-                .GroupBy(m => m.RepairPriceId)
-                .Select(g => new { RepairPriceId = g.Key, Count = g.Count() })
-                .ToDictionaryAsync(x => x.RepairPriceId, x => x.Count, ct);
+            var usageCounts = await _taskMaterialRepository.GetUsageCountsAsync(ct);
 
             return items.Select(r => new RepairPriceDto
             {
@@ -57,9 +57,7 @@ namespace STMM.Business.Services
                 throw new NotFoundException($"Không tìm thấy hạng mục sửa chữa ID {id}.");
             }
 
-            var usageCount = await _taskMaterialRepository.Query()
-                .Where(m => m.RepairPriceId == id)
-                .CountAsync(ct);
+            var usageCount = await _taskMaterialRepository.GetUsageCountByRepairPriceIdAsync(id, ct);
 
             return new RepairPriceDto
             {
@@ -75,24 +73,12 @@ namespace STMM.Business.Services
             };
         }
 
-        public async Task<RepairPriceDto> CreateRepairPriceAsync(CreateRepairPriceRequest request, CancellationToken ct = default)
+        public async Task<RepairPriceDto> CreateRepairPriceAsync(int userId, CreateRepairPriceRequest request, CancellationToken ct = default)
         {
-            if (string.IsNullOrWhiteSpace(request.ItemName))
-            {
-                throw new BadRequestException("Tên hạng mục sửa chữa không được để trống.");
-            }
-            if (string.IsNullOrWhiteSpace(request.Unit))
-            {
-                throw new BadRequestException("Đơn vị tính không được để trống.");
-            }
-            if (request.Price < 0)
-            {
-                throw new BadRequestException("Đơn giá sửa chữa không được âm.");
-            }
+            var user = await _userRepository.GetByIdAsync(userId, ct);
 
             // Check duplicate name
-            var duplicate = await _repairPriceRepository.Query()
-                .AnyAsync(r => r.ItemName.ToLower() == request.ItemName.ToLower(), ct);
+            var duplicate = await _repairPriceRepository.IsItemNameExistsAsync(request.ItemName, null, user?.MarketId, ct);
             if (duplicate)
             {
                 throw new BadRequestException($"Tên hạng mục '{request.ItemName}' đã tồn tại trong danh mục.");
@@ -106,7 +92,8 @@ namespace STMM.Business.Services
                 Description = request.Description?.Trim(),
                 IsActive = true,
                 CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
+                UpdatedAt = DateTime.UtcNow,
+                MarketId = user?.MarketId
             };
 
             await _repairPriceRepository.AddAsync(item, ct);
@@ -134,22 +121,8 @@ namespace STMM.Business.Services
                 throw new NotFoundException($"Không tìm thấy hạng mục sửa chữa ID {id}.");
             }
 
-            if (string.IsNullOrWhiteSpace(request.ItemName))
-            {
-                throw new BadRequestException("Tên hạng mục sửa chữa không được để trống.");
-            }
-            if (string.IsNullOrWhiteSpace(request.Unit))
-            {
-                throw new BadRequestException("Đơn vị tính không được để trống.");
-            }
-            if (request.Price < 0)
-            {
-                throw new BadRequestException("Đơn giá sửa chữa không được âm.");
-            }
-
             // Check duplicate name with other items
-            var duplicate = await _repairPriceRepository.Query()
-                .AnyAsync(r => r.ItemName.ToLower() == request.ItemName.ToLower() && r.RepairPriceId != id, ct);
+            var duplicate = await _repairPriceRepository.IsItemNameExistsAsync(request.ItemName, id, item.MarketId, ct);
             if (duplicate)
             {
                 throw new BadRequestException($"Tên hạng mục '{request.ItemName}' đã tồn tại ở hạng mục khác.");
@@ -165,9 +138,7 @@ namespace STMM.Business.Services
             _repairPriceRepository.Update(item);
             await _repairPriceRepository.SaveChangesAsync(ct);
 
-            var usageCount = await _taskMaterialRepository.Query()
-                .Where(m => m.RepairPriceId == id)
-                .CountAsync(ct);
+            var usageCount = await _taskMaterialRepository.GetUsageCountByRepairPriceIdAsync(id, ct);
 
             return new RepairPriceDto
             {
@@ -192,35 +163,29 @@ namespace STMM.Business.Services
             }
 
             // Check if already used in TaskMaterials
-            var inUse = await _taskMaterialRepository.Query()
-                .AnyAsync(m => m.RepairPriceId == id, ct);
+            var inUse = await _taskMaterialRepository.IsRepairPriceInUseAsync(id, ct);
 
             if (inUse)
             {
-                // Soft delete: set IsActive to false
-                item.IsActive = false;
-                item.UpdatedAt = DateTime.UtcNow;
-                _repairPriceRepository.Update(item);
-                await _repairPriceRepository.SaveChangesAsync(ct);
-                return true; // Marked inactive successfully
+                throw new BadRequestException($"Không thể xóa hạng mục '{item.ItemName}' vì đã được sử dụng trong các lịch sử sửa chữa.");
             }
-            else
-            {
-                // Hard delete
-                _repairPriceRepository.Delete(item);
-                await _repairPriceRepository.SaveChangesAsync(ct);
-                return true; // Deleted successfully
-            }
+
+            // Hard delete
+            _repairPriceRepository.Delete(item);
+            await _repairPriceRepository.SaveChangesAsync(ct);
+            return true; // Deleted successfully
         }
 
-        public async Task<IEnumerable<UsedRepairToolDto>> GetUsedRepairToolsAsync(CancellationToken ct = default)
+        public async Task<IEnumerable<UsedRepairToolDto>> GetUsedRepairToolsAsync(int userId, CancellationToken ct = default)
         {
-            var items = await _taskMaterialRepository.Query()
-                .Include(m => m.RepairPrice)
-                .Include(m => m.StaffTask)
-                    .ThenInclude(t => t.AssignedToUser)
-                .OrderByDescending(m => m.Id)
-                .ToListAsync(ct);
+            int? marketId = null;
+            var user = await _userRepository.GetByIdAsync(userId, ct);
+            if (user != null)
+            {
+                marketId = user.MarketId;
+            }
+
+            var items = await _taskMaterialRepository.GetUsedRepairToolsWithDetailsAsync(marketId, ct);
 
             return items.Select(m => new UsedRepairToolDto
             {

@@ -30,6 +30,7 @@ export default function RepairPrice() {
   const [activeModal, setActiveModal] = useState(null);
   const [selectedItem, setSelectedItem] = useState(null);
   const [formState, setFormState] = useState({ itemName: '', unit: 'Cái', price: 0, description: '', isActive: true });
+  const [modalError, setModalError] = useState(null);
 
   const [pricesPage, setPricesPage] = useState(1);
   const [usedPage, setUsedPage] = useState(1);
@@ -39,6 +40,10 @@ export default function RepairPrice() {
     setPricesPage(1);
     setUsedPage(1);
   }, [searchTerm, activeTab]);
+
+  useEffect(() => {
+    setModalError(null);
+  }, [activeModal]);
 
   const showNotification = (type, message) => {
     setNotification({ type, message });
@@ -86,26 +91,43 @@ export default function RepairPrice() {
       showNotification('success', `${isEdit ? 'Cập nhật' : 'Thêm'} hạng mục thành công!`);
       setActiveModal(null);
     } else {
+      setModalError(null);
       fetch(url, { method: isEdit ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` }, body: JSON.stringify(formState) })
-        .then(r => { if (!r.ok) throw new Error(); showNotification('success', `${isEdit ? 'Cập nhật' : 'Thêm'} hạng mục thành công!`); setActiveModal(null); loadData(); })
-        .catch(() => showNotification('danger', 'Thao tác thất bại.'));
+        .then(async r => { 
+          if (!r.ok) {
+            const errData = await r.json().catch(() => ({}));
+            throw new Error(errData.detail || errData.title || 'Thao tác thất bại.');
+          } 
+          showNotification('success', `${isEdit ? 'Cập nhật' : 'Thêm'} hạng mục thành công!`); 
+          setActiveModal(null); 
+          loadData(); 
+        })
+        .catch(e => setModalError(e.message));
     }
   };
 
   const handleDelete = () => {
     if (isMock) {
       if (selectedItem.usageCount > 0) {
-        setRepairItems(p => p.map(i => i.repairPriceId === selectedItem.repairPriceId ? { ...i, isActive: false } : i));
-        showNotification('warning', 'Đã chuyển trạng thái sang "Ngừng hoạt động" vì hạng mục có lịch sử sử dụng.');
+        setModalError(`Không thể xóa hạng mục '${selectedItem.itemName}' vì đã được sử dụng trong các lịch sử sửa chữa.`);
       } else {
         setRepairItems(p => p.filter(i => i.repairPriceId !== selectedItem.repairPriceId));
         showNotification('success', 'Đã xóa hạng mục sửa chữa!');
+        setActiveModal(null);
       }
-      setActiveModal(null);
     } else {
+      setModalError(null);
       fetch(`http://localhost:5056/api/accountant/repair-prices/${selectedItem.repairPriceId}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` } })
-        .then(r => { if (!r.ok) throw new Error(); showNotification('success', 'Xóa thành công!'); setActiveModal(null); loadData(); })
-        .catch(() => showNotification('danger', 'Không thể xóa hạng mục.'));
+        .then(async r => { 
+          if (!r.ok) {
+            const errData = await r.json().catch(() => ({}));
+            throw new Error(errData.detail || errData.title || 'Không thể xóa hạng mục.');
+          } 
+          showNotification('success', 'Xóa thành công!'); 
+          setActiveModal(null); 
+          loadData(); 
+        })
+        .catch(e => setModalError(e.message));
     }
   };
 
@@ -119,7 +141,7 @@ export default function RepairPrice() {
         </div>
         <div className="page-actions">
           {activeTab === 'prices' && (
-            <button className="btn btn-primary" onClick={() => { setSelectedItem(null); setFormState({ itemName: '', unit: 'Cái', price: 0, description: '', isActive: true }); setActiveModal('add'); }}>
+            <button className="btn btn-primary" onClick={() => { setSelectedItem(null); setFormState({ itemName: '', unit: 'Cái', price: 0, description: '', isActive: true }); setModalError(null); setActiveModal('add'); }}>
               <Plus size={15} /> Thêm hạng mục
             </button>
           )}
@@ -209,10 +231,10 @@ export default function RepairPrice() {
                         </td>
                         <td className="text-right">
                           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
-                            <button className="btn btn-ghost btn-sm btn-icon" onClick={() => { setSelectedItem(item); setFormState({ itemName: item.itemName, unit: item.unit, price: item.price, description: item.description || '', isActive: item.isActive }); setActiveModal('edit'); }}>
+                            <button className="btn btn-ghost btn-sm btn-icon" title="Cập nhật" onClick={() => { setSelectedItem(item); setFormState({ itemName: item.itemName, unit: item.unit, price: item.price, description: item.description || '', isActive: item.isActive }); setActiveModal('edit'); }}>
                               <Edit3 size={14} />
                             </button>
-                            <button className="btn btn-ghost btn-sm btn-icon" style={{ color: 'var(--danger)' }} onClick={() => { setSelectedItem(item); setActiveModal('delete'); }}>
+                            <button className="btn btn-ghost btn-sm btn-icon" title="Xóa" style={{ color: 'var(--danger)' }} onClick={() => { setSelectedItem(item); setActiveModal('delete'); }}>
                               <Trash2 size={14} />
                             </button>
                           </div>
@@ -339,9 +361,15 @@ export default function RepairPrice() {
             </div>
             <form onSubmit={handleSubmit}>
               <div className="modal-body">
+                {modalError && (
+                  <div className="alert alert-danger" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', whiteSpace: 'pre-line' }}>
+                    <AlertTriangle size={16} className="alert-icon" />
+                    <span>{modalError}</span>
+                  </div>
+                )}
                 <div>
                   <label className="form-label">Tên vật tư / Hạng mục</label>
-                  <input type="text" className="form-input" required
+                  <input type="text" className="form-input" required maxLength={100}
                     placeholder="Ví dụ: Thay thế bóng đèn LED 1.2m..."
                     value={formState.itemName} onChange={e => setFormState({ ...formState, itemName: e.target.value })} />
                 </div>
@@ -360,7 +388,7 @@ export default function RepairPrice() {
                 </div>
                 <div>
                   <label className="form-label">Mô tả chi tiết</label>
-                  <textarea className="form-textarea" rows={3}
+                  <textarea className="form-textarea" rows={3} maxLength={500}
                     placeholder="Ghi chú về phạm vi bao gồm, điều kiện bảo hành..."
                     value={formState.description} onChange={e => setFormState({ ...formState, description: e.target.value })} />
                 </div>
@@ -387,19 +415,25 @@ export default function RepairPrice() {
               <button className="modal-close-btn" onClick={() => setActiveModal(null)}><X size={16} /></button>
             </div>
             <div className="modal-body">
+              {modalError && (
+                <div className="alert alert-danger" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', whiteSpace: 'pre-line' }}>
+                  <AlertTriangle size={16} className="alert-icon" />
+                  <span>{modalError}</span>
+                </div>
+              )}
               <div className="alert alert-warning">
                 <AlertTriangle size={16} className="alert-icon" />
                 <div>
                   <p>Bạn sắp xóa hạng mục <strong>"{selectedItem.itemName}"</strong>.</p>
                   {selectedItem.usageCount > 0 && (
-                    <p style={{ marginTop: 6, fontSize: 13 }}>Hạng mục đã được sử dụng <strong>{selectedItem.usageCount} lần</strong>. Hệ thống sẽ chuyển sang trạng thái "Ngừng hoạt động" thay vì xóa hẳn.</p>
+                    <p style={{ marginTop: 6, fontSize: 13, color: 'var(--color-danger)' }}><strong>Cảnh báo:</strong> Hạng mục này đã được sử dụng <strong>{selectedItem.usageCount} lần</strong>. Không thể xóa.</p>
                   )}
                 </div>
               </div>
             </div>
             <div className="modal-footer">
               <button className="btn btn-secondary" onClick={() => setActiveModal(null)}>Hủy</button>
-              <button className="btn btn-danger" onClick={handleDelete}>Xác nhận xóa</button>
+              <button className="btn btn-danger" onClick={handleDelete} disabled={selectedItem.usageCount > 0}>Xác nhận xóa</button>
             </div>
           </div>
         </div>

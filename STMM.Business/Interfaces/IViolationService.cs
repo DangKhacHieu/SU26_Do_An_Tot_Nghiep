@@ -13,17 +13,18 @@ namespace STMM.Business.Interfaces
         Task<ViolationDto> CreateViolationAsync(int userId, CreateViolationRequest request, CancellationToken ct = default);
         
         // Active violation types
-        Task<IEnumerable<ViolationTypeDto>> GetViolationTypesAsync(CancellationToken ct = default);
+        Task<IEnumerable<ViolationTypeDto>> GetViolationTypesAsync(int userId, CancellationToken ct = default);
         Task<PagedResult<ViolationDto>> GetViolationsForManagerAsync(ViolationQueryParams queryParams, CancellationToken ct = default);
         Task<ViolationDto> GetViolationByIdForManagerAsync(int id, CancellationToken ct = default);
         Task<bool> SimulateViolationAppealAsync(int violationId, CancellationToken ct = default);
         
         // General query for Accountant role (all violations across the system)
         Task<IEnumerable<ViolationDto>> GetAllViolationsAsync(int? accountantUserId = null, CancellationToken ct = default);
+        Task<bool> CreateInvoiceForViolationAsync(int violationId, int accountantUserId, CancellationToken ct = default);
 
         // CRUD for Violation Types
-        Task<IEnumerable<ViolationTypeDto>> GetAllViolationTypesWithInactiveAsync(CancellationToken ct = default);
-        Task<ViolationTypeDto> CreateViolationTypeAsync(CreateViolationTypeRequest request, CancellationToken ct = default);
+        Task<IEnumerable<ViolationTypeDto>> GetAllViolationTypesWithInactiveAsync(int userId, CancellationToken ct = default);
+        Task<ViolationTypeDto> CreateViolationTypeAsync(int userId, CreateViolationTypeRequest request, CancellationToken ct = default);
         Task<ViolationTypeDto> UpdateViolationTypeAsync(int id, UpdateViolationTypeRequest request, CancellationToken ct = default);
         Task<bool> DeleteViolationTypeAsync(int id, CancellationToken ct = default);
     }

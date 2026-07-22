@@ -28,6 +28,10 @@ namespace STMM.Business.Validators
                         {
                             context.AddFailure($"Đơn giá tại bậc {step.Step} không được nhỏ hơn 0.");
                         }
+                        if (step.Price >= 1000000000)
+                        {
+                            context.AddFailure($"Đơn giá tại bậc {step.Step} quá lớn (vượt quá 1 tỷ).");
+                        }
 
                         if (i == 0)
                         {

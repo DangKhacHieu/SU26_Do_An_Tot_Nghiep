@@ -10,5 +10,6 @@ namespace STMM.DataAccess.IRepositories
         Task<bool> ExistsSerialNumberAsync(string serialNumber, int? excludeMeterId = null, CancellationToken ct = default);
         Task<IEnumerable<Meter>> GetUnassignedMetersAsync(string? type, int? marketId = null, CancellationToken ct = default);
         Task<Meter?> GetMeterWithReadingsAsync(int meterId, CancellationToken ct = default);
+        Task<Meter?> GetActiveMeterByStallAndTypeAsync(int stallId, string meterType, CancellationToken ct = default);
     }
 }

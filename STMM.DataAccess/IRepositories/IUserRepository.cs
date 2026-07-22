@@ -15,5 +15,7 @@ namespace STMM.DataAccess.IRepositories
         /// Tìm người dùng theo email
         /// </summary>
         Task<User?> GetUserByEmailAsync(string email, CancellationToken ct = default);
+        Task<User?> GetFirstUserByRoleAsync(string roleName, CancellationToken ct = default);
+        Task<bool> IsEmailExistsAsync(string email, int? excludeId = null, CancellationToken ct = default);
     }
 }

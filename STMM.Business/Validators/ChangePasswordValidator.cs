@@ -15,6 +15,9 @@ namespace STMM.Business.Validators
                 .NotEmpty().WithMessage("Mật khẩu mới không được để trống")
                 .Matches(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9]).{8,12}$")
                 .WithMessage("Mật khẩu mới phải từ 8-12 ký tự, bao gồm chữ hoa, chữ thường, số và ký tự đặc biệt");
+
+            RuleFor(x => x.ConfirmPassword)
+                .Equal(x => x.NewPassword).WithMessage("Mật khẩu mới và mật khẩu xác nhận không khớp.");
         }
     }
 }

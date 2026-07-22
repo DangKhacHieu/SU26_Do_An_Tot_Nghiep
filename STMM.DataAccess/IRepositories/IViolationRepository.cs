@@ -37,5 +37,12 @@ namespace STMM.DataAccess.IRepositories
             CancellationToken ct = default);
 
         Task<Violation?> GetViolationDetailForVendorAsync(int id, int vendorId, CancellationToken ct = default);
+
+        Task<decimal> GetTotalFinesAsync(DateTime startDate, DateTime endDate, int? marketId = null, CancellationToken ct = default);
+
+        Task<IEnumerable<Violation>> GetAllViolationsWithDetailsAsync(int? marketId = null, CancellationToken ct = default);
+
+        Task<bool> IsViolationTypeInUseAsync(int violationTypeId, CancellationToken ct = default);
+        Task<List<Violation>> GetUnpaidViolationsByStallIdAsync(int stallId, CancellationToken ct = default);
     }
 }

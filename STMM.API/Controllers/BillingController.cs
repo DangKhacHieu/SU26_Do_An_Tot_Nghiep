@@ -36,7 +36,8 @@ namespace STMM.API.Controllers
             int invoiceId,
             CancellationToken ct)
         {
-            var result = await _billingService.GetInvoiceDetailAsync(invoiceId, ct);
+            var userId = GetUserId();
+            var result = await _billingService.GetInvoiceDetailAsync(invoiceId, userId, ct);
             return Ok(result);
         }
 

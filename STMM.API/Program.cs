@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using FluentValidation;
+using FluentValidation.AspNetCore;
 using AutoMapper;
 using STMM.DataAccess.Data;
 using STMM.DataAccess.IRepositories;
@@ -9,6 +10,7 @@ using STMM.Business.Interfaces;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using STMM.Business.Services;
 using STMM.API.Middleware;
+using STMM.API.Filters;
 using System.Text.Json.Serialization;
 using System.IO;
 
@@ -113,7 +115,8 @@ builder.Services.AddAutoMapper(cfg =>
     cfg.AddProfile<MappingProfile>();
 });
 
-// Register FluentValidation (Scan all validators in the Business project)
+// Register FluentValidation
+builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssembly(typeof(MappingProfile).Assembly);
 
 // Register Business Services
@@ -157,7 +160,10 @@ builder.Services.AddScoped<IReviewService, ReviewService>();
 builder.Services.AddHostedService<STMM.API.BackgroundServices.MonthlyBillingWorker>();
 
 // 1. Controllers & JSON Options
-builder.Services.AddControllers()
+builder.Services.AddControllers(options => 
+    {
+        options.Filters.Add<ValidationFilterAttribute>();
+    })
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
@@ -165,6 +171,12 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals;
         options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
     });
+
+// Suppress default API behavior to allow our custom ValidationFilterAttribute to handle it
+builder.Services.Configure<Microsoft.AspNetCore.Mvc.ApiBehaviorOptions>(options =>
+{
+    options.SuppressModelStateInvalidFilter = true;
+});
 
 // 4. CORS Policy (Cho phép React Client kết nối)
 builder.Services.AddCors(options =>

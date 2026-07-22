@@ -40,6 +40,11 @@ export default function ProfileManagement() {
   const [isMock, setIsMock] = useState(false);
   const [activeModal, setActiveModal] = useState(null); // 'confirm_profile' | 'confirm_password'
   const [notification, setNotification] = useState(null); // { type: 'success' | 'danger' | 'warning', message: '' }
+  const [modalError, setModalError] = useState(null);
+
+  useEffect(() => {
+    setModalError(null);
+  }, [activeModal]);
 
   // Temporary state for form editing before confirmation
   const [tempProfile, setTempProfile] = useState({ ...profile });
@@ -122,10 +127,6 @@ export default function ProfileManagement() {
   // Trigger Profile Save Confirm Dialog
   const handleProfileSubmit = (e) => {
     e.preventDefault();
-    if (tempProfile.name.trim() === '' || tempProfile.email.trim() === '' || tempProfile.phone.trim() === '') {
-      showNotification('danger', 'Vui lòng điền đầy đủ các trường thông tin bắt buộc.');
-      return;
-    }
     setActiveModal('confirm_profile');
   };
 
@@ -160,8 +161,11 @@ export default function ProfileManagement() {
           phone: tempProfile.phone
         })
       })
-      .then(res => {
-        if (!res.ok) return res.text().then(text => { throw new Error(text || 'Không thể lưu hồ sơ'); });
+      .then(async res => {
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.detail || errData.title || 'Không thể lưu hồ sơ');
+        }
         return res.json();
       })
       .then(data => {
@@ -192,8 +196,7 @@ export default function ProfileManagement() {
         setActiveModal(null);
       })
       .catch(err => {
-        showNotification('danger', `Lỗi: ${err.message}`);
-        setActiveModal(null);
+        setModalError(err.message);
       });
     }
   };
@@ -201,18 +204,6 @@ export default function ProfileManagement() {
   // Trigger Password Change Confirm Dialog
   const handlePasswordSubmit = (e) => {
     e.preventDefault();
-    if (password.current.trim() === '' || password.new.trim() === '' || password.confirm.trim() === '') {
-      showNotification('danger', 'Vui lòng điền đầy đủ thông tin mật khẩu.');
-      return;
-    }
-    if (password.new !== password.confirm) {
-      showNotification('danger', 'Mật khẩu mới và mật khẩu xác nhận không khớp.');
-      return;
-    }
-    if (password.new.length < 6) {
-      showNotification('danger', 'Mật khẩu mới phải có độ dài tối thiểu 6 ký tự.');
-      return;
-    }
     setActiveModal('confirm_password');
   };
 
@@ -228,18 +219,21 @@ export default function ProfileManagement() {
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` },
         body: JSON.stringify({
           currentPassword: password.current,
-          newPassword: password.new
+          newPassword: password.new,
+          confirmPassword: password.confirm
         })
       })
-      .then(res => {
-        if (!res.ok) return res.text().then(text => { throw new Error(text || 'Thay đổi mật khẩu thất bại'); });
+      .then(async res => {
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.detail || errData.title || 'Thay đổi mật khẩu thất bại');
+        }
         showNotification('success', 'Thay đổi mật khẩu thành công! Hãy nhớ mật khẩu mới của bạn.');
         setPassword({ current: '', new: '', confirm: '' });
         setActiveModal(null);
       })
       .catch(err => {
-        showNotification('danger', `Lỗi: ${err.message}`);
-        setActiveModal(null);
+        setModalError(err.message);
       });
     }
   };
@@ -388,6 +382,7 @@ export default function ProfileManagement() {
                     <input
                       type="text"
                       required
+                      maxLength={100}
                       value={tempProfile.name}
                       onChange={(e) => setTempProfile({ ...tempProfile, name: e.target.value })}
                       className="form-input"
@@ -401,6 +396,7 @@ export default function ProfileManagement() {
                     <input
                       type="email"
                       required
+                      maxLength={150}
                       value={tempProfile.email}
                       onChange={(e) => setTempProfile({ ...tempProfile, email: e.target.value })}
                       className="form-input"
@@ -411,6 +407,7 @@ export default function ProfileManagement() {
                     <input
                       type="text"
                       required
+                      maxLength={20}
                       value={tempProfile.phone}
                       onChange={(e) => setTempProfile({ ...tempProfile, phone: e.target.value })}
                       className="form-input"
@@ -436,6 +433,7 @@ export default function ProfileManagement() {
                   <input
                     type="password"
                     required
+                    maxLength={100}
                     value={password.current}
                     onChange={(e) => setPassword({ ...password, current: e.target.value })}
                     placeholder="Nhập mật khẩu đang sử dụng..."
@@ -449,6 +447,8 @@ export default function ProfileManagement() {
                     <input
                       type="password"
                       required
+                      maxLength={100}
+                      minLength={6}
                       value={password.new}
                       onChange={(e) => setPassword({ ...password, new: e.target.value })}
                       placeholder="Tối thiểu 6 ký tự..."
@@ -460,6 +460,8 @@ export default function ProfileManagement() {
                     <input
                       type="password"
                       required
+                      maxLength={100}
+                      minLength={6}
                       value={password.confirm}
                       onChange={(e) => setPassword({ ...password, confirm: e.target.value })}
                       placeholder="Nhập lại mật khẩu mới..."
@@ -490,6 +492,12 @@ export default function ProfileManagement() {
             </div>
             
             <div className="modal-body">
+              {modalError && (
+                <div className="alert alert-danger" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', whiteSpace: 'pre-line' }}>
+                  <AlertTriangle size={16} className="alert-icon" />
+                  <span>{modalError}</span>
+                </div>
+              )}
               <div style={{ display: 'flex', gap: '12px', alignItems: 'start' }}>
                 <AlertCircle size={24} style={{ color: 'var(--primary)', flexShrink: 0 }} />
                 <div>
@@ -521,6 +529,12 @@ export default function ProfileManagement() {
             </div>
             
             <div className="modal-body">
+              {modalError && (
+                <div className="alert alert-danger" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', whiteSpace: 'pre-line' }}>
+                  <AlertTriangle size={16} className="alert-icon" />
+                  <span>{modalError}</span>
+                </div>
+              )}
               <div style={{ display: 'flex', gap: '12px', alignItems: 'start' }}>
                 <AlertTriangle size={24} style={{ color: 'var(--warning)', flexShrink: 0 }} />
                 <div>
