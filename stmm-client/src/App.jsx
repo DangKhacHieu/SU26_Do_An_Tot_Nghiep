@@ -367,19 +367,21 @@ function AppContent() {
     };
   }, []);
 
-  // Auto-redirect console roles (admin, manager, staff) to their respective dashboards if they try to access customer pages or auth pages
+  // Auto-redirect console roles (admin, manager, staff, vendor, accountant) to their respective dashboards if they try to access customer pages or auth pages
   useEffect(() => {
     if (user) {
       const role = user.roleName?.toLowerCase();
       const isAdmin = role === "admin" || role === "systemadmin" || role?.includes("admin");
-      if (isAdmin && !path.startsWith("/admin/")) {
+      if (isAdmin && !path.startsWith("/admin")) {
         navigatePath("/admin/dashboard", true);
-      } else if (role === "manager" && !path.startsWith("/manager/")) {
+      } else if (role === "manager" && !path.startsWith("/manager")) {
         navigatePath("/manager/dashboard", true);
-      } else if (role === "staff" && !path.startsWith("/staff/")) {
+      } else if (role === "staff" && !path.startsWith("/staff")) {
         navigatePath("/staff/dashboard", true);
-      } else if (role === "vendor" && ["/login", "/register", "/forgot-password"].includes(path)) {
+      } else if (role === "vendor" && !path.startsWith("/vendor")) {
         navigatePath("/vendor/dashboard", true);
+      } else if (role === "accountant" && !path.startsWith("/accountant")) {
+        navigatePath("/accountant", true);
       } else if (role === "customer" && ["/login", "/register", "/forgot-password"].includes(path)) {
         navigatePath("/", true);
       }
@@ -1125,25 +1127,33 @@ function AppContent() {
   // =========================
   // Main Routes Rendering
   // =========================
-  // Synchronous route guards to prevent rendering customer pages for console roles (admin, manager, staff)
+  // Synchronous route guards to prevent rendering customer pages for console roles (admin, manager, staff, vendor, accountant)
   if (user) {
     const role = user.roleName?.toLowerCase();
     const isAdmin = role === "admin" || role === "systemadmin" || role?.includes("admin");
     const isManager = role === "manager";
     const isStaff = role === "staff";
+    const isVendor = role === "vendor";
+    const isAccountant = role === "accountant";
 
-    if (isAdmin && !path.startsWith("/admin/")) {
+    if (isAdmin && !path.startsWith("/admin")) {
       return <div className="loading-state">Đang chuyển hướng đến trang Admin...</div>;
     }
-    if (isManager && !path.startsWith("/manager/")) {
+    if (isManager && !path.startsWith("/manager")) {
       return <div className="loading-state">Đang chuyển hướng đến trang Manager...</div>;
     }
-    if (isStaff && !path.startsWith("/staff/")) {
+    if (isStaff && !path.startsWith("/staff")) {
       return <div className="loading-state">Đang chuyển hướng đến trang Nhân viên...</div>;
+    }
+    if (isVendor && !path.startsWith("/vendor")) {
+      return <div className="loading-state">Đang chuyển hướng đến trang Vendor...</div>;
+    }
+    if (isAccountant && !path.startsWith("/accountant")) {
+      return <div className="loading-state">Đang chuyển hướng đến trang Kế toán...</div>;
     }
 
     // Prevent logged-in users from seeing auth pages
-    if ((role === "customer" || role === "vendor") && ["/login", "/register", "/forgot-password"].includes(path)) {
+    if (role === "customer" && ["/login", "/register", "/forgot-password"].includes(path)) {
       return <div className="loading-state">Đang chuyển hướng...</div>;
     }
   }
