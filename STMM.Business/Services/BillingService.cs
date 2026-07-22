@@ -34,6 +34,7 @@ namespace STMM.Business.Services
         private readonly IServiceRegistrationRepository _serviceRegistrationRepository;
         private readonly IStallRepository _stallRepository;
         private readonly ILogger<BillingService> _logger;
+        private readonly FluentValidation.IValidator<ReceiveCashPaymentRequest> _paymentValidator;
 
         public BillingService(
             IInvoiceRepository invoiceRepository,
@@ -51,7 +52,8 @@ namespace STMM.Business.Services
             ISystemConfigRepository systemConfigRepository,
             IServiceRegistrationRepository serviceRegistrationRepository,
             IStallRepository stallRepository,
-            ILogger<BillingService> logger)
+            ILogger<BillingService> logger,
+            FluentValidation.IValidator<ReceiveCashPaymentRequest> paymentValidator)
         {
             _invoiceRepository = invoiceRepository;
             _paymentRepository = paymentRepository;
@@ -69,6 +71,7 @@ namespace STMM.Business.Services
             _serviceRegistrationRepository = serviceRegistrationRepository;
             _stallRepository = stallRepository;
             _logger = logger;
+            _paymentValidator = paymentValidator;
         }
 
         public async Task<InvoiceDto> GetInvoiceDetailAsync(

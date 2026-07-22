@@ -226,7 +226,12 @@ namespace STMM.Business.Services
 
         public async Task<bool> CreateInvoiceForViolationAsync(int violationId, int accountantUserId, CancellationToken ct = default)
         {
-            var violation = await _violationRepository.GetViolationDetailsForManagerAsync(violationId, ct);
+            var accountantUser = await _userRepository.GetByIdAsync(accountantUserId, ct);
+            if (accountantUser == null || !accountantUser.MarketId.HasValue)
+            {
+                throw new ForbiddenException("Kế toán chưa được phân công quản lý chợ.");
+            }
+            var violation = await _violationRepository.GetViolationDetailsForManagerAsync(violationId, accountantUser.MarketId.Value, ct);
             if (violation == null)
             {
                 throw new NotFoundException($"Không tìm thấy biên bản vi phạm ID {violationId}.");
