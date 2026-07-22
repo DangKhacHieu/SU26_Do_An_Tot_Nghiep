@@ -60,6 +60,11 @@ namespace STMM.Business.Services
         /// <inheritdoc />
         public async Task<IEnumerable<NotificationDto>> GetNotificationsForUserAsync(int userId, string? roleName, CancellationToken ct = default)
         {
+            if (userId <= 0)
+            {
+                throw new BadRequestException("ID người dùng không hợp lệ.");
+            }
+
             var targetRoleLower = roleName?.Trim().ToLower();
             var limitDate = DateTime.UtcNow.AddDays(-60);
 
@@ -92,6 +97,11 @@ namespace STMM.Business.Services
         /// <inheritdoc />
         public async Task MarkAllAsReadAsync(int userId, string? roleName, CancellationToken ct = default)
         {
+            if (userId <= 0)
+            {
+                throw new BadRequestException("ID người dùng không hợp lệ.");
+            }
+
             var targetRoleLower = roleName?.Trim().ToLower();
             var limitDate = DateTime.UtcNow.AddDays(-60);
 
@@ -113,12 +123,24 @@ namespace STMM.Business.Services
         }
 
         /// <inheritdoc />
-        public async Task DeleteAsync(int notiId, CancellationToken ct = default)
+        public async Task DeleteAsync(int notiId, int userId, string? roleName, CancellationToken ct = default)
         {
+            if (notiId <= 0 || userId <= 0)
+            {
+                throw new BadRequestException("Dữ liệu đầu vào không hợp lệ.");
+            }
+
             var notification = await _notificationRepository.GetByIdAsync(notiId, ct);
             if (notification == null)
             {
                 throw new NotFoundException($"Notification with ID {notiId} not found.");
+            }
+
+            if (notification.TargetUserId != userId && 
+                (notification.TargetRole == null || notification.TargetRole.ToLower() != roleName?.Trim().ToLower()) &&
+                (notification.TargetRole == null || notification.TargetRole.ToLower() != "public"))
+            {
+                throw new ForbiddenException("Bạn không có quyền xóa thông báo này.");
             }
 
             _notificationRepository.Delete(notification);

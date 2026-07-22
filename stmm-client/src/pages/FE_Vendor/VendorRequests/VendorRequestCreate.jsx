@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { showSuccess, showError, showWarning } from '../../../utils/alert';
 
 const VendorRequestCreate = ({ onBack, onSuccess, prefillViolationId, prefillStallId }) => {
     const [stalls, setStalls] = useState([]);
@@ -13,35 +14,79 @@ const VendorRequestCreate = ({ onBack, onSuccess, prefillViolationId, prefillSta
     const [description, setDescription] = useState('');
     const [violationId, setViolationId] = useState(prefillViolationId || '');
     const [invoiceId, setInvoiceId] = useState('');
+    
+    // Data state
+    const [violations, setViolations] = useState([]);
+    const [invoices, setInvoices] = useState([]);
+
+    const getViolationStatusText = (status) => {
+        switch (status) {
+            case 'Pending': return 'Chờ duyệt';
+            case 'Notified': return 'Chưa khiếu nại (Đã thông báo)';
+            case 'Appealed': return 'Đang kháng nghị';
+            case 'Approved': return 'Kháng nghị thành công';
+            case 'Rejected': return 'Kháng nghị bị từ chối';
+            case 'Finalized': return 'Đã chốt phạt';
+            default: return status || 'Chưa khiếu nại';
+        }
+    };
+
+    // Helper to translate invoice status
+    const getInvoiceStatusText = (status) => {
+        switch (status) {
+            case 'Paid': return 'Đã thanh toán';
+            case 'Overdue': return 'Quá hạn';
+            case 'Pending':
+            case 'Unpaid': return 'Chưa thanh toán';
+            default: return status || 'Chưa thanh toán';
+        }
+    };
 
     useEffect(() => {
-        const fetchStalls = async () => {
+        const fetchData = async () => {
             try {
                 const token = localStorage.getItem('accessToken');
-                const response = await axios.get('http://localhost:5056/api/vendor/services/my-stalls', {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-                setStalls(response.data || []);
-                if (response.data && response.data.length > 0) {
-                    if (!prefillStallId) {
-                        setStallId(response.data[0].stallId);
+                const config = { headers: { Authorization: `Bearer ${token}` } };
+                
+                // Fetch stalls
+                const stallsRes = await axios.get('http://localhost:5056/api/vendor/services/my-stalls', config);
+                setStalls(stallsRes.data || []);
+                if (stallsRes.data && stallsRes.data.length > 0 && !prefillStallId) {
+                    setStallId(stallsRes.data[0].stallId);
+                }
+
+                // Fetch violations
+                const violationsRes = await axios.get('http://localhost:5056/api/vendor/violations?pageSize=100', config);
+                if (violationsRes.data?.items) {
+                    setViolations(violationsRes.data.items);
+                    if (!prefillViolationId && violationsRes.data.items.length > 0) {
+                        setViolationId(violationsRes.data.items[0].violationId);
                     }
                 }
+
+                // Fetch invoices
+                const invoicesRes = await axios.get('http://localhost:5056/api/vendor/invoices', config);
+                if (Array.isArray(invoicesRes.data)) {
+                    setInvoices(invoicesRes.data);
+                    if (invoicesRes.data.length > 0) {
+                        setInvoiceId(invoicesRes.data[0].invoiceId);
+                    }
+                }
+
             } catch (err) {
-                console.error('Lỗi khi tải danh sách sạp:', err);
-                alert('Không thể tải danh sách sạp.');
+                console.error('Lỗi khi tải dữ liệu khởi tạo:', err);
             } finally {
                 setLoadingStalls(false);
             }
         };
 
-        fetchStalls();
+        fetchData();
     }, []);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!stallId) {
-            alert('Vui lòng chọn sạp.');
+            showWarning('Thiếu thông tin', 'Vui lòng chọn sạp.');
             return;
         }
 
@@ -61,12 +106,12 @@ const VendorRequestCreate = ({ onBack, onSuccess, prefillViolationId, prefillSta
                 headers: { Authorization: `Bearer ${token}` }
             });
 
-            alert('Gửi yêu cầu thành công!');
+            await showSuccess('Thành công', 'Gửi yêu cầu thành công!');
             onSuccess();
         } catch (err) {
             console.error('Lỗi khi gửi yêu cầu:', err);
             const msg = err.response?.data?.message || 'Có lỗi xảy ra khi gửi yêu cầu.';
-            alert(msg);
+            showError('Thất bại', msg);
         } finally {
             setIsSubmitting(false);
         }
@@ -116,34 +161,66 @@ const VendorRequestCreate = ({ onBack, onSuccess, prefillViolationId, prefillSta
                         required
                         disabled={!!prefillViolationId}
                         style={{ width: '100%', padding: '12px', border: '1px solid #e5e7eb', borderRadius: '6px', outline: 'none', background: prefillViolationId ? '#f9fafb' : 'white', cursor: prefillViolationId ? 'not-allowed' : 'auto' }}>
+                        
                         <option value="FacilityIssue">Sự cố hạ tầng chung (Facility Issue)</option>
                         <option value="ViolationAppeal">Kháng nghị vi phạm (Violation Appeal)</option>
                         <option value="InvoiceDispute">Khiếu nại hóa đơn (Invoice Dispute)</option>
                     </select>
                 </div>
 
-                {requestType === 'ViolationAppeal' && (
-                    <div>
-                        <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', marginBottom: '8px' }}>Mã Vi Phạm (Nếu có)</label>
-                        <input 
-                            type="number" 
-                            value={violationId} 
-                            onChange={(e) => setViolationId(e.target.value)} 
-                            placeholder="Nhập mã ID biên bản vi phạm cần kháng nghị..." 
-                            readOnly={!!prefillViolationId}
-                            style={{ width: '100%', padding: '12px', border: '1px solid #e5e7eb', borderRadius: '6px', outline: 'none', background: prefillViolationId ? '#f9fafb' : 'white' }} />
+                {requestType === 'ViolationAppeal' && !prefillViolationId && (() => {
+                    const eligibleViolations = violations.filter(v => !['Appealed', 'Approved', 'Rejected', 'Finalized'].includes(v.status));
+                    return (
+                        <div>
+                            <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', marginBottom: '8px' }}>Chọn Biên Bản Vi Phạm</label>
+                            {eligibleViolations.length === 0 ? (
+                                <div style={{ padding: '10px', background: '#fee2e2', borderRadius: '6px', color: '#991b1b', fontSize: '13px' }}>Bạn hiện không có biên bản vi phạm nào để khiếu nại.</div>
+                            ) : (
+                                <select 
+                                    value={violationId} 
+                                    onChange={(e) => setViolationId(e.target.value)} 
+                                    required
+                                    style={{ width: '100%', padding: '12px', border: '1px solid #e5e7eb', borderRadius: '6px', outline: 'none' }}>
+                                    <option value="" disabled>-- Hãy chọn biên bản cần khiếu nại --</option>
+                                    {eligibleViolations.map(v => (
+                                        <option key={v.violationId} value={v.violationId}>
+                                            [{getViolationStatusText(v.status)}] Biên bản: {v.title} (Sạp {v.stallCode})
+                                        </option>
+                                    ))}
+                                </select>
+                            )}
+                        </div>
+                    );
+                })()}
+
+                {requestType === 'ViolationAppeal' && prefillViolationId && (
+                    <div style={{ display: 'none' }}>
+                        <input type="hidden" value={violationId} />
                     </div>
                 )}
 
                 {requestType === 'InvoiceDispute' && (
                     <div>
-                        <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', marginBottom: '8px' }}>Mã Hóa Đơn (Nếu có)</label>
-                        <input 
-                            type="number" 
-                            value={invoiceId} 
-                            onChange={(e) => setInvoiceId(e.target.value)} 
-                            placeholder="Nhập mã ID hóa đơn cần khiếu nại..." 
-                            style={{ width: '100%', padding: '12px', border: '1px solid #e5e7eb', borderRadius: '6px', outline: 'none' }} />
+                        <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', marginBottom: '8px' }}>Chọn Hóa Đơn</label>
+                        {invoices.length === 0 ? (
+                            <div style={{ padding: '10px', background: '#fee2e2', borderRadius: '6px', color: '#991b1b', fontSize: '13px' }}>Bạn hiện không có hóa đơn nào để khiếu nại.</div>
+                        ) : (
+                            <select 
+                                value={invoiceId} 
+                                onChange={(e) => setInvoiceId(e.target.value)} 
+                                required
+                                style={{ width: '100%', padding: '12px', border: '1px solid #e5e7eb', borderRadius: '6px', outline: 'none' }}>
+                                <option value="" disabled>-- Hãy chọn hóa đơn cần khiếu nại --</option>
+                                {invoices.map(inv => {
+                                    const isDisabled = inv.status === 'Paid';
+                                    return (
+                                        <option key={inv.invoiceId} value={inv.invoiceId} disabled={isDisabled}>
+                                            [{getInvoiceStatusText(inv.status)}] Hóa đơn Tháng {inv.month}/{inv.year} (Sạp {inv.stallCode}) - {inv.totalAmount?.toLocaleString()}đ
+                                        </option>
+                                    );
+                                })}
+                            </select>
+                        )}
                     </div>
                 )}
 

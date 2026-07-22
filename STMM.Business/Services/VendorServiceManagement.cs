@@ -79,6 +79,9 @@ public class VendorServiceManagement : IVendorServiceManagement
 
     public async Task<ServiceRegistrationDto> GetServiceDetailAsync(int vendorId, int registrationId, CancellationToken ct = default)
     {
+        if (registrationId <= 0)
+            throw new ArgumentException("ID đăng ký dịch vụ không hợp lệ.");
+
         var registration = await _serviceRegistrationRepository.GetRegistrationWithRelationsAsync(registrationId);
         
         if (registration == null)
@@ -86,6 +89,9 @@ public class VendorServiceManagement : IVendorServiceManagement
             
         if (registration.VendorId != vendorId)
             throw new UnauthorizedAccessException("Bạn không có quyền truy cập thông tin dịch vụ này.");
+
+        if (registration.Service == null || registration.Service.IsActive != true)
+            throw new InvalidOperationException("Dịch vụ này đã bị hệ thống ngừng cung cấp hoặc xóa bỏ.");
 
         return new ServiceRegistrationDto
         {
@@ -126,6 +132,11 @@ public class VendorServiceManagement : IVendorServiceManagement
 
     public async Task<ServiceRegistrationDto> RegisterServiceAsync(int vendorId, RegisterServiceRequest request, CancellationToken ct = default)
     {
+        if (request.StallId <= 0 || request.ServiceId <= 0)
+        {
+            throw new ArgumentException("Thông tin ID Sạp hoặc ID Dịch vụ không hợp lệ.");
+        }
+
         // A.4.1 Debt Restriction
         var vendorContracts = await _contractRepository.FindAsync(c => c.VendorId == vendorId && (c.Status == "Active" || c.Status == "Pending" || c.Status == "PendingApproval"), ct);
         var contractIds = vendorContracts.Select(c => c.ContractId).ToList();
@@ -192,6 +203,11 @@ public class VendorServiceManagement : IVendorServiceManagement
 
     public async Task CancelServiceAsync(int vendorId, int registrationId, CancellationToken ct = default)
     {
+        if (registrationId <= 0)
+        {
+            throw new ArgumentException("ID đăng ký dịch vụ không hợp lệ.");
+        }
+
         var registration = await _serviceRegistrationRepository.GetByIdAsync(registrationId, ct);
         
         if (registration == null || registration.VendorId != vendorId)

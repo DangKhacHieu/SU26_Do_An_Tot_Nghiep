@@ -50,6 +50,10 @@ namespace STMM.API.Controllers
                 var result = await _vendorViolationService.GetMyViolationsAsync(vendorId, queryParams);
                 return Ok(result);
             }
+            catch (System.ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
             catch (System.UnauthorizedAccessException ex)
             {
                 return Unauthorized(new { message = ex.Message });
@@ -68,6 +72,10 @@ namespace STMM.API.Controllers
                     return NotFound(new { message = "Không tìm thấy biên bản vi phạm hoặc bạn không có quyền xem." });
                 }
                 return Ok(result);
+            }
+            catch (System.ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
             }
             catch (System.UnauthorizedAccessException ex)
             {

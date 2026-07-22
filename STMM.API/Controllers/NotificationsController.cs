@@ -81,7 +81,11 @@ namespace STMM.API.Controllers
         [HttpDelete("{notiId}")]
         public async Task<IActionResult> Delete([FromRoute] int notiId, CancellationToken ct)
         {
-            await _notificationService.DeleteAsync(notiId, ct);
+            int userId = GetUserId();
+            if (userId == 0) return Unauthorized();
+
+            string roleName = GetUserRole();
+            await _notificationService.DeleteAsync(notiId, userId, roleName, ct);
             return NoContent();
         }
     }

@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Linq;
 using System;
 using STMM.Business.DTOs.Stall;
+using STMM.Business.Exceptions;
 using STMM.Business.Interfaces;
 using STMM.DataAccess.Data;
 using STMM.DataAccess.Entities;
@@ -32,16 +33,45 @@ namespace STMM.API.Controllers
         [HttpGet("area/{areaId}")]
         public async Task<ActionResult<IEnumerable<StallDto>>> GetAllStallsByAreaId(int areaId)
         {
-            var stalls = await _stallService.GetAllStallsByAreaIdAsync(areaId);
-            return Ok(stalls);
+            try
+            {
+                var stalls = await _stallService.GetAllStallsByAreaIdAsync(areaId);
+                return Ok(stalls);
+            }
+            catch (BadRequestException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (NotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = ex.Message });
+            }
         }
 
         [HttpGet("{id}")]
         public async Task<ActionResult<StallDto>> GetStallById(int id)
         {
-            var stall = await _stallService.GetStallByIdAsync(id);
-            if (stall == null) return NotFound();
-            return Ok(stall);
+            try
+            {
+                var stall = await _stallService.GetStallByIdAsync(id);
+                return Ok(stall);
+            }
+            catch (BadRequestException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (NotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = ex.Message });
+            }
         }
 
         [HttpPost]
@@ -53,6 +83,14 @@ namespace STMM.API.Controllers
             {
                 var stall = await _stallService.CreateStallAsync(createStallDto);
                 return CreatedAtAction(nameof(GetStallById), new { id = stall.StallId }, stall);
+            }
+            catch (BadRequestException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (NotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
             }
             catch (ArgumentException ex)
             {
@@ -77,13 +115,17 @@ namespace STMM.API.Controllers
                 if (stall == null) return NotFound();
                 return Ok(stall);
             }
-            catch (ArgumentException ex)
+            catch (BadRequestException ex)
             {
                 return BadRequest(new { message = ex.Message });
             }
-            catch (KeyNotFoundException)
+            catch (NotFoundException ex)
             {
-                return NotFound();
+                return NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = ex.Message });
             }
         }
 
@@ -113,18 +155,40 @@ namespace STMM.API.Controllers
                 var stall = await _stallService.UpdateStallStatusAsync(id, status);
                 return Ok(stall);
             }
-            catch (KeyNotFoundException)
+            catch (BadRequestException ex)
             {
-                return NotFound();
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (NotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = ex.Message });
             }
         }
 
         [HttpDelete("{id}")]
         public async Task<ActionResult> DeactivateStall(int id)
         {
-            var result = await _stallService.DeactivateStallAsync(id);
-            if (!result) return NotFound();
-            return NoContent();
+            try
+            {
+                await _stallService.DeactivateStallAsync(id);
+                return NoContent();
+            }
+            catch (BadRequestException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (NotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = ex.Message });
+            }
         }
 
         [HttpGet("highest-rated")]

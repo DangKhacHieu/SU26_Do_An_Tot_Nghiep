@@ -234,6 +234,10 @@ const PAGE_TITLES = {
     title: "Nhật ký hoạt động (Admin)",
     sub: "Giám sát lịch sử thao tác của các tài khoản quản trị.",
   },
+  "admin-market-approval": {
+    title: "Phê duyệt Chợ (Admin)",
+    sub: "Quản lý và phê duyệt các yêu cầu thiết lập sơ đồ mặt bằng chợ từ các Manager.",
+  },
 };
 
 const STAFF_PAGE_TITLES = {
