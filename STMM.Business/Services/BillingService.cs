@@ -87,6 +87,29 @@ namespace STMM.Business.Services
             return MapInvoiceToDto(invoice);
         }
 
+        public async Task<InvoiceDto> GetInvoiceDetailForAccountantAsync(
+            int invoiceId,
+            int accountantUserId,
+            CancellationToken ct = default)
+        {
+            var invoice = await _invoiceRepository.GetInvoiceDetailsWithRelationsAsync(invoiceId, ct);
+            if (invoice == null)
+            {
+                throw new NotFoundException($"Invoice with ID {invoiceId} not found.");
+            }
+
+            var accountantUser = await _userRepository.GetByIdAsync(accountantUserId, ct);
+            if (accountantUser != null && accountantUser.MarketId.HasValue)
+            {
+                if (invoice.Contract?.Stall?.Area?.MarketId != accountantUser.MarketId)
+                {
+                    throw new ForbiddenException("Bạn không có quyền xem chi tiết hóa đơn của chợ khác.");
+                }
+            }
+
+            return MapInvoiceToDto(invoice);
+        }
+
         /// <inheritdoc />
         public async Task<InvoiceDto> GetInvoiceDetailAsync(int staffUserId, int invoiceId, CancellationToken ct = default)
         {

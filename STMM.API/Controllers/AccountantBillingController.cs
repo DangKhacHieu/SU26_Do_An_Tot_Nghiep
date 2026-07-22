@@ -43,7 +43,7 @@ namespace STMM.API.Controllers
         public async Task<IActionResult> GetInvoiceDetail(int invoiceId, CancellationToken ct)
         {
             var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("userId")?.Value ?? "0");
-            var result = await _billingService.GetInvoiceDetailAsync(invoiceId, userId, ct);
+            var result = await _billingService.GetInvoiceDetailForAccountantAsync(invoiceId, userId, ct);
             return Ok(result);
         }
 

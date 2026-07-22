@@ -8,6 +8,7 @@ namespace STMM.Business.Interfaces
     public interface IBillingService
     {
         Task<InvoiceDto> GetInvoiceDetailAsync(int invoiceId, CancellationToken ct = default);
+        Task<InvoiceDto> GetInvoiceDetailForAccountantAsync(int invoiceId, int accountantUserId, CancellationToken ct = default);
 
         /// <summary>
         /// Get invoice detail including InvoiceDetails, FeeType, Stall, and Vendor information.
