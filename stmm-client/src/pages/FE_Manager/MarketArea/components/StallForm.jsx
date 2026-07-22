@@ -221,23 +221,19 @@ const StallForm = ({ initialData, drawnData, areaId, areaWidth, areaHeight, area
                     
                     <div className={styles.formGroup}>
                         <label htmlFor="categoryName">Tên sạp / Ngành hàng (Category) <span style={{color: '#ff4d4f'}}>*</span></label>
-                        <input
+                        <select
                             className={styles.input}
-                            type="text"
                             id="categoryName"
                             name="categoryName"
                             value={formData.categoryName}
                             onChange={handleChange}
                             required
-                            list="category-suggestions"
-                            placeholder="e.g., Fresh Seafood, Fashion..."
-                            autoComplete="off"
-                        />
-                        <datalist id="category-suggestions">
+                        >
+                            <option value="">-- Chọn ngành hàng --</option>
                             {categories.map(c => (
-                                <option key={c.categoryId} value={c.name} />
+                                <option key={c.categoryId} value={c.name}>{c.name}</option>
                             ))}
-                        </datalist>
+                        </select>
                     </div>
 
                     <div className={styles.formGroup}>

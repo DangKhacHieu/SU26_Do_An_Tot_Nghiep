@@ -46,7 +46,12 @@ export default function BusinessCategoryListManager({ navigate, addToast }) {
       if (searchQuery) url += `search=${encodeURIComponent(searchQuery)}&`;
       if (statusFilter !== '') url += `isActive=${encodeURIComponent(statusFilter)}&`;
 
-      const res = await fetch(url);
+      const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
+      const res = await fetch(url, {
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : ''
+        }
+      });
       if (res.ok) {
         setCategories(await res.json());
       } else {
@@ -138,9 +143,13 @@ export default function BusinessCategoryListManager({ navigate, addToast }) {
         method = 'PUT';
       }
 
+      const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
       const res = await fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : ''
+        },
         body: JSON.stringify(payload)
       });
 
@@ -180,7 +189,13 @@ export default function BusinessCategoryListManager({ navigate, addToast }) {
 
     setActionLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/${targetCat.categoryId}`, { method: 'DELETE' });
+      const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
+      const res = await fetch(`${API_BASE}/${targetCat.categoryId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : ''
+        }
+      });
       if (res.ok) {
         addToast('Xóa danh mục thành công!', 'success');
         handleCloseDelete();

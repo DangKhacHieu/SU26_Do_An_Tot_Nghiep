@@ -12,23 +12,11 @@ namespace STMM.Business.Validators
 {
     public class CreateMarketBulkRequestValidator : AbstractValidator<CreateMarketBulkRequest>
     {
-        private readonly IMarketRepository _marketRepository;
-        private readonly IUserRepository _userRepository;
-        private readonly IHttpContextAccessor _httpContextAccessor;
-
-        public CreateMarketBulkRequestValidator(IMarketRepository marketRepository, IUserRepository userRepository, IHttpContextAccessor httpContextAccessor)
+        public CreateMarketBulkRequestValidator()
         {
-            _marketRepository = marketRepository;
-            _userRepository = userRepository;
-            _httpContextAccessor = httpContextAccessor;
-
             RuleFor(x => x.MarketName)
                 .NotEmpty().WithMessage("Tên chợ không được để trống.")
                 .MaximumLength(255).WithMessage("Tên chợ không được vượt quá 255 ký tự.");
-
-            RuleFor(x => x)
-                .MustAsync(BeUniqueNameAndAddressAsync).WithMessage("Một chợ với cùng tên và địa chỉ này đã tồn tại trên hệ thống.")
-                .MustAsync(ManagerCanCreateMarketAsync).WithMessage("Quản lý này đã sở hữu một chợ đang hoạt động hoặc chờ duyệt. Mỗi quản lý chỉ được tạo 1 chợ.");
 
             RuleFor(x => x)
                 .Must(HaveValidMarketCanvas).WithMessage("Kích thước Canvas bản đồ (Tọa độ Pixel MaxX-MinX, MaxY-MinY) không hợp lệ hoặc quá nhỏ.");
@@ -47,39 +35,6 @@ namespace STMM.Business.Validators
                 .Must(StallsFitInAreaCanvas).WithMessage("Tọa độ của một số Sạp (Stalls) bị vẽ vượt ra ngoài giới hạn không gian của Khu vực (Area) chứa nó.")
                 .Must(StallsNotOverlap).WithMessage("Có các Sạp bị vẽ chồng chéo không gian lên nhau.")
                 .Must(StallsSizeNotExceedArea).WithMessage("Tổng diện tích các Sạp trong một khu vực vượt quá diện tích của khu vực đó.");
-        }
-
-        private async Task<bool> BeUniqueNameAndAddressAsync(CreateMarketBulkRequest request, CancellationToken cancellationToken)
-        {
-            var addressLower = string.IsNullOrEmpty(request.Address) ? string.Empty : request.Address.ToLower().Trim();
-            
-            var isDuplicate = await _marketRepository.Query().AnyAsync(m => 
-                m.MarketName.ToLower() == request.MarketName.ToLower().Trim() && 
-                (string.IsNullOrEmpty(request.Address) || (m.Address != null && m.Address.ToLower() == addressLower)) &&
-                m.IsDeleted != true && m.Status != "Rejected" && m.Status != "Inactive", 
-                cancellationToken);
-            
-            return !isDuplicate;
-        }
-
-        private async Task<bool> ManagerCanCreateMarketAsync(CreateMarketBulkRequest request, CancellationToken cancellationToken)
-        {
-            var userIdClaim = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int currentUserId))
-            {
-                return true; 
-            }
-
-            var user = await _userRepository.Query().Include(u => u.Role).FirstOrDefaultAsync(u => u.UserId == currentUserId, cancellationToken);
-            if (user != null && user.Role?.Name == "Manager" && user.MarketId.HasValue)
-            {
-                var currentMarket = await _marketRepository.GetByIdAsync(user.MarketId.Value);
-                if (currentMarket != null && currentMarket.IsDeleted != true && currentMarket.Status != "Rejected" && currentMarket.Status != "Inactive")
-                {
-                    return false;
-                }
-            }
-            return true;
         }
 
         private bool HaveValidMarketCanvas(CreateMarketBulkRequest request)
@@ -165,6 +120,9 @@ namespace STMM.Business.Validators
             {
                 if (area.Stalls == null || !area.MinX.HasValue || !area.MaxX.HasValue || !area.MinY.HasValue || !area.MaxY.HasValue) continue;
 
+                var areaWidth = area.MaxX.Value - area.MinX.Value;
+                var areaHeight = area.MaxY.Value - area.MinY.Value;
+
                 foreach (var stall in area.Stalls)
                 {
                     if (stall.MapX.HasValue && stall.MapY.HasValue && stall.Width.HasValue && stall.Height.HasValue)
@@ -174,8 +132,10 @@ namespace STMM.Business.Validators
                         var stallMinY = stall.MapY.Value;
                         var stallMaxY = stall.MapY.Value + stall.Height.Value;
 
-                        if (stallMinX < area.MinX.Value || stallMaxX > area.MaxX.Value ||
-                            stallMinY < area.MinY.Value || stallMaxY > area.MaxY.Value)
+                        bool fitsRelative = (stallMinX >= -1 && stallMaxX <= areaWidth + 1 && stallMinY >= -1 && stallMaxY <= areaHeight + 1);
+                        bool fitsAbsolute = (stallMinX >= area.MinX.Value - 1 && stallMaxX <= area.MaxX.Value + 1 && stallMinY >= area.MinY.Value - 1 && stallMaxY <= area.MaxY.Value + 1);
+
+                        if (!fitsRelative && !fitsAbsolute)
                         {
                             return false;
                         }

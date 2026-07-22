@@ -125,12 +125,23 @@ namespace STMM.Business.Services
 
             // 1. Validation
             var user = await _userRepository.Query().Include(u => u.Role).FirstOrDefaultAsync(u => u.UserId == currentUserId);
-            if (user != null && user.Role?.Name == "Manager" && user.MarketId.HasValue)
+            if (user != null && string.Equals(user.Role?.Name, "Manager", StringComparison.OrdinalIgnoreCase))
             {
-                var currentMarket = await _marketRepository.GetByIdAsync(user.MarketId.Value);
-                if (currentMarket != null && currentMarket.IsDeleted != true && currentMarket.Status != "Rejected" && currentMarket.Status != "Inactive")
+                var existingMarket = await _marketRepository.Query()
+                    .FirstOrDefaultAsync(m => (m.CreatorId == currentUserId || (user.MarketId.HasValue && m.MarketId == user.MarketId.Value)) 
+                                           && m.IsDeleted != true 
+                                           && m.Status != "Rejected" 
+                                           && m.Status != "Inactive");
+                if (existingMarket != null)
                 {
-                    throw new STMM.Business.Exceptions.BadRequestException("Quản lý này đã sở hữu một chợ đang hoạt động hoặc chờ duyệt. Mỗi quản lý chỉ được phép tạo và quản lý duy nhất 1 chợ.");
+                    if (existingMarket.Status == "Pending")
+                    {
+                        throw new STMM.Business.Exceptions.BadRequestException("Bạn đã gửi yêu cầu đăng ký chợ đang chờ Admin duyệt. Vui lòng chờ Admin phê duyệt hoặc từ chối trước khi đăng ký chợ mới.");
+                    }
+                    else
+                    {
+                        throw new STMM.Business.Exceptions.BadRequestException("Bạn đã sở hữu một chợ đang hoạt động trên hệ thống. Mỗi quản lý chỉ được phép tạo và quản lý duy nhất 1 chợ.");
+                    }
                 }
             }
 

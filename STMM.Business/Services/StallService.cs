@@ -176,13 +176,13 @@ namespace STMM.Business.Services
             return dto;
         }
 
-        private async Task<int?> ResolveCategoryAsync(int? categoryId, string? categoryName)
+        private async Task<int?> ResolveCategoryAsync(int? categoryId, string? categoryName, int? marketId = null)
         {
             if (!string.IsNullOrWhiteSpace(categoryName))
             {
                 var nameLower = categoryName.ToLower().Trim();
                 var existingCategory = await _categoryRepository.Query()
-                    .FirstOrDefaultAsync(c => c.Name.ToLower() == nameLower);
+                    .FirstOrDefaultAsync(c => c.Name.ToLower() == nameLower && (marketId == null || c.MarketId == marketId));
 
                 if (existingCategory != null)
                 {
@@ -194,6 +194,7 @@ namespace STMM.Business.Services
                     { 
                         Name = categoryName.Trim(),
                         Code = GetAcronym(categoryName) + "-" + Guid.NewGuid().ToString("N").Substring(0, 4).ToUpper(),
+                        MarketId = marketId,
                         IsActive = true,
                         CreatedAt = DateTime.UtcNow
                     };
@@ -256,7 +257,7 @@ namespace STMM.Business.Services
             var stall = _mapper.Map<Stall>(createStallDto);
             
             // Resolve Category Name to ID
-            var resolvedCategoryId = await ResolveCategoryAsync(createStallDto.CategoryId, createStallDto.CategoryName);
+            var resolvedCategoryId = await ResolveCategoryAsync(createStallDto.CategoryId, createStallDto.CategoryName, area.MarketId);
             if (resolvedCategoryId.HasValue)
             {
                 stall.CategoryId = resolvedCategoryId.Value;

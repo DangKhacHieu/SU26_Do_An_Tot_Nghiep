@@ -21,7 +21,7 @@ namespace STMM.DataAccess.Repositories
 
             if (marketId.HasValue)
             {
-                query = query.Where(c => c.MarketId == marketId.Value || c.MarketId == null);
+                query = query.Where(c => c.MarketId == marketId.Value);
             }
 
             if (!string.IsNullOrWhiteSpace(searchTerm))

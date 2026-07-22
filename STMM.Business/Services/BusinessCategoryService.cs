@@ -120,43 +120,54 @@ namespace STMM.Business.Services
 
         public async Task<BusinessCategoryDto> CreateCategoryAsync(CreateBusinessCategoryRequest request, int? currentUserId = null, CancellationToken ct = default)
         {
+            int? targetMarketId = null;
             if (currentUserId.HasValue)
             {
                 var user = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.UserId == currentUserId.Value, ct);
-                if (user != null && string.Equals(user.Role?.Name, "Manager", StringComparison.OrdinalIgnoreCase) && !user.MarketId.HasValue)
+                if (user != null && string.Equals(user.Role?.Name, "Manager", StringComparison.OrdinalIgnoreCase))
                 {
-                    throw new InvalidOperationException("Tài khoản Quản lý chưa sở hữu chợ nào được phê duyệt. Bạn chỉ có thể tạo danh mục kinh doanh sau khi chợ được phê duyệt.");
+                    if (!user.MarketId.HasValue)
+                    {
+                        throw new InvalidOperationException("Tài khoản Quản lý chưa sở hữu chợ nào được phê duyệt. Bạn chỉ có thể tạo danh mục kinh doanh sau khi chợ được phê duyệt.");
+                    }
+                    targetMarketId = user.MarketId.Value;
                 }
             }
 
-            // Check code uniqueness
+            // Check code uniqueness globally (DB enforces unique constraint on Code column)
             var codeUpper = request.Code.Trim().ToUpper();
             var codeExists = await _context.BusinessCategories.AnyAsync(c => c.Code.ToUpper() == codeUpper, ct);
             if (codeExists)
             {
-                throw new InvalidOperationException("Mã ngành hàng này đã tồn tại trong hệ thống.");
+                throw new InvalidOperationException($"Mã code '{codeUpper}' đã tồn tại trong hệ thống. Vui lòng chọn mã code khác.");
             }
 
-            // Check name uniqueness
+            // Check name uniqueness per market
             var nameTrim = request.Name.Trim().ToLower();
-            var nameExists = await _context.BusinessCategories.AnyAsync(c => c.Name.ToLower() == nameTrim, ct);
+            var nameExists = await _context.BusinessCategories.AnyAsync(c => c.Name.ToLower() == nameTrim && c.MarketId == targetMarketId, ct);
             if (nameExists)
             {
-                throw new InvalidOperationException("Tên ngành hàng này đã tồn tại.");
+                throw new InvalidOperationException("Tên ngành hàng này đã tồn tại trong chợ.");
             }
 
             var category = _mapper.Map<BusinessCategory>(request);
             category.Code = codeUpper;
+            category.MarketId = targetMarketId;
             category.CreatedAt = DateTime.UtcNow;
 
-            if (currentUserId.HasValue)
-            {
-                var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == currentUserId.Value, ct);
-                category.MarketId = user?.MarketId;
-            }
-
             await _categoryRepository.AddAsync(category, ct);
-            await _categoryRepository.SaveChangesAsync(ct);
+            try
+            {
+                await _categoryRepository.SaveChangesAsync(ct);
+            }
+            catch (DbUpdateException ex)
+            {
+                if (ex.InnerException?.Message.Contains("business_categories_code_key") == true || ex.InnerException?.Message.Contains("duplicate key") == true)
+                {
+                    throw new InvalidOperationException($"Mã code '{codeUpper}' đã tồn tại trong hệ thống. Vui lòng chọn mã code khác.");
+                }
+                throw new InvalidOperationException($"Lỗi khi lưu danh mục ngành hàng: {ex.InnerException?.Message ?? ex.Message}");
+            }
 
             return _mapper.Map<BusinessCategoryDto>(category);
         }
@@ -182,10 +193,10 @@ namespace STMM.Business.Services
             var nameTrim = request.Name.Trim().ToLower();
             if (category.Name.ToLower() != nameTrim)
             {
-                var nameExists = await _context.BusinessCategories.AnyAsync(c => c.Name.ToLower() == nameTrim && c.CategoryId != id, ct);
+                var nameExists = await _context.BusinessCategories.AnyAsync(c => c.Name.ToLower() == nameTrim && c.CategoryId != id && c.MarketId == category.MarketId, ct);
                 if (nameExists)
                 {
-                    throw new InvalidOperationException("Tên ngành hàng này đã tồn tại.");
+                    throw new InvalidOperationException("Tên ngành hàng này đã tồn tại trong chợ.");
                 }
             }
 

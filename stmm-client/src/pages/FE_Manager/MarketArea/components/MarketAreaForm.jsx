@@ -278,21 +278,19 @@ const MarketAreaForm = ({
 
           <div className={styles.formGroup}>
             <label>NGÀNH HÀNG</label>
-            <input 
+            <select 
               className={styles.input} 
-              type="text" 
               name="categoryName"
               value={formData.categoryName}
               onChange={handleChange}
-              list="area-category-suggestions"
-              placeholder="VD: Thực phẩm, Thời trang..." 
-              autoComplete="off"
-            />
-            <datalist id="area-category-suggestions">
-                {categories.map(c => (
-                    <option key={c.categoryId} value={c.name} />
-                ))}
-            </datalist>
+            >
+              <option value="">-- Chọn ngành hàng --</option>
+              {categories.map(c => (
+                <option key={c.categoryId} value={c.name}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 
