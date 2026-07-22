@@ -11,9 +11,61 @@ namespace STMM.DataAccess.Repositories
         {
         }
 
-        public async Task<Invoice?> GetInvoiceDetailsWithRelationsAsync(int invoiceId, CancellationToken ct = default)
+        public async Task<Invoice?> GetInvoiceDetailsWithRelationsAsync(
+            int invoiceId,
+            CancellationToken ct = default)
+        {
+            return await InvoiceDetailsQuery()
+                .FirstOrDefaultAsync(i =>
+                    i.InvoiceId == invoiceId && i.IsDeleted != true,
+                    ct);
+        }
+
+        public async Task<Invoice?> GetInvoiceDetailsWithRelationsAsync(int invoiceId, int marketId, CancellationToken ct = default)
+        {
+            return await InvoiceDetailsQuery()
+                .FirstOrDefaultAsync(i =>
+                    i.InvoiceId == invoiceId &&
+                    i.IsDeleted != true &&
+                    i.Contract.Stall.Area.MarketId == marketId,
+                    ct);
+        }
+
+        public async Task<Invoice?> GetInvoiceWithRelationsForPaymentAsync(int invoiceId, int marketId, CancellationToken ct = default)
         {
             return await _context.Invoices
+                .Include(i => i.Contract)
+                    .ThenInclude(c => c.Vendor)
+                        .ThenInclude(v => v.User)
+                .Include(i => i.Contract)
+                    .ThenInclude(c => c.Stall)
+                        .ThenInclude(s => s.Category)
+                .FirstOrDefaultAsync(i =>
+                    i.InvoiceId == invoiceId &&
+                    i.IsDeleted != true &&
+                    i.Contract.Stall.Area.MarketId == marketId,
+                    ct);
+        }
+
+        public async Task<List<Invoice>> GetUnpaidInvoicesByStallAsync(int stallId, int marketId, CancellationToken ct = default)
+        {
+            return await _context.Invoices
+                .Include(i => i.InvoiceDetails)
+                    .ThenInclude(d => d.FeeType)
+                .Where(i =>
+                    i.Contract.StallId == stallId &&
+                    i.Contract.Stall.Area.MarketId == marketId &&
+                    i.Status == "Unpaid" &&
+                    i.IsDeleted != true)
+                .OrderBy(i => i.Year)
+                .ThenBy(i => i.Month)
+                .AsNoTracking()
+                .ToListAsync(ct);
+        }
+
+        private IQueryable<Invoice> InvoiceDetailsQuery()
+        {
+            return _context.Invoices
                 .Include(i => i.InvoiceDetails)
                     .ThenInclude(d => d.FeeType)
                 .Include(i => i.Payments)
@@ -23,32 +75,7 @@ namespace STMM.DataAccess.Repositories
                 .Include(i => i.Contract)
                     .ThenInclude(c => c.Vendor)
                         .ThenInclude(v => v.User)
-                .AsNoTracking()
-                .FirstOrDefaultAsync(i => i.InvoiceId == invoiceId && i.IsDeleted != true, ct);
-        }
-
-        public async Task<Invoice?> GetInvoiceWithRelationsForPaymentAsync(int invoiceId, CancellationToken ct = default)
-        {
-            return await _context.Invoices
-                .Include(i => i.Contract)
-                    .ThenInclude(c => c.Vendor)
-                        .ThenInclude(v => v.User)
-                .Include(i => i.Contract)
-                    .ThenInclude(c => c.Stall)
-                        .ThenInclude(s => s.Category)
-                .FirstOrDefaultAsync(i => i.InvoiceId == invoiceId && i.IsDeleted != true, ct);
-        }
-
-        public async Task<List<Invoice>> GetUnpaidInvoicesByStallAsync(int stallId, CancellationToken ct = default)
-        {
-            return await _context.Invoices
-                .Include(i => i.InvoiceDetails)
-                    .ThenInclude(d => d.FeeType)
-                .Where(i => i.Contract.StallId == stallId && i.Status == "Unpaid" && i.IsDeleted != true)
-                .OrderBy(i => i.Year)
-                .ThenBy(i => i.Month)
-                .AsNoTracking()
-                .ToListAsync(ct);
+                .AsNoTracking();
         }
 
         public async Task<List<Invoice>> GetInvoicesByVendorAsync(int userId, int? stallId, int? month, int? year, CancellationToken ct = default)

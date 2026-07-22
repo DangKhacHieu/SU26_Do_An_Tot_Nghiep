@@ -14,6 +14,7 @@ namespace STMM.DataAccess.Repositories
         public async Task<(IEnumerable<Violation> Items, int TotalCount)> GetViolationsPagedAsync(
             int userId,
             string? status,
+            string? searchTerm,
             bool sortDescending,
             int pageNumber,
             int pageSize,
@@ -26,6 +27,15 @@ namespace STMM.DataAccess.Repositories
             if (!string.IsNullOrWhiteSpace(status))
             {
                 query = query.Where(v => v.Status == status);
+            }
+
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                var term = searchTerm.Trim().ToLower();
+                query = query.Where(v =>
+                    v.Title.ToLower().Contains(term) ||
+                    v.Description.ToLower().Contains(term) ||
+                    v.Stall.Code.ToLower().Contains(term));
             }
 
             var totalCount = await query.CountAsync(ct);
@@ -52,6 +62,7 @@ namespace STMM.DataAccess.Repositories
         }
 
         public async Task<(IEnumerable<Violation> Items, int TotalCount)> GetViolationsPagedForManagerAsync(
+            int marketId,
             string? status,
             string? searchTerm,
             bool sortDescending,
@@ -63,7 +74,7 @@ namespace STMM.DataAccess.Repositories
                 .Include(v => v.Stall)
                 .Include(v => v.ViolationType)
                 .Include(v => v.CreatedByUser)
-                .AsQueryable();
+                .Where(v => v.Stall.Area.MarketId == marketId);
 
             if (!string.IsNullOrWhiteSpace(status))
             {
@@ -96,7 +107,7 @@ namespace STMM.DataAccess.Repositories
             return (items, totalCount);
         }
 
-        public async Task<Violation?> GetViolationDetailsForManagerAsync(int id, CancellationToken ct = default)
+        public async Task<Violation?> GetViolationDetailsForManagerAsync(int id, int marketId, CancellationToken ct = default)
         {
             return await _context.Violations
                 .Include(v => v.Stall)
@@ -104,7 +115,9 @@ namespace STMM.DataAccess.Repositories
                 .Include(v => v.CreatedByUser)
                 .Include(v => v.Requests)
                 .AsNoTracking()
-                .FirstOrDefaultAsync(v => v.ViolationId == id, ct);
+                .FirstOrDefaultAsync(v =>
+                    v.ViolationId == id && v.Stall.Area.MarketId == marketId,
+                    ct);
         }
 
         public async Task<bool> SimulateViolationAppealAsync(int violationId, CancellationToken ct = default)

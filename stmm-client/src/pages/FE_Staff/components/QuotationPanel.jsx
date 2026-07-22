@@ -1,6 +1,7 @@
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { TASK_STATUS } from '../../../constants/taskEnums';
+import readProblemDetail from '../../../utils/readProblemDetail';
 
 const getAuthHeaders = () => ({
   Authorization: `Bearer ${localStorage.getItem('accessToken')}`
@@ -9,21 +10,18 @@ const getAuthHeaders = () => ({
 export default function QuotationPanel({ taskId, baseUrl, taskStatus, initialMaterials, onRefreshTask, onShowNotification }) {
   const isEditMode = taskStatus === TASK_STATUS.PENDING;
   
-  // States for Edit Mode
   const [quotation, setQuotation] = useState({ materials: initialMaterials || [], totalAmount: 0 });
   const [catalog, setCatalog] = useState([]);
   const [loading, setLoading] = useState(false);
   const [catalogLoading, setCatalogLoading] = useState(false);
   const [error, setError] = useState(null);
   
-  // Form states
   const [selectedCatalogId, setSelectedCatalogId] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [customUnitPrice, setCustomUnitPrice] = useState('');
   const [submittingMaterial, setSubmittingMaterial] = useState(false);
   const [submittingQuotation, setSubmittingQuotation] = useState(false);
 
-  // Custom Confirm Modal state
   const [confirmModal, setConfirmModal] = useState({ 
     isOpen: false, 
     type: 'primary', 
@@ -32,14 +30,13 @@ export default function QuotationPanel({ taskId, baseUrl, taskStatus, initialMat
     onConfirm: null 
   });
 
-  // Fetch quotation from backend in Edit Mode
-  const fetchQuotation = async () => {
+  const fetchQuotation = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const response = await fetch(`${baseUrl}/api/staff/tasks/${taskId}/quotation`, { headers: getAuthHeaders() });
       if (!response.ok) {
-        throw new Error('Failed to load material quotation details.');
+        throw new Error(await readProblemDetail(response, 'Unable to load quotation details.'));
       }
       const data = await response.json();
       setQuotation({
@@ -51,10 +48,9 @@ export default function QuotationPanel({ taskId, baseUrl, taskStatus, initialMat
     } finally {
       setLoading(false);
     }
-  };
+  }, [baseUrl, taskId]);
 
-  // Fetch repair prices catalog in Edit Mode
-  const fetchCatalog = async () => {
+  const fetchCatalog = useCallback(async () => {
     setCatalogLoading(true);
     try {
       const response = await fetch(`${baseUrl}/api/repair-prices`, { headers: getAuthHeaders() });
@@ -67,21 +63,20 @@ export default function QuotationPanel({ taskId, baseUrl, taskStatus, initialMat
     } finally {
       setCatalogLoading(false);
     }
-  };
+  }, [baseUrl]);
 
   useEffect(() => {
     if (isEditMode) {
       fetchQuotation();
       fetchCatalog();
     } else {
-      // In read-only mode, we calculate total amount based on task.materials
       const total = (initialMaterials || []).reduce((sum, item) => sum + (item.amount || 0), 0);
       setQuotation({
         materials: initialMaterials || [],
         totalAmount: total
       });
     }
-  }, [taskId, taskStatus, initialMaterials]);
+  }, [fetchCatalog, fetchQuotation, initialMaterials, isEditMode]);
 
   const selectedCatalogItem = catalog.find(
     (item) => item.repairPriceId === parseInt(selectedCatalogId)
@@ -122,13 +117,10 @@ export default function QuotationPanel({ taskId, baseUrl, taskStatus, initialMat
       });
 
       if (!response.ok) {
-        const errText = await response.text();
-        throw new Error(errText || 'Error adding material.');
+        throw new Error(await readProblemDetail(response, 'Unable to add material.'));
       }
 
-      // Refresh list
       await fetchQuotation();
-      // Reset form
       setSelectedCatalogId('');
       setQuantity(1);
       setCustomUnitPrice('');
@@ -148,8 +140,7 @@ export default function QuotationPanel({ taskId, baseUrl, taskStatus, initialMat
       });
 
       if (!response.ok) {
-        const errText = await response.text();
-        throw new Error(errText || 'Error removing material.');
+        throw new Error(await readProblemDetail(response, 'Unable to remove material.'));
       }
 
       await fetchQuotation();
@@ -163,8 +154,8 @@ export default function QuotationPanel({ taskId, baseUrl, taskStatus, initialMat
     setConfirmModal({
       isOpen: true,
       type: 'danger',
-      title: 'Xác nhận xóa vật tư',
-      message: 'Bạn có chắc chắn muốn xóa vật tư này khỏi bảng báo giá không?',
+      title: 'Remove material',
+      message: 'Remove this material from the quotation?',
       onConfirm: () => executeRemoveMaterial(materialId)
     });
   };
@@ -178,12 +169,11 @@ export default function QuotationPanel({ taskId, baseUrl, taskStatus, initialMat
       });
 
       if (!response.ok) {
-        const errText = await response.text();
-        throw new Error(errText || 'Error submitting quotation for approval.');
+        throw new Error(await readProblemDetail(response, 'Unable to submit quotation for approval.'));
       }
 
       onShowNotification('Quotation has been submitted for approval successfully!', 'success');
-      onRefreshTask(); // Reload the whole task details to show read-only mode and status update
+      onRefreshTask();
     } catch (err) {
       onShowNotification(err.message, 'error');
     } finally {
@@ -200,8 +190,8 @@ export default function QuotationPanel({ taskId, baseUrl, taskStatus, initialMat
     setConfirmModal({
       isOpen: true,
       type: 'primary',
-      title: 'Gửi duyệt báo giá',
-      message: 'Báo giá sẽ được gửi cho Manager xác định bên chịu phí. Sau khi gửi, danh sách vật tư sẽ tạm khóa cho đến khi có quyết định.',
+      title: 'Submit quotation',
+      message: 'The quotation will be sent to the Manager to determine who pays. Materials will be locked until a decision is made.',
       onConfirm: executeSubmitQuotation
     });
   };
@@ -217,7 +207,6 @@ export default function QuotationPanel({ taskId, baseUrl, taskStatus, initialMat
         <h3 className="card-section-title">🔧 Repair Materials & Parts Quotation</h3>
       </div>
 
-      {/* Submit button — only when materials exist */}
       {isEditMode && quotation.materials.length > 0 && (
         <div style={{ marginBottom: '16px', textAlign: 'right' }}>
           <button 
@@ -357,7 +346,6 @@ export default function QuotationPanel({ taskId, baseUrl, taskStatus, initialMat
         </div>
       )}
 
-      {/* Custom Confirmation Modal */}
       {confirmModal.isOpen && (
         <div className="custom-confirm-overlay">
           <div className="custom-confirm-modal">
@@ -373,7 +361,7 @@ export default function QuotationPanel({ taskId, baseUrl, taskStatus, initialMat
                 className="btn-secondary" 
                 onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
               >
-                HỦY
+                CANCEL
               </button>
               <button 
                 type="button" 
@@ -389,7 +377,7 @@ export default function QuotationPanel({ taskId, baseUrl, taskStatus, initialMat
                   setConfirmModal(prev => ({ ...prev, isOpen: false }));
                 }}
               >
-                XÁC NHẬN
+                CONFIRM
               </button>
             </div>
           </div>

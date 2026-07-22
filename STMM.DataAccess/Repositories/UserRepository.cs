@@ -50,6 +50,39 @@ namespace STMM.DataAccess.Repositories
             return await query.AsNoTracking().ToListAsync(ct);
         }
 
+        public async Task<IReadOnlyList<User>> GetActiveManagersByMarketAsync(
+            int marketId,
+            CancellationToken ct = default)
+        {
+            return await _dbSet
+                .Include(user => user.Role)
+                .Where(user => user.MarketId == marketId
+                    && user.Role.Name == "Manager"
+                    && user.Status == "Active"
+                    && user.IsDeleted != true)
+                .AsNoTracking()
+                .ToListAsync(ct);
+        }
+
+        public async Task<IReadOnlyList<User>> GetActiveUsersByRoleAsync(
+            string? roleName,
+            CancellationToken ct = default)
+        {
+            var query = _dbSet
+                .Include(user => user.Role)
+                .Where(user => user.Status == "Active" && user.IsDeleted != true);
+
+            if (!string.IsNullOrWhiteSpace(roleName)
+                && !roleName.Equals("Public", System.StringComparison.OrdinalIgnoreCase))
+            {
+                query = query.Where(user => user.Role.Name == roleName);
+            }
+
+            return await query
+                .AsNoTracking()
+                .ToListAsync(ct);
+        }
+
         public async Task<User?> GetUserByIdWithRoleAsync(int id, CancellationToken ct = default)
         {
             return await _dbSet

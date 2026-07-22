@@ -12,14 +12,18 @@ namespace STMM.DataAccess.Repositories
         }
 
         public async Task<(IEnumerable<MeterReading> Items, int TotalCount)> GetReadingsByStallIdPagedAsync(
-            int stallId, string? meterType, int pageNumber, int pageSize, CancellationToken ct = default)
+            int stallId, int marketId, string? meterType, int pageNumber, int pageSize, CancellationToken ct = default)
         {
             var sixMonthsAgo = DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(-6));
 
             var query = _context.MeterReadings
                 .Include(r => r.Meter).ThenInclude(m => m.Stall)
                 .Include(r => r.CreatedByUser)
-                .Where(r => r.Meter.StallId == stallId && r.RecordedAt >= sixMonthsAgo);
+                .Where(r =>
+                    r.Meter.StallId == stallId &&
+                    r.Meter.Stall != null &&
+                    r.Meter.Stall.Area.MarketId == marketId &&
+                    r.RecordedAt >= sixMonthsAgo);
 
             if (!string.IsNullOrWhiteSpace(meterType))
             {

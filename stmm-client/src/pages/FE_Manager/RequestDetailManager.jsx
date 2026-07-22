@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import './RequestDetailManager.css';
 import {
   MANAGER_QUOTATION_ACTION_OPTIONS,
@@ -10,7 +10,6 @@ import {
 } from '../../constants/repairResponsibilityGuide';
 
 
-const API_BASE = "http://localhost:5056/api/manager/requests";
 const getAuthHeaders = () => ({
   Authorization: `Bearer ${localStorage.getItem('accessToken')}`
 });
@@ -83,7 +82,8 @@ const IconCalendar = () => (
   </svg>
 );
 
-export default function RequestDetailManager({ requestId, navigate, addToast }) {
+export default function RequestDetailManager({ requestId, baseUrl, navigate, addToast }) {
+  const requestApiBase = `${baseUrl}/api/manager/requests`;
   const [request, setRequest] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -93,14 +93,10 @@ export default function RequestDetailManager({ requestId, navigate, addToast }) 
     decisionNote: ''
   });
 
-  useEffect(() => {
-    if (requestId) fetchRequestDetail();
-  }, [requestId]);
-
-  const fetchRequestDetail = async () => {
+  const fetchRequestDetail = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/${requestId}`, { headers: getAuthHeaders() });
+      const res = await fetch(`${requestApiBase}/${requestId}`, { headers: getAuthHeaders() });
       if (!res.ok) throw new Error();
       const data = await res.json();
       setRequest(data);
@@ -109,12 +105,16 @@ export default function RequestDetailManager({ requestId, navigate, addToast }) 
     } finally {
       setLoading(false);
     }
-  };
+  }, [addToast, requestApiBase, requestId]);
+
+  useEffect(() => {
+    if (requestId) fetchRequestDetail();
+  }, [fetchRequestDetail, requestId]);
 
   const handleResolveAppeal = async (approve) => {
     setSubmitting(true);
     try {
-      const res = await fetch(`${API_BASE}/${requestId}/resolve-appeal?approve=${approve}`, {
+      const res = await fetch(`${requestApiBase}/${requestId}/resolve-appeal?approve=${approve}`, {
         method: 'POST',
         headers: getAuthHeaders()
       });
@@ -160,7 +160,7 @@ export default function RequestDetailManager({ requestId, navigate, addToast }) 
 
     setSubmitting(true);
     try {
-      const res = await fetch(`${API_BASE}/${requestId}/resolve-quotation`, {
+      const res = await fetch(`${requestApiBase}/${requestId}/resolve-quotation`, {
         method: 'POST',
         headers: {
           ...getAuthHeaders(),
@@ -175,15 +175,14 @@ export default function RequestDetailManager({ requestId, navigate, addToast }) 
 
       if (!res.ok) {
         const errorText = await res.text();
+        let errorMessage = errorText || 'Thao tác thất bại.';
         try {
           const problem = JSON.parse(errorText);
-          throw new Error(problem.detail || problem.message || 'Thao tác thất bại.');
-        } catch (parseError) {
-          if (parseError instanceof SyntaxError) {
-            throw new Error(errorText || 'Thao tác thất bại.');
-          }
-          throw parseError;
+          errorMessage = problem.detail || problem.message || errorMessage;
+        } catch {
+          errorMessage = errorText || errorMessage;
         }
+        throw new Error(errorMessage);
       }
 
       const selectedAction = MANAGER_QUOTATION_ACTION_OPTIONS.find(

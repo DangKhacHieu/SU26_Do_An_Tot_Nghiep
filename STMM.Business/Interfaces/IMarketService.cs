@@ -8,6 +8,7 @@ namespace STMM.Business.Interfaces
     {
         Task<IEnumerable<MarketDto>> GetAllMarketsAsync(int currentUserId, string currentUserRole);
         Task<MarketMapDto?> GetMarketMapAsync(int marketId);
+        Task<MarketMapDto> GetMarketMapForStaffAsync(int staffUserId);
         Task<MarketDto> CreateMarketBulkAsync(CreateMarketBulkRequest request, int currentUserId);
         Task<bool> DeleteMarketAsync(int marketId);
         Task<bool> ChangeMarketStatusAsync(int marketId, string status);

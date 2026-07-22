@@ -1,314 +1,269 @@
-import React, { useState, useEffect } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  CalendarDays,
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  ClipboardList,
+  Clock3,
+  MapPin,
+  Map,
+  Search,
+  ShieldCheck,
+  Wrench,
+  X,
+} from 'lucide-react';
 import { TASK_STATUS, TASK_TYPE } from '../../constants/taskEnums';
 import './TaskList.css';
 
-export default function TaskList({ userId, baseUrl, onViewDetails }) {
+const PAGE_SIZE = 9;
+const FINISHED_STATUSES = new Set([TASK_STATUS.COMPLETED, TASK_STATUS.CANCELLED]);
+
+const STATUS_LABELS = {
+  [TASK_STATUS.PENDING]: 'Pending',
+  [TASK_STATUS.PENDING_APPROVAL]: 'Pending Approval',
+  [TASK_STATUS.IN_PROGRESS]: 'In Progress',
+  [TASK_STATUS.COMPLETED]: 'Completed',
+  [TASK_STATUS.CANCELLED]: 'Cancelled',
+};
+
+const TYPE_LABELS = {
+  [TASK_TYPE.REPAIR]: 'Repair',
+  [TASK_TYPE.MAINTENANCE]: 'Maintenance',
+  [TASK_TYPE.UTILITY_READING]: 'Utility Reading',
+};
+
+const STAT_CARDS = [
+  { status: TASK_STATUS.PENDING, label: 'Pending', icon: Clock3, tone: 'warning' },
+  { status: TASK_STATUS.PENDING_APPROVAL, label: 'Pending Approval', icon: ShieldCheck, tone: 'approval' },
+  { status: TASK_STATUS.IN_PROGRESS, label: 'In Progress', icon: Wrench, tone: 'progress' },
+  { status: TASK_STATUS.COMPLETED, label: 'Completed', icon: CheckCircle2, tone: 'success' },
+];
+
+const readProblemDetail = async (response) => {
+  try {
+    const payload = await response.json();
+    return payload.detail || payload.title || 'Unable to load assigned tasks.';
+  } catch {
+    return 'Unable to load assigned tasks.';
+  }
+};
+
+const formatDate = (value) => {
+  if (!value) return 'Date not available';
+  return new Date(value).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+};
+
+export default function TaskList({ baseUrl, onViewDetails, onMapView }) {
   const [tasks, setTasks] = useState([]);
-  const [totalCount, setTotalCount] = useState(0);
-  const [totalPages, setTotalPages] = useState(1);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
-  // Filter & Pagination state
-  const [pageNumber, setPageNumber] = useState(1);
-  const [pageSize] = useState(10);
-  const [statusFilter, setStatusFilter] = useState('');
-  const [typeFilter, setTypeFilter] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [appliedSearch, setAppliedSearch] = useState('');
+  const [pageNumber, setPageNumber] = useState(1);
 
-  const fetchTasks = async () => {
+  const fetchTasks = useCallback(async () => {
     setLoading(true);
     setError(null);
+
     try {
-      // Build API query string
-      let url = `${baseUrl}/api/staff/tasks?userId=${userId}&pageNumber=${pageNumber}&pageSize=${pageSize}`;
-      if (statusFilter) {
-        url += `&status=${encodeURIComponent(statusFilter)}`;
-      }
-      if (typeFilter) {
-        url += `&taskType=${encodeURIComponent(typeFilter)}`;
-      }
-      if (appliedSearch.trim() !== '') {
-        url += `&search=${encodeURIComponent(appliedSearch.trim())}`;
-      }
-
-      const response = await fetch(url);
+      const response = await fetch(`${baseUrl}/api/staff/tasks`);
       if (!response.ok) {
-        throw new Error(`Failed to fetch tasks: ${response.statusText}`);
+        throw new Error(await readProblemDetail(response));
       }
-      const data = await response.json();
 
-      setTasks(data.items || []);
-      setTotalCount(data.totalCount || 0);
-      
-      // Calculate total pages safely
-      const calculatedTotalPages = data.totalPages || Math.ceil((data.totalCount || 0) / pageSize) || 1;
-      setTotalPages(calculatedTotalPages);
-    } catch (err) {
-      console.error('Error loading staff tasks:', err);
-      setError(err.message);
+      const payload = await response.json();
+      setTasks(Array.isArray(payload) ? payload : []);
+    } catch (fetchError) {
+      console.error('Error loading staff tasks:', fetchError);
+      setError(fetchError.message);
       setTasks([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [baseUrl]);
 
   useEffect(() => {
     fetchTasks();
-  }, [userId, pageNumber, statusFilter, typeFilter, appliedSearch]);
+  }, [fetchTasks]);
 
-  const handleSearchSubmit = (e) => {
-    e.preventDefault();
-    setPageNumber(1);
-    setAppliedSearch(searchQuery);
-  };
+  const stats = useMemo(() => {
+    const counts = Object.fromEntries(STAT_CARDS.map(({ status }) => [status, 0]));
+    for (const task of tasks) {
+      if (Object.hasOwn(counts, task.status)) counts[task.status] += 1;
+    }
+    return counts;
+  }, [tasks]);
 
-  const handleResetFilters = () => {
-    setSearchQuery('');
-    setAppliedSearch('');
-    setStatusFilter('');
-    setTypeFilter('');
-    setPageNumber(1);
-  };
+  const filteredTasks = useMemo(() => {
+    const term = searchQuery.trim().toLocaleLowerCase();
+    const matchingTasks = term
+      ? tasks.filter((task) => [
+          task.taskId,
+          task.title,
+          task.stallCode,
+          task.areaName,
+          task.taskType,
+          task.status,
+          STATUS_LABELS[task.status] || task.status,
+        ].some((value) => String(value ?? '').toLocaleLowerCase().includes(term)))
+      : tasks;
 
-  const formatDate = (dateString) => {
-    if (!dateString) return '-';
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit'
+    return [...matchingTasks].sort((left, right) => {
+      const finishedDifference = Number(FINISHED_STATUSES.has(left.status)) - Number(FINISHED_STATUSES.has(right.status));
+      if (finishedDifference !== 0) return finishedDifference;
+      return new Date(right.createdAt || 0).getTime() - new Date(left.createdAt || 0).getTime();
     });
-  };
+  }, [searchQuery, tasks]);
 
-  // Helper to style badge based on status
-  const getStatusBadgeClass = (status) => {
-    switch (status) {
-      case TASK_STATUS.PENDING: return 'badge-pending';
-      case TASK_STATUS.PENDING_APPROVAL: return 'badge-approval';
-      case TASK_STATUS.IN_PROGRESS: return 'badge-progress';
-      case TASK_STATUS.COMPLETED: return 'badge-completed';
-      case TASK_STATUS.CANCELLED: return 'badge-cancelled';
-      default: return 'badge-default';
-    }
-  };
+  const totalPages = Math.max(1, Math.ceil(filteredTasks.length / PAGE_SIZE));
+  const safePageNumber = Math.min(pageNumber, totalPages);
+  const visibleTasks = filteredTasks.slice((safePageNumber - 1) * PAGE_SIZE, safePageNumber * PAGE_SIZE);
 
-  const getStatusLabel = (status) => {
-    switch (status) {
-      case TASK_STATUS.PENDING: return 'Pending';
-      case TASK_STATUS.PENDING_APPROVAL: return 'Pending Quote Approval';
-      case TASK_STATUS.IN_PROGRESS: return 'In Progress';
-      case TASK_STATUS.COMPLETED: return 'Completed';
-      case TASK_STATUS.CANCELLED: return 'Cancelled';
-      default: return status;
-    }
-  };
+  useEffect(() => {
+    if (pageNumber > totalPages) setPageNumber(totalPages);
+  }, [pageNumber, totalPages]);
 
-  // Helper to style badge based on type
-  const getTypeBadgeClass = (type) => {
-    switch (type) {
-      case TASK_TYPE.REPAIR: return 'badge-repair';
-      case TASK_TYPE.MAINTENANCE: return 'badge-maintenance';
-      case TASK_TYPE.UTILITY_READING: return 'badge-utility';
-      case TASK_TYPE.CASH_COLLECTION: return 'badge-cash';
-      default: return 'badge-default';
-    }
-  };
-
-  const getTypeLabel = (type) => {
-    switch (type) {
-      case TASK_TYPE.REPAIR: return 'Repair';
-      case TASK_TYPE.MAINTENANCE: return 'Maintenance';
-      case TASK_TYPE.UTILITY_READING: return 'Meter Reading';
-      case TASK_TYPE.CASH_COLLECTION: return 'Cash Collection';
-      default: return type;
-    }
+  const handleSearchChange = (event) => {
+    setSearchQuery(event.target.value);
+    setPageNumber(1);
   };
 
   return (
-    <div className="task-list-container">
-
-      {/* Toolbar: Search + Filters + CTA */}
-      <div className="toolbar">
-        <div className="toolbar-left">
-          <form onSubmit={handleSearchSubmit} className="search-wrap">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input
-              type="text"
-              className="search-input"
-              placeholder="Search by title or description..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-            {searchQuery && (
-              <button type="button" className="search-clear" onClick={() => { setSearchQuery(''); setAppliedSearch(''); }} title="Clear">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
-              </button>
-            )}
-          </form>
-
-          <select 
-            value={typeFilter} 
-            onChange={(e) => { setTypeFilter(e.target.value); setPageNumber(1); }}
-            className="filter-select"
-          >
-            <option value="">All Types</option>
-            <option value={TASK_TYPE.REPAIR}>Repair</option>
-            <option value={TASK_TYPE.MAINTENANCE}>Maintenance</option>
-            <option value={TASK_TYPE.UTILITY_READING}>Meter Reading</option>
-            <option value={TASK_TYPE.CASH_COLLECTION}>Cash Collection</option>
-          </select>
-
-          <select 
-            value={statusFilter} 
-            onChange={(e) => { setStatusFilter(e.target.value); setPageNumber(1); }}
-            className="filter-select"
-          >
-            <option value="">All Statuses</option>
-            <option value={TASK_STATUS.PENDING}>Pending</option>
-            <option value={TASK_STATUS.PENDING_APPROVAL}>Pending Quote Approval</option>
-            <option value={TASK_STATUS.IN_PROGRESS}>In Progress</option>
-            <option value={TASK_STATUS.COMPLETED}>Completed</option>
-            <option value={TASK_STATUS.CANCELLED}>Cancelled</option>
-          </select>
-
-          {(searchQuery || typeFilter || statusFilter) && (
-            <button type="button" className="btn-filter-clear" onClick={handleResetFilters}>
-              Clear Filters
-            </button>
-          )}
+    <main className="staff-task-list">
+      <header className="staff-task-list__header">
+        <div>
+          <p className="staff-task-list__eyebrow">Field Operations</p>
+          <h1>Assigned Tasks</h1>
+          <p>Review and complete the work assigned to you.</p>
         </div>
+        <div className="staff-task-list__header-actions">
+          <button type="button" className="staff-task-map-button" onClick={onMapView}>
+            <Map size={16} aria-hidden="true" /> Map View
+          </button>
+          <span className="staff-task-list__total">
+            <ClipboardList size={16} aria-hidden="true" />
+            {tasks.length} assigned
+          </span>
+        </div>
+      </header>
 
-        <button 
-          className="btn-secondary map-view-btn"
-          disabled 
-          title="Map view feature will be available in the next release"
-          style={{ cursor: 'not-allowed', opacity: 0.6 }}
-        >
-          📍 MAP VIEW
-        </button>
-      </div>
+      <section className="staff-task-stats" aria-label="Task statistics">
+        {STAT_CARDS.map(({ status, label, icon: Icon, tone }) => (
+          <article className={`staff-task-stat staff-task-stat--${tone}`} key={status}>
+            <div className="staff-task-stat__icon"><Icon size={20} aria-hidden="true" /></div>
+            <div>
+              <span>{label}</span>
+              <strong>{stats[status]}</strong>
+            </div>
+          </article>
+        ))}
+      </section>
 
-      {/* Main Table card */}
+      <section className="staff-task-list__toolbar" aria-label="Search assigned tasks">
+        <div className="staff-task-search">
+          <Search size={18} aria-hidden="true" />
+          <input
+            type="search"
+            value={searchQuery}
+            onChange={handleSearchChange}
+            placeholder="Search by ID, title, location, type, or status"
+            aria-label="Search assigned tasks"
+          />
+          {searchQuery ? (
+            <button type="button" onClick={() => { setSearchQuery(''); setPageNumber(1); }} aria-label="Clear search">
+              <X size={17} aria-hidden="true" />
+            </button>
+          ) : null}
+        </div>
+        <span className="staff-task-list__result-count">
+          {filteredTasks.length} {filteredTasks.length === 1 ? 'result' : 'results'}
+        </span>
+      </section>
+
       {loading ? (
-        <div className="loading-state">
-          <span className="spinner"></span> Loading daily tasks...
+        <div className="staff-task-state" role="status">
+          <span className="staff-task-spinner" />
+          <p>Loading assigned tasks...</p>
         </div>
       ) : error ? (
-        <div className="error-state">
-          <p className="error-message">⚠️ Error: {error}</p>
-          <button onClick={fetchTasks} className="btn-secondary">Retry</button>
+        <div className="staff-task-state staff-task-state--error" role="alert">
+          <h2>Tasks could not be loaded</h2>
+          <p>{error}</p>
+          <button type="button" onClick={fetchTasks}>Try Again</button>
         </div>
-      ) : tasks.length === 0 ? (
-        <div className="empty-state">
-          <span className="empty-icon">📋</span>
-          <h3>No Tasks Found</h3>
-          <p>You currently have no tasks assigned or matching the selected filters.</p>
+      ) : visibleTasks.length === 0 ? (
+        <div className="staff-task-state">
+          <ClipboardList size={42} aria-hidden="true" />
+          <h2>{tasks.length === 0 ? 'No assigned tasks' : 'No matching tasks'}</h2>
+          <p>{tasks.length === 0 ? 'New work will appear here when it is assigned to you.' : 'Try a different search term.'}</p>
         </div>
       ) : (
         <>
-          <div className="table-card">
-            <div className="table-card-header">
-              <span className="table-card-title">Daily Tasks</span>
-              <span className="table-count-badge">{totalCount} tasks</span>
-            </div>
-            <div className="table-responsive">
-              <table className="staff-table">
-                <thead>
-                  <tr>
-                    <th>ID</th>
-                    <th>Task Title</th>
-                    <th>Type</th>
-                    <th>Status</th>
-                    <th>Created Date</th>
-                    <th>Completed Date</th>
-                    <th style={{ textAlign: 'center' }}>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {tasks.map((task) => (
-                    <tr key={task.taskId}>
-                      <td className="task-id-cell">{task.taskId}</td>
-                      <td className="task-title-td">
-                        <div className="task-title-text" title={task.title}>{task.title}</div>
-                        {task.areaName && <span className="task-area-tag">📍 {task.areaName}</span>}
-                      </td>
-                      <td>
-                        <span className={`type-badge ${getTypeBadgeClass(task.taskType)}`}>
-                          {getTypeLabel(task.taskType)}
-                        </span>
-                      </td>
-                      <td>
-                        <span className={`status-badge ${getStatusBadgeClass(task.status)}`}>
-                          {getStatusLabel(task.status)}
-                        </span>
-                      </td>
-                      <td className="task-date-cell">{formatDate(task.createdAt)}</td>
-                      <td className="task-date-cell">{formatDate(task.completedAt)}</td>
-                      <td style={{ textAlign: 'center' }}>
-                        <button 
-                          onClick={() => onViewDetails(task.taskId)} 
-                          className="btn-action-detail"
-                        >
-                          View Details
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+          <section className="staff-task-grid" aria-label="Assigned task cards">
+            {visibleTasks.map((task) => {
+              const location = task.stallCode || task.areaName || 'Location not specified';
+              return (
+                <article className="staff-task-card" key={task.taskId}>
+                  <div className="staff-task-card__topline">
+                    <span className="staff-task-card__id">#{task.taskId}</span>
+                    <div className="staff-task-card__badges">
+                      <span className={`staff-task-badge staff-task-badge--type-${task.taskType.toLowerCase()}`}>
+                        {TYPE_LABELS[task.taskType] || task.taskType}
+                      </span>
+                      <span className={`staff-task-badge staff-task-badge--status-${task.status.toLowerCase()}`}>
+                        {STATUS_LABELS[task.status] || task.status}
+                      </span>
+                    </div>
+                  </div>
 
-          {/* Pagination controls */}
-          {totalPages > 1 && (
-            <div className="pagination-wrapper">
-              <span className="pagination-info">
-                Showing {((pageNumber - 1) * pageSize) + 1} - {Math.min(pageNumber * pageSize, totalCount)} of {totalCount} entries
+                  <div className="staff-task-card__body">
+                    <h2>{task.title}</h2>
+                    <p><MapPin size={16} aria-hidden="true" /> {location}</p>
+                    <p><CalendarDays size={16} aria-hidden="true" /> Assigned {formatDate(task.createdAt)}</p>
+                  </div>
+
+                  <footer className="staff-task-card__footer">
+                    <button type="button" onClick={() => onViewDetails(task.taskId)}>
+                      View Details <ChevronRight size={16} aria-hidden="true" />
+                    </button>
+                  </footer>
+                </article>
+              );
+            })}
+          </section>
+
+          {totalPages > 1 ? (
+            <nav className="staff-task-pagination" aria-label="Task list pagination">
+              <span>
+                Showing {(safePageNumber - 1) * PAGE_SIZE + 1}–{Math.min(safePageNumber * PAGE_SIZE, filteredTasks.length)} of {filteredTasks.length}
               </span>
-              <div className="pagination-buttons">
+              <div>
                 <button
-                  disabled={pageNumber === 1}
-                  onClick={() => setPageNumber(1)}
-                  className="page-btn"
-                  title="First Page"
+                  type="button"
+                  disabled={safePageNumber === 1}
+                  onClick={() => setPageNumber((current) => Math.max(1, current - 1))}
+                  aria-label="Previous page"
                 >
-                  &laquo;
+                  <ChevronLeft size={17} aria-hidden="true" />
                 </button>
+                <strong>Page {safePageNumber} of {totalPages}</strong>
                 <button
-                  disabled={pageNumber === 1}
-                  onClick={() => setPageNumber(prev => prev - 1)}
-                  className="page-btn"
-                  title="Previous Page"
+                  type="button"
+                  disabled={safePageNumber === totalPages}
+                  onClick={() => setPageNumber((current) => Math.min(totalPages, current + 1))}
+                  aria-label="Next page"
                 >
-                  &lsaquo;
-                </button>
-                <span className="page-number-current">
-                  Page {pageNumber} of {totalPages}
-                </span>
-                <button
-                  disabled={pageNumber === totalPages}
-                  onClick={() => setPageNumber(prev => prev + 1)}
-                  className="page-btn"
-                  title="Next Page"
-                >
-                  &rsaquo;
-                </button>
-                <button
-                  disabled={pageNumber === totalPages}
-                  onClick={() => setPageNumber(totalPages)}
-                  className="page-btn"
-                  title="Last Page"
-                >
-                  &raquo;
+                  <ChevronRight size={17} aria-hidden="true" />
                 </button>
               </div>
-            </div>
-          )}
+            </nav>
+          ) : null}
         </>
       )}
-    </div>
+    </main>
   );
 }

@@ -47,7 +47,7 @@ namespace STMM.Business.Services
 
             if (content == null)
             {
-                throw new NotFoundException($"Không tìm thấy thông báo có ID {id}.");
+                throw new NotFoundException($"Notification with ID {id} was not found.");
             }
 
             return _mapper.Map<ContentDto>(content);
@@ -61,7 +61,6 @@ namespace STMM.Business.Services
                 throw new BadRequestException(string.Join("; ", valResult.Errors.Select(e => e.ErrorMessage)));
             }
 
-            // Fallback Creator User ID
             int creatorId = request.CreatedByUserId ?? 0;
             if (creatorId <= 0)
             {
@@ -69,47 +68,47 @@ namespace STMM.Business.Services
                 creatorId = managerUser?.UserId ?? 1;
             }
 
-            Notification lastNotification = null!;
+            var targetUserIds = request.TargetUserIds?
+                .Where(userId => userId > 0)
+                .Distinct()
+                .ToList() ?? new List<int>();
 
-            if (request.TargetUserIds != null && request.TargetUserIds.Count > 0)
+            if (request.TargetUserId is > 0)
             {
-                foreach (var userId in request.TargetUserIds)
-                {
-                    var notification = new Notification
-                    {
-                        Title = request.Title,
-                        Content = request.Content,
-                        NotiType = request.NotiType ?? "Announcement",
-                        TargetRole = request.TargetRole, // Retain target role for individual recipients
-                        TargetUserId = userId,
-                        CreatedByUserId = creatorId,
-                        IsRead = false,
-                        CreatedAt = DateTime.UtcNow
-                    };
-                    await _notificationRepository.AddAsync(notification, ct);
-                    lastNotification = notification;
-                }
-                await _notificationRepository.SaveChangesAsync(ct);
+                targetUserIds.Add(request.TargetUserId.Value);
             }
-            else
+
+            if (targetUserIds.Count == 0 && !string.IsNullOrWhiteSpace(request.TargetRole))
+            {
+                var recipients = await _userRepository.GetActiveUsersByRoleAsync(request.TargetRole, ct);
+                targetUserIds.AddRange(recipients.Select(user => user.UserId));
+            }
+
+            targetUserIds = targetUserIds.Distinct().ToList();
+            if (targetUserIds.Count == 0)
+            {
+                throw new BadRequestException("At least one active recipient is required.");
+            }
+
+            Notification lastNotification = null!;
+            foreach (var userId in targetUserIds)
             {
                 var notification = new Notification
                 {
                     Title = request.Title,
                     Content = request.Content,
-                    NotiType = request.NotiType ?? "Article",
-                    TargetRole = request.TargetRole,
-                    TargetUserId = request.TargetUserId,
+                    NotiType = request.NotiType ?? "Announcement",
+                    TargetRole = null,
+                    TargetUserId = userId,
                     CreatedByUserId = creatorId,
                     IsRead = false,
                     CreatedAt = DateTime.UtcNow
                 };
                 await _notificationRepository.AddAsync(notification, ct);
-                await _notificationRepository.SaveChangesAsync(ct);
                 lastNotification = notification;
             }
+            await _notificationRepository.SaveChangesAsync(ct);
 
-            // Populate TargetUser for mapping
             if (lastNotification.TargetUserId.HasValue)
             {
                 lastNotification.TargetUser = await _userRepository.GetByIdAsync(lastNotification.TargetUserId.Value, ct);
@@ -130,7 +129,7 @@ namespace STMM.Business.Services
 
             if (notification == null)
             {
-                throw new NotFoundException($"Không tìm thấy thông báo có ID {id}.");
+                throw new NotFoundException($"Notification with ID {id} was not found.");
             }
 
             notification.Title = request.Title;
@@ -142,7 +141,6 @@ namespace STMM.Business.Services
             _notificationRepository.Update(notification);
             await _notificationRepository.SaveChangesAsync(ct);
 
-            // Populate TargetUser for mapping
             if (notification.TargetUserId.HasValue)
             {
                 notification.TargetUser = await _userRepository.GetByIdAsync(notification.TargetUserId.Value, ct);
@@ -157,7 +155,7 @@ namespace STMM.Business.Services
 
             if (notification == null)
             {
-                throw new NotFoundException($"Không tìm thấy thông báo có ID {id}.");
+                throw new NotFoundException($"Notification with ID {id} was not found.");
             }
 
             _notificationRepository.Delete(notification);

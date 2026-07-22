@@ -1,6 +1,7 @@
 using AutoMapper;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using STMM.Business.DTOs.Common;
 using STMM.Business.DTOs.Violation;
 using STMM.Business.Exceptions;
@@ -24,6 +25,7 @@ namespace STMM.Business.Services
         private readonly IValidator<CreateViolationRequest> _createValidator;
         private readonly INotificationService _notificationService;
         private readonly IUserRepository _userRepository;
+        private readonly ILogger<ViolationService> _logger;
 
         public ViolationService(
             IViolationRepository violationRepository,
@@ -32,7 +34,8 @@ namespace STMM.Business.Services
             IMapper mapper,
             IValidator<CreateViolationRequest> createValidator,
             INotificationService notificationService,
-            IUserRepository userRepository)
+            IUserRepository userRepository,
+            ILogger<ViolationService> logger)
         {
             _violationRepository = violationRepository;
             _stallRepository = stallRepository;
@@ -41,6 +44,7 @@ namespace STMM.Business.Services
             _createValidator = createValidator;
             _notificationService = notificationService;
             _userRepository = userRepository;
+            _logger = logger;
         }
 
         public async Task<PagedResult<ViolationDto>> GetViolationsAsync(
@@ -49,6 +53,7 @@ namespace STMM.Business.Services
             var (items, totalCount) = await _violationRepository.GetViolationsPagedAsync(
                 userId,
                 queryParams.Status,
+                queryParams.SearchTerm,
                 queryParams.SortDescending,
                 queryParams.PageNumber,
                 queryParams.PageSize,
@@ -86,13 +91,9 @@ namespace STMM.Business.Services
                     string.Join("; ", validationResult.Errors.Select(e => e.ErrorMessage)));
             }
 
-            var stalls = await _stallRepository.FindAsync(s => s.StallId == request.StallId && s.IsDeleted != true, ct);
-            var stall = stalls.FirstOrDefault();
-
-            if (stall == null)
-            {
-                throw new NotFoundException($"Stall with ID {request.StallId} not found.");
-            }
+            var marketId = await GetMarketIdAsync(userId, "staff", ct);
+            var stall = await _stallRepository.GetStallForMarketAsync(request.StallId, marketId, ct)
+                ?? throw new NotFoundException($"Stall with ID {request.StallId} not found.");
 
             var types = await _violationTypeRepository.FindAsync(vt => vt.ViolationTypeId == request.ViolationTypeId && vt.IsActive != false, ct);
             var violationType = types.FirstOrDefault();
@@ -101,6 +102,9 @@ namespace STMM.Business.Services
             {
                 throw new NotFoundException($"Violation type with ID {request.ViolationTypeId} was not found or is inactive.");
             }
+
+            var managers = await _userRepository.GetActiveManagersByMarketAsync(
+                marketId, ct);
 
             var violation = _mapper.Map<Violation>(request);
             violation.CreatedByUserId = userId;
@@ -119,14 +123,28 @@ namespace STMM.Business.Services
             violation.Stall = stall;
             violation.ViolationType = violationType;
 
-            await _notificationService.CreateAsync(new DTOs.Notification.CreateNotificationRequest
+            foreach (var manager in managers)
             {
-                Title = "New Violation Report",
-                Content = $"A new violation report is pending approval for stall {stall.Code}.",
-                NotiType = "Violation",
-                CreatedByUserId = userId,
-                TargetRole = "Manager"
-            }, ct);
+                try
+                {
+                    await _notificationService.CreateAsync(new DTOs.Notification.CreateNotificationRequest
+                    {
+                        Title = "New Violation Report",
+                        Content = $"A new violation report is pending approval for stall {stall.Code}.",
+                        NotiType = "Violation",
+                        CreatedByUserId = userId,
+                        TargetUserId = manager.UserId
+                    }, ct);
+                }
+                catch (Exception exception)
+                {
+                    _logger.LogError(
+                        exception,
+                        "Unable to notify manager {ManagerUserId} about violation {ViolationId}.",
+                        manager.UserId,
+                        violation.ViolationId);
+                }
+            }
 
             return _mapper.Map<ViolationDto>(violation);
         }
@@ -138,9 +156,11 @@ namespace STMM.Business.Services
         }
 
         public async Task<PagedResult<ViolationDto>> GetViolationsForManagerAsync(
-            ViolationQueryParams queryParams, CancellationToken ct = default)
+            int managerUserId, ViolationQueryParams queryParams, CancellationToken ct = default)
         {
+            var marketId = await GetMarketIdAsync(managerUserId, "manager", ct);
             var (items, totalCount) = await _violationRepository.GetViolationsPagedForManagerAsync(
+                marketId,
                 queryParams.Status,
                 queryParams.SearchTerm,
                 queryParams.SortDescending,
@@ -158,9 +178,10 @@ namespace STMM.Business.Services
         }
 
         public async Task<ViolationDto> GetViolationByIdForManagerAsync(
-            int id, CancellationToken ct = default)
+            int managerUserId, int id, CancellationToken ct = default)
         {
-            var violation = await _violationRepository.GetViolationDetailsForManagerAsync(id, ct);
+            var marketId = await GetMarketIdAsync(managerUserId, "manager", ct);
+            var violation = await _violationRepository.GetViolationDetailsForManagerAsync(id, marketId, ct);
 
             if (violation == null)
             {
@@ -168,6 +189,17 @@ namespace STMM.Business.Services
             }
 
             return _mapper.Map<ViolationDto>(violation);
+        }
+
+        private async Task<int> GetMarketIdAsync(int userId, string accountType, CancellationToken ct)
+        {
+            var user = await _userRepository.GetUserByIdWithRoleAsync(userId, ct);
+            if (user?.MarketId == null)
+            {
+                throw new ForbiddenException($"The {accountType} account is not assigned to a market.");
+            }
+
+            return user.MarketId.Value;
         }
 
         public async Task<bool> SimulateViolationAppealAsync(int violationId, CancellationToken ct = default)

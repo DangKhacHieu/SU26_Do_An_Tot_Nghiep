@@ -1,15 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import meterService from '../../services/meterService';
 import './MeterManagement.css';
 
 // ── Icons ──
 const IconSearch = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>;
 const IconEdit = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>;
-const IconTrash = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>;
 const IconPlus = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>;
 
 const IconEmpty = () => <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>;
-const IconWarn = () => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>;
 const IconDanger = () => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>;
 const IconXCircle = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>;
 const IconChevronLeft = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>;
@@ -17,7 +15,7 @@ const IconChevronRight = () => <svg width="16" height="16" viewBox="0 0 24 24" f
 
 const DEFAULT_ASSIGNED_FILTER = 'false';
 
-export default function MeterManagement({ navigate, addToast }) {
+export default function MeterManagement({ addToast }) {
   const [meters, setMeters] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -30,7 +28,7 @@ export default function MeterManagement({ navigate, addToast }) {
   const [totalPages, setTotalPages] = useState(0);
 
   // Modal states
-  const [modalType, setModalType] = useState(null); // 'create' | 'edit' | 'delete'
+  const [modalType, setModalType] = useState(null);
   const [selectedMeter, setSelectedMeter] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
 
@@ -40,12 +38,7 @@ export default function MeterManagement({ navigate, addToast }) {
 
 
 
-  // Fetch meters on filters & page change
-  useEffect(() => {
-    fetchMeters();
-  }, [search, typeFilter, isActiveFilter, isAssignedFilter, pageNumber]);
-
-  const fetchMeters = async () => {
+  const fetchMeters = useCallback(async () => {
     setLoading(true);
     try {
       const queryParams = {
@@ -65,7 +58,11 @@ export default function MeterManagement({ navigate, addToast }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [addToast, isActiveFilter, isAssignedFilter, pageNumber, pageSize, search, typeFilter]);
+
+  useEffect(() => {
+    fetchMeters();
+  }, [fetchMeters]);
 
   const handleClearFilters = () => {
     setSearch('');
@@ -111,13 +108,13 @@ export default function MeterManagement({ navigate, addToast }) {
     setModalType('edit');
   };
 
-  const handleOpenDeleteModal = (meter) => {
-    if (meter.stallId !== null) {
-      addToast('Không thể xóa công tơ đang được gán cho sạp hàng.', 'error');
+  const handleOpenStatusModal = (meter) => {
+    if (meter.isActive && meter.stallId !== null) {
+      addToast('Replace or unassign this meter before deactivating it.', 'error');
       return;
     }
     setSelectedMeter(meter);
-    setModalType('delete');
+    setModalType('status');
   };
 
   const handleCloseModal = () => {
@@ -170,22 +167,25 @@ export default function MeterManagement({ navigate, addToast }) {
     }
   };
 
-  const handleDeleteMeter = async () => {
+  const handleToggleMeterStatus = async () => {
     if (!selectedMeter || actionLoading) return;
 
     setActionLoading(true);
     try {
-      await meterService.deleteMeter(selectedMeter.meterId);
-      addToast(`Xóa công tơ #${selectedMeter.meterId} thành công!`, 'success');
+      const nextIsActive = !selectedMeter.isActive;
+      await meterService.updateMeter(selectedMeter.meterId, {
+        serialNumber: selectedMeter.serialNumber,
+        type: selectedMeter.type,
+        isActive: nextIsActive
+      });
+      addToast(
+        `Meter #${selectedMeter.meterId} ${nextIsActive ? 'reactivated' : 'deactivated'} successfully!`,
+        'success'
+      );
       handleCloseModal();
-      // Adjust page if delete empty current page
-      if (meters.length === 1 && pageNumber > 1) {
-        setPageNumber(prev => prev - 1);
-      } else {
-        fetchMeters();
-      }
+      fetchMeters();
     } catch (error) {
-      addToast(error.message || 'Lỗi khi xóa công tơ.', 'error');
+      addToast(error.message || 'Unable to change the meter status.', 'error');
     } finally {
       setActionLoading(false);
     }
@@ -369,15 +369,20 @@ export default function MeterManagement({ navigate, addToast }) {
                               <IconEdit />
                             </button>
                             
-                            {meter.stallId === null && (
-                              <button
-                                className="btn-icon delete"
-                                title="Xóa công tơ"
-                                onClick={() => handleOpenDeleteModal(meter)}
-                              >
-                                <IconTrash />
-                              </button>
-                            )}
+                            <button
+                              className={`btn-icon ${meter.isActive ? 'delete' : 'edit'}`}
+                              title={
+                                meter.isActive && meter.stallId !== null
+                                  ? 'Replace or unassign this meter before deactivating it.'
+                                  : meter.isActive
+                                    ? 'Deactivate meter'
+                                    : 'Reactivate meter'
+                              }
+                              onClick={() => handleOpenStatusModal(meter)}
+                              disabled={meter.isActive && meter.stallId !== null}
+                            >
+                              <IconXCircle />
+                            </button>
                           </div>
                         </td>
                       </tr>
@@ -503,7 +508,7 @@ export default function MeterManagement({ navigate, addToast }) {
                     className="form-input"
                     value={formValues.type}
                     onChange={(e) => setFormValues(prev => ({ ...prev, type: e.target.value }))}
-                    disabled={selectedMeter.stallId !== null} // Lock type if assigned to avoid messing measurements
+                    disabled={selectedMeter.stallId !== null}
                   >
                     <option value="Electricity">Điện (Electricity)</option>
                     <option value="Water">Nước (Water)</option>
@@ -526,17 +531,6 @@ export default function MeterManagement({ navigate, addToast }) {
                   )}
                 </div>
 
-                <div className="form-group" style={{ marginTop: 16 }}>
-                  <label className="checkbox-label">
-                    <input
-                      type="checkbox"
-                      checked={formValues.isActive}
-                      onChange={(e) => setFormValues(prev => ({ ...prev, isActive: e.target.checked }))}
-                    />
-                    Cho phép hoạt động (Active)
-                  </label>
-                  <p className="form-help-text">Chỉ công tơ hoạt động mới được ghi nhận chỉ số.</p>
-                </div>
               </div>
               <div className="modal-foot">
                 <button type="button" className="btn-secondary" onClick={handleCloseModal} disabled={actionLoading}>Hủy</button>
@@ -549,27 +543,32 @@ export default function MeterManagement({ navigate, addToast }) {
         </div>
       )}
 
-      {/* ── Modal: Xóa công tơ ── */}
-      {modalType === 'delete' && selectedMeter && (
+      {modalType === 'status' && selectedMeter && (
         <div className="modal-overlay" onClick={handleCloseModal}>
           <div className="modal-box" onClick={(e) => e.stopPropagation()}>
             <div className="modal-head">
-              <h3>Xóa công tơ khỏi hệ thống</h3>
+              <h3>{selectedMeter.isActive ? 'Deactivate meter' : 'Reactivate meter'}</h3>
               <button className="modal-close" onClick={handleCloseModal}>×</button>
             </div>
             <div className="modal-body">
               <div className="modal-icon-wrap danger"><IconDanger /></div>
               <p className="modal-desc">
-                Bạn có chắc chắn muốn xóa công tơ <strong>{selectedMeter.serialNumber}</strong> ({selectedMeter.type === 'Electricity' ? 'Điện' : 'Nước'}) khỏi cơ sở dữ liệu?
+                Are you sure you want to {selectedMeter.isActive ? 'deactivate' : 'reactivate'} meter <strong>{selectedMeter.serialNumber}</strong>?
               </p>
-              <p className="modal-desc text-danger" style={{ fontWeight: '500' }}>
-                Hành động này không thể hoàn tác. Thiết bị sẽ bị xóa vĩnh viễn khỏi kho hàng.
-              </p>
+              {selectedMeter.isActive && (
+                <p className="modal-desc text-danger" style={{ fontWeight: '500' }}>
+                  An inactive meter cannot receive new readings until it is reactivated.
+                </p>
+              )}
             </div>
             <div className="modal-foot">
-              <button className="btn-secondary" onClick={handleCloseModal} disabled={actionLoading}>Hủy</button>
-              <button className="btn-danger" onClick={handleDeleteMeter} disabled={actionLoading}>
-                {actionLoading ? 'Đang xóa...' : 'Xác nhận xóa'}
+              <button className="btn-secondary" onClick={handleCloseModal} disabled={actionLoading}>Cancel</button>
+              <button className={selectedMeter.isActive ? 'btn-danger' : 'btn-primary'} onClick={handleToggleMeterStatus} disabled={actionLoading}>
+                {actionLoading
+                  ? 'Saving...'
+                  : selectedMeter.isActive
+                    ? 'Deactivate'
+                    : 'Reactivate'}
               </button>
             </div>
           </div>

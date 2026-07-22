@@ -20,6 +20,11 @@ namespace STMM.DataAccess.IRepositories
 
         Task<Request?> GetRequestWithRelationsAsync(int requestId, CancellationToken ct = default);
 
+        Task<Request?> GetRequestWithRelationsForMarketAsync(
+            int requestId,
+            int marketId,
+            CancellationToken ct = default);
+
         Task<Request?> ApproveOrRejectAppealAsync(int requestId, bool isApproved, CancellationToken ct = default);
     }
 }

@@ -89,6 +89,23 @@ namespace STMM.DataAccess.Repositories
                 .FirstOrDefaultAsync(r => r.RequestId == requestId, ct);
         }
 
+        public Task<Request?> GetRequestWithRelationsForMarketAsync(
+            int requestId,
+            int marketId,
+            CancellationToken ct = default)
+        {
+            return _context.Requests
+                .Include(r => r.Stall)
+                    .ThenInclude(s => s.Area)
+                .Include(r => r.Vendor)
+                    .ThenInclude(v => v.User)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(r =>
+                    r.RequestId == requestId &&
+                    r.Stall.Area.MarketId == marketId,
+                    ct);
+        }
+
         public async Task<Request?> ApproveOrRejectAppealAsync(int requestId, bool isApproved, CancellationToken ct = default)
         {
             var request = await _context.Requests

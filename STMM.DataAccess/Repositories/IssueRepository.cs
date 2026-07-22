@@ -13,8 +13,8 @@ namespace STMM.DataAccess.Repositories
 
         public async Task<(IEnumerable<Issue> Items, int TotalCount)> GetIssuesPagedAsync(
             int staffUserId,
-            List<int> assignedIssueIds,
             string? status,
+            string? searchTerm,
             bool sortDescending,
             int pageNumber,
             int pageSize,
@@ -24,11 +24,22 @@ namespace STMM.DataAccess.Repositories
                 .Include(i => i.Stall)
                 .Include(i => i.CreatedByUser)
                 .Include(i => i.StaffTasks)
-                .Where(i => i.CreatedByUserId == staffUserId || assignedIssueIds.Contains(i.IssueId));
+                .Where(i =>
+                    i.CreatedByUserId == staffUserId ||
+                    i.StaffTasks.Any(t => t.AssignedToUserId == staffUserId));
 
             if (!string.IsNullOrWhiteSpace(status))
             {
                 query = query.Where(i => i.Status == status);
+            }
+
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                var term = searchTerm.Trim().ToLower();
+                query = query.Where(i =>
+                    i.Title.ToLower().Contains(term) ||
+                    i.Description.ToLower().Contains(term) ||
+                    i.Stall.Code.ToLower().Contains(term));
             }
 
             var totalCount = await query.CountAsync(ct);
@@ -44,6 +55,23 @@ namespace STMM.DataAccess.Repositories
                 .ToListAsync(ct);
 
             return (items, totalCount);
+        }
+
+        public Task<Issue?> GetIssueForStaffAsync(
+            int issueId,
+            int staffUserId,
+            CancellationToken ct = default)
+        {
+            return _context.Issues
+                .Include(i => i.Stall)
+                .Include(i => i.CreatedByUser)
+                .Include(i => i.StaffTasks)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(i =>
+                    i.IssueId == issueId &&
+                    (i.CreatedByUserId == staffUserId ||
+                     i.StaffTasks.Any(t => t.AssignedToUserId == staffUserId)),
+                    ct);
         }
 
         public async Task<Issue?> GetIssueWithRelationsAsync(int issueId, bool tracking = false, CancellationToken ct = default)
@@ -69,7 +97,9 @@ namespace STMM.DataAccess.Repositories
         }
 
         public async Task<(IEnumerable<Issue> Items, int TotalCount)> GetIssuesForManagerPagedAsync(
+            int marketId,
             string? status,
+            string? searchTerm,
             bool sortDescending,
             int pageNumber,
             int pageSize,
@@ -79,11 +109,20 @@ namespace STMM.DataAccess.Repositories
                 .Include(i => i.Stall)
                 .Include(i => i.CreatedByUser)
                 .Include(i => i.StaffTasks)
-                .AsQueryable();
+                .Where(i => i.Stall.Area.MarketId == marketId);
 
             if (!string.IsNullOrWhiteSpace(status))
             {
                 query = query.Where(i => i.Status == status);
+            }
+
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                var term = searchTerm.Trim().ToLower();
+                query = query.Where(i =>
+                    i.Title.ToLower().Contains(term) ||
+                    i.Description.ToLower().Contains(term) ||
+                    i.Stall.Code.ToLower().Contains(term));
             }
 
             var totalCount = await query.CountAsync(ct);
@@ -99,6 +138,21 @@ namespace STMM.DataAccess.Repositories
                 .ToListAsync(ct);
 
             return (items, totalCount);
+        }
+
+        public Task<Issue?> GetIssueForManagerAsync(
+            int issueId,
+            int marketId,
+            CancellationToken ct = default)
+        {
+            return _context.Issues
+                .Include(i => i.Stall)
+                .Include(i => i.CreatedByUser)
+                .Include(i => i.StaffTasks)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(i =>
+                    i.IssueId == issueId && i.Stall.Area.MarketId == marketId,
+                    ct);
         }
     }
 }

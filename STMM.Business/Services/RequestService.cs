@@ -1,5 +1,6 @@
 using AutoMapper;
 using FluentValidation;
+using Microsoft.Extensions.Logging;
 using STMM.Business.DTOs.Common;
 using STMM.Business.DTOs.Notification;
 using STMM.Business.DTOs.Request;
@@ -14,22 +15,28 @@ namespace STMM.Business.Services
     {
         private readonly IRequestRepository _requestRepository;
         private readonly IStaffTaskRepository _staffTaskRepository;
+        private readonly IUserRepository _userRepository;
         private readonly INotificationService _notificationService;
         private readonly IValidator<ManagerQuotationDecisionRequest> _managerDecisionValidator;
         private readonly IMapper _mapper;
+        private readonly ILogger<RequestService> _logger;
 
         public RequestService(
             IRequestRepository requestRepository,
             IStaffTaskRepository staffTaskRepository,
+            IUserRepository userRepository,
             INotificationService notificationService,
             IValidator<ManagerQuotationDecisionRequest> managerDecisionValidator,
-            IMapper mapper)
+            IMapper mapper,
+            ILogger<RequestService> logger)
         {
             _requestRepository = requestRepository;
             _staffTaskRepository = staffTaskRepository;
+            _userRepository = userRepository;
             _notificationService = notificationService;
             _managerDecisionValidator = managerDecisionValidator;
             _mapper = mapper;
+            _logger = logger;
         }
 
         public async Task<PagedResult<RequestDto>> GetRequestsForManagerAsync(
@@ -89,9 +96,13 @@ namespace STMM.Business.Services
         {
             await ValidateManagerDecisionAsync(decision, ct);
 
-            var request = await LoadManagerReviewRequestAsync(requestId, ct);
-            var repairTasks = (await _staffTaskRepository.FindAsync(
-                task => task.RequestId == requestId && task.TaskType == "Repair", ct)).ToList();
+            var marketId = await GetManagerMarketIdAsync(managerUserId, ct);
+            var request = await LoadManagerReviewRequestAsync(requestId, marketId, ct);
+            var repairTasks = await _staffTaskRepository.GetRepairTasksForRequestInMarketAsync(
+                requestId,
+                marketId,
+                ct);
+            EnsureQuotationCanBeReviewed(request, repairTasks, decision.Action);
 
             ApplyManagerDecision(request, repairTasks, decision);
             TrackQuotationChanges(request, repairTasks);
@@ -100,7 +111,10 @@ namespace STMM.Business.Services
             await NotifyManagerDecisionAsync(
                 request, repairTasks, decision.Action, managerUserId, ct);
 
-            var updatedRequest = await _requestRepository.GetRequestWithRelationsAsync(requestId, ct);
+            var updatedRequest = await _requestRepository.GetRequestWithRelationsForMarketAsync(
+                requestId,
+                marketId,
+                ct);
             return _mapper.Map<RequestDto>(updatedRequest!);
         }
 
@@ -118,9 +132,13 @@ namespace STMM.Business.Services
 
         private async Task<Request> LoadManagerReviewRequestAsync(
             int requestId,
+            int marketId,
             CancellationToken ct)
         {
-            var request = await _requestRepository.GetRequestWithRelationsAsync(requestId, ct)
+            var request = await _requestRepository.GetRequestWithRelationsForMarketAsync(
+                    requestId,
+                    marketId,
+                    ct)
                 ?? throw new NotFoundException($"Yêu cầu với mã {requestId} không tìm thấy.");
 
             if (request.RequestType != "FacilityIssue")
@@ -136,6 +154,41 @@ namespace STMM.Business.Services
             }
 
             return request;
+        }
+
+        private static void EnsureQuotationCanBeReviewed(
+            Request request,
+            IReadOnlyCollection<StaffTask> repairTasks,
+            string action)
+        {
+            if (request.QuotationAmount is null or <= 0 ||
+                !repairTasks.Any(task =>
+                    task.Status == "PendingApproval" &&
+                    task.ActualCost is > 0))
+            {
+                throw new BadRequestException(
+                    "The request does not have a valid repair quotation awaiting review.");
+            }
+
+            if (action == ManagerQuotationDecisionRequest.SendToVendor &&
+                (request.Vendor == null || request.Vendor.UserId <= 0))
+            {
+                throw new BadRequestException(
+                    "The request does not have a vendor who can confirm the quotation.");
+            }
+        }
+
+        private async Task<int> GetManagerMarketIdAsync(
+            int managerUserId,
+            CancellationToken ct)
+        {
+            var manager = await _userRepository.GetUserByIdWithRoleAsync(managerUserId, ct);
+            if (manager?.MarketId == null)
+            {
+                throw new ForbiddenException("The Manager account is not assigned to a market.");
+            }
+
+            return manager.MarketId.Value;
         }
 
         private static void ApplyManagerDecision(
@@ -213,7 +266,7 @@ namespace STMM.Business.Services
         {
             if (action == ManagerQuotationDecisionRequest.SendToVendor)
             {
-                await _notificationService.CreateAsync(new CreateNotificationRequest
+                await TrySendNotificationAsync(new CreateNotificationRequest
                 {
                     Title = "Báo giá sửa chữa cần xác nhận",
                     Content = $"Yêu cầu REQ-{request.RequestId} có báo giá cần bạn xác nhận.",
@@ -231,7 +284,7 @@ namespace STMM.Business.Services
                     .Select(task => task.AssignedToUserId)
                     .Distinct())
                 {
-                    await _notificationService.CreateAsync(new CreateNotificationRequest
+                    await TrySendNotificationAsync(new CreateNotificationRequest
                     {
                         Title = GetStaffNotificationTitle(action),
                         Content = GetStaffNotificationContent(request, action),
@@ -240,6 +293,23 @@ namespace STMM.Business.Services
                         TargetUserId = staffUserId
                     }, ct);
                 }
+            }
+        }
+
+        private async Task TrySendNotificationAsync(
+            CreateNotificationRequest notification,
+            CancellationToken ct)
+        {
+            try
+            {
+                await _notificationService.CreateAsync(notification, ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(
+                    ex,
+                    "Could not send quotation notification to user {UserId}.",
+                    notification.TargetUserId);
             }
         }
 

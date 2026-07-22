@@ -9,9 +9,8 @@ namespace STMM.Business.Validators
         public CompleteTaskValidator()
         {
             RuleFor(x => x.ImageAfterUrl)
-                .NotEmpty()
-                .WithMessage("Image after repair is required.")
                 .Must(IsValidUrl)
+                .When(x => !string.IsNullOrEmpty(x.ImageAfterUrl))
                 .WithMessage("Image after must be a valid URL.");
 
             RuleFor(x => x.ImageBeforeUrl)

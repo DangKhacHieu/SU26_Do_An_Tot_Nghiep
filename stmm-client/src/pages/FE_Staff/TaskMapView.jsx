@@ -1,22 +1,22 @@
-import React, { useState, useEffect } from "react";
-import { getMarketMap } from "../../services/marketApi";
+import { useEffect, useMemo, useState } from "react";
+import { getStaffMarketMap } from "../../services/marketApi";
 import { TASK_STATUS, TASK_TYPE } from "../../constants/taskEnums";
 import "./TaskMapView.css";
 
-export default function TaskMapView({ userId, baseUrl, onBack, onViewDetails }) {
+export default function TaskMapView({ baseUrl, onBack, onViewDetails }) {
   const MAP_SCALE = 0.65;
   const [marketMap, setMarketMap] = useState(null);
   const [tasks, setTasks] = useState([]);
+  const [utilityStallIdsByTask, setUtilityStallIdsByTask] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selectedStall, setSelectedStall] = useState(null);
   const [canvasWidth, setCanvasWidth] = useState(950);
   const [canvasHeight, setCanvasHeight] = useState(650);
 
-  // SEO & metadata management
   useEffect(() => {
     const originalTitle = document.title;
-    document.title = "STMM - Bản đồ Tác vụ Nhân viên";
+    document.title = "STMM - Staff Task Map";
 
     let metaDesc = document.querySelector('meta[name="description"]');
     const originalDesc = metaDesc ? metaDesc.getAttribute("content") : "";
@@ -26,7 +26,7 @@ export default function TaskMapView({ userId, baseUrl, onBack, onViewDetails }) 
       metaDesc.name = "description";
       document.head.appendChild(metaDesc);
     }
-    metaDesc.setAttribute("content", "Sơ đồ mặt bằng phân công công việc và quản lý tác vụ kỹ thuật của nhân viên hiện trường STMM.");
+    metaDesc.setAttribute("content", "Market layout showing active tasks assigned to the current Staff account.");
 
     return () => {
       document.title = originalTitle;
@@ -46,8 +46,10 @@ export default function TaskMapView({ userId, baseUrl, onBack, onViewDetails }) 
         setLoading(true);
         setError("");
         
-        // 1. Fetch market map (default marketId = 1)
-        const mapData = await getMarketMap(1);
+        const [mapData, tasksResponse] = await Promise.all([
+          getStaffMarketMap(),
+          fetch(`${baseUrl}/api/staff/tasks`),
+        ]);
         if (mapData) {
           setMarketMap(mapData);
           
@@ -62,53 +64,89 @@ export default function TaskMapView({ userId, baseUrl, onBack, onViewDetails }) 
           setCanvasWidth(max_x + 50);
           setCanvasHeight(max_y + 50);
         } else {
-          throw new Error("Không tìm thấy sơ đồ chợ.");
+          throw new Error("The market map is not available.");
         }
 
-        // 2. Fetch tasks assigned to the current staff
-        const tasksUrl = `${baseUrl}/api/staff/tasks?userId=${userId}&pageSize=1000`;
-        const tasksResponse = await fetch(tasksUrl);
         if (!tasksResponse.ok) {
-          throw new Error(`Không thể tải danh sách công việc: ${tasksResponse.statusText}`);
+          const problem = await tasksResponse.json().catch(() => null);
+          throw new Error(problem?.detail || problem?.title || "Unable to load assigned tasks.");
         }
         const tasksData = await tasksResponse.json();
-        setTasks(tasksData.items || []);
+        const assignedTasks = Array.isArray(tasksData) ? tasksData : [];
+        setTasks(assignedTasks);
+
+        const utilityTasks = assignedTasks.filter(
+          (task) =>
+            task.taskType === TASK_TYPE.UTILITY_READING &&
+            task.status !== TASK_STATUS.COMPLETED &&
+            task.status !== TASK_STATUS.CANCELLED,
+        );
+        const utilityEntries = await Promise.all(
+          utilityTasks.map(async (task) => {
+            const response = await fetch(`${baseUrl}/api/staff/tasks/${task.taskId}/stalls`);
+            if (!response.ok) {
+              const problem = await response.json().catch(() => null);
+              throw new Error(problem?.detail || problem?.title || "Unable to load utility task stalls.");
+            }
+            const stalls = await response.json();
+            return [task.taskId, Array.isArray(stalls) ? stalls.map((stall) => stall.stallId) : []];
+          }),
+        );
+        setUtilityStallIdsByTask(Object.fromEntries(utilityEntries));
 
       } catch (err) {
-        console.error("Lỗi khi tải dữ liệu bản đồ tác vụ:", err);
-        setError(err.message || "Đã xảy ra lỗi không xác định.");
+        console.error("Unable to load Staff task map:", err);
+        setError(err.message || "Unable to load the task map.");
       } finally {
         setLoading(false);
       }
     };
 
     loadMapAndTasks();
-  }, [userId, baseUrl]);
+  }, [baseUrl]);
 
-  // Filter tasks that are active (not Completed and not Cancelled)
-  const activeTasks = tasks.filter(
-    (t) => t.status !== TASK_STATUS.COMPLETED && t.status !== TASK_STATUS.CANCELLED
-  );
+  const tasksByStall = useMemo(() => {
+    const result = {};
 
-  // Group active tasks by stallId
-  const tasksByStall = {};
-  activeTasks.forEach((task) => {
-    if (task.stallId) {
-      if (!tasksByStall[task.stallId]) {
-        tasksByStall[task.stallId] = [];
+    tasks.forEach((task) => {
+      if (task.status === TASK_STATUS.COMPLETED || task.status === TASK_STATUS.CANCELLED) {
+        return;
       }
-      tasksByStall[task.stallId].push(task);
-    }
-  });
+
+      if (task.stallId) {
+        if (!result[task.stallId]) result[task.stallId] = [];
+        result[task.stallId].push(task);
+        return;
+      }
+
+      if (task.taskType === TASK_TYPE.UTILITY_READING) {
+        for (const stallId of utilityStallIdsByTask[task.taskId] || []) {
+          if (!result[stallId]) result[stallId] = [];
+          result[stallId].push(task);
+        }
+        return;
+      }
+
+      if (task.areaId && marketMap?.areas) {
+        const area = marketMap.areas.find((item) => item.areaId === task.areaId);
+        for (const stall of area?.stalls || []) {
+          if (!result[stall.stallId]) result[stall.stallId] = [];
+          result[stall.stallId].push(task);
+        }
+      }
+    });
+
+    return result;
+  }, [marketMap, tasks, utilityStallIdsByTask]);
 
   const getStatusLabel = (status) => {
     switch (status) {
       case "Available":
-        return "Trống";
+        return "Available";
       case "Rented":
-        return "Đã thuê";
+        return "Rented";
       case "Maintenance":
-        return "Bảo trì";
+        return "Maintenance";
       default:
         return status;
     }
@@ -117,13 +155,13 @@ export default function TaskMapView({ userId, baseUrl, onBack, onViewDetails }) 
   const getStatusColor = (status) => {
     switch (status) {
       case "Available":
-        return "#10b981"; // Green
+        return "#10b981";
       case "Rented":
-        return "#3b82f6"; // Blue
+        return "#3b82f6";
       case "Maintenance":
-        return "#f59e0b"; // Orange
+        return "#f59e0b";
       default:
-        return "#94a3b8"; // Grey
+        return "#94a3b8";
     }
   };
 
@@ -141,7 +179,6 @@ export default function TaskMapView({ userId, baseUrl, onBack, onViewDetails }) 
       case TASK_TYPE.REPAIR: return "Repair";
       case TASK_TYPE.MAINTENANCE: return "Maintenance";
       case TASK_TYPE.UTILITY_READING: return "Meter Reading";
-      case TASK_TYPE.CASH_COLLECTION: return "Cash Collection";
       default: return type;
     }
   };
@@ -151,7 +188,6 @@ export default function TaskMapView({ userId, baseUrl, onBack, onViewDetails }) 
       case TASK_TYPE.REPAIR: return "type-repair";
       case TASK_TYPE.MAINTENANCE: return "type-maintenance";
       case TASK_TYPE.UTILITY_READING: return "type-utility";
-      case TASK_TYPE.CASH_COLLECTION: return "type-cash";
       default: return "type-default";
     }
   };
@@ -174,7 +210,6 @@ export default function TaskMapView({ userId, baseUrl, onBack, onViewDetails }) 
     setSelectedStall(enrichedStall);
   };
 
-  // Find flat list of all stalls to count and render legends
   const allStalls = [];
   if (marketMap?.areas) {
     marketMap.areas.forEach((area) => {
@@ -191,17 +226,19 @@ export default function TaskMapView({ userId, baseUrl, onBack, onViewDetails }) 
   }
 
   const stallsWithTasksCount = Object.keys(tasksByStall).length;
+  const activeTaskCount = tasks.filter(
+    (task) => task.status !== TASK_STATUS.COMPLETED && task.status !== TASK_STATUS.CANCELLED,
+  ).length;
 
   return (
     <main className="task-map-view-container" id="task-map-main-view">
-      {/* Header controls */}
       <div className="map-view-header">
         <div className="header-left">
           <h1>📍 Task Map View</h1>
         </div>
         <div className="header-right">
           <span className="summary-badge">
-            📋 Active Tasks: <strong>{activeTasks.length}</strong>
+            📋 Active Tasks: <strong>{activeTaskCount}</strong>
           </span>
           <span className="summary-badge">
             🏪 Stalls with Tasks: <strong>{stallsWithTasksCount}</strong>
@@ -225,14 +262,12 @@ export default function TaskMapView({ userId, baseUrl, onBack, onViewDetails }) 
         </div>
       ) : (
         <div className={`map-grid-layout ${selectedStall ? "has-selection" : ""}`}>
-          {/* Left Column: Interactive Map Grid */}
           <section className="map-canvas-card" id="task-map-canvas-section">
             <div className="map-card-header">
               <h3>{marketMap.marketName} Blueprint Map</h3>
               <p className="address-text">📍 {marketMap.address}</p>
             </div>
 
-            {/* Legend strip */}
             <div className="map-legends">
               <div className="legend-item">
                 <span className="legend-dot active-task-dot"></span>
@@ -252,7 +287,6 @@ export default function TaskMapView({ userId, baseUrl, onBack, onViewDetails }) 
               </div>
             </div>
 
-            {/* Blueprint Map Canvas wrapper */}
             <div className="map-viewport">
               <div
                 className="blueprint-map-canvas"
@@ -317,7 +351,7 @@ export default function TaskMapView({ userId, baseUrl, onBack, onViewDetails }) 
                     );
                   })
                 ) : (
-                  <div className="map-empty">Sơ đồ chưa được cấu hình phân khu.</div>
+                  <div className="map-empty">The market layout has not been configured.</div>
                 )}
               </div>
             </div>
@@ -332,7 +366,6 @@ export default function TaskMapView({ userId, baseUrl, onBack, onViewDetails }) 
             />
           )}
 
-          {/* Right Column: Stall Details & Tasks Drawer */}
           <aside
             className={`map-sidebar-card ${selectedStall ? "is-open" : ""}`}
             id="task-map-details-sidebar"
@@ -361,12 +394,12 @@ export default function TaskMapView({ userId, baseUrl, onBack, onViewDetails }) 
 
                 <div className="stall-main-info">
                   <h4>Stall {selectedStall.code}</h4>
-                  <p className="area-info">Phân khu: <strong>{selectedStall.areaName}</strong></p>
+                  <p className="area-info">Area: <strong>{selectedStall.areaName}</strong></p>
                   <p className="owner-info">
-                    Chủ sạp: <strong>{selectedStall.businessName || "Chưa có thông tin thuê"}</strong>
+                    Vendor: <strong>{selectedStall.businessName || "No active vendor"}</strong>
                   </p>
                   <p className="category-info">
-                    Ngành hàng: <strong>{selectedStall.categoryName || "Chưa thiết lập"}</strong>
+                    Category: <strong>{selectedStall.categoryName || "Not specified"}</strong>
                   </p>
                 </div>
 
@@ -403,7 +436,7 @@ export default function TaskMapView({ userId, baseUrl, onBack, onViewDetails }) 
                   ) : (
                     <div className="empty-tasks-placeholder">
                       <span className="ok-icon">✅</span>
-                      <p>Không có tác vụ chưa hoàn thành được giao cho bạn tại sạp này.</p>
+                      <p>No active task is assigned to you at this stall.</p>
                     </div>
                   )}
                 </div>

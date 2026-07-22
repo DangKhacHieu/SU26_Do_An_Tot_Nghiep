@@ -38,6 +38,7 @@ namespace STMM.Tests.Services
         private readonly Mock<IUserRepository> _userRepoMock;
         private readonly Mock<ISystemConfigRepository> _systemConfigRepoMock;
         private readonly Mock<IServiceRegistrationRepository> _serviceRegistrationRepoMock;
+        private readonly Mock<IStallRepository> _stallRepoMock;
         private readonly IMapper _mapper;
         private readonly BillingService _service;
 
@@ -57,6 +58,10 @@ namespace STMM.Tests.Services
             _userRepoMock = new Mock<IUserRepository>();
             _systemConfigRepoMock = new Mock<ISystemConfigRepository>();
             _serviceRegistrationRepoMock = new Mock<IServiceRegistrationRepository>();
+            _stallRepoMock = new Mock<IStallRepository>();
+            _userRepoMock.Setup(repository => repository.GetUserByIdWithRoleAsync(
+                    It.IsAny<int>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new User { UserId = 1, MarketId = 10 });
 
             var mapperConfig = new MapperConfiguration(cfg =>
             {
@@ -79,7 +84,9 @@ namespace STMM.Tests.Services
                 _emailServiceMock.Object,
                 _userRepoMock.Object,
                 _systemConfigRepoMock.Object,
-                _serviceRegistrationRepoMock.Object);
+                _serviceRegistrationRepoMock.Object,
+                _stallRepoMock.Object,
+                NullLogger<BillingService>.Instance);
         }
 
         [Fact]
@@ -125,7 +132,7 @@ namespace STMM.Tests.Services
             _validatorMock.Setup(v => v.ValidateAsync(request, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new ValidationResult());
 
-            _invoiceRepoMock.Setup(r => r.GetInvoiceWithRelationsForPaymentAsync(invoiceId, It.IsAny<CancellationToken>()))
+            _invoiceRepoMock.Setup(r => r.GetInvoiceWithRelationsForPaymentAsync(invoiceId, 10, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(invoice);
 
             _paymentRepoMock.Setup(r => r.AddAsync(It.IsAny<Payment>(), It.IsAny<CancellationToken>()))
@@ -163,6 +170,31 @@ namespace STMM.Tests.Services
         }
 
         [Fact]
+        public async Task ReceiveCashPaymentAsync_WhenNotificationFails_StillSavesPayment()
+        {
+            var request = new ReceiveCashPaymentRequest { InvoiceId = 1 };
+            var invoice = CreateMockInvoice(1, "Unpaid");
+            _validatorMock.Setup(validator => validator.ValidateAsync(request, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new ValidationResult());
+            _invoiceRepoMock.Setup(repository => repository.GetInvoiceWithRelationsForPaymentAsync(
+                    1, 10, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(invoice);
+            _notificationServiceMock.Setup(service => service.CreateAsync(
+                    It.IsAny<CreateNotificationRequest>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new InvalidOperationException("Notification unavailable"));
+            _invoiceRepoMock.Setup(repository => repository.SaveChangesAsync(It.IsAny<CancellationToken>()))
+                .ReturnsAsync(1);
+
+            var result = await _service.ReceiveCashPaymentAsync(10, request);
+
+            result.NewInvoiceStatus.Should().Be("Pending Confirmation");
+            _paymentRepoMock.Verify(repository => repository.AddAsync(
+                It.IsAny<Payment>(), It.IsAny<CancellationToken>()), Times.Once);
+            _invoiceRepoMock.Verify(repository => repository.SaveChangesAsync(
+                It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Fact]
         public async Task ReceiveCashPaymentAsync_InvoiceNotUnpaid_ThrowsBadRequestException()
         {
             // Arrange
@@ -174,7 +206,7 @@ namespace STMM.Tests.Services
             _validatorMock.Setup(v => v.ValidateAsync(request, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new ValidationResult());
 
-            _invoiceRepoMock.Setup(r => r.GetInvoiceWithRelationsForPaymentAsync(invoiceId, It.IsAny<CancellationToken>()))
+            _invoiceRepoMock.Setup(r => r.GetInvoiceWithRelationsForPaymentAsync(invoiceId, 10, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(invoice);
 
             // Act & Assert
@@ -191,7 +223,7 @@ namespace STMM.Tests.Services
             _validatorMock.Setup(v => v.ValidateAsync(request, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new ValidationResult());
 
-            _invoiceRepoMock.Setup(r => r.GetInvoiceWithRelationsForPaymentAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            _invoiceRepoMock.Setup(r => r.GetInvoiceWithRelationsForPaymentAsync(It.IsAny<int>(), 10, It.IsAny<CancellationToken>()))
                 .ReturnsAsync((Invoice?)null);
 
             // Act & Assert

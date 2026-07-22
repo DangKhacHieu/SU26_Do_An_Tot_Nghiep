@@ -9,6 +9,8 @@ namespace STMM.DataAccess.IRepositories
     {
         Task<bool> IsActiveStaffAsync(int userId, CancellationToken ct = default);
         Task<IEnumerable<User>> GetUsersWithRolesAsync(string? roleName, string? search, bool limitToManageableRoles = false, CancellationToken ct = default);
+        Task<IReadOnlyList<User>> GetActiveManagersByMarketAsync(int marketId, CancellationToken ct = default);
+        Task<IReadOnlyList<User>> GetActiveUsersByRoleAsync(string? roleName, CancellationToken ct = default);
         Task<User?> GetUserByIdWithRoleAsync(int id, CancellationToken ct = default);
         Task<User?> GetFirstManagerOrAdminAsync(CancellationToken ct = default);
         /// <summary>

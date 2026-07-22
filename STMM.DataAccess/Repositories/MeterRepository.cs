@@ -20,12 +20,72 @@ namespace STMM.DataAccess.Repositories
                 .ToListAsync(ct);
         }
 
+        public async Task<IEnumerable<Meter>> GetMetersByStallForMarketAsync(
+            int stallId,
+            int marketId,
+            CancellationToken ct = default)
+        {
+            return await _context.Meters
+                .Include(m => m.Stall)
+                    .ThenInclude(s => s!.Area)
+                .Where(m =>
+                    m.StallId == stallId &&
+                    m.Stall != null &&
+                    m.Stall.Area.MarketId == marketId &&
+                    m.IsActive == true)
+                .AsNoTracking()
+                .ToListAsync(ct);
+        }
+
         public async Task<Meter?> GetMeterWithStallAsync(int meterId, CancellationToken ct = default)
         {
             return await _context.Meters
                 .Include(m => m.Stall)
                 .AsNoTracking()
                 .FirstOrDefaultAsync(m => m.MeterId == meterId, ct);
+        }
+
+        public Task<Meter?> GetMeterWithStallForMarketAsync(
+            int meterId,
+            int marketId,
+            CancellationToken ct = default)
+        {
+            return _context.Meters
+                .Include(m => m.Stall)
+                    .ThenInclude(s => s!.Area)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(m =>
+                    m.MeterId == meterId &&
+                    m.Stall != null &&
+                    m.Stall.Area.MarketId == marketId,
+                    ct);
+        }
+
+        public Task<Meter?> GetMeterForMarketAsync(
+            int meterId,
+            int marketId,
+            CancellationToken ct = default)
+        {
+            return _context.Meters
+                .Include(m => m.Stall)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(m =>
+                    m.MeterId == meterId &&
+                    m.MarketId == marketId,
+                    ct);
+        }
+
+        public Task<Meter?> GetMeterForUpdateInMarketAsync(
+            int meterId,
+            int marketId,
+            CancellationToken ct = default)
+        {
+            return _context.Meters
+                .Include(m => m.Stall)
+                .FirstOrDefaultAsync(m =>
+                    m.MeterId == meterId &&
+                    m.MarketId == marketId,
+                    ct);
         }
 
         public async Task<(IEnumerable<Meter> Items, int TotalCount)> GetMetersPagedAsync(string? type, bool? isActive, bool? isAssigned, string? search, int pageNumber, int pageSize, int? marketId = null, CancellationToken ct = default)
@@ -106,12 +166,5 @@ namespace STMM.DataAccess.Repositories
             return await query.ToListAsync(ct);
         }
 
-        public async Task<Meter?> GetMeterWithReadingsAsync(int meterId, CancellationToken ct = default)
-        {
-            return await _context.Meters
-                .Include(m => m.MeterReadings)
-                .Include(m => m.Stall)
-                .FirstOrDefaultAsync(m => m.MeterId == meterId, ct);
-        }
     }
 }

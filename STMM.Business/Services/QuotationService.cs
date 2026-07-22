@@ -1,5 +1,6 @@
 using AutoMapper;
 using FluentValidation;
+using Microsoft.Extensions.Logging;
 using STMM.Business.DTOs.Notification;
 using STMM.Business.DTOs.Quotation;
 using STMM.Business.DTOs.Task;
@@ -15,24 +16,30 @@ namespace STMM.Business.Services
         private readonly IStaffTaskRepository _taskRepository;
         private readonly ITaskMaterialRepository _materialRepository;
         private readonly IRepairPriceRepository _repairPriceRepository;
+        private readonly IUserRepository _userRepository;
         private readonly INotificationService _notificationService;
         private readonly IValidator<AddMaterialRequest> _addMaterialValidator;
         private readonly IMapper _mapper;
+        private readonly ILogger<QuotationService> _logger;
 
         public QuotationService(
             IStaffTaskRepository taskRepository,
             ITaskMaterialRepository materialRepository,
             IRepairPriceRepository repairPriceRepository,
+            IUserRepository userRepository,
             INotificationService notificationService,
             IValidator<AddMaterialRequest> addMaterialValidator,
-            IMapper mapper)
+            IMapper mapper,
+            ILogger<QuotationService> logger)
         {
             _taskRepository = taskRepository;
             _materialRepository = materialRepository;
             _repairPriceRepository = repairPriceRepository;
+            _userRepository = userRepository;
             _notificationService = notificationService;
             _addMaterialValidator = addMaterialValidator;
             _mapper = mapper;
+            _logger = logger;
         }
 
         public async Task<List<RepairPriceDto>> GetRepairPricesAsync(
@@ -52,8 +59,8 @@ namespace STMM.Business.Services
             int staffUserId,
             CancellationToken ct = default)
         {
-            var task = await LoadTaskOrThrowAsync(taskId, ct);
-            EnsureAssignedToStaff(task, staffUserId);
+            var task = await LoadTaskOrThrowAsync(taskId, staffUserId, ct);
+            EnsureRepairQuotationSource(task);
 
             var materials = await _materialRepository.GetByTaskIdAsync(taskId, ct);
             return BuildQuotationSummary(task, materials);
@@ -67,9 +74,9 @@ namespace STMM.Business.Services
         {
             await ValidateMaterialRequestAsync(request, ct);
 
-            var task = await LoadTaskOrThrowAsync(taskId, ct);
-            EnsureAssignedToStaff(task, staffUserId);
-            EnsureTaskIsPending(task, "thêm vật tư vào");
+            var task = await LoadTaskOrThrowAsync(taskId, staffUserId, ct);
+            EnsureRepairQuotationSource(task);
+            EnsureTaskIsPending(task, "add material to");
 
             var repairPrice = await LoadRepairPriceOrThrowAsync(request.RepairPriceId, ct);
             var unitPrice = ResolveUnitPrice(repairPrice, request);
@@ -88,15 +95,15 @@ namespace STMM.Business.Services
             int staffUserId,
             CancellationToken ct = default)
         {
-            var task = await LoadTaskOrThrowAsync(taskId, ct);
-            EnsureAssignedToStaff(task, staffUserId);
-            EnsureTaskIsPending(task, "xóa vật tư khỏi");
+            var task = await LoadTaskOrThrowAsync(taskId, staffUserId, ct);
+            EnsureRepairQuotationSource(task);
+            EnsureTaskIsPending(task, "remove material from");
 
             var material = await _materialRepository.GetMaterialByIdAsync(materialId, ct);
             if (material == null || material.TaskId != taskId)
             {
                 throw new NotFoundException(
-                    $"Không tìm thấy vật tư {materialId} trong task {taskId}.");
+                    $"Material {materialId} was not found in task {taskId}.");
             }
 
             _materialRepository.Delete(material);
@@ -111,11 +118,8 @@ namespace STMM.Business.Services
             int staffUserId,
             CancellationToken ct = default)
         {
-            var task = await _taskRepository.GetTaskByIdWithRelationsAsync(taskId, ct)
-                ?? throw new NotFoundException($"Không tìm thấy task {taskId}.");
-
-            EnsureAssignedToStaff(task, staffUserId);
-            EnsureTaskIsPending(task, "gửi báo giá cho");
+            var task = await LoadTaskOrThrowAsync(taskId, staffUserId, ct);
+            EnsureTaskIsPending(task, "submit a quotation for");
             EnsureRepairQuotationSource(task);
 
             var materials = await _materialRepository.GetByTaskIdAsync(taskId, ct);
@@ -127,18 +131,20 @@ namespace STMM.Business.Services
             _taskRepository.Update(task);
             await _taskRepository.SaveChangesAsync(ct);
 
-            await NotifyManagerAsync(task, totalCost, staffUserId, ct);
+            await NotifyManagersAsync(task, totalCost, staffUserId, ct);
 
-            var updatedTask = await _taskRepository.GetTaskByIdWithRelationsAsync(taskId, ct);
+            var updatedTask = await _taskRepository.GetTaskByIdForStaffAsync(
+                taskId, staffUserId, ct);
             return _mapper.Map<TaskDto>(updatedTask!);
         }
 
         private async Task<StaffTask> LoadTaskOrThrowAsync(
             int taskId,
+            int staffUserId,
             CancellationToken ct)
         {
-            return await _taskRepository.GetByIdAsync(taskId, ct)
-                ?? throw new NotFoundException($"Không tìm thấy task {taskId}.");
+            return await _taskRepository.GetTaskByIdForStaffAsync(taskId, staffUserId, ct)
+                ?? throw new NotFoundException($"Task {taskId} was not found.");
         }
 
         private async Task<RepairPrice> LoadRepairPriceOrThrowAsync(
@@ -149,7 +155,7 @@ namespace STMM.Business.Services
             if (repairPrice == null || repairPrice.IsActive != true)
             {
                 throw new NotFoundException(
-                    $"Không tìm thấy vật tư {repairPriceId} hoặc vật tư đã ngừng sử dụng.");
+                    $"Material {repairPriceId} was not found or is inactive.");
             }
 
             return repairPrice;
@@ -167,21 +173,12 @@ namespace STMM.Business.Services
             }
         }
 
-        private static void EnsureAssignedToStaff(StaffTask task, int staffUserId)
-        {
-            if (task.AssignedToUserId != staffUserId)
-            {
-                throw new BadRequestException(
-                    "Bạn không được phân công thực hiện task này.");
-            }
-        }
-
         private static void EnsureTaskIsPending(StaffTask task, string action)
         {
             if (task.Status != "Pending")
             {
                 throw new BadRequestException(
-                    $"Không thể {action} task ở trạng thái '{task.Status}'.");
+                    $"Cannot {action} a task with status '{task.Status}'.");
             }
         }
 
@@ -190,7 +187,7 @@ namespace STMM.Business.Services
             if (task.TaskType != "Repair")
             {
                 throw new BadRequestException(
-                    "Chỉ task Repair mới được gửi báo giá sửa chữa.");
+                    "Only Repair tasks can use a repair quotation.");
             }
 
             var hasRequest = task.RequestId.HasValue;
@@ -198,13 +195,13 @@ namespace STMM.Business.Services
             if (hasRequest == hasIssue)
             {
                 throw new BadRequestException(
-                    "Task báo giá phải liên kết đúng một nguồn: Request hoặc Issue.");
+                    "A repair quotation task must link to exactly one Request or Issue.");
             }
 
             if (hasRequest && task.Request?.RequestType != "FacilityIssue")
             {
                 throw new BadRequestException(
-                    "Task liên kết Request chỉ được báo giá cho FacilityIssue.");
+                    "A linked Request must be a FacilityIssue request.");
             }
         }
 
@@ -214,7 +211,7 @@ namespace STMM.Business.Services
             if (materials.Count == 0)
             {
                 throw new BadRequestException(
-                    "Báo giá phải có ít nhất một dòng vật tư trước khi gửi duyệt.");
+                    "A quotation must contain at least one material before submission.");
             }
         }
 
@@ -230,7 +227,7 @@ namespace STMM.Business.Services
             if (!request.CustomUnitPrice.HasValue || request.CustomUnitPrice.Value <= 0)
             {
                 throw new BadRequestException(
-                    $"Vật tư '{repairPrice.ItemName}' yêu cầu nhập đơn giá tùy chỉnh.");
+                    $"Material '{repairPrice.ItemName}' requires a positive custom unit price.");
             }
 
             return request.CustomUnitPrice.Value;
@@ -276,7 +273,7 @@ namespace STMM.Business.Services
         {
             var lines = materials.Select(material =>
                 $"- {material.ItemName}: {material.Quantity} x " +
-                $"{material.UnitPrice:#,##0} VNĐ = {material.Amount:#,##0} VNĐ");
+                $"{material.UnitPrice:#,##0} VND = {material.Amount:#,##0} VND");
 
             return string.Join("\n", lines);
         }
@@ -296,21 +293,51 @@ namespace STMM.Business.Services
             };
         }
 
-        private async Task NotifyManagerAsync(
+        private async Task NotifyManagersAsync(
             StaffTask task,
             decimal totalCost,
             int staffUserId,
             CancellationToken ct)
         {
-            await _notificationService.CreateAsync(new CreateNotificationRequest
+            var marketId = task.AssignedToUser?.MarketId;
+            if (!marketId.HasValue)
             {
-                Title = "Báo giá sửa chữa cần quyết định",
-                Content = $"Task \"{task.Title}\" có báo giá {totalCost:#,##0} VNĐ " +
-                    "cần Manager xác định bên chịu phí.",
-                NotiType = "Request",
-                CreatedByUserId = staffUserId,
-                TargetRole = "Manager"
-            }, ct);
+                var assignedStaff = await _userRepository.GetUserByIdWithRoleAsync(
+                    task.AssignedToUserId, ct);
+                marketId = assignedStaff?.MarketId;
+            }
+
+            if (!marketId.HasValue)
+            {
+                return;
+            }
+
+            var managers = await _userRepository.GetActiveManagersByMarketAsync(
+                marketId.Value, ct);
+
+            foreach (var manager in managers)
+            {
+                try
+                {
+                    await _notificationService.CreateAsync(new CreateNotificationRequest
+                    {
+                        Title = "Repair Quotation Requires Decision",
+                        Content = $"Task #{task.TaskId} - {task.Title} has a quotation of " +
+                            $"{totalCost:#,##0} VND and requires a payer decision.",
+                        NotiType = "Request",
+                        CreatedByUserId = staffUserId,
+                        TargetUserId = manager.UserId
+                    }, ct);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(
+                        ex,
+                        "Could not send quotation notification for task {TaskId} to user {UserId}.",
+                        task.TaskId,
+                        manager.UserId);
+                }
+            }
         }
 
         private static MaterialLineDto MapMaterialToLineDto(TaskMaterial material)

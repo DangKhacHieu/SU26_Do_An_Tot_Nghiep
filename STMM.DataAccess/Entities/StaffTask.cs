@@ -34,7 +34,7 @@ public partial class StaffTask
     public int? AreaId { get; set; }
 
     /// <summary>
-    /// Repair, Maintenance, UtilityReading, CashCollection
+    /// Repair, Maintenance, UtilityReading
     /// </summary>
     public string TaskType { get; set; } = null!;
 

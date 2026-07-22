@@ -1,5 +1,6 @@
 using AutoMapper;
 using FluentValidation;
+using Microsoft.Extensions.Logging;
 using STMM.Business.DTOs.Common;
 using STMM.Business.DTOs.Notification;
 using STMM.Business.DTOs.Task;
@@ -23,12 +24,13 @@ namespace STMM.Business.Services
         private readonly IRequestRepository _requestRepository;
         private readonly IViolationRepository _violationRepository;
         private readonly IStallRepository _stallRepository;
+        private readonly IAreaRepository _areaRepository;
+        private readonly INotificationService _notificationService;
         private readonly IMapper _mapper;
         private readonly IValidator<CreateTaskRequest> _createValidator;
         private readonly IValidator<UpdateTaskStatusRequest> _updateValidator;
         private readonly IValidator<CompleteTaskRequest> _completeValidator;
-        private readonly INotificationService _notificationService;
-
+        private readonly ILogger<StaffTaskService> _logger;
         public StaffTaskService(
             IStaffTaskRepository staffTaskRepository,
             IUserRepository userRepository,
@@ -36,11 +38,13 @@ namespace STMM.Business.Services
             IRequestRepository requestRepository,
             IViolationRepository violationRepository,
             IStallRepository stallRepository,
+            IAreaRepository areaRepository,
+            INotificationService notificationService,
             IMapper mapper,
             IValidator<CreateTaskRequest> createValidator,
             IValidator<UpdateTaskStatusRequest> updateValidator,
             IValidator<CompleteTaskRequest> completeValidator,
-            INotificationService notificationService)
+            ILogger<StaffTaskService> logger)
         {
             _staffTaskRepository = staffTaskRepository;
             _userRepository = userRepository;
@@ -48,17 +52,21 @@ namespace STMM.Business.Services
             _requestRepository = requestRepository;
             _violationRepository = violationRepository;
             _stallRepository = stallRepository;
+            _areaRepository = areaRepository;
+            _notificationService = notificationService;
             _mapper = mapper;
             _createValidator = createValidator;
             _updateValidator = updateValidator;
             _completeValidator = completeValidator;
-            _notificationService = notificationService;
+            _logger = logger;
         }
 
         /// <inheritdoc />
-        public async Task<PagedResult<TaskSummaryDto>> GetTasksForManagerAsync(TaskQueryParams q, CancellationToken ct = default)
+        public async Task<PagedResult<TaskSummaryDto>> GetTasksForManagerAsync(int managerUserId, TaskQueryParams q, CancellationToken ct = default)
         {
-            var (items, totalCount) = await _staffTaskRepository.GetTasksPagedAsync(
+            var marketId = await GetManagerMarketIdAsync(managerUserId, ct);
+            var (items, totalCount) = await _staffTaskRepository.GetTasksForMarketPagedAsync(
+                marketId: marketId,
                 staffUserId: q.AssignedToUserId,
                 status: q.Status,
                 taskType: q.TaskType,
@@ -77,30 +85,17 @@ namespace STMM.Business.Services
         }
 
         /// <inheritdoc />
-        public async Task<PagedResult<TaskSummaryDto>> GetTasksForStaffAsync(int staffUserId, TaskQueryParams q, CancellationToken ct = default)
+        public async Task<IReadOnlyList<TaskSummaryDto>> GetTasksForStaffAsync(int staffUserId, CancellationToken ct = default)
         {
-            var (items, totalCount) = await _staffTaskRepository.GetTasksPagedAsync(
-                staffUserId: staffUserId,
-                status: q.Status,
-                taskType: q.TaskType,
-                search: q.Search,
-                pageNumber: q.PageNumber,
-                pageSize: q.PageSize,
-                ct: ct);
-
-            return new PagedResult<TaskSummaryDto>
-            {
-                Items = _mapper.Map<IEnumerable<TaskSummaryDto>>(items),
-                TotalCount = totalCount,
-                PageNumber = q.PageNumber,
-                PageSize = q.PageSize
-            };
+            var items = await _staffTaskRepository.GetTasksForStaffAsync(staffUserId, ct);
+            return _mapper.Map<List<TaskSummaryDto>>(items);
         }
 
         /// <inheritdoc />
-        public async Task<TaskDto> GetTaskByIdAsync(int taskId, CancellationToken ct = default)
+        public async Task<TaskDto> GetTaskByIdForManagerAsync(int taskId, int managerUserId, CancellationToken ct = default)
         {
-            var task = await _staffTaskRepository.GetTaskByIdWithRelationsAsync(taskId, ct);
+            var marketId = await GetManagerMarketIdAsync(managerUserId, ct);
+            var task = await _staffTaskRepository.GetTaskByIdForMarketAsync(taskId, marketId, ct);
             if (task == null)
             {
                 throw new NotFoundException($"Task with ID {taskId} not found.");
@@ -112,66 +107,84 @@ namespace STMM.Business.Services
         /// <inheritdoc />
         public async Task<TaskDto> GetTaskByIdForStaffAsync(int taskId, int staffUserId, CancellationToken ct = default)
         {
-            var task = await GetTaskByIdAsync(taskId, ct);
-            if (task.AssignedToUserId != staffUserId)
+            var task = await _staffTaskRepository.GetTaskByIdForStaffAsync(taskId, staffUserId, ct);
+            if (task == null)
             {
-                throw new ForbiddenException("You are not assigned to this task.");
+                throw new NotFoundException($"Task with ID {taskId} not found.");
             }
 
-            return task;
+            return _mapper.Map<TaskDto>(task);
         }
 
         /// <inheritdoc />
         public async Task<TaskDto> CreateTaskAsync(int managerUserId, CreateTaskRequest req, CancellationToken ct = default)
         {
+            var marketId = await GetManagerMarketIdAsync(managerUserId, ct);
             var validationResult = await _createValidator.ValidateAsync(req, ct);
             if (!validationResult.IsValid)
             {
                 throw new BadRequestException(string.Join("; ", validationResult.Errors.Select(e => e.ErrorMessage)));
             }
 
-            // Check if AssignedToUserId is active staff
-            var isActiveStaff = await _userRepository.IsActiveStaffAsync(req.AssignedToUserId, ct);
-            if (!isActiveStaff)
+            await GetActiveStaffInMarketAsync(req.AssignedToUserId, marketId, ct);
+
+            if (req.AreaId.HasValue)
             {
-                throw new NotFoundException($"Staff user with ID {req.AssignedToUserId} not found or is inactive.");
+                await EnsureAreaInMarketAsync(req.AreaId.Value, marketId, "Area", ct);
             }
 
             if (req.TaskType == "UtilityReading")
             {
                 var localNow = DateTime.UtcNow.AddHours(7);
-                var existingTasks = await _staffTaskRepository.FindAsync(t => 
-                    t.AreaId == req.AreaId &&
-                    t.TaskType == "UtilityReading" &&
-                    t.CreatedAt.HasValue &&
-                    t.CreatedAt.Value.Year == localNow.Year &&
-                    t.CreatedAt.Value.Month == localNow.Month &&
-                    t.Status != "Cancelled", ct);
-                
-                if (existingTasks.Any())
+                var periodStartUtc = new DateTime(
+                    localNow.Year,
+                    localNow.Month,
+                    1,
+                    0,
+                    0,
+                    0,
+                    DateTimeKind.Utc).AddHours(-7);
+                var periodEndUtc = periodStartUtc.AddMonths(1);
+
+                if (await _staffTaskRepository.HasUtilityTaskForAreaInPeriodAsync(
+                        req.AreaId!.Value,
+                        periodStartUtc,
+                        periodEndUtc,
+                        ct))
                 {
-                    throw new BadRequestException("Khu vực này đã được thiết lập tác vụ ghi số điện nước trong tháng này rồi.");
+                    throw new BadRequestException("A utility reading task already exists for this area in the current month.");
                 }
+
+                var effectiveDate = DateOnly.FromDateTime(localNow);
+                var stalls = await _stallRepository.GetStallsChecklistByAreaAsync(
+                    req.AreaId.Value,
+                    effectiveDate,
+                    localNow.Year,
+                    localNow.Month,
+                    ct);
+                EnsureUtilityAreaIsReady(stalls);
             }
 
             string? imageBeforeUrl = null;
 
             if (req.IssueId.HasValue)
             {
-                var issue = await _issueRepository.GetByIdAsync(req.IssueId.Value, ct);
+                var issue = await _issueRepository.GetIssueWithRelationsAsync(req.IssueId.Value, ct: ct);
                 if (issue == null)
                 {
                     throw new NotFoundException($"Issue with ID {req.IssueId.Value} not found.");
                 }
+                await EnsureAreaInMarketAsync(issue.Stall.AreaId, marketId, "Issue", ct);
                 imageBeforeUrl = issue.ImageUrl;
             }
             else if (req.RequestId.HasValue)
             {
-                var request = await _requestRepository.GetByIdAsync(req.RequestId.Value, ct);
+                var request = await _requestRepository.GetRequestWithRelationsAsync(req.RequestId.Value, ct);
                 if (request == null)
                 {
                     throw new NotFoundException($"Request with ID {req.RequestId.Value} not found.");
                 }
+                await EnsureAreaInMarketAsync(request.Stall.AreaId, marketId, "Request", ct);
                 if (request.RequestType == "ViolationAppeal" && request.ViolationId.HasValue)
                 {
                     var violation = await _violationRepository.GetByIdAsync(request.ViolationId.Value, ct);
@@ -196,35 +209,32 @@ namespace STMM.Business.Services
             await _staffTaskRepository.AddAsync(task, ct);
             await _staffTaskRepository.SaveChangesAsync(ct);
 
-            // Fetch loaded relations for DTO
-            var createdTask = await _staffTaskRepository.GetTaskByIdWithRelationsAsync(task.TaskId, ct);
+            await NotifyStaffAsync(
+                req.AssignedToUserId,
+                managerUserId,
+                "New Task Assigned",
+                $"Task #{task.TaskId} - {task.Title} has been assigned to you.",
+                ct);
 
-            // Send Notification to Staff
-            await _notificationService.CreateAsync(new CreateNotificationRequest
-            {
-                Title = "New Task Assigned",
-                Content = $"You have been assigned a new task: {task.Title}",
-                NotiType = "System",
-                CreatedByUserId = managerUserId,
-                TargetUserId = req.AssignedToUserId
-            }, ct);
+            var createdTask = await _staffTaskRepository.GetTaskByIdWithRelationsAsync(task.TaskId, ct);
 
             return _mapper.Map<TaskDto>(createdTask!);
         }
 
         /// <inheritdoc />
-        public async Task<TaskDto> UpdateTaskStatusAsync(int taskId, UpdateTaskStatusRequest req, CancellationToken ct = default)
+        public async Task<TaskDto> UpdateTaskStatusAsync(int managerUserId, int taskId, UpdateTaskStatusRequest req, CancellationToken ct = default)
         {
+            var marketId = await GetManagerMarketIdAsync(managerUserId, ct);
+            var task = await _staffTaskRepository.GetTaskByIdForMarketAsync(taskId, marketId, ct);
+            if (task == null)
+            {
+                throw new NotFoundException($"Task with ID {taskId} not found.");
+            }
+
             var validationResult = await _updateValidator.ValidateAsync(req, ct);
             if (!validationResult.IsValid)
             {
                 throw new BadRequestException(string.Join("; ", validationResult.Errors.Select(e => e.ErrorMessage)));
-            }
-
-            var task = await _staffTaskRepository.GetTaskByIdWithRelationsAsync(taskId, ct);
-            if (task == null)
-            {
-                throw new NotFoundException($"Task with ID {taskId} not found.");
             }
 
             var oldStatus = task.Status ?? "Pending";
@@ -235,7 +245,7 @@ namespace STMM.Business.Services
                 var request = await _requestRepository.GetByIdAsync(task.RequestId.Value, ct);
                 if (request == null || request.PaidBy != "Market")
                 {
-                    throw new BadRequestException("Báo giá của tác vụ liên kết với Yêu cầu sửa chữa (Request) phải do Vendor phê duyệt trực tuyến.");
+                    throw new BadRequestException("The quotation for this linked repair request must be approved by the vendor online.");
                 }
 
                 if (newStatus == "In_Progress")
@@ -269,18 +279,6 @@ namespace STMM.Business.Services
 
             task.Status = newStatus;
 
-            if (oldStatus == "PendingApproval" && newStatus == "Pending")
-            {
-                await _notificationService.CreateAsync(new CreateNotificationRequest
-                {
-                    Title = "Quotation Rejected",
-                    Content = $"Quotation for task \"{task.Title}\" has been rejected. Please update materials and resubmit.",
-                    NotiType = "System",
-                    CreatedByUserId = task.AssignedToUserId,
-                    TargetUserId = task.AssignedToUserId
-                }, ct);
-            }
-
             if (newStatus == "Cancelled")
             {
                 if (task.IssueId.HasValue)
@@ -311,6 +309,16 @@ namespace STMM.Business.Services
             _staffTaskRepository.Update(task);
             await _staffTaskRepository.SaveChangesAsync(ct);
 
+            if (newStatus == "Cancelled")
+            {
+                await NotifyStaffAsync(
+                    task.AssignedToUserId,
+                    managerUserId,
+                    "Task Cancelled",
+                    $"Task #{task.TaskId} - {task.Title} has been cancelled.",
+                    ct);
+            }
+
             var updatedTask = await _staffTaskRepository.GetTaskByIdWithRelationsAsync(taskId, ct);
             return _mapper.Map<TaskDto>(updatedTask!);
         }
@@ -318,21 +326,16 @@ namespace STMM.Business.Services
         /// <inheritdoc />
         public async Task<TaskDto> CompleteTaskAsync(int staffUserId, int taskId, CompleteTaskRequest req, CancellationToken ct = default)
         {
-            var validationResult = await _completeValidator.ValidateAsync(req, ct);
-            if (!validationResult.IsValid)
-            {
-                throw new BadRequestException(string.Join("; ", validationResult.Errors.Select(e => e.ErrorMessage)));
-            }
-
-            var task = await _staffTaskRepository.GetTaskByIdWithRelationsAsync(taskId, ct);
+            var task = await _staffTaskRepository.GetTaskByIdForStaffAsync(taskId, staffUserId, ct);
             if (task == null)
             {
                 throw new NotFoundException($"Task with ID {taskId} not found.");
             }
 
-            if (task.AssignedToUserId != staffUserId)
+            var validationResult = await _completeValidator.ValidateAsync(req, ct);
+            if (!validationResult.IsValid)
             {
-                throw new BadRequestException("You are not assigned to complete this task.");
+                throw new BadRequestException(string.Join("; ", validationResult.Errors.Select(e => e.ErrorMessage)));
             }
 
             var currentStatus = task.Status ?? "Pending";
@@ -348,19 +351,22 @@ namespace STMM.Business.Services
                     throw new BadRequestException("Utility reading task has no Area associated.");
                 }
 
-                var localToday = DateTime.UtcNow.AddHours(7).Date;
+                var localToday = DateTime.UtcNow.AddHours(7);
+                var effectiveDate = DateOnly.FromDateTime(localToday);
+                var stallsInArea = await _stallRepository.GetStallsChecklistByAreaAsync(
+                    task.AreaId.Value,
+                    effectiveDate,
+                    localToday.Year,
+                    localToday.Month,
+                    ct);
+                EnsureUtilityAreaIsReady(stallsInArea);
 
-                var stallsInArea = await _stallRepository.GetStallsChecklistByAreaAsync(task.AreaId.Value, localToday.Year, localToday.Month, ct);
-
-                var missingReadingsExist = stallsInArea.Any(s => !s.HasReadingThisMonth);
-
-                if (missingReadingsExist)
+                if (stallsInArea.Any(s => !s.HasReadingThisMonth))
                 {
-                    throw new BadRequestException("Không thể hoàn tất tác vụ. Vẫn còn sạp trong khu vực chưa được ghi chỉ số điện nước tháng này.");
+                    throw new BadRequestException("This task cannot be completed while stalls are missing utility readings for the current month.");
                 }
             }
 
-            // Task type Repair and linked to Request/Issue must be in In_Progress status to complete
             if (task.TaskType == "Repair" && (task.RequestId.HasValue || task.IssueId.HasValue))
             {
                 if (currentStatus != "In_Progress")
@@ -369,7 +375,6 @@ namespace STMM.Business.Services
                 }
             }
 
-            // ImageBeforeUrl validation:
             string? imageBefore = task.ImageBeforeUrl;
             if (!string.IsNullOrEmpty(req.ImageBeforeUrl))
             {
@@ -382,9 +387,13 @@ namespace STMM.Business.Services
                 {
                     throw new BadRequestException("Image before repair/maintenance is required to complete the task.");
                 }
+
+                if (string.IsNullOrEmpty(req.ImageAfterUrl))
+                {
+                    throw new BadRequestException("Image after repair/maintenance is required to complete the task.");
+                }
             }
 
-            // Update task status and images
             task.Status = "Completed";
             task.ImageBeforeUrl = imageBefore;
             task.ImageAfterUrl = req.ImageAfterUrl;
@@ -397,7 +406,6 @@ namespace STMM.Business.Services
                     : $"{task.Description}\nNotes: {req.CompletionNotes}";
             }
 
-            // Auto-link updates
             if (task.IssueId.HasValue)
             {
                 var issue = await _issueRepository.GetByIdAsync(task.IssueId.Value, ct);
@@ -420,16 +428,6 @@ namespace STMM.Business.Services
             _staffTaskRepository.Update(task);
             await _staffTaskRepository.SaveChangesAsync(ct);
 
-            // Send notification to Manager role
-            await _notificationService.CreateAsync(new CreateNotificationRequest
-            {
-                Title = "Task Completed",
-                Content = $"Task \"{task.Title}\" has been completed by staff.",
-                NotiType = "System",
-                CreatedByUserId = staffUserId,
-                TargetRole = "Manager"
-            }, ct);
-
             var completedTask = await _staffTaskRepository.GetTaskByIdWithRelationsAsync(taskId, ct);
             return _mapper.Map<TaskDto>(completedTask!);
         }
@@ -437,15 +435,10 @@ namespace STMM.Business.Services
         /// <inheritdoc />
         public async Task<List<UtilityStallChecklistDto>> GetStallsForUtilityTaskAsync(int taskId, int staffUserId, CancellationToken ct = default)
         {
-            var task = await _staffTaskRepository.GetByIdAsync(taskId, ct);
+            var task = await _staffTaskRepository.GetTaskByIdForStaffAsync(taskId, staffUserId, ct);
             if (task == null)
             {
                 throw new NotFoundException($"Task with ID {taskId} not found.");
-            }
-
-            if (task.AssignedToUserId != staffUserId)
-            {
-                throw new BadRequestException("You are not assigned to this task.");
             }
 
             if (task.TaskType != "UtilityReading" || !task.AreaId.HasValue)
@@ -453,9 +446,14 @@ namespace STMM.Business.Services
                 throw new BadRequestException("This task is not a utility reading task or has no Area associated.");
             }
 
-            var localToday = DateTime.UtcNow.AddHours(7).Date;
-
-            var results = await _stallRepository.GetStallsChecklistByAreaAsync(task.AreaId.Value, localToday.Year, localToday.Month, ct);
+            var localToday = DateTime.UtcNow.AddHours(7);
+            var effectiveDate = DateOnly.FromDateTime(localToday);
+            var results = await _stallRepository.GetStallsChecklistByAreaAsync(
+                task.AreaId.Value,
+                effectiveDate,
+                localToday.Year,
+                localToday.Month,
+                ct);
 
             return results.Select(r => new UtilityStallChecklistDto
             {
@@ -467,36 +465,137 @@ namespace STMM.Business.Services
         }
 
         /// <inheritdoc />
-        public async Task<TaskDto> AssignTaskAsync(int taskId, int staffUserId, CancellationToken ct = default)
+        public async Task<TaskDto> AssignTaskAsync(int managerUserId, int taskId, int staffUserId, CancellationToken ct = default)
         {
-            var task = await _staffTaskRepository.GetTaskByIdWithRelationsAsync(taskId, ct);
+            var marketId = await GetManagerMarketIdAsync(managerUserId, ct);
+            var task = await _staffTaskRepository.GetTaskByIdForMarketAsync(taskId, marketId, ct);
             if (task == null)
             {
                 throw new NotFoundException($"Task with ID {taskId} not found.");
             }
 
-            var isActiveStaff = await _userRepository.IsActiveStaffAsync(staffUserId, ct);
-            if (!isActiveStaff)
+            if (task.Status is "Completed" or "Cancelled")
             {
-                throw new NotFoundException($"Staff user with ID {staffUserId} not found or is inactive.");
+                throw new BadRequestException("Completed or cancelled tasks cannot be reassigned.");
+            }
+
+            await GetActiveStaffInMarketAsync(staffUserId, marketId, ct);
+
+            var previousStaffUserId = task.AssignedToUserId;
+            if (previousStaffUserId == staffUserId)
+            {
+                return _mapper.Map<TaskDto>(task);
             }
 
             task.AssignedToUserId = staffUserId;
             _staffTaskRepository.Update(task);
             await _staffTaskRepository.SaveChangesAsync(ct);
 
-            // Send notification to the new Staff user
-            await _notificationService.CreateAsync(new CreateNotificationRequest
-            {
-                Title = "Task Assigned / Reassigned",
-                Content = $"You have been assigned the task: \"{task.Title}\"",
-                NotiType = "System",
-                CreatedByUserId = staffUserId,
-                TargetUserId = staffUserId
-            }, ct);
+            await NotifyStaffAsync(
+                previousStaffUserId,
+                managerUserId,
+                "Task Assignment Removed",
+                $"Task #{task.TaskId} - {task.Title} is no longer assigned to you.",
+                ct);
+
+            await NotifyStaffAsync(
+                staffUserId,
+                managerUserId,
+                "New Task Assigned",
+                $"Task #{task.TaskId} - {task.Title} has been assigned to you.",
+                ct);
 
             var updatedTask = await _staffTaskRepository.GetTaskByIdWithRelationsAsync(taskId, ct);
             return _mapper.Map<TaskDto>(updatedTask!);
+        }
+
+        private async Task NotifyStaffAsync(
+            int staffUserId,
+            int managerUserId,
+            string title,
+            string content,
+            CancellationToken ct)
+        {
+            try
+            {
+                await _notificationService.CreateAsync(new CreateNotificationRequest
+                {
+                    Title = title,
+                    Content = content,
+                    NotiType = "Task",
+                    CreatedByUserId = managerUserId,
+                    TargetUserId = staffUserId
+                }, ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(
+                    ex,
+                    "Could not send task notification to user {UserId}.",
+                    staffUserId);
+            }
+        }
+
+        private static void EnsureUtilityAreaIsReady(IReadOnlyCollection<StallChecklistQueryResult> stalls)
+        {
+            if (stalls.Count == 0)
+            {
+                throw new BadRequestException("This area has no stalls with an effective rental contract.");
+            }
+
+            var missingMeters = stalls
+                .Where(stall => !stall.HasElectricityMeter || !stall.HasWaterMeter)
+                .Select(stall =>
+                {
+                    var missingTypes = new List<string>();
+                    if (!stall.HasElectricityMeter) missingTypes.Add("Electricity");
+                    if (!stall.HasWaterMeter) missingTypes.Add("Water");
+                    return $"{stall.StallCode} ({string.Join(" and ", missingTypes)})";
+                })
+                .ToList();
+
+            if (missingMeters.Count > 0)
+            {
+                throw new BadRequestException(
+                    $"Active utility meters are missing for: {string.Join(", ", missingMeters)}.");
+            }
+        }
+
+        private async Task<int> GetManagerMarketIdAsync(int managerUserId, CancellationToken ct)
+        {
+            var manager = await _userRepository.GetUserByIdWithRoleAsync(managerUserId, ct);
+            if (manager?.MarketId == null)
+            {
+                throw new ForbiddenException("The manager account is not assigned to a market.");
+            }
+
+            return manager.MarketId.Value;
+        }
+
+        private async Task<User> GetActiveStaffInMarketAsync(int staffUserId, int marketId, CancellationToken ct)
+        {
+            var staff = await _userRepository.GetUserByIdWithRoleAsync(staffUserId, ct);
+            var isActiveStaff = staff != null
+                && string.Equals(staff.Role?.Name, "Staff", StringComparison.OrdinalIgnoreCase)
+                && string.Equals(staff.Status, "Active", StringComparison.OrdinalIgnoreCase)
+                && staff.IsDeleted != true
+                && staff.MarketId == marketId;
+
+            if (!isActiveStaff)
+            {
+                throw new NotFoundException($"Staff user with ID {staffUserId} not found or is unavailable in this market.");
+            }
+
+            return staff!;
+        }
+
+        private async Task EnsureAreaInMarketAsync(int areaId, int marketId, string resourceName, CancellationToken ct)
+        {
+            var area = await _areaRepository.GetAreaByIdAsync(areaId, ct);
+            if (area?.MarketId != marketId)
+            {
+                throw new NotFoundException($"{resourceName} was not found in this market.");
+            }
         }
     }
 }

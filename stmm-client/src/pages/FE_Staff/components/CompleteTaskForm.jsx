@@ -1,401 +1,206 @@
-import React, { useState, useRef } from 'react';
+import { useRef, useState } from 'react';
+import { Camera, CheckCircle2, UploadCloud, X } from 'lucide-react';
 import { TASK_TYPE } from '../../../constants/taskEnums';
 
-const parseErrorMessage = (rawError) => {
-  if (!rawError) return "Có lỗi xảy ra, vui lòng thử lại.";
+const readProblemDetail = async (response) => {
   try {
-    const parsed = JSON.parse(rawError);
-    return parsed.detail || parsed.title || rawError;
+    const payload = await response.json();
+    return payload.detail || payload.title || 'Unable to complete the task.';
   } catch {
-    try {
-      return JSON.parse(`"${rawError}"`);
-    } catch {
-      return rawError.replace(/\\u([0-9a-fA-F]{4})/g, (match, grp) => 
-        String.fromCharCode(parseInt(grp, 16))
-      );
-    }
+    return 'Unable to complete the task.';
   }
 };
 
-export default function CompleteTaskForm({ task, userId, baseUrl, onRefreshTask, onShowNotification, utilityProgress }) {
+export default function CompleteTaskForm({ task, baseUrl, onRefreshTask, onShowNotification, utilityProgress }) {
   const [completionNotes, setCompletionNotes] = useState('');
-  
-  // Image Before states
   const [imageBeforeUrl, setImageBeforeUrl] = useState('');
-  const [dragActiveBefore, setDragActiveBefore] = useState(false);
-  const [uploadingBefore, setUploadingBefore] = useState(false);
-  const [uploadErrorBefore, setUploadErrorBefore] = useState(null);
-  const fileInputBeforeRef = useRef(null);
-
-  // Image After states
   const [imageAfterUrl, setImageAfterUrl] = useState('');
-  const [dragActiveAfter, setDragActiveAfter] = useState(false);
-  const [uploadingAfter, setUploadingAfter] = useState(false);
-  const [uploadErrorAfter, setUploadErrorAfter] = useState(null);
-  const fileInputAfterRef = useRef(null);
-
-  // Submission state
+  const [dragTarget, setDragTarget] = useState(null);
+  const [uploadingTarget, setUploadingTarget] = useState(null);
+  const [uploadErrors, setUploadErrors] = useState({ before: null, after: null });
   const [loading, setLoading] = useState(false);
   const [submitError, setSubmitError] = useState(null);
+  const beforeInputRef = useRef(null);
+  const afterInputRef = useRef(null);
 
-  // Check if Image Before upload is required
-  // Required when: Repair or Maintenance AND task does not have imageBeforeUrl yet
-  const isImageBeforeRequired = 
-    (task.taskType === TASK_TYPE.REPAIR || task.taskType === TASK_TYPE.MAINTENANCE) && 
-    !task.imageBeforeUrl;
-
-  // Check if Image After upload is required
-  // Required for Repair and Maintenance
-  const isImageAfterRequired = 
-    task.taskType === TASK_TYPE.REPAIR || task.taskType === TASK_TYPE.MAINTENANCE;
-
+  const requiresPhotos = [TASK_TYPE.REPAIR, TASK_TYPE.MAINTENANCE].includes(task.taskType);
+  const requiresBeforeUpload = requiresPhotos && !task.imageBeforeUrl;
   const isUtilityReading = task.taskType === TASK_TYPE.UTILITY_READING;
-  const isChecklistIncomplete = isUtilityReading && utilityProgress && utilityProgress.total > 0 && utilityProgress.completed < utilityProgress.total;
+  const isChecklistIncomplete = Boolean(
+    isUtilityReading
+    && utilityProgress
+    && utilityProgress.total > 0
+    && utilityProgress.completed < utilityProgress.total
+  );
 
-  // Drag handlers for Before Photo
-  const handleDragBefore = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") {
-      setDragActiveBefore(true);
-    } else if (e.type === "dragleave") {
-      setDragActiveBefore(false);
-    }
+  const setImage = (target, value) => {
+    if (target === 'before') setImageBeforeUrl(value);
+    else setImageAfterUrl(value);
   };
 
-  const handleDropBefore = async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActiveBefore(false);
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      await uploadFile(e.dataTransfer.files[0], 'before');
-    }
-  };
-
-  // Drag handlers for After Photo
-  const handleDragAfter = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") {
-      setDragActiveAfter(true);
-    } else if (e.type === "dragleave") {
-      setDragActiveAfter(false);
-    }
-  };
-
-  const handleDropAfter = async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActiveAfter(false);
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      await uploadFile(e.dataTransfer.files[0], 'after');
-    }
-  };
-
-  const uploadFile = async (file, type) => {
+  const uploadFile = async (file, target) => {
+    if (!file) return;
     if (file.size > 5 * 1024 * 1024) {
-      const err = `File ${file.name} exceeds the 5MB size limit.`;
-      if (type === 'before') setUploadErrorBefore(err);
-      else setUploadErrorAfter(err);
+      setUploadErrors((current) => ({ ...current, [target]: `${file.name} exceeds the 5MB limit.` }));
       return;
     }
-
     if (!file.type.startsWith('image/')) {
-      const err = 'Only image files are supported.';
-      if (type === 'before') setUploadErrorBefore(err);
-      else setUploadErrorAfter(err);
+      setUploadErrors((current) => ({ ...current, [target]: 'Only image files are supported.' }));
       return;
     }
 
-    if (type === 'before') {
-      setUploadingBefore(true);
-      setUploadErrorBefore(null);
-    } else {
-      setUploadingAfter(true);
-      setUploadErrorAfter(null);
-    }
-
+    setUploadingTarget(target);
+    setUploadErrors((current) => ({ ...current, [target]: null }));
     const formData = new FormData();
     formData.append('file', file);
 
     try {
-      const response = await fetch(`${baseUrl}/api/files/upload`, {
-        method: 'POST',
-        body: formData
-      });
-
-      if (!response.ok) {
-        const text = await response.text();
-        throw new Error(text || `Error uploading image ${file.name}`);
-      }
-
-      const result = await response.json();
-      if (type === 'before') {
-        setImageBeforeUrl(result.imageUrl);
-      } else {
-        setImageAfterUrl(result.imageUrl);
-      }
-    } catch (err) {
-      if (type === 'before') setUploadErrorBefore(err.message);
-      else setUploadErrorAfter(err.message);
+      const response = await fetch(`${baseUrl}/api/files/upload`, { method: 'POST', body: formData });
+      if (!response.ok) throw new Error(await readProblemDetail(response));
+      const payload = await response.json();
+      setImage(target, payload.imageUrl);
+    } catch (uploadError) {
+      setUploadErrors((current) => ({ ...current, [target]: uploadError.message }));
     } finally {
-      if (type === 'before') setUploadingBefore(false);
-      else setUploadingAfter(false);
+      setUploadingTarget(null);
     }
   };
 
-  const triggerSelectBefore = () => fileInputBeforeRef.current.click();
-  const triggerSelectAfter = () => fileInputAfterRef.current.click();
-
-  const handleSetMockBefore = () => {
-    setImageBeforeUrl('https://images.unsplash.com/photo-1590247813693-5541d1c609fd?q=80&w=600&auto=format&fit=crop');
+  const handleDrop = async (event, target) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setDragTarget(null);
+    await uploadFile(event.dataTransfer.files?.[0], target);
   };
 
-  const handleSetMockAfter = () => {
-    setImageAfterUrl('https://images.unsplash.com/photo-1584622650111-993a426fbf0a?q=80&w=600&auto=format&fit=crop');
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (event) => {
+    event.preventDefault();
     setSubmitError(null);
 
-    // Validation
-    if (isImageBeforeRequired && !imageBeforeUrl) {
-      setSubmitError('Please provide the initial photo (Image Before).');
+    if (requiresBeforeUpload && !imageBeforeUrl) {
+      setSubmitError('Please provide a before photo.');
       return;
     }
-
-    if (isImageAfterRequired && !imageAfterUrl) {
-      setSubmitError('Please provide the completion photo (Image After).');
+    if (requiresPhotos && !imageAfterUrl) {
+      setSubmitError('Please provide an after photo.');
       return;
     }
-
-    if (task.taskType === TASK_TYPE.REPAIR && !completionNotes.trim()) {
-      setSubmitError('Vui lòng nhập ghi chú bàn giao/kết quả sửa chữa trước khi hoàn thành tác vụ.');
-      return;
-    }
-
     if (isChecklistIncomplete) {
-      setSubmitError('Vui lòng ghi chỉ số cho toàn bộ sạp trước khi hoàn thành tác vụ.');
+      setSubmitError('Record readings for every stall before completing this task.');
       return;
     }
 
     setLoading(true);
-
-    // Auto-fill placeholder for UtilityReading/CashCollection since backend validator requires it
-    const finalImageAfterUrl = isImageAfterRequired 
-      ? imageAfterUrl 
-      : 'https://placehold.co/600x400/png?text=Task+Completed';
-
-    const finalImageBeforeUrl = imageBeforeUrl || task.imageBeforeUrl || null;
-
-    const requestData = {
-      imageBeforeUrl: finalImageBeforeUrl,
-      imageAfterUrl: finalImageAfterUrl,
-      completionNotes: completionNotes.trim() || null
-    };
-
     try {
-      const response = await fetch(`${baseUrl}/api/staff/tasks/${task.taskId}/complete?userId=${userId}`, {
+      const response = await fetch(`${baseUrl}/api/staff/tasks/${task.taskId}/complete`, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(requestData)
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          imageBeforeUrl: imageBeforeUrl || task.imageBeforeUrl || null,
+          imageAfterUrl: requiresPhotos ? imageAfterUrl : null,
+          completionNotes: completionNotes.trim() || null,
+        }),
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || `Error completing task: ${response.statusText}`);
-      }
-
-      onShowNotification('Task completion reported successfully!', 'success');
-      onRefreshTask();
-    } catch (err) {
-      setSubmitError(parseErrorMessage(err.message));
+      if (!response.ok) throw new Error(await readProblemDetail(response));
+      onShowNotification?.('Task completed successfully.', 'success');
+      await onRefreshTask();
+    } catch (completionError) {
+      setSubmitError(completionError.message);
     } finally {
       setLoading(false);
     }
   };
 
+  const renderUpload = (target, label, value, inputRef) => (
+    <div className="form-group">
+      <label className="form-label required-field">{label}</label>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        onChange={(event) => uploadFile(event.target.files?.[0], target)}
+        hidden
+      />
+      <div
+        className={`drag-drop-zone ${dragTarget === target ? 'active' : ''} ${value ? 'has-file' : ''}`}
+        onDragEnter={(event) => { event.preventDefault(); setDragTarget(target); }}
+        onDragOver={(event) => event.preventDefault()}
+        onDragLeave={(event) => { event.preventDefault(); setDragTarget(null); }}
+        onDrop={(event) => handleDrop(event, target)}
+        onClick={() => inputRef.current?.click()}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') inputRef.current?.click(); }}
+      >
+        {value ? (
+          <div className="uploaded-preview-container" onClick={(event) => event.stopPropagation()}>
+            <img src={value} alt={`${label} preview`} className="uploaded-thumb" />
+            <button type="button" className="btn-remove-uploaded" onClick={() => setImage(target, '')} aria-label={`Remove ${label.toLowerCase()}`}>
+              <X size={16} />
+            </button>
+          </div>
+        ) : (
+          <div className="drag-drop-content">
+            <UploadCloud className="upload-icon" size={30} aria-hidden="true" />
+            <p>Drag and drop an image, or <strong>click to select</strong></p>
+            <span className="helper-text">JPG, PNG, or WEBP up to 5MB</span>
+          </div>
+        )}
+      </div>
+      {uploadingTarget === target ? <div className="helper-text upload-status">Uploading image...</div> : null}
+      {uploadErrors[target] ? <div className="error-text">{uploadErrors[target]}</div> : null}
+    </div>
+  );
+
   return (
-    <div className="complete-task-form-panel">
-      <h3 className="card-section-title">✅ Report Task Completion</h3>
-      
+    <section className="complete-task-form-panel">
+      <h3 className="card-section-title"><CheckCircle2 size={18} aria-hidden="true" /> Report Task Completion</h3>
       <form onSubmit={handleSubmit} className="complete-form">
-        {submitError && (
-          <div className="error-alert">
-            <strong>Error:</strong> {submitError}
+        {submitError ? <div className="error-alert" role="alert"><strong>Error:</strong> {submitError}</div> : null}
+
+        {requiresPhotos ? (
+          <div className="upload-fields-grid">
+            {requiresBeforeUpload ? renderUpload('before', 'Before Photo', imageBeforeUrl, beforeInputRef) : null}
+            {renderUpload('after', 'After Photo', imageAfterUrl, afterInputRef)}
           </div>
-        )}
+        ) : null}
 
-        <div className="upload-fields-grid">
-          {/* Image Before Field */}
-          {isImageBeforeRequired && (
-            <div className="form-group">
-              <div className="label-with-toggle">
-                <label className="form-label required-field">Initial Status Photo (Image Before)</label>
-                <button 
-                  type="button" 
-                  className="btn-text-toggle"
-                  onClick={handleSetMockBefore}
-                >
-                  Use Demo Photo
-                </button>
-              </div>
-
-              <input 
-                ref={fileInputBeforeRef}
-                type="file" 
-                accept="image/*"
-                onChange={(e) => e.target.files && uploadFile(e.target.files[0], 'before')}
-                style={{ display: 'none' }}
-              />
-
-              <div 
-                className={`drag-drop-zone ${dragActiveBefore ? 'active' : ''} ${imageBeforeUrl ? 'has-file' : ''}`}
-                onDragEnter={handleDragBefore}
-                onDragOver={handleDragBefore}
-                onDragLeave={handleDragBefore}
-                onDrop={handleDropBefore}
-                onClick={triggerSelectBefore}
-              >
-                {imageBeforeUrl ? (
-                  <div className="uploaded-preview-container" onClick={(e) => e.stopPropagation()}>
-                    <img src={imageBeforeUrl} alt="Before Preview" className="uploaded-thumb" />
-                    <button 
-                      type="button" 
-                      className="btn-remove-uploaded"
-                      onClick={() => setImageBeforeUrl('')}
-                      title="Remove image"
-                    >
-                      &times;
-                    </button>
-                  </div>
-                ) : (
-                  <div className="drag-drop-content">
-                    <span className="upload-icon">📸</span>
-                    <p>Drag & drop the before image here, or <strong>click to select</strong></p>
-                    <span className="helper-text">Supports JPG, PNG, WEBP (Max 5MB)</span>
-                  </div>
-                )}
-              </div>
-              {uploadingBefore && <div className="helper-text upload-status">Uploading image to Cloudinary...</div>}
-              {uploadErrorBefore && <div className="error-text">Upload error: {uploadErrorBefore}</div>}
+        {isUtilityReading && utilityProgress && utilityProgress.total > 0 ? (
+          <div className={`utility-completion-progress ${isChecklistIncomplete ? 'is-incomplete' : 'is-complete'}`}>
+            <div className="progress-info">
+              <span>Meter reading progress</span>
+              <strong>{utilityProgress.completed} / {utilityProgress.total} stalls</strong>
             </div>
-          )}
-
-          {/* Image After Field */}
-          {isImageAfterRequired && (
-            <div className="form-group">
-              <div className="label-with-toggle">
-                <label className="form-label required-field">Completion Photo (Image After)</label>
-                <button 
-                  type="button" 
-                  className="btn-text-toggle"
-                  onClick={handleSetMockAfter}
-                >
-                  Use Demo Photo
-                </button>
-              </div>
-
-              <input 
-                ref={fileInputAfterRef}
-                type="file" 
-                accept="image/*"
-                onChange={(e) => e.target.files && uploadFile(e.target.files[0], 'after')}
-                style={{ display: 'none' }}
-              />
-
-              <div 
-                className={`drag-drop-zone ${dragActiveAfter ? 'active' : ''} ${imageAfterUrl ? 'has-file' : ''}`}
-                onDragEnter={handleDragAfter}
-                onDragOver={handleDragAfter}
-                onDragLeave={handleDragAfter}
-                onDrop={handleDropAfter}
-                onClick={triggerSelectAfter}
-              >
-                {imageAfterUrl ? (
-                  <div className="uploaded-preview-container" onClick={(e) => e.stopPropagation()}>
-                    <img src={imageAfterUrl} alt="After Preview" className="uploaded-thumb" />
-                    <button 
-                      type="button" 
-                      className="btn-remove-uploaded"
-                      onClick={() => setImageAfterUrl('')}
-                      title="Remove image"
-                    >
-                      &times;
-                    </button>
-                  </div>
-                ) : (
-                  <div className="drag-drop-content">
-                    <span className="upload-icon">📸</span>
-                    <p>Drag & drop the after image here, or <strong>click to select</strong></p>
-                    <span className="helper-text">Supports JPG, PNG, WEBP (Max 5MB)</span>
-                  </div>
-                )}
-              </div>
-              {uploadingAfter && <div className="helper-text upload-status">Uploading image to Cloudinary...</div>}
-              {uploadErrorAfter && <div className="error-text">Upload error: {uploadErrorAfter}</div>}
+            <div className="progress-bar-container">
+              <div className="progress-bar-fill" style={{ width: `${(utilityProgress.completed / utilityProgress.total) * 100}%` }} />
             </div>
-          )}
-        </div>
-
-        {/* Progress Bar for Utility Reading Checklist */}
-        {isUtilityReading && utilityProgress && utilityProgress.total > 0 && (
-          <div className="utility-completion-progress" style={{ marginTop: '16px', marginBottom: '16px' }}>
-            <div className="progress-info" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: '13px', fontWeight: '600' }}>
-              <span style={{ color: '#475569' }}>Tiến độ đo chỉ số sạp:</span>
-              <span style={{ color: isChecklistIncomplete ? '#b45309' : '#166534' }}>
-                {utilityProgress.completed} / {utilityProgress.total} Sạp ({Math.round((utilityProgress.completed / utilityProgress.total) * 100)}%)
-              </span>
-            </div>
-            <div className="progress-bar-container" style={{ width: '100%', height: '8px', backgroundColor: '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
-              <div 
-                className="progress-bar-fill" 
-                style={{ 
-                  width: `${(utilityProgress.completed / utilityProgress.total) * 100}%`, 
-                  height: '100%', 
-                  backgroundColor: isChecklistIncomplete ? '#f59e0b' : '#10b981',
-                  transition: 'width 0.3s ease' 
-                }} 
-              />
-            </div>
-            {isChecklistIncomplete && (
-              <div className="warning-alert" style={{ marginTop: '12px', fontSize: '12px', backgroundColor: '#fffbeb', color: '#b45309', border: '1px solid #fef3c7', padding: '8px 12px', borderRadius: '6px', lineHeight: '1.4' }}>
-                ⚠️ <strong>Cảnh báo:</strong> Vui lòng hoàn thành ghi chỉ số cho tất cả {utilityProgress.total} sạp trong khu vực trước khi gửi báo cáo hoàn tất tác vụ.
-              </div>
-            )}
+            {isChecklistIncomplete ? <p>Complete every stall reading before submitting this task.</p> : null}
           </div>
-        )}
+        ) : null}
 
-        {/* Completion Notes */}
-        <div className="form-group" style={{ marginTop: '16px' }}>
-          <label className={`form-label ${task.taskType === TASK_TYPE.REPAIR ? 'required-field' : ''}`}>
-            {task.taskType === TASK_TYPE.REPAIR ? 'Completion Notes (Required)' : 'Completion Notes (Optional)'}
-          </label>
+        <div className="form-group complete-task-notes">
+          <label className="form-label">Completion Notes (Optional)</label>
           <textarea
-            placeholder={task.taskType === TASK_TYPE.REPAIR 
-              ? "Vui lòng nhập ghi chú bàn giao/kết quả sửa chữa..." 
-              : "Enter details of completion, quality notes, or parts used if any..."}
+            placeholder="Add completion details, quality notes, or parts used."
             value={completionNotes}
-            onChange={(e) => setCompletionNotes(e.target.value)}
+            onChange={(event) => setCompletionNotes(event.target.value)}
             rows="3"
             className="form-input"
           />
         </div>
 
-        <div className="form-actions" style={{ marginTop: '20px', justifyContent: 'flex-end' }}>
-          <button 
-            type="submit" 
-            disabled={loading || uploadingBefore || uploadingAfter || isChecklistIncomplete}
+        <div className="form-actions complete-task-actions">
+          <button
+            type="submit"
+            disabled={loading || uploadingTarget !== null || isChecklistIncomplete}
             className="btn-primary-dark submit-completion-btn"
-            style={{ width: 'auto', padding: '10px 24px' }}
           >
-            {loading ? 'Submitting report...' : '✔️ Confirm Task Completion'}
+            <Camera size={16} aria-hidden="true" />
+            {loading ? 'Submitting...' : 'Confirm Completion'}
           </button>
         </div>
       </form>
-    </div>
+    </section>
   );
 }

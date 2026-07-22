@@ -2,8 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using STMM.Business.DTOs.Issue;
 using STMM.Business.Interfaces;
-using System.Threading;
-using System.Threading.Tasks;
+using System.Security.Claims;
 
 namespace STMM.API.Controllers
 {
@@ -19,28 +18,31 @@ namespace STMM.API.Controllers
             _issueService = issueService;
         }
 
-        /// <summary>
-        /// UC-xx: View Issues List for Manager — Manager xem danh sách sự cố hạ tầng chợ.
-        /// </summary>
         [HttpGet]
         public async Task<IActionResult> GetIssues(
             [FromQuery] IssueQueryParams queryParams,
             CancellationToken ct)
         {
-            var result = await _issueService.GetIssuesForManagerAsync(queryParams, ct);
+            var result = await _issueService.GetIssuesForManagerAsync(GetUserId(), queryParams, ct);
             return Ok(result);
         }
 
-        /// <summary>
-        /// UC-xx: View Issue Details for Manager — Manager xem chi tiết sự cố.
-        /// </summary>
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetIssueById(
-            int id,
-            CancellationToken ct)
+        [HttpGet("{id:int}")]
+        public async Task<IActionResult> GetIssueById(int id, CancellationToken ct)
         {
-            var result = await _issueService.GetIssueByIdForManagerAsync(id, ct);
+            var result = await _issueService.GetIssueByIdForManagerAsync(GetUserId(), id, ct);
             return Ok(result);
+        }
+
+        private int GetUserId()
+        {
+            var claim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!int.TryParse(claim, out var userId))
+            {
+                throw new UnauthorizedAccessException("User ID not found in token.");
+            }
+
+            return userId;
         }
     }
 }

@@ -6,6 +6,7 @@ using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using STMM.Business.DTOs.Market;
 using STMM.Business.Interfaces;
+using STMM.Business.Exceptions;
 using STMM.DataAccess.IRepositories;
 using STMM.DataAccess.Entities;
 using STMM.DataAccess.Data;
@@ -96,6 +97,22 @@ namespace STMM.Business.Services
             }
 
             return marketMapDto;
+        }
+
+        public async Task<MarketMapDto> GetMarketMapForStaffAsync(int staffUserId)
+        {
+            var marketId = await _context.Users
+                .Where(user => user.UserId == staffUserId)
+                .Select(user => user.MarketId)
+                .FirstOrDefaultAsync();
+
+            if (!marketId.HasValue)
+            {
+                throw new ForbiddenException("The staff account is not assigned to a market.");
+            }
+
+            return await GetMarketMapAsync(marketId.Value)
+                ?? throw new NotFoundException("Market map not found.");
         }
 
         public async Task<MarketDto> CreateMarketBulkAsync(CreateMarketBulkRequest request, int currentUserId)

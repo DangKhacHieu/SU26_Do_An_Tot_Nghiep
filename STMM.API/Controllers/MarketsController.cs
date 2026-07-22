@@ -58,6 +58,19 @@ namespace STMM.API.Controllers
             return Ok(marketMap);
         }
 
+        [HttpGet("~/api/staff/market-map")]
+        [Authorize(Roles = "Staff")]
+        public async Task<ActionResult<MarketMapDto>> GetStaffMarketMap()
+        {
+            var claim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!int.TryParse(claim, out var userId))
+            {
+                return Unauthorized();
+            }
+
+            return Ok(await _marketService.GetMarketMapForStaffAsync(userId));
+        }
+
         [HttpPost("bulk")]
         public async Task<ActionResult<MarketDto>> CreateMarketBulk([FromBody] CreateMarketBulkRequest request)
         {

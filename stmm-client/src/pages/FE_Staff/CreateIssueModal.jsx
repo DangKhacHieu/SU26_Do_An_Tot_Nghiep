@@ -1,239 +1,111 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import './CreateIssueModal.css';
 
-export default function CreateIssueModal({ userId, baseUrl, onClose, onSuccess }) {
+const readProblemDetail = async (response, fallback) => {
+  try {
+    const problem = await response.json();
+    return problem.detail || problem.title || fallback;
+  } catch {
+    return fallback;
+  }
+};
+
+export default function CreateIssueModal({ baseUrl, onClose, onSuccess }) {
   const [stalls, setStalls] = useState([]);
-  
-  // Form fields
   const [stallId, setStallId] = useState('');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [uploadedImages, setUploadedImages] = useState([]);
-  
-  // Drag & drop UI state
-  const [dragActive, setDragActive] = useState(false);
+  const [loadingStalls, setLoadingStalls] = useState(true);
   const [uploading, setUploading] = useState(false);
-  const [uploadError, setUploadError] = useState(null);
-  
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
   const fileInputRef = useRef(null);
 
-  // Fallback Stall Input in case no stalls are loaded
-  const [isStallLoading, setIsStallLoading] = useState(false);
-  const [isStallError, setIsStallError] = useState(false);
-  const [useManualStallId, setUseManualStallId] = useState(false);
-  const [manualStallId, setManualStallId] = useState('');
-
-  // UI state
-  const [loading, setLoading] = useState(false);
-  const [submitError, setSubmitError] = useState(null);
-  const [formErrors, setFormErrors] = useState({});
-
   useEffect(() => {
-    // Fetch Stalls from Stall Tasks API
-    const fetchStalls = async () => {
-      setIsStallLoading(true);
-      setIsStallError(false);
+    let active = true;
+
+    const loadStalls = async () => {
       try {
-        const response = await fetch(`${baseUrl}/api/staff/stall-tasks?userId=${userId}&pageSize=50`);
-        if (response.ok) {
-          const data = await response.json();
-          const items = data.items || [];
-          setStalls(items);
-          if (items.length === 0) {
-            setUseManualStallId(true); // Fallback if no stalls assigned
-          }
-        } else {
-          setIsStallError(true);
-          setUseManualStallId(true);
+        const response = await fetch(`${baseUrl}/api/staff/stalls/lookup`);
+        if (!response.ok) {
+          throw new Error(await readProblemDetail(response, 'Unable to load stalls.'));
         }
-      } catch (err) {
-        console.error("Failed to load stalls:", err);
-        setIsStallError(true);
-        setUseManualStallId(true);
+        const items = await response.json();
+        if (active) setStalls(Array.isArray(items) ? items : []);
+      } catch (loadError) {
+        if (active) setError(loadError.message);
       } finally {
-        setIsStallLoading(false);
+        if (active) setLoadingStalls(false);
       }
     };
 
-    fetchStalls();
-  }, [userId, baseUrl]);
+    loadStalls();
+    return () => { active = false; };
+  }, [baseUrl]);
 
-  // Drag & drop handlers
-  const handleDrag = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") {
-      setDragActive(true);
-    } else if (e.type === "dragleave") {
-      setDragActive(false);
-    }
-  };
-
-  const uploadFile = async (file) => {
-    if (uploadedImages.length >= 3) {
-      setUploadError("Maximum 3 images allowed.");
-      return;
-    }
-    
-    // Check file size (5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      setUploadError(`File ${file.name} exceeds 5MB size limit.`);
-      return;
-    }
+  const uploadFiles = async (files) => {
+    const available = 3 - uploadedImages.length;
+    const selectedFiles = Array.from(files).slice(0, available);
+    if (selectedFiles.length === 0) return;
 
     setUploading(true);
-    setUploadError(null);
-    const formData = new FormData();
-    formData.append('file', file);
-
+    setError('');
     try {
-      const response = await fetch(`${baseUrl}/api/files/upload`, {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const text = await response.text();
-        throw new Error(text || `Failed to upload ${file.name}`);
+      const urls = [];
+      for (const file of selectedFiles) {
+        if (!file.type.startsWith('image/') || file.size > 5 * 1024 * 1024) {
+          throw new Error('Each attachment must be an image no larger than 5 MB.');
+        }
+        const formData = new FormData();
+        formData.append('file', file);
+        const response = await fetch(`${baseUrl}/api/files/upload`, {
+          method: 'POST',
+          body: formData,
+        });
+        if (!response.ok) {
+          throw new Error(await readProblemDetail(response, 'Unable to upload image.'));
+        }
+        const result = await response.json();
+        urls.push(result.imageUrl);
       }
-
-      const result = await response.json();
-      setUploadedImages(prev => [...prev, result.imageUrl]);
-    } catch (err) {
-      setUploadError(err.message);
+      setUploadedImages((current) => [...current, ...urls]);
+    } catch (uploadError) {
+      setError(uploadError.message);
     } finally {
       setUploading(false);
     }
   };
 
-  const handleDrop = async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setError('');
 
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      const files = Array.from(e.dataTransfer.files);
-      const remainingSlots = 3 - uploadedImages.length;
-      const filesToUpload = files.slice(0, remainingSlots);
-
-      if (files.length > remainingSlots) {
-        setUploadError(`You can only upload up to ${remainingSlots} more image(s).`);
-      }
-
-      for (const file of filesToUpload) {
-        if (file.type.startsWith("image/")) {
-          await uploadFile(file);
-        } else {
-          setUploadError("Only image files are supported.");
-        }
-      }
-    }
-  };
-
-  const handleFileChange = async (e) => {
-    if (e.target.files && e.target.files[0]) {
-      const files = Array.from(e.target.files);
-      const remainingSlots = 3 - uploadedImages.length;
-      const filesToUpload = files.slice(0, remainingSlots);
-
-      if (files.length > remainingSlots) {
-        setUploadError(`You can only upload up to ${remainingSlots} more image(s).`);
-      }
-
-      for (const file of filesToUpload) {
-        if (file.type.startsWith("image/")) {
-          await uploadFile(file);
-        } else {
-          setUploadError("Only image files are supported.");
-        }
-      }
-    }
-  };
-
-  const removeImage = (indexToRemove) => {
-    setUploadedImages(prev => prev.filter((_, index) => index !== indexToRemove));
-  };
-
-  const handleSetMockImages = () => {
-    // Generate 3 sample images
-    const mockUrls = [
-      'https://images.unsplash.com/photo-1590247813693-5541d1c609fd?q=80&w=600&auto=format&fit=crop',
-      'https://images.unsplash.com/photo-1504148455328-c376907d081c?q=80&w=600&auto=format&fit=crop',
-      'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?q=80&w=600&auto=format&fit=crop'
-    ];
-    setUploadedImages(mockUrls);
-  };
-
-  const onButtonClick = () => {
-    fileInputRef.current.click();
-  };
-
-  const validateForm = () => {
-    const errors = {};
-    
-    const finalStallId = useManualStallId ? manualStallId : stallId;
-    if (!finalStallId || isNaN(parseInt(finalStallId)) || parseInt(finalStallId) <= 0) {
-      errors.stallId = "Stall selection or a valid positive Stall ID is required.";
-    }
-    
-    if (!title.trim()) {
-      errors.title = "Issue Title is required.";
-    } else if (title.trim().length < 5) {
-      errors.title = "Title must be at least 5 characters.";
-    } else if (title.length > 500) {
-      errors.title = "Title cannot exceed 500 characters.";
+    if (!stallId || title.trim().length < 5 || description.trim().length < 10) {
+      setError('Select a stall and provide a title and description with enough detail.');
+      return;
     }
 
-    if (!description.trim()) {
-      errors.description = "Detailed Description is required.";
-    } else if (description.trim().length < 10) {
-      errors.description = "Description must be at least 10 characters.";
-    }
-    
-    if (uploadedImages.length > 3) {
-      errors.imageUrl = "You can attach a maximum of 3 images.";
-    }
-
-    setFormErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setSubmitError(null);
-
-    if (!validateForm()) return;
-
-    setLoading(true);
-    const finalStallId = parseInt(useManualStallId ? manualStallId : stallId);
-    
-    const requestData = {
-      stallId: finalStallId,
-      title: title.trim(),
-      description: description.trim(),
-      imageUrl: uploadedImages.join(';') || null
-    };
-
+    setSubmitting(true);
     try {
-      const response = await fetch(`${baseUrl}/api/staff/issues?userId=${userId}`, {
+      const response = await fetch(`${baseUrl}/api/staff/issues`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestData)
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          stallId: Number(stallId),
+          title: title.trim(),
+          description: description.trim(),
+          imageUrl: uploadedImages.join(';') || null,
+        }),
       });
-
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || `Failed to submit issue report: ${response.statusText}`);
+        throw new Error(await readProblemDetail(response, 'Unable to submit issue report.'));
       }
-
-      const result = await response.json();
-      onSuccess(result);
-    } catch (err) {
-      setSubmitError(err.message);
+      onSuccess(await response.json());
+    } catch (submitError) {
+      setError(submitError.message);
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
@@ -241,167 +113,75 @@ export default function CreateIssueModal({ userId, baseUrl, onClose, onSuccess }
     <div className="modal-overlay">
       <div className="modal-container">
         <div className="modal-header">
-          <h2 className="modal-title">🔧 Report New Infrastructure Issue</h2>
-          <button className="modal-close-btn" onClick={onClose}>&times;</button>
+          <h2 className="modal-title">Report Infrastructure Issue</h2>
+          <button type="button" className="modal-close-btn" onClick={onClose} aria-label="Close">&times;</button>
         </div>
 
         <form onSubmit={handleSubmit} className="modal-form">
-          {submitError && (
-            <div className="error-alert">
-              <strong>Error:</strong> {submitError}
-            </div>
-          )}
+          {error ? <div className="error-alert"><strong>Error:</strong> {error}</div> : null}
 
-          {/* Location / Stall ID */}
           <div className="form-group">
-            <div className="label-with-toggle">
-              <label className="form-label required-field">LOCATION / STALL ID</label>
-              <button 
-                type="button" 
-                className="btn-text-toggle"
-                onClick={() => setUseManualStallId(!useManualStallId)}
-              >
-                {useManualStallId ? "Switch to Dropdown Select" : "Type Stall ID manually"}
-              </button>
-            </div>
-
-            {useManualStallId ? (
-              <input
-                type="number"
-                placeholder="Enter Stall ID (e.g. 1, 2, 3...)"
-                value={manualStallId}
-                onChange={(e) => setManualStallId(e.target.value)}
-                className={`form-input ${formErrors.stallId ? 'error-border' : ''}`}
-              />
-            ) : (
-              <select
-                value={stallId}
-                onChange={(e) => setStallId(e.target.value)}
-                className={`form-input ${formErrors.stallId ? 'error-border' : ''}`}
-                disabled={isStallLoading}
-              >
-                <option value="">Select Stall Code...</option>
-                {stalls.map(s => (
-                  <option key={s.stallId} value={s.stallId}>
-                    {s.stallCode} ({s.stallCategory || 'No Category'}) - Vendor: {s.vendorName || 'No Vendor'}
-                  </option>
-                ))}
-              </select>
-            )}
-            
-            {isStallLoading && <span className="helper-text">Loading active stalls...</span>}
-            {isStallError && <span className="helper-text warning">Failed to load stalls from server. Fallback to manual entry.</span>}
-            {formErrors.stallId && <span className="error-text">{formErrors.stallId}</span>}
+            <label className="form-label required-field" htmlFor="issue-stall">LOCATION</label>
+            <select
+              id="issue-stall"
+              className="form-input"
+              value={stallId}
+              onChange={(event) => setStallId(event.target.value)}
+              disabled={loadingStalls}
+            >
+              <option value="">{loadingStalls ? 'Loading stalls...' : 'Select a stall'}</option>
+              {stalls.map((stall) => (
+                <option key={stall.stallId} value={stall.stallId}>
+                  {stall.stallCode} - {stall.areaName}
+                </option>
+              ))}
+            </select>
           </div>
 
-          {/* Issue Title */}
           <div className="form-group">
-            <label className="form-label required-field">ISSUE TITLE</label>
+            <label className="form-label required-field" htmlFor="issue-title">ISSUE TITLE</label>
+            <input id="issue-title" className="form-input" value={title} onChange={(event) => setTitle(event.target.value)} maxLength={500} />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label required-field" htmlFor="issue-description">DETAILED DESCRIPTION</label>
+            <textarea id="issue-description" className="form-input" rows="4" value={description} onChange={(event) => setDescription(event.target.value)} />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">EVIDENCE IMAGES (OPTIONAL, MAX 3)</label>
             <input
-              type="text"
-              placeholder="e.g. Broken Water Pipe, Electrical Short Circuit (Min 5 chars)"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className={`form-input ${formErrors.title ? 'error-border' : ''}`}
-            />
-            {formErrors.title && <span className="error-text">{formErrors.title}</span>}
-          </div>
-
-          {/* Detailed Description */}
-          <div className="form-group">
-            <label className="form-label required-field">DETAILED DESCRIPTION</label>
-            <textarea
-              placeholder="Provide specific details about the infrastructure issue (Min 10 chars)..."
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows="4"
-              className={`form-input ${formErrors.description ? 'error-border' : ''}`}
-            />
-            {formErrors.description && <span className="error-text">{formErrors.description}</span>}
-          </div>
-
-          {/* Evidence Image Upload Zone */}
-          <div className="form-group">
-            <div className="label-with-toggle">
-              <label className="form-label">EVIDENCE IMAGE UPLOADS (OPTIONAL - MAX 3)</label>
-              <button 
-                type="button" 
-                className="btn-text-toggle"
-                onClick={handleSetMockImages}
-              >
-                Set Mock Image URLs (3 photos)
-              </button>
-            </div>
-            
-            {/* Hidden native input */}
-            <input 
               ref={fileInputRef}
-              type="file" 
+              type="file"
               accept="image/*"
               multiple
-              onChange={handleFileChange}
-              style={{ display: 'none' }}
+              hidden
+              onChange={(event) => uploadFiles(event.target.files)}
             />
-
-            {/* Drag and Drop Zone */}
-            <div 
-              className={`drag-drop-zone ${dragActive ? 'active' : ''} ${uploadedImages.length >= 3 ? 'disabled' : ''}`}
-              onDragEnter={handleDrag}
-              onDragOver={handleDrag}
-              onDragLeave={handleDrag}
-              onDrop={handleDrop}
-              onClick={uploadedImages.length < 3 ? onButtonClick : undefined}
+            <button
+              type="button"
+              className="drag-drop-zone"
+              disabled={uploading || uploadedImages.length >= 3}
+              onClick={() => fileInputRef.current?.click()}
             >
-              <div className="drag-drop-content">
-                <span className="upload-icon">📸</span>
-                {uploadedImages.length >= 3 ? (
-                  <p>Maximum 3 images uploaded. Remove an image to upload more.</p>
-                ) : (
-                  <p>Drag and drop images here, or <strong>click to select</strong></p>
-                )}
-                <span className="helper-text">Supports JPG, PNG, WEBP (Max 5MB each)</span>
-              </div>
-            </div>
-
-            {uploading && <div className="helper-text" style={{ color: '#0066cc' }}>Uploading image to Cloudinary...</div>}
-            {uploadError && <div className="error-text">Upload Error: {uploadError}</div>}
-            {formErrors.imageUrl && <span className="error-text">{formErrors.imageUrl}</span>}
-
-            {/* Previews Grid */}
-            {uploadedImages.length > 0 && (
+              {uploading ? 'Uploading...' : 'Select images from your device'}
+            </button>
+            {uploadedImages.length > 0 ? (
               <div className="preview-images-grid">
-                {uploadedImages.map((url, idx) => (
-                  <div key={idx} className="preview-image-card">
-                    <img src={url} alt={`Preview ${idx + 1}`} className="preview-image-thumb" />
-                    <button 
-                      type="button" 
-                      className="preview-image-remove"
-                      onClick={() => removeImage(idx)}
-                      title="Remove image"
-                    >
-                      &times;
-                    </button>
+                {uploadedImages.map((url, index) => (
+                  <div className="preview-image-card" key={url}>
+                    <img src={url} alt={`Issue evidence ${index + 1}`} className="preview-image-thumb" />
+                    <button type="button" className="preview-image-remove" onClick={() => setUploadedImages((current) => current.filter((_, itemIndex) => itemIndex !== index))}>&times;</button>
                   </div>
                 ))}
               </div>
-            )}
+            ) : null}
           </div>
 
           <div className="modal-actions">
-            <button 
-              type="button" 
-              className="btn-secondary" 
-              onClick={onClose}
-              disabled={loading || uploading}
-            >
-              CANCEL
-            </button>
-            <button 
-              type="submit" 
-              className="btn-primary-dark"
-              disabled={loading || uploading}
-            >
-              {loading ? "SUBMITTING..." : "SUBMIT REPORT"}
+            <button type="button" className="btn-secondary" onClick={onClose} disabled={submitting}>Cancel</button>
+            <button type="submit" className="btn-primary-dark" disabled={submitting || uploading || loadingStalls}>
+              {submitting ? 'Submitting...' : 'Submit Report'}
             </button>
           </div>
         </form>

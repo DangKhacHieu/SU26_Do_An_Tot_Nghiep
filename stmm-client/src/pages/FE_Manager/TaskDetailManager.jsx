@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import './TaskDetailManager.css';
 import AssignStaffModal from './AssignStaffModal';
 import UpdateTaskStatusModal from './UpdateTaskStatusModal';
@@ -12,7 +12,7 @@ const IconBack = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="non
 const IconUser = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>;
 const IconCancel = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>;
 
-export default function TaskDetailManager({ taskId, userId, baseUrl, onBack, addToast, navigate }) {
+export default function TaskDetailManager({ taskId, baseUrl, onBack, addToast, navigate }) {
   const [task, setTask] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -32,10 +32,10 @@ export default function TaskDetailManager({ taskId, userId, baseUrl, onBack, add
     setConfirmModal({
       isOpen: true,
       type: approve ? 'primary' : 'danger',
-      title: approve ? 'Approve Quotation' : 'Reject Quotation',
+      title: approve ? 'Approve Quotation' : 'Return Quotation for Revision',
       message: approve 
         ? 'Are you sure you want to APPROVE this quotation and start construction?' 
-        : 'Are you sure you want to REJECT this quotation and request staff to re-evaluate?',
+        : 'Return this quotation so the assigned staff can revise it?',
       onConfirm: () => executeResolveQuote(approve)
     });
   };
@@ -53,7 +53,7 @@ export default function TaskDetailManager({ taskId, userId, baseUrl, onBack, add
       });
 
       if (res.ok) {
-        addToast(approve ? 'Quotation approved successfully!' : 'Quotation rejected. Staff has been notified to re-evaluate.', 'success');
+        addToast(approve ? 'Quotation approved successfully!' : 'Quotation returned to staff for revision.', 'success');
         const updatedTask = await res.json();
         setTask(updatedTask);
       } else {
@@ -62,7 +62,7 @@ export default function TaskDetailManager({ taskId, userId, baseUrl, onBack, add
         try {
           const errJson = JSON.parse(errText);
           errorMsg = errJson.detail || errJson.message || errorMsg;
-        } catch (e) {
+        } catch {
           errorMsg = errText || errorMsg;
         }
         addToast(errorMsg, 'error');
@@ -75,9 +75,29 @@ export default function TaskDetailManager({ taskId, userId, baseUrl, onBack, add
     }
   };
 
+  const fetchTaskDetails = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${baseUrl}/api/manager/tasks/${taskId}`, {
+        headers: getAuthHeaders()
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setTask(data);
+      } else {
+        addToast('Failed to load task details.', 'error');
+      }
+    } catch (err) {
+      console.error('Error fetching task details:', err);
+      addToast('Network error loading details.', 'error');
+    } finally {
+      setLoading(false);
+    }
+  }, [addToast, baseUrl, taskId]);
+
   useEffect(() => {
     fetchTaskDetails();
-  }, [baseUrl, taskId]);
+  }, [fetchTaskDetails]);
 
   // SEO & metadata management
   useEffect(() => {
@@ -115,26 +135,6 @@ export default function TaskDetailManager({ taskId, userId, baseUrl, onBack, add
     };
   }, [task]);
 
-  const fetchTaskDetails = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch(`${baseUrl}/api/manager/tasks/${taskId}`, {
-        headers: getAuthHeaders()
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setTask(data);
-      } else {
-        addToast('Failed to load task details.', 'error');
-      }
-    } catch (err) {
-      console.error('Error fetching task details:', err);
-      addToast('Network error loading details.', 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   if (loading) {
     return (
       <div className="task-detail-loading">
@@ -159,7 +159,6 @@ export default function TaskDetailManager({ taskId, userId, baseUrl, onBack, add
 
   const formatTaskType = (type) => {
     if (type === 'UtilityReading') return 'Utility Reading';
-    if (type === 'CashCollection') return 'Cash Collection';
     return type;
   };
 
@@ -441,7 +440,7 @@ export default function TaskDetailManager({ taskId, userId, baseUrl, onBack, add
                   onClick={() => handleResolveQuote(false)}
                   className="quotation-action-btn quotation-reject-btn"
                 >
-                  {submittingQuote ? 'Processing...' : 'Reject Quotation'}
+                  {submittingQuote ? 'Processing...' : 'Return for Revision'}
                 </button>
               </div>
             </div>

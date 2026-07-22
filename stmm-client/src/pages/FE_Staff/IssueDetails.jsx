@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import './IssueDetails.css';
 
-export default function IssueDetails({ issueId, userId, baseUrl, onBack }) {
+export default function IssueDetails({ issueId, baseUrl, onBack }) {
   const [issue, setIssue] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -11,9 +11,13 @@ export default function IssueDetails({ issueId, userId, baseUrl, onBack }) {
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch(`${baseUrl}/api/staff/issues/${issueId}?userId=${userId}`);
+        const response = await fetch(`${baseUrl}/api/staff/issues/${issueId}`);
         if (!response.ok) {
-          throw new Error(`Failed to load details: ${response.statusText}`);
+          let problem = null;
+          try { problem = await response.json(); } catch { problem = null; }
+          throw new Error(response.status === 404
+            ? 'Issue not found or unavailable.'
+            : problem?.detail || problem?.title || 'Unable to load issue details.');
         }
         const data = await response.json();
         setIssue(data);
@@ -25,7 +29,7 @@ export default function IssueDetails({ issueId, userId, baseUrl, onBack }) {
     };
 
     fetchDetails();
-  }, [issueId, userId, baseUrl]);
+  }, [issueId, baseUrl]);
 
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
@@ -56,7 +60,6 @@ export default function IssueDetails({ issueId, userId, baseUrl, onBack }) {
 
   if (!issue) return null;
 
-  // Split semicolons to support multiple images
   const imageUrls = issue.imageUrl ? issue.imageUrl.split(';').map(u => u.trim()).filter(Boolean) : [];
 
   return (
@@ -69,7 +72,6 @@ export default function IssueDetails({ issueId, userId, baseUrl, onBack }) {
       </div>
 
       <div className="details-card">
-        {/* Left Side: Issue Information */}
         <div className="details-info-section">
           <div className="info-block">
             <span className="info-label">STALL CODE / LOCATION</span>
@@ -110,7 +112,6 @@ export default function IssueDetails({ issueId, userId, baseUrl, onBack }) {
           </div>
         </div>
 
-        {/* Right Side: Associated Repair Task */}
         <div className="details-evidence-section">
           <span className="info-label">REPAIR TASK INFORMATION:</span>
           <div style={{ marginTop: '12px', padding: '16px', border: '1px solid #000000', backgroundColor: '#f9f9f9' }}>
@@ -143,7 +144,6 @@ export default function IssueDetails({ issueId, userId, baseUrl, onBack }) {
         </div>
       </div>
 
-      {/* Visual Evidence Section (Bottom or full width) */}
       <div style={{ marginTop: '24px', border: '2px solid #000000', padding: '32px', backgroundColor: '#ffffff' }}>
         <span className="info-label" style={{ display: 'block', marginBottom: '16px' }}>
           VISUAL EVIDENCE ({imageUrls.length} Attachments)
@@ -157,10 +157,7 @@ export default function IssueDetails({ issueId, userId, baseUrl, onBack }) {
                   src={url} 
                   alt={`Evidence ${index + 1}`} 
                   className="evidence-img"
-                  onError={(e) => {
-                    e.target.onerror = null;
-                    e.target.src = 'https://placehold.co/400x300?text=Image+Not+Found';
-                  }}
+                  onError={(event) => { event.currentTarget.hidden = true; }}
                 />
               </div>
             ))}
