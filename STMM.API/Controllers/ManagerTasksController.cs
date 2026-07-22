@@ -27,7 +27,6 @@ namespace STMM.API.Controllers
             {
                 throw new System.UnauthorizedAccessException("User ID not found in token.");
             }
-
             return userId;
         }
 
@@ -35,7 +34,8 @@ namespace STMM.API.Controllers
         public async Task<IActionResult> GetTasks(
             CancellationToken ct)
         {
-            var result = await _staffTaskService.GetTasksForManagerAsync(GetUserId(), ct);
+            var managerUserId = GetUserId();
+            var result = await _staffTaskService.GetTasksForManagerAsync(managerUserId, ct);
             return Ok(result);
         }
 
@@ -44,7 +44,8 @@ namespace STMM.API.Controllers
             int id,
             CancellationToken ct)
         {
-            var result = await _staffTaskService.GetTaskByIdForManagerAsync(id, GetUserId(), ct);
+            var managerUserId = GetUserId();
+            var result = await _staffTaskService.GetTaskByIdForManagerAsync(id, managerUserId, ct);
             return Ok(result);
         }
 

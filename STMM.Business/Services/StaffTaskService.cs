@@ -62,12 +62,23 @@ namespace STMM.Business.Services
 
         /// <inheritdoc />
         public async Task<IReadOnlyList<TaskSummaryDto>> GetTasksForManagerAsync(
-            int managerUserId,
+            int? managerUserId,
             CancellationToken ct = default)
         {
-            var marketId = await GetManagerMarketIdAsync(managerUserId, ct);
-            var items = await _staffTaskRepository.GetTasksForMarketAsync(marketId, ct);
-            return _mapper.Map<List<TaskSummaryDto>>(items);
+            if (managerUserId.HasValue)
+            {
+                var manager = await _userRepository.GetByIdAsync(managerUserId.Value, ct);
+                if (manager != null && manager.MarketId == null)
+                {
+                    return new List<TaskSummaryDto>();
+                }
+                if (manager?.MarketId != null)
+                {
+                    var items = await _staffTaskRepository.GetTasksForMarketAsync(manager.MarketId.Value, ct);
+                    return _mapper.Map<List<TaskSummaryDto>>(items);
+                }
+            }
+            return new List<TaskSummaryDto>();
         }
 
         /// <inheritdoc />
@@ -78,10 +89,27 @@ namespace STMM.Business.Services
         }
 
         /// <inheritdoc />
-        public async Task<TaskDto> GetTaskByIdForManagerAsync(int taskId, int managerUserId, CancellationToken ct = default)
+        public async Task<TaskDto> GetTaskByIdForManagerAsync(int taskId, int? managerUserId, CancellationToken ct = default)
         {
-            var marketId = await GetManagerMarketIdAsync(managerUserId, ct);
-            var task = await _staffTaskRepository.GetTaskByIdForMarketAsync(taskId, marketId, ct);
+            if (managerUserId.HasValue)
+            {
+                var manager = await _userRepository.GetByIdAsync(managerUserId.Value, ct);
+                if (manager != null && manager.MarketId == null)
+                {
+                    throw new NotFoundException($"Task with ID {taskId} not found.");
+                }
+                if (manager?.MarketId != null)
+                {
+                    var taskInMarket = await _staffTaskRepository.GetTaskByIdForMarketAsync(taskId, manager.MarketId.Value, ct);
+                    if (taskInMarket == null)
+                    {
+                        throw new NotFoundException($"Task with ID {taskId} not found.");
+                    }
+                    return _mapper.Map<TaskDto>(taskInMarket);
+                }
+            }
+
+            var task = await _staffTaskRepository.GetTaskByIdWithRelationsAsync(taskId, ct);
             if (task == null)
             {
                 throw new NotFoundException($"Task with ID {taskId} not found.");

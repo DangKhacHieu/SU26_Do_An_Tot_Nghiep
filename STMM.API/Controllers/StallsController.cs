@@ -26,7 +26,9 @@ namespace STMM.API.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<StallDto>>> GetAllStalls()
         {
-            var stalls = await _stallService.GetAllStallsAsync();
+            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            int? currentUserId = int.TryParse(userIdClaim, out int uid) ? uid : null;
+            var stalls = await _stallService.GetAllStallsAsync(currentUserId);
             return Ok(stalls);
         }
 
@@ -35,7 +37,9 @@ namespace STMM.API.Controllers
         {
             try
             {
-                var stalls = await _stallService.GetAllStallsByAreaIdAsync(areaId);
+                var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                int? currentUserId = int.TryParse(userIdClaim, out int uid) ? uid : null;
+                var stalls = await _stallService.GetAllStallsByAreaIdAsync(areaId, currentUserId);
                 return Ok(stalls);
             }
             catch (BadRequestException ex)

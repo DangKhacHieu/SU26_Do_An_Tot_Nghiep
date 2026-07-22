@@ -49,7 +49,7 @@ namespace STMM.API.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetUserById(int id, CancellationToken ct)
         {
-            var user = await _userService.GetUserByIdAsync(id, ct);
+            var user = await _userService.GetUserByIdAsync(id, ct: ct);
             return Ok(user);
         }
 
@@ -61,7 +61,7 @@ namespace STMM.API.Controllers
             [FromBody] CreateUserRequest request,
             CancellationToken ct)
         {
-            var result = await _userService.RegisterUserAsync(request, ct);
+            var result = await _userService.RegisterUserAsync(request, ct: ct);
 
             // Ghi nhật ký hoạt động
             var adminIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -83,7 +83,7 @@ namespace STMM.API.Controllers
             [FromBody] UpdateUserRequest request,
             CancellationToken ct)
         {
-            var result = await _userService.UpdateUserAsync(id, request, ct);
+            var result = await _userService.UpdateUserAsync(id, request, ct: ct);
 
             // Ghi nhật ký hoạt động
             var adminIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -105,7 +105,7 @@ namespace STMM.API.Controllers
             [FromBody] UpdateStatusRequest request,
             CancellationToken ct)
         {
-            var result = await _userService.LockUnlockUserAsync(id, request.Status, ct);
+            var result = await _userService.LockUnlockUserAsync(id, request.Status, ct: ct);
 
             // Ghi nhật ký hoạt động
             var adminIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -125,7 +125,7 @@ namespace STMM.API.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteUser(int id, CancellationToken ct)
         {
-            await _userService.DeleteUserAsync(id, ct);
+            await _userService.DeleteUserAsync(id, ct: ct);
 
             // Ghi nhật ký hoạt động
             var adminIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -147,7 +147,7 @@ namespace STMM.API.Controllers
             [FromBody] ResetPasswordRequest request,
             CancellationToken ct)
         {
-            var result = await _userService.ResetPasswordAsync(id, request.NewPassword, ct);
+            var result = await _userService.ResetPasswordAsync(id, request.NewPassword, ct: ct);
 
             // Ghi nhật ký hoạt động
             var adminIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;

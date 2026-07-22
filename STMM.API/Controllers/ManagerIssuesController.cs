@@ -18,22 +18,6 @@ namespace STMM.API.Controllers
             _issueService = issueService;
         }
 
-        [HttpGet]
-        public async Task<IActionResult> GetIssues(
-            [FromQuery] IssueQueryParams queryParams,
-            CancellationToken ct)
-        {
-            var result = await _issueService.GetIssuesForManagerAsync(GetUserId(), queryParams, ct);
-            return Ok(result);
-        }
-
-        [HttpGet("{id:int}")]
-        public async Task<IActionResult> GetIssueById(int id, CancellationToken ct)
-        {
-            var result = await _issueService.GetIssueByIdForManagerAsync(GetUserId(), id, ct);
-            return Ok(result);
-        }
-
         private int GetUserId()
         {
             var claim = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -41,8 +25,25 @@ namespace STMM.API.Controllers
             {
                 throw new UnauthorizedAccessException("User ID not found in token.");
             }
-
             return userId;
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetIssues(
+            [FromQuery] IssueQueryParams queryParams,
+            CancellationToken ct)
+        {
+            var managerUserId = GetUserId();
+            var result = await _issueService.GetIssuesForManagerAsync(managerUserId, queryParams, ct);
+            return Ok(result);
+        }
+
+        [HttpGet("{id:int}")]
+        public async Task<IActionResult> GetIssueById(int id, CancellationToken ct)
+        {
+            var managerUserId = GetUserId();
+            var result = await _issueService.GetIssueByIdForManagerAsync(managerUserId, id, ct);
+            return Ok(result);
         }
     }
 }

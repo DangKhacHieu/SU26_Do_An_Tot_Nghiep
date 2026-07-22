@@ -16,24 +16,40 @@ namespace STMM.Business.Services
         private readonly IAreaRepository _areaRepository;
         private readonly IBusinessCategoryRepository _categoryRepository;
         private readonly IStallRepository _stallRepository;
+        private readonly IUserRepository _userRepository;
         private readonly IMapper _mapper;
 
         public AreaService(
             IAreaRepository areaRepository, 
             IBusinessCategoryRepository categoryRepository,
             IStallRepository stallRepository,
+            IUserRepository userRepository,
             IMapper mapper)
         {
             _areaRepository = areaRepository;
             _categoryRepository = categoryRepository;
             _stallRepository = stallRepository;
+            _userRepository = userRepository;
             _mapper = mapper;
         }
 
-        public async Task<IEnumerable<AreaDto>> GetAllAreasAsync(int? marketId = null)
+        public async Task<IEnumerable<AreaDto>> GetAllAreasAsync(int? marketId = null, int? currentUserId = null)
         {
             if (marketId.HasValue && marketId.Value <= 0)
                 throw new BadRequestException("ID Chợ không hợp lệ.");
+
+            if (currentUserId.HasValue)
+            {
+                var user = await _userRepository.GetUserByIdWithRoleAsync(currentUserId.Value);
+                if (user != null && string.Equals(user.Role?.Name, "Manager", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (!user.MarketId.HasValue)
+                    {
+                        return new List<AreaDto>();
+                    }
+                    marketId = user.MarketId.Value;
+                }
+            }
 
             var areas = await _areaRepository.GetAllAreasAsync(marketId);
             return _mapper.Map<IEnumerable<AreaDto>>(areas);

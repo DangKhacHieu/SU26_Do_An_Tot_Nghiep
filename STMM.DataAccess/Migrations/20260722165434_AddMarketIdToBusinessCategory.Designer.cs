@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using STMM.DataAccess.Data;
@@ -11,9 +12,11 @@ using STMM.DataAccess.Data;
 namespace STMM.DataAccess.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260722165434_AddMarketIdToBusinessCategory")]
+    partial class AddMarketIdToBusinessCategory
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -405,10 +408,6 @@ namespace STMM.DataAccess.Migrations
                         .HasColumnName("description")
                         .HasComment("Mô tả chi tiết loại phí");
 
-                    b.Property<int?>("MarketId")
-                        .HasColumnType("integer")
-                        .HasColumnName("market_id");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text")
@@ -422,8 +421,6 @@ namespace STMM.DataAccess.Migrations
 
                     b.HasKey("FeeTypeId")
                         .HasName("fee_types_pkey");
-
-                    b.HasIndex("MarketId");
 
                     b.ToTable("fee_types", null, t =>
                         {
@@ -984,10 +981,6 @@ namespace STMM.DataAccess.Migrations
                         .HasColumnName("item_name")
                         .HasComment("Tên vật tư/thiết bị (VD: Bóng đèn tuýp, Vòi nước inox). Dòng đặc biệt \"Vật tư khác\" dùng khi vật tư ngoài danh mục — Staff tự nhập đơn giá");
 
-                    b.Property<int?>("MarketId")
-                        .HasColumnType("integer")
-                        .HasColumnName("market_id");
-
                     b.Property<decimal>("Price")
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)")
@@ -1009,7 +1002,7 @@ namespace STMM.DataAccess.Migrations
                     b.HasKey("RepairPriceId")
                         .HasName("repair_prices_pkey");
 
-                    b.HasIndex(new[] { "MarketId", "ItemName" }, "idx_repair_prices_market_item")
+                    b.HasIndex(new[] { "ItemName" }, "repair_prices_item_name_key")
                         .IsUnique();
 
                     b.ToTable("repair_prices", null, t =>
@@ -1059,18 +1052,6 @@ namespace STMM.DataAccess.Migrations
                         .HasColumnType("text")
                         .HasColumnName("paid_by")
                         .HasComment("Đối tượng chi trả: Vendor=Tiểu thương chịu | Market=Chợ chịu. Quyết định ai duyệt báo giá khi status=Quoted");
-
-                    b.Property<string>("PayerContractClause")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)")
-                        .HasColumnName("payer_contract_clause")
-                        .HasComment("Điều khoản hợp đồng làm căn cứ xác định bên chịu phí");
-
-                    b.Property<string>("PayerDecisionNote")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)")
-                        .HasColumnName("payer_decision_note")
-                        .HasComment("Ghi chú cho quyết định xử lý báo giá gần nhất của Manager");
 
                     b.Property<decimal?>("QuotationAmount")
                         .HasPrecision(18, 2)
@@ -1127,12 +1108,6 @@ namespace STMM.DataAccess.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("vendor_id")
                         .HasComment("Tiểu thương gửi yêu cầu");
-
-                    b.Property<string>("VendorRejectReason")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)")
-                        .HasColumnName("vendor_reject_reason")
-                        .HasComment("Lý do Vendor từ chối báo giá gần nhất");
 
                     b.Property<int?>("ViolationId")
                         .HasColumnType("integer")
@@ -1283,10 +1258,6 @@ namespace STMM.DataAccess.Migrations
                         .HasColumnName("is_active")
                         .HasComment("Trạng thái dịch vụ");
 
-                    b.Property<int?>("MarketId")
-                        .HasColumnType("integer")
-                        .HasColumnName("market_id");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text")
@@ -1307,8 +1278,6 @@ namespace STMM.DataAccess.Migrations
 
                     b.HasKey("ServiceId")
                         .HasName("services_pkey");
-
-                    b.HasIndex("MarketId");
 
                     b.HasIndex(new[] { "CreatedByUserId" }, "idx_services_created_by_user_id");
 
@@ -1629,10 +1598,6 @@ namespace STMM.DataAccess.Migrations
                         .HasColumnName("description")
                         .HasComment("Mô tả ý nghĩa cấu hình");
 
-                    b.Property<int?>("MarketId")
-                        .HasColumnType("integer")
-                        .HasColumnName("market_id");
-
                     b.Property<DateTime?>("UpdatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
@@ -1648,10 +1613,10 @@ namespace STMM.DataAccess.Migrations
                     b.HasKey("ConfigId")
                         .HasName("system_configs_pkey");
 
-                    b.HasIndex(new[] { "MarketId", "ConfigKey" }, "idx_system_configs_market_key")
-                        .IsUnique();
-
                     b.HasIndex(new[] { "UpdatedByUserId" }, "idx_system_configs_updated_by_user_id");
+
+                    b.HasIndex(new[] { "ConfigKey" }, "system_configs_config_key_key")
+                        .IsUnique();
 
                     b.ToTable("system_configs", null, t =>
                         {
@@ -2039,10 +2004,6 @@ namespace STMM.DataAccess.Migrations
                         .HasColumnName("is_active")
                         .HasComment("Đánh dấu ẩn/hiện loại vi phạm");
 
-                    b.Property<int?>("MarketId")
-                        .HasColumnType("integer")
-                        .HasColumnName("market_id");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text")
@@ -2051,8 +2012,6 @@ namespace STMM.DataAccess.Migrations
 
                     b.HasKey("ViolationTypeId")
                         .HasName("violation_types_pkey");
-
-                    b.HasIndex("MarketId");
 
                     b.ToTable("violation_types", null, t =>
                         {
@@ -2140,16 +2099,6 @@ namespace STMM.DataAccess.Migrations
                         .HasConstraintName("fk_faqs_users");
 
                     b.Navigation("CreatedByUser");
-                });
-
-            modelBuilder.Entity("STMM.DataAccess.Entities.FeeType", b =>
-                {
-                    b.HasOne("STMM.DataAccess.Entities.Market", "Market")
-                        .WithMany()
-                        .HasForeignKey("MarketId")
-                        .HasConstraintName("fk_fee_types_markets");
-
-                    b.Navigation("Market");
                 });
 
             modelBuilder.Entity("STMM.DataAccess.Entities.Invoice", b =>
@@ -2287,16 +2236,6 @@ namespace STMM.DataAccess.Migrations
                     b.Navigation("Invoice");
                 });
 
-            modelBuilder.Entity("STMM.DataAccess.Entities.RepairPrice", b =>
-                {
-                    b.HasOne("STMM.DataAccess.Entities.Market", "Market")
-                        .WithMany()
-                        .HasForeignKey("MarketId")
-                        .HasConstraintName("fk_repair_prices_markets");
-
-                    b.Navigation("Market");
-                });
-
             modelBuilder.Entity("STMM.DataAccess.Entities.Request", b =>
                 {
                     b.HasOne("STMM.DataAccess.Entities.Invoice", "Invoice")
@@ -2363,16 +2302,9 @@ namespace STMM.DataAccess.Migrations
                         .IsRequired()
                         .HasConstraintName("fk_services_fee_types");
 
-                    b.HasOne("STMM.DataAccess.Entities.Market", "Market")
-                        .WithMany()
-                        .HasForeignKey("MarketId")
-                        .HasConstraintName("fk_services_markets");
-
                     b.Navigation("CreatedByUser");
 
                     b.Navigation("FeeType");
-
-                    b.Navigation("Market");
                 });
 
             modelBuilder.Entity("STMM.DataAccess.Entities.ServiceRegistration", b =>
@@ -2455,18 +2387,11 @@ namespace STMM.DataAccess.Migrations
 
             modelBuilder.Entity("STMM.DataAccess.Entities.SystemConfig", b =>
                 {
-                    b.HasOne("STMM.DataAccess.Entities.Market", "Market")
-                        .WithMany()
-                        .HasForeignKey("MarketId")
-                        .HasConstraintName("fk_system_configs_markets");
-
                     b.HasOne("STMM.DataAccess.Entities.User", "UpdatedByUser")
                         .WithMany("SystemConfigs")
                         .HasForeignKey("UpdatedByUserId")
                         .IsRequired()
                         .HasConstraintName("fk_system_configs_users");
-
-                    b.Navigation("Market");
 
                     b.Navigation("UpdatedByUser");
                 });
@@ -2546,16 +2471,6 @@ namespace STMM.DataAccess.Migrations
                     b.Navigation("Stall");
 
                     b.Navigation("ViolationType");
-                });
-
-            modelBuilder.Entity("STMM.DataAccess.Entities.ViolationType", b =>
-                {
-                    b.HasOne("STMM.DataAccess.Entities.Market", "Market")
-                        .WithMany()
-                        .HasForeignKey("MarketId")
-                        .HasConstraintName("fk_violation_types_markets");
-
-                    b.Navigation("Market");
                 });
 
             modelBuilder.Entity("STMM.DataAccess.Entities.Area", b =>

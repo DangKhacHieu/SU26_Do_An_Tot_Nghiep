@@ -172,6 +172,9 @@ namespace STMM.Business.Services
                     Areas = new List<Area>()
                 };
 
+                _context.Markets.Add(newMarket);
+                await _context.SaveChangesAsync();
+
                 foreach (var areaReq in request.Areas)
                 {
                     var newArea = new Area
@@ -212,17 +215,6 @@ namespace STMM.Business.Services
                     newMarket.Areas.Add(newArea);
                 }
 
-                await _marketRepository.AddAsync(newMarket);
-                await _marketRepository.SaveChangesAsync(); // Inserts Market, Areas, and Stalls
-
-                // Update the logged-in Manager to own this new Market
-                if (user != null && user.Role?.Name == "Manager")
-                {
-                    user.MarketId = newMarket.MarketId;
-                    _userRepository.Update(user);
-                    await _userRepository.SaveChangesAsync();
-                }
-
                 await transaction.CommitAsync();
 
                 return _mapper.Map<MarketDto>(newMarket);
@@ -251,6 +243,14 @@ namespace STMM.Business.Services
             _context.Areas.RemoveRange(market.Areas);
             _context.Markets.Remove(market);
 
+            // Detach any user assigned to this market
+            var usersInMarket = await _context.Users.Where(u => u.MarketId == marketId).ToListAsync();
+            foreach (var u in usersInMarket)
+            {
+                u.MarketId = null;
+                _context.Users.Update(u);
+            }
+
             await _context.SaveChangesAsync();
             
             return true;
@@ -273,8 +273,28 @@ namespace STMM.Business.Services
             if (market == null) return false;
 
             market.Status = status;
-            _marketRepository.Update(market);
-            await _marketRepository.SaveChangesAsync();
+            _context.Markets.Update(market);
+
+            if (status.Equals("Active", StringComparison.OrdinalIgnoreCase) || status.Equals("Approved", StringComparison.OrdinalIgnoreCase))
+            {
+                var creator = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.UserId == market.CreatorId);
+                if (creator != null && creator.Role?.Name == "Manager")
+                {
+                    creator.MarketId = market.MarketId;
+                    _context.Users.Update(creator);
+                }
+            }
+            else if (status.Equals("Rejected", StringComparison.OrdinalIgnoreCase) || status.Equals("Inactive", StringComparison.OrdinalIgnoreCase))
+            {
+                var creator = await _context.Users.FirstOrDefaultAsync(u => u.MarketId == marketId);
+                if (creator != null)
+                {
+                    creator.MarketId = null;
+                    _context.Users.Update(creator);
+                }
+            }
+
+            await _context.SaveChangesAsync();
             return true;
         }
 

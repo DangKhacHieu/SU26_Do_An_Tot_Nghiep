@@ -103,11 +103,27 @@ namespace STMM.Business.Services
 
         /// <inheritdoc />
         public async Task<PagedResult<IssueDto>> GetIssuesForManagerAsync(
-            int managerUserId,
+            int? managerUserId,
             IssueQueryParams queryParams,
             CancellationToken ct = default)
         {
-            var marketId = await GetMarketIdAsync(managerUserId, "manager", ct);
+            int? marketId = null;
+            if (managerUserId.HasValue)
+            {
+                var manager = await _userRepository.GetByIdAsync(managerUserId.Value, ct);
+                if (manager != null && manager.MarketId == null)
+                {
+                    return new PagedResult<IssueDto>
+                    {
+                        Items = new List<IssueDto>(),
+                        TotalCount = 0,
+                        PageNumber = queryParams.PageNumber,
+                        PageSize = queryParams.PageSize
+                    };
+                }
+                marketId = manager?.MarketId;
+            }
+
             var (items, totalCount) = await _issueRepository.GetIssuesForManagerPagedAsync(
                 marketId,
                 queryParams.Status,
@@ -122,11 +138,21 @@ namespace STMM.Business.Services
 
         /// <inheritdoc />
         public async Task<IssueDto> GetIssueByIdForManagerAsync(
-            int managerUserId,
+            int? managerUserId,
             int issueId,
             CancellationToken ct = default)
         {
-            var marketId = await GetMarketIdAsync(managerUserId, "manager", ct);
+            int? marketId = null;
+            if (managerUserId.HasValue)
+            {
+                var manager = await _userRepository.GetByIdAsync(managerUserId.Value, ct);
+                if (manager != null && manager.MarketId == null)
+                {
+                    throw new NotFoundException($"Issue with ID {issueId} not found.");
+                }
+                marketId = manager?.MarketId;
+            }
+
             var issue = await _issueRepository.GetIssueForManagerAsync(issueId, marketId, ct)
                 ?? throw new NotFoundException($"Issue with ID {issueId} not found.");
 
@@ -185,7 +211,6 @@ namespace STMM.Business.Services
                 PageSize = queryParams.PageSize
             };
         }
-
         private static IssueDto MapIssueToDto(Issue issue)
         {
             var assignedTask = issue.StaffTasks?.FirstOrDefault();

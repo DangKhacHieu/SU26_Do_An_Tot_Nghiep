@@ -1,5 +1,6 @@
 using AutoMapper;
 using FluentValidation;
+using Microsoft.EntityFrameworkCore;
 using STMM.Business.DTOs.Content;
 using STMM.Business.Exceptions;
 using STMM.Business.Interfaces;
@@ -35,14 +36,41 @@ namespace STMM.Business.Services
             _updateValidator = updateValidator;
         }
 
-        public async Task<IEnumerable<ContentDto>> GetContentsAsync(string? type, string? targetRole, CancellationToken ct = default)
+        private async Task<(User? caller, int? marketId, bool isManager)> GetCallerInfoAsync(int? currentUserId, CancellationToken ct)
         {
+            if (!currentUserId.HasValue) return (null, null, false);
+            var user = await _userRepository.Query().Include(u => u.Role).FirstOrDefaultAsync(u => u.UserId == currentUserId.Value, ct);
+            if (user == null) return (null, null, false);
+            bool isManager = string.Equals(user.Role?.Name, "Manager", StringComparison.OrdinalIgnoreCase);
+            return (user, user.MarketId, isManager);
+        }
+
+        public async Task<IEnumerable<ContentDto>> GetContentsAsync(string? type, string? targetRole, int? currentUserId = null, CancellationToken ct = default)
+        {
+            var (caller, callerMarketId, isManager) = await GetCallerInfoAsync(currentUserId, ct);
+            if (isManager && !callerMarketId.HasValue)
+            {
+                return new List<ContentDto>();
+            }
+
             var results = await _notificationRepository.GetNotificationsAsync(type, targetRole, ct);
+
+            if (callerMarketId.HasValue)
+            {
+                results = results.Where(n => n.CreatedByUserId == currentUserId.Value || (n.CreatedByUser != null && n.CreatedByUser.MarketId == callerMarketId.Value));
+            }
+
             return _mapper.Map<IEnumerable<ContentDto>>(results);
         }
 
-        public async Task<ContentDto> GetContentByIdAsync(int id, CancellationToken ct = default)
+        public async Task<ContentDto> GetContentByIdAsync(int id, int? currentUserId = null, CancellationToken ct = default)
         {
+            var (caller, callerMarketId, isManager) = await GetCallerInfoAsync(currentUserId, ct);
+            if (isManager && !callerMarketId.HasValue)
+            {
+                throw new NotFoundException($"Không tìm thấy thông báo có ID {id}.");
+            }
+
             var content = await _notificationRepository.GetNotificationWithUserByIdAsync(id, ct);
 
             if (content == null)
@@ -50,11 +78,21 @@ namespace STMM.Business.Services
                 throw new NotFoundException($"Notification with ID {id} was not found.");
             }
 
+            if (callerMarketId.HasValue && content.CreatedByUser?.MarketId != callerMarketId.Value && content.CreatedByUserId != currentUserId.Value)
+            {
+                throw new NotFoundException($"Không tìm thấy thông báo có ID {id}.");
+            }
+
             return _mapper.Map<ContentDto>(content);
         }
 
-        public async Task<ContentDto> CreateContentAsync(CreateContentRequest request, CancellationToken ct = default)
+        public async Task<ContentDto> CreateContentAsync(CreateContentRequest request, int? currentUserId = null, CancellationToken ct = default)
         {
+            var (caller, callerMarketId, isManager) = await GetCallerInfoAsync(currentUserId, ct);
+            if (isManager && !callerMarketId.HasValue)
+            {
+                throw new BadRequestException("Tài khoản Quản lý chưa sở hữu chợ nào được phê duyệt. Bạn chỉ có thể tạo thông báo mới sau khi chợ của bạn được phê duyệt.");
+            }
             var valResult = await _createValidator.ValidateAsync(request, ct);
             if (!valResult.IsValid)
             {
@@ -117,8 +155,14 @@ namespace STMM.Business.Services
             return _mapper.Map<ContentDto>(lastNotification);
         }
 
-        public async Task<ContentDto> UpdateContentAsync(int id, UpdateContentRequest request, CancellationToken ct = default)
+        public async Task<ContentDto> UpdateContentAsync(int id, UpdateContentRequest request, int? currentUserId = null, CancellationToken ct = default)
         {
+            var (caller, callerMarketId, isManager) = await GetCallerInfoAsync(currentUserId, ct);
+            if (isManager && !callerMarketId.HasValue)
+            {
+                throw new BadRequestException("Tài khoản Quản lý chưa sở hữu chợ nào được phê duyệt.");
+            }
+
             var valResult = await _updateValidator.ValidateAsync(request, ct);
             if (!valResult.IsValid)
             {
@@ -130,6 +174,11 @@ namespace STMM.Business.Services
             if (notification == null)
             {
                 throw new NotFoundException($"Notification with ID {id} was not found.");
+            }
+
+            if (callerMarketId.HasValue && notification.CreatedByUser?.MarketId != callerMarketId.Value && notification.CreatedByUserId != currentUserId.Value)
+            {
+                throw new NotFoundException($"Không tìm thấy thông báo có ID {id}.");
             }
 
             notification.Title = request.Title;
@@ -149,13 +198,24 @@ namespace STMM.Business.Services
             return _mapper.Map<ContentDto>(notification);
         }
 
-        public async Task<bool> DeleteContentAsync(int id, CancellationToken ct = default)
+        public async Task<bool> DeleteContentAsync(int id, int? currentUserId = null, CancellationToken ct = default)
         {
+            var (caller, callerMarketId, isManager) = await GetCallerInfoAsync(currentUserId, ct);
+            if (isManager && !callerMarketId.HasValue)
+            {
+                throw new BadRequestException("Tài khoản Quản lý chưa sở hữu chợ nào được phê duyệt.");
+            }
+
             var notification = await _notificationRepository.GetByIdAsync(id, ct);
 
             if (notification == null)
             {
                 throw new NotFoundException($"Notification with ID {id} was not found.");
+            }
+
+            if (callerMarketId.HasValue && notification.CreatedByUserId != currentUserId.Value)
+            {
+                throw new NotFoundException($"Không tìm thấy thông báo có ID {id}.");
             }
 
             _notificationRepository.Delete(notification);

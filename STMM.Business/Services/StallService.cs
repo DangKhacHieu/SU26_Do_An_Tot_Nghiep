@@ -20,6 +20,7 @@ namespace STMM.Business.Services
         private readonly IMeterRepository _meterRepository;
         private readonly IContractRepository _contractRepository;
         private readonly IReviewRepository _reviewRepository;
+        private readonly IUserRepository _userRepository;
         private readonly IMapper _mapper;
 
         public StallService(
@@ -29,6 +30,7 @@ namespace STMM.Business.Services
             IMeterRepository meterRepository,
             IContractRepository contractRepository,
             IReviewRepository reviewRepository,
+            IUserRepository userRepository,
             IMapper mapper)
         {
             _stallRepository = stallRepository;
@@ -37,21 +39,36 @@ namespace STMM.Business.Services
             _meterRepository = meterRepository;
             _contractRepository = contractRepository;
             _reviewRepository = reviewRepository;
+            _userRepository = userRepository;
             _mapper = mapper;
         }
 
-        public async Task<IEnumerable<StallDto>> GetAllStallsAsync()
+        public async Task<IEnumerable<StallDto>> GetAllStallsAsync(int? currentUserId = null)
         {
-            var stalls = await _stallRepository.Query()
+            var query = _stallRepository.Query()
                 .Include(s => s.Area)
                 .Include(s => s.Category)
-                .Where(s => s.IsDeleted != true)
-                .ToListAsync();
+                .Where(s => s.IsDeleted != true);
+
+            if (currentUserId.HasValue)
+            {
+                var user = await _userRepository.GetUserByIdWithRoleAsync(currentUserId.Value);
+                if (user != null && string.Equals(user.Role?.Name, "Manager", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (!user.MarketId.HasValue)
+                    {
+                        return new List<StallDto>();
+                    }
+                    query = query.Where(s => s.Area.MarketId == user.MarketId.Value);
+                }
+            }
+
+            var stalls = await query.ToListAsync();
 
             return _mapper.Map<IEnumerable<StallDto>>(stalls);
         }
 
-        public async Task<IEnumerable<StallDto>> GetAllStallsByAreaIdAsync(int areaId)
+        public async Task<IEnumerable<StallDto>> GetAllStallsByAreaIdAsync(int areaId, int? currentUserId = null)
         {
             if (areaId <= 0)
                 throw new BadRequestException("ID Khu vực không hợp lệ.");
@@ -59,6 +76,18 @@ namespace STMM.Business.Services
             var area = await _areaRepository.GetByIdAsync(areaId);
             if (area == null)
                 throw new NotFoundException("Khu vực không tồn tại hoặc đã bị xóa.");
+
+            if (currentUserId.HasValue)
+            {
+                var user = await _userRepository.GetUserByIdWithRoleAsync(currentUserId.Value);
+                if (user != null && string.Equals(user.Role?.Name, "Manager", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (!user.MarketId.HasValue || area.MarketId != user.MarketId.Value)
+                    {
+                        return new List<StallDto>();
+                    }
+                }
+            }
 
             var stalls = await _stallRepository.Query()
                 .Include(s => s.Area)

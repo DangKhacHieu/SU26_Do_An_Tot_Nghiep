@@ -83,7 +83,8 @@ namespace STMM.API.Controllers
             [FromQuery] ViolationQueryParams queryParams,
             CancellationToken ct)
         {
-            var result = await _violationService.GetViolationsForManagerAsync(GetUserId(), queryParams, ct);
+            var managerUserId = GetUserId();
+            var result = await _violationService.GetViolationsForManagerAsync(managerUserId, queryParams, ct);
             return Ok(result);
         }
 
@@ -127,7 +128,8 @@ namespace STMM.API.Controllers
             int id,
             CancellationToken ct)
         {
-            var result = await _violationService.GetViolationByIdForManagerAsync(GetUserId(), id, ct);
+            var managerUserId = GetUserId();
+            var result = await _violationService.GetViolationByIdForManagerAsync(managerUserId, id, ct);
             return Ok(result);
         }
 

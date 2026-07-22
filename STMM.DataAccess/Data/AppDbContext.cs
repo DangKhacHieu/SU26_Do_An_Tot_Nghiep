@@ -192,6 +192,14 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Name)
                 .HasComment("Tên ngành hàng (VD: Thực phẩm tươi sống, Quần áo)")
                 .HasColumnName("name");
+            entity.Property(e => e.MarketId)
+                .HasComment("Thuộc chợ nào (Nullable cho danh mục mặc định)")
+                .HasColumnName("market_id");
+
+            entity.HasOne(d => d.Market).WithMany()
+                .HasForeignKey(d => d.MarketId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("fk_business_categories_markets");
         });
 
         modelBuilder.Entity<Contract>(entity =>

@@ -89,8 +89,15 @@ namespace STMM.Business.Services
 
             var limitDate = DateTime.UtcNow.AddDays(-60);
 
+            var user = await _userRepository.GetUserByIdWithRoleAsync(userId, ct);
+            string targetRoleLower = user?.Role?.Name?.ToLower() ?? "";
+            bool isManagerWithoutMarket = user != null && string.Equals(user.Role?.Name, "Manager", StringComparison.OrdinalIgnoreCase) && !user.MarketId.HasValue;
+
             var notifications = await _notificationRepository.FindAsync(n =>
-                n.CreatedAt >= limitDate && n.TargetUserId == userId,
+                (n.CreatedAt >= limitDate) &&
+                ((n.TargetUserId == userId) ||
+                (!isManagerWithoutMarket && !string.IsNullOrWhiteSpace(n.TargetRole) && n.TargetRole.ToLower() == targetRoleLower) ||
+                (!isManagerWithoutMarket && !string.IsNullOrWhiteSpace(n.TargetRole) && n.TargetRole.ToLower() == "public")),
                 ct);
 
             var sortedNotifications = notifications.OrderByDescending(n => n.CreatedAt ?? DateTime.MinValue);
@@ -124,10 +131,16 @@ namespace STMM.Business.Services
 
             var limitDate = DateTime.UtcNow.AddDays(-60);
 
+            var user = await _userRepository.GetUserByIdWithRoleAsync(userId, ct);
+            string targetRoleLower = user?.Role?.Name?.ToLower() ?? "";
+            bool isManagerWithoutMarket = user != null && string.Equals(user.Role?.Name, "Manager", StringComparison.OrdinalIgnoreCase) && !user.MarketId.HasValue;
+
             var notifications = await _notificationRepository.FindAsync(n =>
                 (n.IsRead == false || n.IsRead == null) &&
                 (n.CreatedAt >= limitDate) &&
-                n.TargetUserId == userId,
+                ((n.TargetUserId == userId) ||
+                (!isManagerWithoutMarket && !string.IsNullOrWhiteSpace(n.TargetRole) && n.TargetRole.ToLower() == targetRoleLower) ||
+                (!isManagerWithoutMarket && !string.IsNullOrWhiteSpace(n.TargetRole) && n.TargetRole.ToLower() == "public")),
                 ct);
 
             foreach (var notification in notifications)

@@ -38,4 +38,9 @@ STMM.Tests/
 
 # Logs and temporary files
 *.log
-error_log.txt
+error_log.txt
+
+# macOS / Local
+.DS_Store
+Library/
+.nuget/

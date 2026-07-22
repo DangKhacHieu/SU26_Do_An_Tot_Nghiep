@@ -46,21 +46,60 @@ namespace STMM.Business.Services
             _renewValidator = renewValidator;
         }
 
-        public async Task<IEnumerable<ContractDto>> GetContractsAsync(string? search, string? status, CancellationToken ct)
+        private async Task<(User? caller, int? marketId, bool isManager)> GetCallerInfoAsync(int? currentUserId, CancellationToken ct)
         {
-            var contracts = await _contractRepository.GetContractsAsync(search, status, ct);
+            if (!currentUserId.HasValue) return (null, null, false);
+            var user = await _userRepository.Query().Include(u => u.Role).FirstOrDefaultAsync(u => u.UserId == currentUserId.Value, ct);
+            if (user == null) return (null, null, false);
+            bool isManager = string.Equals(user.Role?.Name, "Manager", StringComparison.OrdinalIgnoreCase);
+            return (user, user.MarketId, isManager);
+        }
+
+        private async Task<int?> GetCallerMarketIdAsync(int? currentUserId, CancellationToken ct)
+        {
+            var (_, marketId, _) = await GetCallerInfoAsync(currentUserId, ct);
+            return marketId;
+        }
+
+        public async Task<IEnumerable<ContractDto>> GetContractsAsync(string? search, string? status, int? currentUserId = null, CancellationToken ct = default)
+        {
+            var (caller, callerMarketId, isManager) = await GetCallerInfoAsync(currentUserId, ct);
+            if (isManager && !callerMarketId.HasValue)
+            {
+                return new List<ContractDto>();
+            }
+
+            var contracts = await _contractRepository.GetContractsAsync(search, status, callerMarketId, ct);
             return _mapper.Map<IEnumerable<ContractDto>>(contracts);
         }
 
-        public async Task<ContractDto?> GetContractByIdAsync(int contractId, CancellationToken ct)
+        public async Task<ContractDto?> GetContractByIdAsync(int contractId, int? currentUserId = null, CancellationToken ct = default)
         {
+            var (caller, callerMarketId, isManager) = await GetCallerInfoAsync(currentUserId, ct);
+            if (isManager && !callerMarketId.HasValue)
+            {
+                return null;
+            }
+
             var contract = await _contractRepository.GetContractByIdWithDetailsAsync(contractId, ct);
             if (contract == null) return null;
+
+            if (callerMarketId.HasValue && contract.Stall?.Area?.MarketId != callerMarketId.Value)
+            {
+                return null;
+            }
+
             return _mapper.Map<ContractDto>(contract);
         }
 
-        public async Task<ContractDto> CreateContractAsync(CreateContractRequest request, CancellationToken ct)
+        public async Task<ContractDto> CreateContractAsync(CreateContractRequest request, int? currentUserId = null, CancellationToken ct = default)
         {
+            var (caller, callerMarketId, isManager) = await GetCallerInfoAsync(currentUserId, ct);
+            if (isManager && !callerMarketId.HasValue)
+            {
+                throw new BadRequestException("Tài khoản Quản lý chưa sở hữu chợ nào được phê duyệt. Bạn chỉ có thể tạo hợp đồng sau khi chợ của bạn được phê duyệt.");
+            }
+
             var validationResult = await _createValidator.ValidateAsync(request, ct);
             if (!validationResult.IsValid)
             {
@@ -69,10 +108,15 @@ namespace STMM.Business.Services
 
             // Check Stall exists
             var stall = await _stallRepository.Query()
+                .Include(s => s.Area)
                 .FirstOrDefaultAsync(s => s.StallId == request.StallId && s.IsDeleted != true, ct);
             if (stall == null)
             {
                 throw new NotFoundException($"Không tìm thấy sạp hàng có ID {request.StallId}.");
+            }
+            if (callerMarketId.HasValue && stall.Area?.MarketId != callerMarketId.Value)
+            {
+                throw new BadRequestException("Sạp hàng này không thuộc chợ của bạn.");
             }
             if (stall.Status == "Maintenance")
             {
@@ -162,7 +206,7 @@ namespace STMM.Business.Services
 
             await _contractRepository.SaveChangesAsync(ct);
 
-            return await GetContractByIdAsync(contract.ContractId, ct) ?? _mapper.Map<ContractDto>(contract);
+            return await GetContractByIdAsync(contract.ContractId, currentUserId, ct) ?? _mapper.Map<ContractDto>(contract);
         }
 
         public async Task<ContractDto> RenewContractAsync(int contractId, RenewContractRequest request, CancellationToken ct)
@@ -209,7 +253,7 @@ namespace STMM.Business.Services
 
             await _contractRepository.SaveChangesAsync(ct);
 
-            return await GetContractByIdAsync(newContract.ContractId, ct) ?? _mapper.Map<ContractDto>(newContract);
+            return await GetContractByIdAsync(newContract.ContractId, ct: ct) ?? _mapper.Map<ContractDto>(newContract);
         }
 
         public async Task<ContractDto> TerminateContractAsync(int contractId, CancellationToken ct)
@@ -236,13 +280,25 @@ namespace STMM.Business.Services
             return _mapper.Map<ContractDto>(contract);
         }
 
-        public async Task<IEnumerable<ContractVendorDto>> GetContractVendorsAsync(CancellationToken ct)
+        public async Task<IEnumerable<ContractVendorDto>> GetContractVendorsAsync(int? currentUserId = null, CancellationToken ct = default)
         {
-            var vendorUsers = await _userRepository.Query()
+            var (caller, callerMarketId, isManager) = await GetCallerInfoAsync(currentUserId, ct);
+            if (isManager && !callerMarketId.HasValue)
+            {
+                return new List<ContractVendorDto>();
+            }
+
+            var query = _userRepository.Query()
                 .Include(u => u.Role)
                 .Include(u => u.Vendor)
-                .Where(u => u.Role.Name.ToLower() == "vendor" && u.IsDeleted != true)
-                .ToListAsync(ct);
+                .Where(u => u.Role.Name.ToLower() == "vendor" && u.IsDeleted != true);
+
+            if (callerMarketId.HasValue)
+            {
+                query = query.Where(u => u.MarketId == callerMarketId.Value);
+            }
+
+            var vendorUsers = await query.ToListAsync(ct);
 
             var result = new List<ContractVendorDto>();
             foreach (var u in vendorUsers)
@@ -266,13 +322,25 @@ namespace STMM.Business.Services
             return result;
         }
 
-        public async Task<IEnumerable<StallDto>> GetAvailableStallsAsync(CancellationToken ct)
+        public async Task<IEnumerable<StallDto>> GetAvailableStallsAsync(int? currentUserId = null, CancellationToken ct = default)
         {
-            var stalls = await _stallRepository.Query()
+            var (caller, callerMarketId, isManager) = await GetCallerInfoAsync(currentUserId, ct);
+            if (isManager && !callerMarketId.HasValue)
+            {
+                return new List<StallDto>();
+            }
+
+            var query = _stallRepository.Query()
                 .Include(s => s.Area)
                 .Include(s => s.Category)
-                .Where(s => s.Status == "Available" && s.IsDeleted != true)
-                .ToListAsync(ct);
+                .Where(s => s.Status == "Available" && s.IsDeleted != true);
+
+            if (callerMarketId.HasValue)
+            {
+                query = query.Where(s => s.Area.MarketId == callerMarketId.Value);
+            }
+
+            var stalls = await query.ToListAsync(ct);
 
             return _mapper.Map<IEnumerable<StallDto>>(stalls);
         }

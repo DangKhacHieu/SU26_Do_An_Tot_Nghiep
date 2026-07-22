@@ -21,6 +21,13 @@ namespace STMM.API.Controllers
             _contractService = contractService;
         }
 
+        private int? GetUserId()
+        {
+            var claim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (int.TryParse(claim, out int userId)) return userId;
+            return null;
+        }
+
         [HttpGet]
         public async Task<ActionResult<IEnumerable<ContractDto>>> GetContracts(
             [FromQuery] string? search = null,
@@ -29,7 +36,8 @@ namespace STMM.API.Controllers
         {
             try
             {
-                var contracts = await _contractService.GetContractsAsync(search, status, ct);
+                var currentUserId = GetUserId();
+                var contracts = await _contractService.GetContractsAsync(search, status, currentUserId, ct);
                 return Ok(contracts);
             }
             catch (Exception ex)
@@ -43,7 +51,8 @@ namespace STMM.API.Controllers
         {
             try
             {
-                var contract = await _contractService.GetContractByIdAsync(id, ct);
+                var currentUserId = GetUserId();
+                var contract = await _contractService.GetContractByIdAsync(id, currentUserId, ct);
                 if (contract == null)
                 {
                     return NotFound(new { message = $"Không tìm thấy hợp đồng có ID {id}." });
@@ -61,7 +70,8 @@ namespace STMM.API.Controllers
         {
             try
             {
-                var created = await _contractService.CreateContractAsync(request, ct);
+                var currentUserId = GetUserId();
+                var created = await _contractService.CreateContractAsync(request, currentUserId, ct);
                 return CreatedAtAction(nameof(GetContractById), new { id = created.ContractId }, created);
             }
             catch (BadRequestException ex)
@@ -123,7 +133,8 @@ namespace STMM.API.Controllers
         {
             try
             {
-                var vendors = await _contractService.GetContractVendorsAsync(ct);
+                var currentUserId = GetUserId();
+                var vendors = await _contractService.GetContractVendorsAsync(currentUserId, ct);
                 return Ok(vendors);
             }
             catch (Exception ex)
@@ -137,7 +148,8 @@ namespace STMM.API.Controllers
         {
             try
             {
-                var stalls = await _contractService.GetAvailableStallsAsync(ct);
+                var currentUserId = GetUserId();
+                var stalls = await _contractService.GetAvailableStallsAsync(currentUserId, ct);
                 return Ok(stalls);
             }
             catch (Exception ex)

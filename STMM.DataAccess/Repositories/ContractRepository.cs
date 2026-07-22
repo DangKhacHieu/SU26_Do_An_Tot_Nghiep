@@ -15,7 +15,7 @@ namespace STMM.DataAccess.Repositories
         {
         }
 
-        public async Task<IEnumerable<Contract>> GetContractsAsync(string? searchTerm = null, string? status = null, CancellationToken ct = default)
+        public async Task<IEnumerable<Contract>> GetContractsAsync(string? searchTerm = null, string? status = null, int? marketId = null, CancellationToken ct = default)
         {
             var query = _dbSet
                 .Include(c => c.Stall)
@@ -24,6 +24,11 @@ namespace STMM.DataAccess.Repositories
                     .ThenInclude(v => v.User)
                 .Where(c => c.IsDeleted != true)
                 .AsQueryable();
+
+            if (marketId.HasValue)
+            {
+                query = query.Where(c => c.Stall.Area.MarketId == marketId.Value);
+            }
 
             if (!string.IsNullOrWhiteSpace(searchTerm))
             {
