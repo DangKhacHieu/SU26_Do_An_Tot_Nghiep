@@ -30,11 +30,13 @@ export default function PeriodicInvoices() {
 
   const [activeModal, setActiveModal] = useState(null);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
+  const [availableStalls, setAvailableStalls] = useState([]);
+  const [availableFeeTypes, setAvailableFeeTypes] = useState([]);
 
   const [adjustForm, setAdjustForm] = useState({ meterType: 'Electricity', newValue: '' });
   const [cancelReason, setCancelReason] = useState('');
   const [adhocForm, setAdhocForm] = useState({
-    stallId: 1, feeTypeId: 4, amount: 1000000, description: '',
+    stallId: 0, stallSearch: '', feeTypeId: '', amount: 1000000, description: '',
     dueDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     month: new Date().getMonth() + 1, year: new Date().getFullYear()
   });
@@ -43,6 +45,19 @@ export default function PeriodicInvoices() {
 
   useEffect(() => {
     setModalError(null);
+    if (activeModal === 'adhoc') {
+      const headers = { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` };
+      if (availableStalls.length === 0) {
+        fetch('http://localhost:5056/api/stalls', { headers }).then(r => r.json()).then(data => {
+            if (Array.isArray(data)) setAvailableStalls(data);
+        }).catch(() => {});
+      }
+      if (availableFeeTypes.length === 0) {
+        fetch('http://localhost:5056/api/accountant/config/fee-types', { headers }).then(r => r.json()).then(data => {
+            if (Array.isArray(data)) setAvailableFeeTypes(data);
+        }).catch(() => {});
+      }
+    }
   }, [activeModal]);
 
   const showNotification = (type, message) => {
@@ -145,6 +160,10 @@ export default function PeriodicInvoices() {
 
   const handleAdhocSubmit = (e) => {
     e.preventDefault();
+    if (!adhocForm.stallId) {
+      setModalError('Vui lòng chọn một gian hàng hợp lệ từ danh sách.');
+      return;
+    }
     if (isMock) {
       setInvoices([{ invoiceId: Math.floor(Math.random() * 900) + 200, stallCode: `Stall-${adhocForm.stallId}`, vendorName: 'Tiểu thương', totalAmount: adhocForm.amount, month: adhocForm.month, year: adhocForm.year, dueDate: adhocForm.dueDate, status: 'Unpaid', details: [{ feeTypeName: 'Phí phát sinh', description: adhocForm.description, quantity: 1, unitPrice: adhocForm.amount, amount: adhocForm.amount }] }, ...invoices]);
       showNotification('success', 'Tạo hóa đơn đột xuất thành công!');
@@ -551,17 +570,27 @@ export default function PeriodicInvoices() {
               )}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                   <div>
-                    <label className="form-label">ID Gian Hàng (Stall ID)</label>
-                    <input type="number" className="form-input" required min={1} value={adhocForm.stallId}
-                      onChange={e => setAdhocForm({ ...adhocForm, stallId: parseInt(e.target.value) || 0 })} />
+                    <label className="form-label">Mã/Tên Gian Hàng</label>
+                    <input type="text" list="stall-list" className="form-input" required placeholder="Nhập để tìm kiếm gian hàng..."
+                      value={adhocForm.stallSearch || ''}
+                      onChange={e => {
+                        const val = e.target.value;
+                        const stall = availableStalls.find(s => `${s.code} ${s.tenantName ? `(${s.tenantName})` : ''}` === val);
+                        setAdhocForm({ ...adhocForm, stallSearch: val, stallId: stall ? stall.stallId : 0 });
+                      }}
+                    />
+                    <datalist id="stall-list">
+                      {availableStalls.map(s => <option key={s.stallId} value={`${s.code} ${s.tenantName ? `(${s.tenantName})` : ''}`} />)}
+                    </datalist>
+                    {adhocForm.stallSearch && !adhocForm.stallId && <small style={{ color: 'var(--text-danger)', marginTop: '4px', display: 'block' }}>Vui lòng chọn một gian hàng hợp lệ.</small>}
                   </div>
                   <div>
                     <label className="form-label">Loại phí phát sinh</label>
-                    <select className="form-select" value={adhocForm.feeTypeId} onChange={e => setAdhocForm({ ...adhocForm, feeTypeId: parseInt(e.target.value) })}>
-                      <option value={4}>Phạt vi phạm hợp đồng</option>
-                      <option value={5}>Chi phí đền bù tài sản</option>
-                      <option value={6}>Phí thanh lý hợp đồng</option>
-                      <option value={7}>Phí dịch vụ kỹ thuật</option>
+                    <select className="form-select" required value={adhocForm.feeTypeId} onChange={e => setAdhocForm({ ...adhocForm, feeTypeId: parseInt(e.target.value) })}>
+                      <option value="">-- Chọn loại phí --</option>
+                      {availableFeeTypes.map(f => (
+                        <option key={f.feeTypeId} value={f.feeTypeId}>{f.name}</option>
+                      ))}
                     </select>
                   </div>
                 </div>
