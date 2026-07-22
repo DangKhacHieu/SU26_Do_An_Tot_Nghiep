@@ -23,7 +23,29 @@ export default function CreateViolationModal({ baseUrl, onClose, onSuccess, pref
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef(null);
+
+  const handleDrag = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      const file = e.dataTransfer.files[0];
+      await uploadImage(file);
+    }
+  };
 
   useEffect(() => {
     let active = true;
@@ -171,9 +193,28 @@ export default function CreateViolationModal({ baseUrl, onClose, onSuccess, pref
           <div className="form-group">
             <label className="form-label required-field">EVIDENCE IMAGE</label>
             <input ref={fileInputRef} type="file" accept="image/*" hidden onChange={(event) => uploadImage(event.target.files?.[0])} />
-            <button type="button" className="drag-drop-zone" disabled={uploading} onClick={() => fileInputRef.current?.click()}>
-              {uploading ? 'Uploading...' : imageUrl ? 'Replace evidence image' : 'Select an image from your device'}
-            </button>
+            
+            <div 
+              className={`drag-drop-zone ${dragActive ? 'active' : ''} ${imageUrl ? 'disabled' : ''}`}
+              onDragEnter={handleDrag}
+              onDragOver={handleDrag}
+              onDragLeave={handleDrag}
+              onDrop={handleDrop}
+              onClick={!imageUrl && !uploading ? () => fileInputRef.current?.click() : undefined}
+            >
+              <div className="drag-drop-content">
+                <span className="upload-icon">📸</span>
+                {uploading ? (
+                  <p>Uploading image...</p>
+                ) : imageUrl ? (
+                  <p>Image uploaded. Remove the preview image to upload a new one.</p>
+                ) : (
+                  <p>Drag and drop image here, or <strong style={{ color: '#4f46e5' }}>click to select</strong></p>
+                )}
+                <span className="helper-text">Supports JPG, PNG, WEBP (Max 5MB)</span>
+              </div>
+            </div>
+
             {imageUrl ? (
               <div className="preview-images-grid">
                 <div className="preview-image-card">

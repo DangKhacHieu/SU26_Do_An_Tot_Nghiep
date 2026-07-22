@@ -40,13 +40,14 @@ namespace STMM.Business.Services
             _editProfileValidator = editProfileValidator ?? throw new ArgumentNullException(nameof(editProfileValidator));
         }
 
-        public async Task<IEnumerable<UserDto>> GetUsersAsync(string? roleName, string? search, CancellationToken ct = default)
+        public async Task<IEnumerable<UserDto>> GetUsersAsync(string? roleName, string? search, int? marketId = null, CancellationToken ct = default)
         {
             var users = await _userRepository.GetUsersWithRolesAsync(
                 roleName,
                 search,
                 limitToManageableRoles: true,
-                ct);
+                marketId: marketId,
+                ct: ct);
 
             return _mapper.Map<IEnumerable<UserDto>>(users);
         }
@@ -345,7 +346,8 @@ namespace STMM.Business.Services
                 roleName,
                 search,
                 limitToManageableRoles: false,
-                ct);
+                marketId: null,
+                ct: ct);
 
             return _mapper.Map<IEnumerable<UserDto>>(users);
         }

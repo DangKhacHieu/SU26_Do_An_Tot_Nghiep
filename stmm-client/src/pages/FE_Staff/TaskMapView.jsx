@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { getStaffMarketMap } from "../../services/marketApi";
 import { TASK_STATUS, TASK_TYPE } from "../../constants/taskEnums";
+import readProblemDetail from "../../utils/readProblemDetail";
 import "./TaskMapView.css";
 
 export default function TaskMapView({ baseUrl, onBack, onViewDetails }) {
@@ -46,9 +47,12 @@ export default function TaskMapView({ baseUrl, onBack, onViewDetails }) {
         setLoading(true);
         setError("");
         
+        const token = localStorage.getItem("token");
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
         const [mapData, tasksResponse] = await Promise.all([
           getStaffMarketMap(),
-          fetch(`${baseUrl}/api/staff/tasks`),
+          fetch(`${baseUrl}/api/staff/tasks`, { headers }),
         ]);
         if (mapData) {
           setMarketMap(mapData);
@@ -68,8 +72,7 @@ export default function TaskMapView({ baseUrl, onBack, onViewDetails }) {
         }
 
         if (!tasksResponse.ok) {
-          const problem = await tasksResponse.json().catch(() => null);
-          throw new Error(problem?.detail || problem?.title || "Unable to load assigned tasks.");
+          throw new Error(await readProblemDetail(tasksResponse, "Unable to load assigned tasks."));
         }
         const tasksData = await tasksResponse.json();
         const assignedTasks = Array.isArray(tasksData) ? tasksData : [];
@@ -83,10 +86,9 @@ export default function TaskMapView({ baseUrl, onBack, onViewDetails }) {
         );
         const utilityEntries = await Promise.all(
           utilityTasks.map(async (task) => {
-            const response = await fetch(`${baseUrl}/api/staff/tasks/${task.taskId}/stalls`);
+            const response = await fetch(`${baseUrl}/api/staff/tasks/${task.taskId}/stalls`, { headers });
             if (!response.ok) {
-              const problem = await response.json().catch(() => null);
-              throw new Error(problem?.detail || problem?.title || "Unable to load utility task stalls.");
+              throw new Error(await readProblemDetail(response, "Unable to load utility task stalls."));
             }
             const stalls = await response.json();
             return [task.taskId, Array.isArray(stalls) ? stalls.map((stall) => stall.stallId) : []];

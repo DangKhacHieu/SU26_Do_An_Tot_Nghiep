@@ -1,6 +1,9 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using STMM.Business.DTOs.User;
 using STMM.Business.Interfaces;
+using STMM.DataAccess.IRepositories;
+using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -8,18 +11,27 @@ namespace STMM.API.Controllers
 {
     [ApiController]
     [Route("api/manager/users")]
+    [Authorize(Roles = "Manager")]
     public class UserController : ControllerBase
     {
         private readonly IUserService _userService;
+        private readonly IUserRepository _userRepository;
 
-        public UserController(IUserService userService)
+        public UserController(IUserService userService, IUserRepository userRepository)
         {
             _userService = userService;
+            _userRepository = userRepository;
+        }
+
+        private int GetUserId()
+        {
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            return int.TryParse(userIdClaim, out var userId) ? userId : 0;
         }
 
         /// <summary>
         /// Get list of users with optional filtering by role and search query (name/email/phone/cccd).
-        /// Only returns manageable roles: Staff, Accountant, Vendor, Customer.
+        /// Only returns manageable roles: Staff, Accountant, Vendor, Customer in the Manager's market.
         /// </summary>
         [HttpGet]
         public async Task<IActionResult> GetUsers(
@@ -27,7 +39,15 @@ namespace STMM.API.Controllers
             [FromQuery] string? search,
             CancellationToken ct)
         {
-            var users = await _userService.GetUsersAsync(roleName, search, ct);
+            int? marketId = null;
+            var managerUserId = GetUserId();
+            if (managerUserId > 0)
+            {
+                var manager = await _userRepository.GetUserByIdWithRoleAsync(managerUserId, ct);
+                marketId = manager?.MarketId;
+            }
+
+            var users = await _userService.GetUsersAsync(roleName, search, marketId, ct);
             return Ok(users);
         }
 

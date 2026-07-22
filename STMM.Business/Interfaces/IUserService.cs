@@ -7,7 +7,7 @@ namespace STMM.Business.Interfaces
 {
     public interface IUserService
     {
-        Task<IEnumerable<UserDto>> GetUsersAsync(string? roleName, string? search, CancellationToken ct = default);
+        Task<IEnumerable<UserDto>> GetUsersAsync(string? roleName, string? search, int? marketId = null, CancellationToken ct = default);
         Task<UserDetailDto> GetUserByIdAsync(int id, CancellationToken ct = default);
         Task<UserDto> RegisterUserAsync(CreateUserRequest request, CancellationToken ct = default);
         Task<UserDto> UpdateUserAsync(int id, UpdateUserRequest request, CancellationToken ct = default);

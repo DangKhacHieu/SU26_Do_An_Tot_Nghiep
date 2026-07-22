@@ -20,7 +20,28 @@ export default function CreateIssueModal({ baseUrl, onClose, onSuccess }) {
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef(null);
+
+  const handleDrag = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      await uploadFiles(e.dataTransfer.files);
+    }
+  };
 
   useEffect(() => {
     let active = true;
@@ -158,14 +179,26 @@ export default function CreateIssueModal({ baseUrl, onClose, onSuccess }) {
               hidden
               onChange={(event) => uploadFiles(event.target.files)}
             />
-            <button
-              type="button"
-              className="drag-drop-zone"
-              disabled={uploading || uploadedImages.length >= 3}
-              onClick={() => fileInputRef.current?.click()}
+            <div 
+              className={`drag-drop-zone ${dragActive ? 'active' : ''} ${uploadedImages.length >= 3 ? 'disabled' : ''}`}
+              onDragEnter={handleDrag}
+              onDragOver={handleDrag}
+              onDragLeave={handleDrag}
+              onDrop={handleDrop}
+              onClick={uploadedImages.length < 3 && !uploading ? () => fileInputRef.current?.click() : undefined}
             >
-              {uploading ? 'Uploading...' : 'Select images from your device'}
-            </button>
+              <div className="drag-drop-content">
+                <span className="upload-icon">📸</span>
+                {uploading ? (
+                  <p>Uploading images...</p>
+                ) : uploadedImages.length >= 3 ? (
+                  <p>Maximum 3 evidence images reached.</p>
+                ) : (
+                  <p>Drag and drop images here, or <strong style={{ color: '#4f46e5' }}>click to select</strong></p>
+                )}
+                <span className="helper-text">Supports JPG, PNG, WEBP (Max 5MB each, up to 3 images)</span>
+              </div>
+            </div>
             {uploadedImages.length > 0 ? (
               <div className="preview-images-grid">
                 {uploadedImages.map((url, index) => (
