@@ -134,14 +134,15 @@ namespace STMM.Business.Services
                 }
             }
 
-            var isMarketNameExist = await _marketRepository.Query().AnyAsync(m => m.MarketName == request.MarketName && m.IsDeleted != true && m.Status != "Rejected" && m.Status != "Inactive");
+            var reqNameLower = request.MarketName.Trim().ToLower();
+            var isMarketNameExist = await _marketRepository.Query().AnyAsync(m => m.MarketName.ToLower() == reqNameLower && m.IsDeleted != true && m.Status != "Rejected" && m.Status != "Inactive");
             if (isMarketNameExist)
             {
                 throw new STMM.Business.Exceptions.BadRequestException("Tên chợ đã tồn tại trên hệ thống (chợ đang hoạt động hoặc chờ duyệt).");
             }
 
             // Check duplicate stall names within the new market
-            var allStallCodes = request.Areas.SelectMany(a => a.Stalls).Select(s => s.Code).ToList();
+            var allStallCodes = request.Areas.Where(a => a.Stalls != null).SelectMany(a => a.Stalls).Select(s => s.Code).Where(c => !string.IsNullOrWhiteSpace(c)).ToList();
             if (allStallCodes.Count != allStallCodes.Distinct().Count())
             {
                 throw new STMM.Business.Exceptions.BadRequestException("Tên sạp không được trùng lặp bên trong cùng một chợ.");
@@ -157,7 +158,7 @@ namespace STMM.Business.Services
             {
                 var newMarket = new Market
                 {
-                    MarketName = request.MarketName,
+                    MarketName = request.MarketName.Trim(),
                     Address = request.Address,
                     Size = request.Size,
                     SvgPath = request.SvgPath,
@@ -171,9 +172,6 @@ namespace STMM.Business.Services
                     IsDeleted = false,
                     Areas = new List<Area>()
                 };
-
-                _context.Markets.Add(newMarket);
-                await _context.SaveChangesAsync();
 
                 foreach (var areaReq in request.Areas)
                 {
@@ -193,28 +191,33 @@ namespace STMM.Business.Services
                         Stalls = new List<Stall>()
                     };
 
-                    foreach (var stallReq in areaReq.Stalls)
+                    if (areaReq.Stalls != null)
                     {
-                        var newStall = new Stall
+                        foreach (var stallReq in areaReq.Stalls)
                         {
-                            Code = stallReq.Code,
-                            CategoryId = stallReq.CategoryId > 0 ? stallReq.CategoryId : defaultCategoryId,
-                            Status = stallReq.Status ?? "Available",
-                            Size = stallReq.Size,
-                            MapX = stallReq.MapX,
-                            MapY = stallReq.MapY,
-                            Width = stallReq.Width,
-                            Height = stallReq.Height,
-                            Rotation = stallReq.Rotation,
-                            SvgPath = stallReq.SvgPath,
-                            CreatedAt = DateTime.UtcNow,
-                            IsDeleted = false
-                        };
-                        newArea.Stalls.Add(newStall);
+                            var newStall = new Stall
+                            {
+                                Code = stallReq.Code,
+                                CategoryId = stallReq.CategoryId > 0 ? stallReq.CategoryId : defaultCategoryId,
+                                Status = stallReq.Status ?? "Available",
+                                Size = stallReq.Size,
+                                MapX = stallReq.MapX,
+                                MapY = stallReq.MapY,
+                                Width = stallReq.Width,
+                                Height = stallReq.Height,
+                                Rotation = stallReq.Rotation,
+                                SvgPath = stallReq.SvgPath,
+                                CreatedAt = DateTime.UtcNow,
+                                IsDeleted = false
+                            };
+                            newArea.Stalls.Add(newStall);
+                        }
                     }
                     newMarket.Areas.Add(newArea);
                 }
 
+                _context.Markets.Add(newMarket);
+                await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
 
                 return _mapper.Map<MarketDto>(newMarket);
@@ -222,7 +225,8 @@ namespace STMM.Business.Services
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
-                throw new Exception($"Lỗi khi tạo chợ: {ex.Message}");
+                var msg = ex.InnerException != null ? $"{ex.Message} -> {ex.InnerException.Message}" : ex.Message;
+                throw new Exception($"Lỗi khi tạo chợ: {msg}");
             }
         }
 

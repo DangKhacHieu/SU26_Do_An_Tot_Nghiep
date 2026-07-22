@@ -55,7 +55,7 @@ namespace STMM.Business.Validators
             
             var isDuplicate = await _marketRepository.Query().AnyAsync(m => 
                 m.MarketName.ToLower() == request.MarketName.ToLower().Trim() && 
-                (string.IsNullOrEmpty(request.Address) || m.Address.ToLower() == addressLower) &&
+                (string.IsNullOrEmpty(request.Address) || (m.Address != null && m.Address.ToLower() == addressLower)) &&
                 m.IsDeleted != true && m.Status != "Rejected" && m.Status != "Inactive", 
                 cancellationToken);
             
@@ -150,7 +150,11 @@ namespace STMM.Business.Validators
         private bool HaveUniqueStallCodes(System.Collections.Generic.List<CreateAreaBulkRequest> areas)
         {
             if (areas == null) return true;
-            var allStallCodes = areas.SelectMany(a => a.Stalls).Select(s => s.Code?.ToLower()?.Trim()).Where(c => !string.IsNullOrEmpty(c)).ToList();
+            var allStallCodes = areas.Where(a => a.Stalls != null)
+                                     .SelectMany(a => a.Stalls)
+                                     .Select(s => s.Code?.ToLower()?.Trim())
+                                     .Where(c => !string.IsNullOrEmpty(c))
+                                     .ToList();
             return allStallCodes.Count == allStallCodes.Distinct().Count();
         }
 
@@ -159,7 +163,7 @@ namespace STMM.Business.Validators
             if (areas == null) return true;
             foreach (var area in areas)
             {
-                if (!area.MinX.HasValue || !area.MaxX.HasValue || !area.MinY.HasValue || !area.MaxY.HasValue) continue;
+                if (area.Stalls == null || !area.MinX.HasValue || !area.MaxX.HasValue || !area.MinY.HasValue || !area.MaxY.HasValue) continue;
 
                 foreach (var stall in area.Stalls)
                 {
@@ -187,6 +191,7 @@ namespace STMM.Business.Validators
 
             foreach (var area in areas)
             {
+                if (area.Stalls == null) continue;
                 var validStalls = area.Stalls.Where(s => s.MapX.HasValue && s.MapY.HasValue && s.Width.HasValue && s.Height.HasValue).ToList();
                 for (int i = 0; i < validStalls.Count; i++)
                 {
@@ -223,7 +228,7 @@ namespace STMM.Business.Validators
             if (areas == null) return true;
             foreach (var area in areas)
             {
-                if (area.Size.HasValue)
+                if (area.Size.HasValue && area.Stalls != null)
                 {
                     var totalStallSize = area.Stalls.Sum(s => s.Size ?? 0);
                     if (totalStallSize > area.Size.Value + 0.01) return false;
