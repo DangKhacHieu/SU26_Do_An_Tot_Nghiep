@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using STMM.DataAccess.Data;
 using STMM.DataAccess.Entities;
 using STMM.DataAccess.IRepositories;
@@ -22,11 +22,16 @@ namespace STMM.DataAccess.Repositories
                 .AnyAsync(u => u.UserId == userId && u.Role.Name == "Staff" && u.Status == "Active" && u.IsDeleted != true, ct);
         }
 
-        public async Task<IEnumerable<User>> GetUsersWithRolesAsync(string? roleName, string? search, bool limitToManageableRoles = false, CancellationToken ct = default)
+        public async Task<IEnumerable<User>> GetUsersWithRolesAsync(string? roleName, string? search, bool limitToManageableRoles = false, int? marketId = null, CancellationToken ct = default)
         {
             var query = _dbSet
                 .Include(u => u.Role)
                 .Where(u => u.IsDeleted != true);
+
+            if (marketId.HasValue)
+            {
+                query = query.Where(u => u.MarketId == marketId.Value);
+            }
 
             if (!string.IsNullOrEmpty(roleName))
             {
@@ -50,6 +55,39 @@ namespace STMM.DataAccess.Repositories
             return await query.AsNoTracking().ToListAsync(ct);
         }
 
+        public async Task<IReadOnlyList<User>> GetActiveManagersByMarketAsync(
+            int marketId,
+            CancellationToken ct = default)
+        {
+            return await _dbSet
+                .Include(user => user.Role)
+                .Where(user => user.MarketId == marketId
+                    && user.Role.Name == "Manager"
+                    && user.Status == "Active"
+                    && user.IsDeleted != true)
+                .AsNoTracking()
+                .ToListAsync(ct);
+        }
+
+        public async Task<IReadOnlyList<User>> GetActiveUsersByRoleAsync(
+            string? roleName,
+            CancellationToken ct = default)
+        {
+            var query = _dbSet
+                .Include(user => user.Role)
+                .Where(user => user.Status == "Active" && user.IsDeleted != true);
+
+            if (!string.IsNullOrWhiteSpace(roleName)
+                && !roleName.Equals("Public", System.StringComparison.OrdinalIgnoreCase))
+            {
+                query = query.Where(user => user.Role.Name == roleName);
+            }
+
+            return await query
+                .AsNoTracking()
+                .ToListAsync(ct);
+        }
+
         public async Task<User?> GetUserByIdWithRoleAsync(int id, CancellationToken ct = default)
         {
             return await _dbSet
@@ -70,6 +108,23 @@ namespace STMM.DataAccess.Repositories
             return await _context.Users
                 .Include(u => u.Role)
                 .FirstOrDefaultAsync(u => u.Email.ToLower() == email.Trim().ToLower(), ct);
+        }
+
+        public async Task<User?> GetFirstUserByRoleAsync(string roleName, CancellationToken ct = default)
+        {
+            return await _context.Users
+                .Include(u => u.Role)
+                .FirstOrDefaultAsync(u => u.Role.Name.ToLower() == roleName.ToLower(), ct);
+        }
+
+        public async Task<bool> IsEmailExistsAsync(string email, int? excludeId = null, CancellationToken ct = default)
+        {
+            var query = _context.Users.Where(u => u.Email.ToLower() == email.ToLower());
+            if (excludeId.HasValue)
+            {
+                query = query.Where(u => u.UserId != excludeId.Value);
+            }
+            return await query.AnyAsync(ct);
         }
     }
 }

@@ -1,25 +1,27 @@
-import React, { useState, useEffect } from 'react';
-import { TASK_STATUS } from '../../../constants/taskEnums';
 
-export default function QuotationPanel({ taskId, userId, baseUrl, taskStatus, initialMaterials, onRefreshTask, onShowNotification }) {
+import { useState, useEffect, useCallback } from 'react';
+import { TASK_STATUS } from '../../../constants/taskEnums';
+import readProblemDetail from '../../../utils/readProblemDetail';
+
+const getAuthHeaders = () => ({
+  Authorization: `Bearer ${localStorage.getItem('accessToken')}`
+});
+
+export default function QuotationPanel({ taskId, baseUrl, taskStatus, initialMaterials, onRefreshTask, onShowNotification }) {
   const isEditMode = taskStatus === TASK_STATUS.PENDING;
   
-  // States for Edit Mode
   const [quotation, setQuotation] = useState({ materials: initialMaterials || [], totalAmount: 0 });
   const [catalog, setCatalog] = useState([]);
   const [loading, setLoading] = useState(false);
   const [catalogLoading, setCatalogLoading] = useState(false);
   const [error, setError] = useState(null);
   
-  // Form states
   const [selectedCatalogId, setSelectedCatalogId] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [customUnitPrice, setCustomUnitPrice] = useState('');
   const [submittingMaterial, setSubmittingMaterial] = useState(false);
   const [submittingQuotation, setSubmittingQuotation] = useState(false);
-  const [paidBy, setPaidBy] = useState('');
 
-  // Custom Confirm Modal state
   const [confirmModal, setConfirmModal] = useState({ 
     isOpen: false, 
     type: 'primary', 
@@ -28,14 +30,13 @@ export default function QuotationPanel({ taskId, userId, baseUrl, taskStatus, in
     onConfirm: null 
   });
 
-  // Fetch quotation from backend in Edit Mode
-  const fetchQuotation = async () => {
+  const fetchQuotation = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${baseUrl}/api/staff/tasks/${taskId}/quotation?userId=${userId}`);
+      const response = await fetch(`${baseUrl}/api/staff/tasks/${taskId}/quotation`, { headers: getAuthHeaders() });
       if (!response.ok) {
-        throw new Error('Failed to load material quotation details.');
+        throw new Error(await readProblemDetail(response, 'Unable to load quotation details.'));
       }
       const data = await response.json();
       setQuotation({
@@ -47,13 +48,12 @@ export default function QuotationPanel({ taskId, userId, baseUrl, taskStatus, in
     } finally {
       setLoading(false);
     }
-  };
+  }, [baseUrl, taskId]);
 
-  // Fetch repair prices catalog in Edit Mode
-  const fetchCatalog = async () => {
+  const fetchCatalog = useCallback(async () => {
     setCatalogLoading(true);
     try {
-      const response = await fetch(`${baseUrl}/api/repair-prices`);
+      const response = await fetch(`${baseUrl}/api/repair-prices`, { headers: getAuthHeaders() });
       if (response.ok) {
         const data = await response.json();
         setCatalog(data);
@@ -63,21 +63,20 @@ export default function QuotationPanel({ taskId, userId, baseUrl, taskStatus, in
     } finally {
       setCatalogLoading(false);
     }
-  };
+  }, [baseUrl]);
 
   useEffect(() => {
     if (isEditMode) {
       fetchQuotation();
       fetchCatalog();
     } else {
-      // In read-only mode, we calculate total amount based on task.materials
       const total = (initialMaterials || []).reduce((sum, item) => sum + (item.amount || 0), 0);
       setQuotation({
         materials: initialMaterials || [],
         totalAmount: total
       });
     }
-  }, [taskId, userId, taskStatus, initialMaterials]);
+  }, [fetchCatalog, fetchQuotation, initialMaterials, isEditMode]);
 
   const selectedCatalogItem = catalog.find(
     (item) => item.repairPriceId === parseInt(selectedCatalogId)
@@ -108,22 +107,20 @@ export default function QuotationPanel({ taskId, userId, baseUrl, taskStatus, in
         customUnitPrice: isCustomPriceRequired ? parseFloat(customUnitPrice) : null
       };
 
-      const response = await fetch(`${baseUrl}/api/staff/tasks/${taskId}/quotation?userId=${userId}`, {
+      const response = await fetch(`${baseUrl}/api/staff/tasks/${taskId}/quotation`, {
         method: 'POST',
         headers: {
+          ...getAuthHeaders(),
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(body)
       });
 
       if (!response.ok) {
-        const errText = await response.text();
-        throw new Error(errText || 'Error adding material.');
+        throw new Error(await readProblemDetail(response, 'Unable to add material.'));
       }
 
-      // Refresh list
       await fetchQuotation();
-      // Reset form
       setSelectedCatalogId('');
       setQuantity(1);
       setCustomUnitPrice('');
@@ -137,13 +134,13 @@ export default function QuotationPanel({ taskId, userId, baseUrl, taskStatus, in
 
   const executeRemoveMaterial = async (materialId) => {
     try {
-      const response = await fetch(`${baseUrl}/api/staff/tasks/${taskId}/quotation/${materialId}?userId=${userId}`, {
-        method: 'DELETE'
+      const response = await fetch(`${baseUrl}/api/staff/tasks/${taskId}/quotation/${materialId}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders()
       });
 
       if (!response.ok) {
-        const errText = await response.text();
-        throw new Error(errText || 'Error removing material.');
+        throw new Error(await readProblemDetail(response, 'Unable to remove material.'));
       }
 
       await fetchQuotation();
@@ -157,8 +154,8 @@ export default function QuotationPanel({ taskId, userId, baseUrl, taskStatus, in
     setConfirmModal({
       isOpen: true,
       type: 'danger',
-      title: 'Xác nhận xóa vật tư',
-      message: 'Bạn có chắc chắn muốn xóa vật tư này khỏi bảng báo giá không?',
+      title: 'Remove material',
+      message: 'Remove this material from the quotation?',
       onConfirm: () => executeRemoveMaterial(materialId)
     });
   };
@@ -166,17 +163,17 @@ export default function QuotationPanel({ taskId, userId, baseUrl, taskStatus, in
   const executeSubmitQuotation = async () => {
     setSubmittingQuotation(true);
     try {
-      const response = await fetch(`${baseUrl}/api/staff/tasks/${taskId}/submit-quotation?userId=${userId}&paidBy=${paidBy}`, {
-        method: 'PATCH'
+      const response = await fetch(`${baseUrl}/api/staff/tasks/${taskId}/submit-quotation`, {
+        method: 'PATCH',
+        headers: getAuthHeaders()
       });
 
       if (!response.ok) {
-        const errText = await response.text();
-        throw new Error(errText || 'Error submitting quotation for approval.');
+        throw new Error(await readProblemDetail(response, 'Unable to submit quotation for approval.'));
       }
 
       onShowNotification('Quotation has been submitted for approval successfully!', 'success');
-      onRefreshTask(); // Reload the whole task details to show read-only mode and status update
+      onRefreshTask();
     } catch (err) {
       onShowNotification(err.message, 'error');
     } finally {
@@ -190,18 +187,12 @@ export default function QuotationPanel({ taskId, userId, baseUrl, taskStatus, in
       return;
     }
 
-    if (!paidBy) {
-      onShowNotification('Vui lòng chọn bên chịu phí trước khi gửi báo giá.', 'error');
-      return;
-    }
-
-    const paidByLabel = paidBy === 'Market' ? 'BQL chợ chịu phí' : 'Tiểu thương chịu phí';
     setConfirmModal({
       isOpen: true,
       type: 'primary',
-      title: 'Gửi duyệt báo giá',
-      message: `Bên chịu phí: ${paidByLabel}. Sau khi gửi, bạn sẽ không thể chỉnh sửa danh mục vật tư này nữa. Bạn có chắc chắn muốn gửi báo giá không?`,
-      onConfirm: () => executeSubmitQuotation()
+      title: 'Submit quotation',
+      message: 'The quotation will be sent to the Manager to determine who pays. Materials will be locked until a decision is made.',
+      onConfirm: executeSubmitQuotation
     });
   };
 
@@ -216,82 +207,6 @@ export default function QuotationPanel({ taskId, userId, baseUrl, taskStatus, in
         <h3 className="card-section-title">🔧 Repair Materials & Parts Quotation</h3>
       </div>
 
-      {/* Paid By selector — only in Edit Mode with materials */}
-      {isEditMode && quotation.materials.length > 0 && (
-        <div style={{
-          margin: '0 0 16px 0',
-          padding: '16px',
-          background: '#f0f9ff',
-          borderRadius: '10px',
-          border: '1px solid #bae6fd'
-        }}>
-          <p style={{ margin: '0 0 10px 0', fontWeight: '600', fontSize: '0.9rem', color: '#0c4a6e' }}>
-            💰 Bên chịu phí sửa chữa <span style={{ color: '#ef4444' }}>*</span>
-          </p>
-          <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-            <label style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '10px 16px',
-              borderRadius: '8px',
-              border: paidBy === 'Market' ? '2px solid #10b981' : '2px solid #d1d5db',
-              background: paidBy === 'Market' ? '#ecfdf5' : '#ffffff',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease',
-              flex: '1 1 180px',
-              fontWeight: paidBy === 'Market' ? '600' : '400',
-              fontSize: '0.88rem'
-            }}>
-              <input
-                type="radio"
-                name="paidBy"
-                value="Market"
-                checked={paidBy === 'Market'}
-                onChange={(e) => setPaidBy(e.target.value)}
-                style={{ accentColor: '#10b981' }}
-              />
-              🏢 BQL chợ chịu phí
-            </label>
-            <label style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '10px 16px',
-              borderRadius: '8px',
-              border: paidBy === 'Vendor' ? '2px solid #3b82f6' : '2px solid #d1d5db',
-              background: paidBy === 'Vendor' ? '#eff6ff' : '#ffffff',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease',
-              flex: '1 1 180px',
-              fontWeight: paidBy === 'Vendor' ? '600' : '400',
-              fontSize: '0.88rem'
-            }}>
-              <input
-                type="radio"
-                name="paidBy"
-                value="Vendor"
-                checked={paidBy === 'Vendor'}
-                onChange={(e) => setPaidBy(e.target.value)}
-                style={{ accentColor: '#3b82f6' }}
-              />
-              👤 Tiểu thương chịu phí
-            </label>
-          </div>
-          {paidBy === 'Market' && (
-            <p style={{ margin: '10px 0 0 0', fontSize: '0.8rem', color: '#065f46', fontStyle: 'italic' }}>
-              → Báo giá sẽ gửi cho Manager duyệt ngân sách chợ.
-            </p>
-          )}
-          {paidBy === 'Vendor' && (
-            <p style={{ margin: '10px 0 0 0', fontSize: '0.8rem', color: '#1e40af', fontStyle: 'italic' }}>
-              → Báo giá sẽ gửi cho Tiểu thương duyệt trên portal.
-            </p>
-          )}
-        </div>
-      )}
-
-      {/* Submit button — only when materials exist and paidBy is selected */}
       {isEditMode && quotation.materials.length > 0 && (
         <div style={{ marginBottom: '16px', textAlign: 'right' }}>
           <button 
@@ -431,7 +346,6 @@ export default function QuotationPanel({ taskId, userId, baseUrl, taskStatus, in
         </div>
       )}
 
-      {/* Custom Confirmation Modal */}
       {confirmModal.isOpen && (
         <div className="custom-confirm-overlay">
           <div className="custom-confirm-modal">
@@ -447,7 +361,7 @@ export default function QuotationPanel({ taskId, userId, baseUrl, taskStatus, in
                 className="btn-secondary" 
                 onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
               >
-                HỦY
+                CANCEL
               </button>
               <button 
                 type="button" 
@@ -463,7 +377,7 @@ export default function QuotationPanel({ taskId, userId, baseUrl, taskStatus, in
                   setConfirmModal(prev => ({ ...prev, isOpen: false }));
                 }}
               >
-                XÁC NHẬN
+                CONFIRM
               </button>
             </div>
           </div>

@@ -36,7 +36,7 @@ namespace STMM.API.Controllers
             int invoiceId,
             CancellationToken ct)
         {
-            var result = await _billingService.GetInvoiceDetailAsync(invoiceId, ct);
+            var result = await _billingService.GetInvoiceDetailAsync(GetUserId(), invoiceId, ct);
             return Ok(result);
         }
 
@@ -46,12 +46,10 @@ namespace STMM.API.Controllers
         /// </summary>
         [HttpPost("payments/cash")]
         public async Task<IActionResult> ReceiveCashPayment(
-            [FromQuery] int userId,
             [FromBody] ReceiveCashPaymentRequest request,
             CancellationToken ct)
         {
-            userId = GetUserId();
-            var result = await _billingService.ReceiveCashPaymentAsync(userId, request, ct);
+            var result = await _billingService.ReceiveCashPaymentAsync(GetUserId(), request, ct);
             return Ok(result);
         }
 
@@ -61,7 +59,7 @@ namespace STMM.API.Controllers
         [HttpGet("invoices/stall/{stallId}/unpaid")]
         public async Task<IActionResult> GetUnpaidInvoicesByStall(int stallId, CancellationToken ct)
         {
-            var result = await _billingService.GetUnpaidInvoicesByStallAsync(stallId, ct);
+            var result = await _billingService.GetUnpaidInvoicesByStallAsync(GetUserId(), stallId, ct);
             return Ok(result);
         }
     }

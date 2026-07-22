@@ -19,13 +19,15 @@ export const vendorInvoiceApi = {
      * @param {number} year 
      * @returns Promise
      */
-    getVendorInvoices: async (stallId, month, year) => {
+    getVendorInvoices: async (stallId, month, year, pageNumber = 1, pageSize = 10) => {
         let url = `${BASE_URL}/vendor/invoices?`;
         
         const params = new URLSearchParams();
         if (stallId && stallId !== 'ALL') params.append('stallId', stallId);
         if (month) params.append('month', month);
         if (year) params.append('year', year);
+        params.append('pageNumber', pageNumber);
+        params.append('pageSize', pageSize);
 
         url += params.toString();
 

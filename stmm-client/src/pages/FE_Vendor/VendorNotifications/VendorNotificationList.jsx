@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import notificationService from '../../../services/notificationService';
+import { showConfirm, showSuccess, showError } from '../../../utils/alert';
 import './VendorNotificationList.css';
 
 export default function VendorNotificationList({ onUpdateUnreadCount }) {
@@ -58,15 +59,19 @@ export default function VendorNotificationList({ onUpdateUnreadCount }) {
 
     const handleDeleteNotification = async (notiId, e) => {
         e.stopPropagation(); // Ngăn không cho click truyền lên item để mở modal
-        if (!window.confirm('Bạn có chắc chắn muốn xóa thông báo này?')) return;
+        
+        const result = await showConfirm('Xác nhận xóa', 'Bạn có chắc chắn muốn xóa thông báo này?');
+        if (!result.isConfirmed) return;
         
         try {
             await notificationService.deleteNotification(notiId);
             const updated = notifications.filter(n => n.notiId !== notiId);
             setNotifications(updated);
             updateGlobalCount(updated);
+            await showSuccess('Thành công', 'Đã xóa thông báo.');
         } catch (error) {
             console.error('Failed to delete notification', error);
+            showError('Thất bại', 'Có lỗi xảy ra khi xóa thông báo.');
         }
     };
 

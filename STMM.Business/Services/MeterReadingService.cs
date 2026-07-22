@@ -21,24 +21,43 @@ namespace STMM.Business.Services
         private readonly IMeterReadingRepository _readingRepo;
         private readonly IMapper _mapper;
         private readonly IValidator<CreateMeterReadingRequest> _validator;
+        private readonly IUserRepository _userRepository;
+        private readonly IStaffTaskRepository _staffTaskRepository;
+        private readonly IStallRepository _stallRepository;
 
         public MeterReadingService(
             IMeterRepository meterRepo,
             IMeterReadingRepository readingRepo,
             IMapper mapper,
-            IValidator<CreateMeterReadingRequest> validator)
+            IValidator<CreateMeterReadingRequest> validator,
+            IUserRepository userRepository,
+            IStaffTaskRepository staffTaskRepository,
+            IStallRepository stallRepository)
         {
             _meterRepo = meterRepo;
             _readingRepo = readingRepo;
             _mapper = mapper;
             _validator = validator;
+            _userRepository = userRepository;
+            _staffTaskRepository = staffTaskRepository;
+            _stallRepository = stallRepository;
         }
 
         public async Task<PagedResult<MeterReadingDto>> GetReadingsByStallIdAsync(
-            int stallId, MeterReadingQueryParams query, CancellationToken ct = default)
+            int userId, int stallId, MeterReadingQueryParams query, CancellationToken ct = default)
         {
+            var marketId = await GetStaffMarketIdAsync(userId, ct);
             var (items, totalCount) = await _readingRepo.GetReadingsByStallIdPagedAsync(
-                stallId, query.MeterType, query.PageNumber, query.PageSize, ct);
+                stallId, marketId, query.MeterType, query.PageNumber, query.PageSize, ct);
+
+            if (totalCount == 0)
+            {
+                var stall = await _stallRepository.GetStallForMarketAsync(stallId, marketId, ct);
+                if (stall == null)
+                {
+                    throw new NotFoundException($"Stall with ID {stallId} was not found in your market.");
+                }
+            }
 
             return new PagedResult<MeterReadingDto>
             {
@@ -49,9 +68,10 @@ namespace STMM.Business.Services
             };
         }
 
-        public async Task<MeterDto> GetMeterByIdAsync(int meterId, CancellationToken ct = default)
+        public async Task<MeterDto> GetMeterByIdAsync(int userId, int meterId, CancellationToken ct = default)
         {
-            var meter = await _meterRepo.GetMeterWithStallAsync(meterId, ct);
+            var marketId = await GetStaffMarketIdAsync(userId, ct);
+            var meter = await _meterRepo.GetMeterWithStallForMarketAsync(meterId, marketId, ct);
             if (meter == null)
                 throw new NotFoundException($"Meter with ID {meterId} not found.");
 
@@ -73,9 +93,15 @@ namespace STMM.Business.Services
             return _mapper.Map<IEnumerable<MeterDto>>(meters);
         }
 
-        public async Task<IEnumerable<MeterDto>> GetMetersByStallIdAsync(int stallId, CancellationToken ct = default)
+        public async Task<IEnumerable<MeterDto>> GetMetersByStallIdAsync(int userId, int stallId, CancellationToken ct = default)
         {
-            var meters = await _meterRepo.GetMetersByStallIdAsync(stallId, ct);
+            var marketId = await GetStaffMarketIdAsync(userId, ct);
+            var meters = (await _meterRepo.GetMetersByStallForMarketAsync(stallId, marketId, ct)).ToList();
+            if (meters.Count == 0)
+            {
+                throw new NotFoundException($"No active meters were found for stall {stallId} in your market.");
+            }
+
             var dtos = _mapper.Map<IEnumerable<MeterDto>>(meters).ToList();
 
             foreach (var dto in dtos)
@@ -90,35 +116,39 @@ namespace STMM.Business.Services
         public async Task<MeterReadingDto> CreateReadingAsync(
             int userId, CreateMeterReadingRequest request, CancellationToken ct = default)
         {
-            // 1. Validate request fields
             var validation = await _validator.ValidateAsync(request, ct);
             if (!validation.IsValid)
                 throw new BadRequestException(string.Join("; ", validation.Errors.Select(e => e.ErrorMessage)));
 
-            // 2. Check meter exists and is active
-            var meter = await _meterRepo.GetMeterWithStallAsync(request.MeterId, ct);
+            var marketId = await GetStaffMarketIdAsync(userId, ct);
+            var meter = await _meterRepo.GetMeterWithStallForMarketAsync(request.MeterId, marketId, ct);
             if (meter == null)
                 throw new NotFoundException($"Meter with ID {request.MeterId} not found.");
             if (meter.IsActive != true)
                 throw new BadRequestException($"Meter {meter.SerialNumber} is inactive.");
+            var effectiveDate = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
+            if (!meter.StallId.HasValue ||
+                !await _staffTaskRepository.HasActiveUtilityTaskForStallAsync(
+                    userId,
+                    meter.StallId.Value,
+                    effectiveDate,
+                    ct))
+            {
+                throw new NotFoundException($"Meter with ID {request.MeterId} not found.");
+            }
 
-            // 3. Parse recorded date securely
             var recordedAt = DateOnly.ParseExact(request.RecordedAt, "yyyy-MM-dd", CultureInfo.InvariantCulture);
 
-            // 4. Check duplicate date for same meter
             var exists = await _readingRepo.ExistsByMeterAndDateAsync(request.MeterId, recordedAt, ct);
             if (exists)
                 throw new BadRequestException($"A reading already exists for meter {meter.SerialNumber} on {request.RecordedAt}.");
 
-            // 5. Get latest reading to auto-fill OldValue
             var latest = await _readingRepo.GetLatestReadingByMeterIdAsync(request.MeterId, ct);
             var oldValue = request.IsReplaced ? 0 : (latest?.NewValue ?? 0);
 
-            // 6. Validate new_value >= old_value
             if (!request.IsReplaced && request.NewValue < oldValue)
                 throw new BadRequestException($"New value ({request.NewValue}) must be >= previous value ({oldValue}).");
 
-            // 7. Create entity
             var reading = new MeterReading
             {
                 MeterId = request.MeterId,
@@ -132,9 +162,19 @@ namespace STMM.Business.Services
             await _readingRepo.AddAsync(reading, ct);
             await _readingRepo.SaveChangesAsync(ct);
 
-            // 8. Map to DTO (attach navigation for mapping)
             reading.Meter = meter;
             return _mapper.Map<MeterReadingDto>(reading);
+        }
+
+        private async Task<int> GetStaffMarketIdAsync(int userId, CancellationToken ct)
+        {
+            var staff = await _userRepository.GetUserByIdWithRoleAsync(userId, ct);
+            if (staff?.MarketId == null)
+            {
+                throw new ForbiddenException("The staff account is not assigned to a market.");
+            }
+
+            return staff.MarketId.Value;
         }
     }
 }

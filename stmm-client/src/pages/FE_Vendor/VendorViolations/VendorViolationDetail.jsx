@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { showError } from '../../../utils/alert';
 import VendorRequestCreate from '../VendorRequests/VendorRequestCreate';
 
 const VendorViolationDetail = ({ violationId, onBack, onSuccess }) => {
@@ -17,7 +18,7 @@ const VendorViolationDetail = ({ violationId, onBack, onSuccess }) => {
                 setViolation(response.data);
             } catch (err) {
                 console.error('Lỗi khi tải chi tiết biên bản:', err);
-                alert('Không thể tải chi tiết biên bản vi phạm.');
+                showError('Thất bại', 'Không thể tải chi tiết biên bản vi phạm.');
                 onBack();
             } finally {
                 setLoading(false);

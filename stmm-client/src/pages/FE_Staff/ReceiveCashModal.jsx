@@ -1,77 +1,81 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import readProblemDetail from '../../utils/readProblemDetail';
 import './ReceiveCashModal.css';
 
-export default function ReceiveCashModal({ stallId, stallCode, baseUrl, userId, onClose, onSuccess }) {
-  const [invoices, setInvoices] = useState([]);
+export default function ReceiveCashModal({ stallId, stallCode, invoiceId, baseUrl, onClose, onSuccess }) {
+  const [invoice, setInvoice] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [selectedInvoiceId, setSelectedInvoiceId] = useState(null);
+  const [confirmed, setConfirmed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
 
   useEffect(() => {
-    const fetchUnpaidInvoices = async () => {
+    const fetchSelectedInvoice = async () => {
       setLoading(true);
       setError(null);
+      setInvoice(null);
+      setConfirmed(false);
+
       try {
         const response = await fetch(`${baseUrl}/api/staff/billing/invoices/stall/${stallId}/unpaid`);
         if (!response.ok) {
-          throw new Error(`Failed to load unpaid invoices: ${response.statusText}`);
+          throw new Error(await readProblemDetail(response, 'Unable to load the selected invoice.'));
         }
+
         const data = await response.json();
-        setInvoices(data);
-        if (data.length > 0) {
-          setSelectedInvoiceId(data[0].invoiceId); // Default select the first one
+        const currentInvoice = data.find(item => item.invoiceId === invoiceId);
+        if (!currentInvoice) {
+          throw new Error('The selected invoice is no longer unpaid or is unavailable.');
         }
+
+        setInvoice(currentInvoice);
       } catch (err) {
-        console.error("Error loading unpaid invoices:", err);
+        console.error('Error loading the selected invoice:', err);
         setError(err.message);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchUnpaidInvoices();
-  }, [stallId, baseUrl]);
+    fetchSelectedInvoice();
+  }, [stallId, invoiceId, baseUrl]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!selectedInvoiceId) return;
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    if (!invoice || !confirmed) return;
 
     setSubmitting(true);
     setSubmitError(null);
 
     try {
-      const response = await fetch(`${baseUrl}/api/staff/billing/payments/cash?userId=${userId}`, {
+      const response = await fetch(`${baseUrl}/api/staff/billing/payments/cash`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ invoiceId: selectedInvoiceId }),
+        body: JSON.stringify({ invoiceId: invoice.invoiceId }),
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || `Failed to record payment: ${response.statusText}`);
+        throw new Error(await readProblemDetail(response, 'Unable to record cash payment.'));
       }
 
       const result = await response.json();
       onSuccess(result);
     } catch (err) {
-      console.error("Error recording cash payment:", err);
+      console.error('Error recording cash payment:', err);
       setSubmitError(err.message);
     } finally {
       setSubmitting(false);
     }
   };
 
-  const selectedInvoice = invoices.find(i => i.invoiceId === selectedInvoiceId);
-
   return (
     <div className="modal-overlay">
       <div className="modal-container receive-cash-modal">
         <div className="modal-header">
-          <h2 className="modal-title">💰 Cash Collection - Stall {stallCode}</h2>
+          <h2 className="modal-title">Cash Collection - Stall {stallCode}</h2>
           <button className="modal-close-btn" onClick={onClose} disabled={submitting}>&times;</button>
         </div>
 
@@ -83,64 +87,60 @@ export default function ReceiveCashModal({ stallId, stallCode, baseUrl, userId, 
           )}
 
           <div className="form-group">
-            <label className="form-label">SELECT INVOICE TO COLLECT</label>
+            <label className="form-label">CURRENT INVOICE TO COLLECT</label>
 
             {loading ? (
-              <div className="modal-loading-state">Loading invoices...</div>
+              <div className="modal-loading-state">Loading invoice...</div>
             ) : error ? (
               <div className="modal-error-state">
-                <span className="warning-text">⚠️ Error: {error}</span>
+                <span className="warning-text">Error: {error}</span>
               </div>
-            ) : invoices.length === 0 ? (
-              <div className="modal-empty-state">
-                🎉 No unpaid invoices for stall {stallCode}.
+            ) : invoice ? (
+              <div className="invoice-selection-list">
+                <div className="invoice-item-card selected locked">
+                  <div className="invoice-card-details">
+                    <div className="invoice-card-header">
+                      <span className="invoice-month-year">Invoice Month {invoice.month}/{invoice.year}</span>
+                      <span className="invoice-amount">{invoice.totalAmount.toLocaleString('vi-VN')} VND</span>
+                    </div>
+                    <div className="invoice-card-body">
+                      <span className="invoice-fee-summary">Fees: {invoice.feeTypeSummary || 'Service Fee'}</span>
+                      {invoice.dueDate && (
+                        <span className="invoice-due-date">
+                          Due Date: {new Date(invoice.dueDate).toLocaleDateString('en-US')}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
             ) : (
-              <div className="invoice-selection-list">
-                {invoices.map((invoice) => (
-                  <label 
-                    key={invoice.invoiceId} 
-                    className={`invoice-item-card ${selectedInvoiceId === invoice.invoiceId ? 'selected' : ''}`}
-                  >
-                    <input
-                      type="radio"
-                      name="selectedInvoice"
-                      checked={selectedInvoiceId === invoice.invoiceId}
-                      onChange={() => setSelectedInvoiceId(invoice.invoiceId)}
-                      disabled={submitting}
-                      className="invoice-radio"
-                    />
-                    <div className="invoice-card-details">
-                      <div className="invoice-card-header">
-                        <span className="invoice-month-year">Invoice Month {invoice.month}/{invoice.year}</span>
-                        <span className="invoice-amount">{invoice.totalAmount.toLocaleString('vi-VN')} VND</span>
-                      </div>
-                      <div className="invoice-card-body">
-                        <span className="invoice-fee-summary">Fees: {invoice.feeTypeSummary || 'Service Fee'}</span>
-                        {invoice.dueDate && (
-                          <span className="invoice-due-date">Due Date: {new Date(invoice.dueDate).toLocaleDateString('en-US')}</span>
-                        )}
-                      </div>
-                    </div>
-                  </label>
-                ))}
-              </div>
+              <div className="modal-empty-state">No invoice is available for collection.</div>
             )}
           </div>
 
-          {selectedInvoice && (
+          {invoice && (
             <div className="payment-summary-box">
               <div className="summary-row">
                 <span>Total Amount:</span>
-                <strong className="text-primary">{selectedInvoice.totalAmount.toLocaleString('vi-VN')} VND</strong>
+                <strong className="text-primary">{invoice.totalAmount.toLocaleString('vi-VN')} VND</strong>
               </div>
               <div className="summary-row font-sm text-muted">
                 <span>Method:</span>
                 <span>Cash (100% debit clearing)</span>
               </div>
               <div className="summary-info-alert">
-                ℹ️ Collected invoice status will be updated to <strong>Pending Reconciliation</strong> and a notification will be sent to the Vendor.
+                The invoice status will be updated to <strong>Pending Confirmation</strong> and the Vendor will be notified.
               </div>
+              <label className="cash-confirmation">
+                <input
+                  type="checkbox"
+                  checked={confirmed}
+                  onChange={(event) => setConfirmed(event.target.checked)}
+                  disabled={submitting}
+                />
+                <span>I confirm that I received the full cash amount shown above.</span>
+              </label>
             </div>
           )}
 
@@ -156,9 +156,9 @@ export default function ReceiveCashModal({ stallId, stallCode, baseUrl, userId, 
             <button
               type="submit"
               className="btn-primary-dark"
-              disabled={submitting || !selectedInvoiceId || invoices.length === 0}
+              disabled={submitting || !invoice || !confirmed}
             >
-              {submitting ? "Recording..." : "Confirm Collection"}
+              {submitting ? 'Recording...' : 'Confirm Collection'}
             </button>
           </div>
         </form>

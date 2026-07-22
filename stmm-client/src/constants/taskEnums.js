@@ -10,5 +10,4 @@ export const TASK_TYPE = {
   REPAIR: 'Repair',
   MAINTENANCE: 'Maintenance',
   UTILITY_READING: 'UtilityReading',
-  CASH_COLLECTION: 'CashCollection',
 };

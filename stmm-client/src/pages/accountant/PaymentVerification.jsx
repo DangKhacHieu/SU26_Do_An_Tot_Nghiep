@@ -43,6 +43,11 @@ export default function PaymentVerification() {
   const [disputeApprove, setDisputeApprove] = useState(true);
   const [disputeFeedback, setDisputeFeedback] = useState('');
   
+  const [isRefund, setIsRefund] = useState(false);
+  const [refundAmount, setRefundAmount] = useState('');
+  const [refundMethod, setRefundMethod] = useState('Transfer');
+  const [transactionCode, setTransactionCode] = useState('');
+  
   const [paymentsPage, setPaymentsPage] = useState(1);
   const [debtsPage, setDebtsPage] = useState(1);
   const [disputesPage, setDisputesPage] = useState(1);
@@ -92,8 +97,8 @@ export default function PaymentVerification() {
     { stallId: 3, stallCode: 'Kiosk C-10', tenantName: 'Phạm Thanh Sơn', rentDebt: 8000000, utilityDebt: 2300000, violationDebt: 5000000, totalDebt: 15300000, lastDueDate: '2026-05-25' }
   ];
   const getMockDisputes = () => [
-    { requestId: 51, invoiceId: 5, title: 'Sai lệch số nước sạch', description: 'Chỉ số nước đầu kỳ ghi nhận sai lệch 15m3 so với đồng hồ thực tế.', status: 'Pending', createdAt: '2026-06-02T08:15:00Z', stallCode: 'Kiosk B-05', tenantName: 'Trần Thị B', invoiceMonth: 5, invoiceYear: 2026, invoiceTotalAmount: 3240000 },
-    { requestId: 48, invoiceId: 3, title: 'Tính thừa tiền dịch vụ vệ sinh', description: 'Gia đình đã đăng ký tạm ngưng dịch vụ thu gom rác nhưng hóa đơn vẫn tính phụ thu.', status: 'Approved', createdAt: '2026-05-28T14:40:00Z', stallCode: 'Kiosk A-12', tenantName: 'Nguyễn Văn A', invoiceMonth: 5, invoiceYear: 2026, invoiceTotalAmount: 12500000 }
+    { requestId: 51, invoiceId: 5, title: 'Sai lệch số nước sạch', description: 'Chỉ số nước đầu kỳ ghi nhận sai lệch 15m3 so với đồng hồ thực tế.', status: 'Pending', createdAt: '2026-06-02T08:15:00Z', stallCode: 'Kiosk B-05', tenantName: 'Trần Thị B', invoiceMonth: 5, invoiceYear: 2026, invoiceTotalAmount: 3240000, vendorBankName: 'Vietcombank', vendorBankAccount: '0123456789', invoiceStatus: 'Unpaid' },
+    { requestId: 48, invoiceId: 3, title: 'Tính thừa tiền dịch vụ vệ sinh', description: 'Gia đình đã đăng ký tạm ngưng dịch vụ thu gom rác nhưng hóa đơn vẫn tính phụ thu.', status: 'Approved', createdAt: '2026-05-28T14:40:00Z', stallCode: 'Kiosk A-12', tenantName: 'Nguyễn Văn A', invoiceMonth: 5, invoiceYear: 2026, invoiceTotalAmount: 12500000, vendorBankName: 'Techcombank', vendorBankAccount: '190333444555', invoiceStatus: 'Paid' }
   ];
   const getMockInvoiceDetail = (invoiceId) => ({
     invoiceId, month: 5, year: 2026, totalAmount: 3240000, status: 'Unpaid',
@@ -155,13 +160,28 @@ export default function PaymentVerification() {
   const handleResolveDisputeClick = (dispute, approve) => {
     setSelectedItem(dispute); setDisputeApprove(approve);
     setDisputeFeedback(approve ? 'Đã ghi nhận phản ánh. Kế toán sẽ điều chỉnh hóa đơn giảm trừ.' : 'Từ chối giải quyết. Chỉ số trùng khớp với biên bản ghi nhận.');
+    setIsRefund(false);
+    setRefundAmount('');
+    setRefundMethod('Transfer');
+    setTransactionCode('');
     setActiveModal('resolve_dispute');
   };
 
   const submitResolveDispute = (e) => {
     e.preventDefault();
     if (isMock) { setDisputes(d => d.map(x => x.requestId === selectedItem.requestId ? { ...x, status: disputeApprove ? 'Approved' : 'Rejected' } : x)); showNotification('success', `Đã ${disputeApprove ? 'chấp nhận' : 'từ chối'} kháng nghị!`); setActiveModal(null); }
-    else fetch(`http://localhost:5056/api/accountant/payments/disputes/${selectedItem.requestId}/resolve?userId=1`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` }, body: JSON.stringify({ approve: disputeApprove, feedback: disputeFeedback }) })
+    else fetch(`http://localhost:5056/api/accountant/payments/disputes/${selectedItem.requestId}/resolve?userId=1`, { 
+      method: 'POST', 
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` }, 
+      body: JSON.stringify({ 
+        approve: disputeApprove, 
+        feedback: disputeFeedback,
+        isRefund,
+        refundAmount: isRefund ? (parseInt(refundAmount) || 0) : 0,
+        refundMethod: isRefund ? refundMethod : null,
+        transactionCode: isRefund ? transactionCode : null
+      }) 
+    })
       .then(r => { if (!r.ok) throw new Error(); showNotification('success', 'Đã phản hồi kháng nghị thành công!'); setActiveModal(null); loadAllData(); })
       .catch(() => showNotification('danger', 'Xử lý kháng nghị thất bại.'));
   };
@@ -644,23 +664,99 @@ export default function PaymentVerification() {
       {/* Modal: Resolve Dispute */}
       {activeModal === 'resolve_dispute' && selectedItem && (
         <div className="modal-overlay" onClick={() => setActiveModal(null)}>
-          <div className="modal-container" onClick={e => e.stopPropagation()}>
+          <div className="modal-container" style={{ maxWidth: 850, width: '100%' }} onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <span className="modal-title">{disputeApprove ? 'Chấp nhận' : 'Từ chối'} Kháng nghị</span>
               <button className="modal-close-btn" onClick={() => setActiveModal(null)}><X size={16} /></button>
             </div>
             <form onSubmit={submitResolveDispute}>
-              <div className="modal-body">
-                <div className={`alert ${disputeApprove ? 'alert-success' : 'alert-danger'}`}>
-                  <Info size={16} className="alert-icon" />
-                  <div>
-                    <p><strong>{selectedItem.stallCode}</strong> — {selectedItem.title}</p>
-                    <p style={{ fontSize: 13, marginTop: 4, opacity: 0.9 }}>{selectedItem.description}</p>
+              <div className="modal-body" style={{ display: 'flex', gap: 24, padding: '24px', overflowY: 'auto', maxHeight: '70vh' }}>
+                {/* Left Column: Original Invoice Info */}
+                <div style={{ flex: 1, borderRight: '1px solid var(--border-color)', paddingRight: 24 }}>
+                  <h4 style={{ margin: '0 0 16px 0', fontSize: 16, color: 'var(--text-main)' }}>Thông tin Hóa đơn gốc</h4>
+                  <div style={{ padding: 16, backgroundColor: '#f8fafc', borderRadius: 8, border: '1px solid var(--border-color)' }}>
+                    <div style={{ marginBottom: 12 }}>
+                      <span style={{ fontSize: 13, color: 'var(--text-light)', display: 'block' }}>Kỳ hóa đơn</span>
+                      <strong style={{ fontSize: 15 }}>Tháng {selectedItem.invoiceMonth}/{selectedItem.invoiceYear}</strong>
+                    </div>
+                    <div style={{ marginBottom: 12 }}>
+                      <span style={{ fontSize: 13, color: 'var(--text-light)', display: 'block' }}>Gian hàng</span>
+                      <strong style={{ fontSize: 15 }}>{selectedItem.stallCode} - {selectedItem.tenantName}</strong>
+                    </div>
+                    <div>
+                      <span style={{ fontSize: 13, color: 'var(--text-light)', display: 'block' }}>Tổng tiền hóa đơn</span>
+                      <strong style={{ fontSize: 18, color: 'var(--primary)' }}>{formatCurrency(selectedItem.invoiceTotalAmount)}</strong>
+                    </div>
+                    <div style={{ marginTop: 12 }}>
+                      <span style={{ fontSize: 13, color: 'var(--text-light)', display: 'block' }}>Trạng thái</span>
+                      <span className={`badge ${selectedItem.invoiceStatus === 'Paid' ? 'badge-success' : 'badge-warning'}`}>
+                        {selectedItem.invoiceStatus === 'Paid' ? 'Đã thu' : 'Chờ thu'}
+                      </span>
+                    </div>
                   </div>
                 </div>
-                <div>
-                  <label className="form-label">Phản hồi cho tiểu thương</label>
-                  <textarea className="form-textarea" rows={4} value={disputeFeedback} onChange={e => setDisputeFeedback(e.target.value)} />
+                
+                {/* Right Column: Dispute Resolution */}
+                <div style={{ flex: 1.2 }}>
+                  <h4 style={{ margin: '0 0 16px 0', fontSize: 16, color: 'var(--text-main)' }}>Nội dung Kháng nghị</h4>
+                  <div className={`alert ${disputeApprove ? 'alert-success' : 'alert-danger'}`} style={{ marginBottom: 16 }}>
+                    <Info size={16} className="alert-icon" />
+                    <div>
+                      <p style={{ fontWeight: 600 }}>{selectedItem.title}</p>
+                      <p style={{ fontSize: 13, marginTop: 4, opacity: 0.9 }}>{selectedItem.description}</p>
+                    </div>
+                  </div>
+                  
+                  <div style={{ marginBottom: 16 }}>
+                    <label className="form-label">Phản hồi cho tiểu thương</label>
+                    <textarea className="form-textarea" rows={3} value={disputeFeedback} onChange={e => setDisputeFeedback(e.target.value)} />
+                  </div>
+                  {disputeApprove && (
+                    <div style={{ padding: 12, border: '1px solid var(--border-color)', borderRadius: 8, backgroundColor: '#f8fafc' }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontWeight: 600, color: 'var(--primary)' }}>
+                        <input type="checkbox" checked={isRefund} onChange={e => setIsRefund(e.target.checked)} />
+                        {selectedItem.invoiceStatus === 'Paid' ? 'Thực hiện hoàn tiền trực tiếp cho tiểu thương' : 'Điều chỉnh giảm trừ trực tiếp vào hóa đơn'}
+                      </label>
+                      
+                      {isRefund && (
+                        <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                          <div>
+                            <label className="form-label">
+                              {selectedItem.invoiceStatus === 'Paid' ? 'Số tiền hoàn (VND)' : 'Số tiền giảm trừ (VND)'}
+                            </label>
+                            <input type="number" className="form-input" min={0} value={refundAmount} onChange={e => setRefundAmount(e.target.value)} placeholder="Nhập số tiền..." required={isRefund} />
+                          </div>
+                          
+                          {selectedItem.invoiceStatus === 'Paid' && (
+                            <>
+                              <div>
+                                <label className="form-label">Phương thức hoàn</label>
+                                <select className="form-select" value={refundMethod} onChange={e => setRefundMethod(e.target.value)}>
+                                  <option value="Transfer">Chuyển khoản</option>
+                                  <option value="Cash">Tiền mặt</option>
+                                </select>
+                              </div>
+                              {refundMethod === 'Transfer' && (
+                                <div className="alert alert-info" style={{ marginTop: 0 }}>
+                                  <Info size={16} className="alert-icon" />
+                                  <div style={{ fontSize: 13 }}>
+                                    <strong>STK Tiểu thương:</strong> {selectedItem.vendorBankAccount || 'Chưa cập nhật'} <br/>
+                                    <strong>Ngân hàng:</strong> {selectedItem.vendorBankName || 'Chưa cập nhật'}
+                                  </div>
+                                </div>
+                              )}
+                              {refundMethod === 'Transfer' && (
+                                <div>
+                                  <label className="form-label">Mã giao dịch (Nếu có)</label>
+                                  <input type="text" className="form-input" value={transactionCode} onChange={e => setTransactionCode(e.target.value)} placeholder="VD: FT2605..." />
+                                </div>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="modal-footer">

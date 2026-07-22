@@ -1,4 +1,3 @@
-using Microsoft.EntityFrameworkCore;
 using STMM.Business.DTOs.Dashboard;
 using STMM.Business.Exceptions;
 using STMM.Business.Interfaces;
@@ -19,6 +18,7 @@ namespace STMM.Business.Services
         private readonly IFeeTypeRepository _feeTypeRepository;
         private readonly IServiceRepository _serviceRepository;
         private readonly ISystemConfigRepository _systemConfigRepository;
+        private readonly IUserRepository _userRepository;
         private readonly IValidator<CreateFeeTypeRequest> _createFeeTypeValidator;
         private readonly IValidator<UpdateFeeTypeRequest> _updateFeeTypeValidator;
         private readonly IValidator<CreateServiceRequest> _createServiceValidator;
@@ -30,6 +30,7 @@ namespace STMM.Business.Services
             IFeeTypeRepository feeTypeRepository,
             IServiceRepository serviceRepository,
             ISystemConfigRepository systemConfigRepository,
+            IUserRepository userRepository,
             IValidator<CreateFeeTypeRequest> createFeeTypeValidator,
             IValidator<UpdateFeeTypeRequest> updateFeeTypeValidator,
             IValidator<CreateServiceRequest> createServiceValidator,
@@ -40,6 +41,7 @@ namespace STMM.Business.Services
             _feeTypeRepository = feeTypeRepository;
             _serviceRepository = serviceRepository;
             _systemConfigRepository = systemConfigRepository;
+            _userRepository = userRepository;
             _createFeeTypeValidator = createFeeTypeValidator;
             _updateFeeTypeValidator = updateFeeTypeValidator;
             _createServiceValidator = createServiceValidator;
@@ -49,9 +51,10 @@ namespace STMM.Business.Services
         }
 
         // --- FEE TYPES ---
-        public async Task<IEnumerable<FeeTypeDto>> GetFeeTypesAsync(CancellationToken ct = default)
+        public async Task<IEnumerable<FeeTypeDto>> GetFeeTypesAsync(int userId, CancellationToken ct = default)
         {
-            var items = await _feeTypeRepository.GetAllAsync(ct);
+            var user = await _userRepository.GetByIdAsync(userId, ct);
+            var items = await _feeTypeRepository.GetAllAsync(user?.MarketId, ct);
             return items.Select(f => new FeeTypeDto
             {
                 FeeTypeId = f.FeeTypeId,
@@ -61,7 +64,7 @@ namespace STMM.Business.Services
             });
         }
 
-        public async Task<FeeTypeDto> CreateFeeTypeAsync(CreateFeeTypeRequest request, CancellationToken ct = default)
+        public async Task<FeeTypeDto> CreateFeeTypeAsync(int userId, CreateFeeTypeRequest request, CancellationToken ct = default)
         {
             var valResult = await _createFeeTypeValidator.ValidateAsync(request, ct);
             if (!valResult.IsValid)
@@ -69,10 +72,10 @@ namespace STMM.Business.Services
                 throw new BadRequestException(string.Join("; ", valResult.Errors.Select(e => e.ErrorMessage)));
             }
 
+            var user = await _userRepository.GetByIdAsync(userId, ct);
+
             // Kiểm tra trùng lặp tên loại phí
-            var nameTrimmed = request.Name.Trim().ToLower();
-            var isDuplicate = await _feeTypeRepository.Query()
-                .AnyAsync(f => f.Name.Trim().ToLower() == nameTrimmed, ct);
+            var isDuplicate = await _feeTypeRepository.IsNameExistsAsync(request.Name, null, user?.MarketId, ct);
             if (isDuplicate)
             {
                 throw new BadRequestException("Tên loại phí này đã tồn tại trong hệ thống.");
@@ -82,7 +85,8 @@ namespace STMM.Business.Services
             {
                 Name = request.Name.Trim(),
                 Unit = request.Unit?.Trim(),
-                Description = request.Description?.Trim()
+                Description = request.Description?.Trim(),
+                MarketId = user?.MarketId
             };
 
             await _feeTypeRepository.AddAsync(item, ct);
@@ -112,9 +116,7 @@ namespace STMM.Business.Services
             }
 
             // Kiểm tra trùng lặp tên loại phí (ngoại trừ chính nó)
-            var nameTrimmed = request.Name.Trim().ToLower();
-            var isDuplicate = await _feeTypeRepository.Query()
-                .AnyAsync(f => f.FeeTypeId != id && f.Name.Trim().ToLower() == nameTrimmed, ct);
+            var isDuplicate = await _feeTypeRepository.IsNameExistsAsync(request.Name, id, item.MarketId, ct);
             if (isDuplicate)
             {
                 throw new BadRequestException("Tên loại phí này đã tồn tại trong hệ thống.");
@@ -142,8 +144,7 @@ namespace STMM.Business.Services
             if (item == null) return false;
 
             // Kiểm tra xem có dịch vụ nào đang hoạt động liên kết với loại phí này không
-            var hasService = await _serviceRepository.Query()
-                .AnyAsync(s => s.FeeTypeId == id && s.IsActive != false, ct);
+            var hasService = await _serviceRepository.IsFeeTypeInUseAsync(id, item.MarketId, ct);
             if (hasService)
             {
                 throw new BadRequestException("Không thể xóa loại phí này vì hiện đang có dịch vụ hoạt động liên kết với nó.");
@@ -154,7 +155,7 @@ namespace STMM.Business.Services
                 _feeTypeRepository.Delete(item);
                 await _feeTypeRepository.SaveChangesAsync(ct);
             }
-            catch (DbUpdateException)
+            catch (Exception)
             {
                 throw new BadRequestException("Không thể xóa loại phí này vì nó đang được liên kết với dữ liệu hóa đơn hoặc các dữ liệu khác trong hệ thống.");
             }
@@ -163,11 +164,10 @@ namespace STMM.Business.Services
         }
 
         // --- SERVICES ---
-        public async Task<IEnumerable<ServiceDto>> GetServicesAsync(CancellationToken ct = default)
+        public async Task<IEnumerable<ServiceDto>> GetServicesAsync(int userId, CancellationToken ct = default)
         {
-            var items = await _serviceRepository.Query()
-                .Include(s => s.FeeType)
-                .ToListAsync(ct);
+            var user = await _userRepository.GetByIdAsync(userId, ct);
+            var items = await _serviceRepository.GetServicesWithFeeTypeAsync(user?.MarketId, ct);
 
             return items.Select(s => new ServiceDto
             {
@@ -183,7 +183,7 @@ namespace STMM.Business.Services
             });
         }
 
-        public async Task<ServiceDto> CreateServiceAsync(CreateServiceRequest request, CancellationToken ct = default)
+        public async Task<ServiceDto> CreateServiceAsync(int userId, CreateServiceRequest request, CancellationToken ct = default)
         {
             var valResult = await _createServiceValidator.ValidateAsync(request, ct);
             if (!valResult.IsValid)
@@ -191,10 +191,10 @@ namespace STMM.Business.Services
                 throw new BadRequestException(string.Join("; ", valResult.Errors.Select(e => e.ErrorMessage)));
             }
 
+            var user = await _userRepository.GetByIdAsync(userId, ct);
+
             // Kiểm tra trùng lặp tên dịch vụ (chỉ so với dịch vụ đang hoạt động)
-            var nameTrimmed = request.Name.Trim().ToLower();
-            var isDuplicate = await _serviceRepository.Query()
-                .AnyAsync(s => s.IsActive != false && s.Name.Trim().ToLower() == nameTrimmed, ct);
+            var isDuplicate = await _serviceRepository.IsNameExistsAsync(request.Name, null, user?.MarketId, ct);
             if (isDuplicate)
             {
                 throw new BadRequestException("Tên dịch vụ này đã tồn tại và đang hoạt động trong hệ thống.");
@@ -210,15 +210,14 @@ namespace STMM.Business.Services
                 CreatedByUserId = request.CreatedByUserId,
                 IsActive = true,
                 CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
+                UpdatedAt = DateTime.UtcNow,
+                MarketId = user?.MarketId
             };
 
             await _serviceRepository.AddAsync(item, ct);
             await _serviceRepository.SaveChangesAsync(ct);
 
-            var fresh = await _serviceRepository.Query()
-                .Include(s => s.FeeType)
-                .FirstOrDefaultAsync(s => s.ServiceId == item.ServiceId, ct);
+            var fresh = await _serviceRepository.GetServiceWithFeeTypeByIdAsync(item.ServiceId, item.MarketId, ct);
 
             return new ServiceDto
             {
@@ -249,9 +248,7 @@ namespace STMM.Business.Services
             }
 
             // Kiểm tra trùng lặp tên dịch vụ (chỉ so với dịch vụ đang hoạt động khác chính nó)
-            var nameTrimmed = request.Name.Trim().ToLower();
-            var isDuplicate = await _serviceRepository.Query()
-                .AnyAsync(s => s.ServiceId != id && s.IsActive != false && s.Name.Trim().ToLower() == nameTrimmed, ct);
+            var isDuplicate = await _serviceRepository.IsNameExistsAsync(request.Name, id, item.MarketId, ct);
             if (isDuplicate)
             {
                 throw new BadRequestException("Tên dịch vụ này đã tồn tại và đang hoạt động trong hệ thống.");
@@ -268,9 +265,7 @@ namespace STMM.Business.Services
             _serviceRepository.Update(item);
             await _serviceRepository.SaveChangesAsync(ct);
 
-            var fresh = await _serviceRepository.Query()
-                .Include(s => s.FeeType)
-                .FirstOrDefaultAsync(s => s.ServiceId == item.ServiceId, ct);
+            var fresh = await _serviceRepository.GetServiceWithFeeTypeByIdAsync(item.ServiceId, item.MarketId, ct);
 
             return new ServiceDto
             {
@@ -301,28 +296,53 @@ namespace STMM.Business.Services
         }
 
         // --- SYSTEM CONFIGS ---
-        public async Task<IEnumerable<SystemConfigDto>> GetSystemConfigsAsync(CancellationToken ct = default)
+        public async Task<IEnumerable<SystemConfigDto>> GetSystemConfigsAsync(int userId, CancellationToken ct = default)
         {
-            var items = await _systemConfigRepository.GetAllAsync(ct);
-            var itemsList = items.ToList();
+            var user = await _userRepository.GetByIdAsync(userId, ct);
+            var items = await _systemConfigRepository.GetAllAsync(user?.MarketId, ct);
+            
+            // Lọc ra các cấu hình ưu tiên (nếu có riêng của Market thì bỏ qua cái Global)
+            var itemsList = items.GroupBy(x => x.ConfigKey)
+                                 .Select(g => g.OrderByDescending(x => x.MarketId).First())
+                                 .ToList();
 
-            // Tự động seed auto_invoice_day nếu chưa có
-            if (!itemsList.Any(c => c.ConfigKey == "auto_invoice_day"))
+            // Tự động seed các cấu hình bắt buộc nếu chưa có (Global Configs)
+            var requiredConfigs = new Dictionary<string, (string DefaultValue, string Description)>
             {
-                var autoInvoiceConfig = new SystemConfig
+                { "auto_invoice_day", ("5", "Ngày trong tháng tự động khởi tạo hóa đơn của các sạp (1-28)") },
+                { "invoice_due_days", ("15", "Số ngày hạn thanh toán hóa đơn kể từ lúc phát hành") },
+                { "late_penalty_rate_per_day", ("0.05", "Phần trăm lãi suất phạt quá hạn theo ngày (%)") },
+                { "reminder_days_before_due", ("3", "Số ngày gửi thông báo nhắc nhở trước khi đến hạn thanh toán") },
+                { "vat_tax_rate", ("0", "Thuế giá trị gia tăng áp dụng cho hóa đơn (%)") }
+            };
+
+            bool hasChanges = false;
+            foreach (var req in requiredConfigs)
+            {
+                if (!itemsList.Any(c => c.ConfigKey == req.Key))
                 {
-                    ConfigKey = "auto_invoice_day",
-                    ConfigValue = "5",
-                    Description = "Ngày trong tháng tự động khởi tạo hóa đơn của các sạp (1-28)",
-                    UpdatedByUserId = 1, // Default user
-                    UpdatedAt = DateTime.UtcNow
-                };
-                await _systemConfigRepository.AddAsync(autoInvoiceConfig, ct);
+                    var config = new SystemConfig
+                    {
+                        ConfigKey = req.Key,
+                        ConfigValue = req.Value.DefaultValue,
+                        Description = req.Value.Description,
+                        UpdatedByUserId = 1, // Default user
+                        UpdatedAt = DateTime.UtcNow,
+                        MarketId = null // Cấu hình mặc định toàn hệ thống
+                    };
+                    await _systemConfigRepository.AddAsync(config, ct);
+                    hasChanges = true;
+                }
+            }
+
+            if (hasChanges)
+            {
                 await _systemConfigRepository.SaveChangesAsync(ct);
-                
                 // Nạp lại danh sách sau khi seed
-                var reloaded = await _systemConfigRepository.GetAllAsync(ct);
-                itemsList = reloaded.ToList();
+                var reloaded = await _systemConfigRepository.GetAllAsync(user?.MarketId, ct);
+                itemsList = reloaded.GroupBy(x => x.ConfigKey)
+                                    .Select(g => g.OrderByDescending(x => x.MarketId).First())
+                                    .ToList();
             }
 
             // Lọc bỏ cấu hình bậc thang khỏi danh sách cấu hình chung để tránh hiển thị JSON thô
@@ -338,7 +358,7 @@ namespace STMM.Business.Services
                 });
         }
 
-        public async Task<bool> UpdateSystemConfigAsync(UpdateSystemConfigRequest request, CancellationToken ct = default)
+        public async Task<bool> UpdateSystemConfigAsync(int userId, UpdateSystemConfigRequest request, CancellationToken ct = default)
         {
             var valResult = await _updateSystemConfigValidator.ValidateAsync(request, ct);
             if (!valResult.IsValid)
@@ -346,20 +366,26 @@ namespace STMM.Business.Services
                 throw new BadRequestException(string.Join("; ", valResult.Errors.Select(e => e.ErrorMessage)));
             }
 
-            var config = await _systemConfigRepository.Query()
-                .Where(c => c.ConfigKey == request.ConfigKey)
-                .FirstOrDefaultAsync(ct);
+            var user = await _userRepository.GetByIdAsync(userId, ct);
+            var config = await _systemConfigRepository.GetSystemConfigByKeyAsync(request.ConfigKey, user?.MarketId, ct);
 
-            if (config == null)
+            // Kiểm tra xem config hiện tại là của riêng chợ này hay là của chung (MarketId = null)
+            // Nếu người dùng thuộc về 1 chợ cụ thể, nhưng config lấy ra lại là của chung (MarketId == null),
+            // => KHÔNG được ghi đè config chung, mà phải tạo ra một dòng mới (override) riêng cho chợ này.
+            bool isGlobalConfigWhileUserHasMarket = config != null && config.MarketId == null && user?.MarketId != null;
+
+            if (config == null || isGlobalConfigWhileUserHasMarket)
             {
-                config = new SystemConfig
+                var newConfig = new SystemConfig
                 {
                     ConfigKey = request.ConfigKey,
                     ConfigValue = request.ConfigValue,
                     UpdatedByUserId = request.UpdatedByUserId,
-                    UpdatedAt = DateTime.UtcNow
+                    UpdatedAt = DateTime.UtcNow,
+                    MarketId = user?.MarketId,
+                    Description = config?.Description
                 };
-                await _systemConfigRepository.AddAsync(config, ct);
+                await _systemConfigRepository.AddAsync(newConfig, ct);
             }
             else
             {
@@ -374,11 +400,10 @@ namespace STMM.Business.Services
         }
 
         // --- UTILITY TIERS ---
-        public async Task<List<UtilityTierStep>> GetTiersAsync(string configKey, CancellationToken ct = default)
+        public async Task<List<UtilityTierStep>> GetTiersAsync(int userId, string configKey, CancellationToken ct = default)
         {
-            var config = await _systemConfigRepository.Query()
-                .Where(c => c.ConfigKey == configKey)
-                .FirstOrDefaultAsync(ct);
+            var user = await _userRepository.GetByIdAsync(userId, ct);
+            var config = await _systemConfigRepository.GetSystemConfigByKeyAsync(configKey, user?.MarketId, ct);
 
             if (config == null || string.IsNullOrEmpty(config.ConfigValue))
             {
@@ -396,7 +421,7 @@ namespace STMM.Business.Services
             }
         }
 
-        public async Task<bool> UpdateTiersAsync(UpdateTiersRequest request, CancellationToken ct = default)
+        public async Task<bool> UpdateTiersAsync(int userId, UpdateTiersRequest request, CancellationToken ct = default)
         {
             var valResult = await _updateTiersValidator.ValidateAsync(request, ct);
             if (!valResult.IsValid)
@@ -433,9 +458,8 @@ namespace STMM.Business.Services
 
             var json = JsonSerializer.Serialize(sortedSteps);
 
-            var config = await _systemConfigRepository.Query()
-                .Where(c => c.ConfigKey == request.ConfigKey)
-                .FirstOrDefaultAsync(ct);
+            var user = await _userRepository.GetByIdAsync(userId, ct);
+            var config = await _systemConfigRepository.GetSystemConfigByKeyAsync(request.ConfigKey, user?.MarketId, ct);
 
             if (config == null)
             {
@@ -445,7 +469,8 @@ namespace STMM.Business.Services
                     ConfigValue = json,
                     Description = request.ConfigKey == "electricity_tiers" ? "Biểu giá điện bậc thang" : "Biểu giá nước bậc thang",
                     UpdatedByUserId = request.UpdatedByUserId,
-                    UpdatedAt = DateTime.UtcNow
+                    UpdatedAt = DateTime.UtcNow,
+                    MarketId = user?.MarketId
                 };
                 await _systemConfigRepository.AddAsync(config, ct);
             }

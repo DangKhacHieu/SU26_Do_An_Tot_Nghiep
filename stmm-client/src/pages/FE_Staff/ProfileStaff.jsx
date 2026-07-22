@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import './ProfileStaff.css';
 
-/* ─── SVG Icons ─── */
 const IconUser = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
     strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
@@ -71,11 +70,9 @@ export default function ProfileStaff({ userId, baseUrl, onShowNotification }) {
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('info');
 
-  /* form fields */
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
 
-  /* password fields */
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -86,13 +83,11 @@ export default function ProfileStaff({ userId, baseUrl, onShowNotification }) {
 
   const API_URL = (baseUrl || 'http://localhost:5056').replace(/\/api\/?$/, '') + '/api';
 
-  const addToast = (message, type = 'info') => {
+  const addToast = useCallback((message, type = 'info') => {
     onShowNotification(message, type === 'error' ? 'danger' : type);
-  };
+  }, [onShowNotification]);
 
-  useEffect(() => { fetchProfile(); }, [userId]);
-
-  const fetchProfile = async () => {
+  const fetchProfile = useCallback(async () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('accessToken');
@@ -103,17 +98,21 @@ export default function ProfileStaff({ userId, baseUrl, onShowNotification }) {
       setName(res.data.name || '');
       setPhone(res.data.phone || '');
     } catch (err) {
-      addToast(err.response?.data?.message || 'Không thể tải thông tin hồ sơ.', 'error');
+      addToast(err.response?.data?.detail || err.response?.data?.title || 'Unable to load profile.', 'error');
     } finally {
       setLoading(false);
     }
-  };
+  }, [API_URL, addToast]);
+
+  useEffect(() => {
+    fetchProfile();
+  }, [fetchProfile, userId]);
 
   const handleSaveChanges = async (e) => {
     e.preventDefault();
-    if (!name.trim()) { addToast('Họ và tên không được để trống.', 'error'); return; }
-    if (!phone.trim()) { addToast('Số điện thoại không được để trống.', 'error'); return; }
-    if (!/^\d{9,11}$/.test(phone)) { addToast('Số điện thoại phải chứa từ 9 đến 11 chữ số.', 'error'); return; }
+    if (!name.trim()) { addToast('Full name is required.', 'error'); return; }
+    if (!phone.trim()) { addToast('Phone number is required.', 'error'); return; }
+    if (!/^\d{9,11}$/.test(phone)) { addToast('Phone number must contain 9 to 11 digits.', 'error'); return; }
 
     setSaving(true);
     try {
@@ -128,9 +127,9 @@ export default function ProfileStaff({ userId, baseUrl, onShowNotification }) {
         window.dispatchEvent(new Event('storage'));
       }
       setProfile(res.data);
-      addToast('Cập nhật thông tin cá nhân thành công!', 'success');
+      addToast('Profile updated successfully.', 'success');
     } catch (err) {
-      addToast(err.response?.data?.message || 'Không thể cập nhật thông tin.', 'error');
+      addToast(err.response?.data?.detail || err.response?.data?.title || 'Unable to update profile.', 'error');
     } finally {
       setSaving(false);
     }
@@ -138,10 +137,10 @@ export default function ProfileStaff({ userId, baseUrl, onShowNotification }) {
 
   const handleChangePassword = async (e) => {
     e.preventDefault();
-    if (!currentPassword) { addToast('Vui lòng nhập mật khẩu hiện tại.', 'error'); return; }
-    if (newPassword.length < 6) { addToast('Mật khẩu mới phải có ít nhất 6 ký tự.', 'error'); return; }
-    if (newPassword === currentPassword) { addToast('Mật khẩu mới không được trùng với mật khẩu hiện tại.', 'error'); return; }
-    if (newPassword !== confirmPassword) { addToast('Mật khẩu xác nhận không trùng khớp.', 'error'); return; }
+    if (!currentPassword) { addToast('Enter your current password.', 'error'); return; }
+    if (newPassword.length < 6) { addToast('New password must contain at least 6 characters.', 'error'); return; }
+    if (newPassword === currentPassword) { addToast('New password must differ from the current password.', 'error'); return; }
+    if (newPassword !== confirmPassword) { addToast('Password confirmation does not match.', 'error'); return; }
 
     setPasswordSaving(true);
     try {
@@ -149,10 +148,10 @@ export default function ProfileStaff({ userId, baseUrl, onShowNotification }) {
       await axios.post(`${API_URL}/users/change-password`, { currentPassword, newPassword, confirmPassword }, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      addToast('Đổi mật khẩu thành công!', 'success');
+      addToast('Password changed successfully.', 'success');
       setCurrentPassword(''); setNewPassword(''); setConfirmPassword('');
     } catch (err) {
-      addToast(err.response?.data?.message || 'Đổi mật khẩu thất bại.', 'error');
+      addToast(err.response?.data?.detail || err.response?.data?.title || 'Unable to change password.', 'error');
     } finally {
       setPasswordSaving(false);
     }
@@ -162,7 +161,7 @@ export default function ProfileStaff({ userId, baseUrl, onShowNotification }) {
     return (
       <div className="sp2-loading">
         <div className="sp2-spinner" />
-        <p>Đang tải hồ sơ…</p>
+        <p>Loading profile...</p>
       </div>
     );
   }
@@ -171,11 +170,10 @@ export default function ProfileStaff({ userId, baseUrl, onShowNotification }) {
     ? name.trim().split(/\s+/).map(n => n[0]).slice(-2).join('').toUpperCase()
     : 'S';
 
-  const fmtDate = (d) => d ? new Date(d).toLocaleString('vi-VN', { dateStyle: 'medium', timeStyle: 'short' }) : '—';
+  const fmtDate = (d) => d ? new Date(d).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }) : '-';
 
   return (
     <div className="sp2-page">
-      {/* ═══ HERO BANNER ═══ */}
       <div className="sp2-hero">
         <div className="sp2-hero-top">
           <div className="sp2-hero-body">
@@ -188,14 +186,13 @@ export default function ProfileStaff({ userId, baseUrl, onShowNotification }) {
               <p className="sp2-hero-meta">
                 <span className="sp2-badge sp2-badge-role">{profile?.roleName || 'Staff'}</span>
                 <span className="sp2-badge sp2-badge-active">
-                  <span className="sp2-pulse" />Đang hoạt động
+                  <span className="sp2-pulse" />Active
                 </span>
               </p>
             </div>
           </div>
         </div>
 
-        {/* Quick info chips */}
         <div className="sp2-hero-chips">
           <div className="sp2-chip">
             <IconMail />
@@ -207,56 +204,53 @@ export default function ProfileStaff({ userId, baseUrl, onShowNotification }) {
           </div>
           <div className="sp2-chip">
             <IconClock />
-            <span>Tham gia: {fmtDate(profile?.createdAt)}</span>
+            <span>Joined: {fmtDate(profile?.createdAt)}</span>
           </div>
         </div>
       </div>
 
-      {/* ═══ TABS ═══ */}
       <div className="sp2-tabs">
         <button
           className={`sp2-tab ${activeTab === 'info' ? 'sp2-tab-active' : ''}`}
           onClick={() => setActiveTab('info')}
         >
-          <IconUser /> Thông tin cá nhân
+          <IconUser /> Personal Information
         </button>
         <button
           className={`sp2-tab ${activeTab === 'security' ? 'sp2-tab-active' : ''}`}
           onClick={() => setActiveTab('security')}
         >
-          <IconShield /> Bảo mật & Mật khẩu
+          <IconShield /> Security & Password
         </button>
         <button
           className={`sp2-tab ${activeTab === 'activity' ? 'sp2-tab-active' : ''}`}
           onClick={() => setActiveTab('activity')}
         >
-          <IconClock /> Lịch sử hoạt động
+          <IconClock /> Account Activity
         </button>
       </div>
 
-      {/* ═══ TAB PANELS ═══ */}
       <div className="sp2-panel" key={activeTab}>
 
-        {/* ── INFO TAB ── */}
         {activeTab === 'info' && (
           <form onSubmit={handleSaveChanges} className="sp2-form">
             <div className="sp2-section-title">
-              <IconUser /> Chỉnh sửa thông tin
+              <IconUser /> Edit Information
             </div>
             <div className="sp2-field-grid">
               <div className="sp2-field">
-                <label className="sp2-label">Họ và tên</label>
+                <label className="sp2-label">Full Name</label>
                 <input
                   type="text"
                   className="sp2-input"
                   value={name}
                   onChange={e => setName(e.target.value)}
-                  placeholder="Nhập họ và tên đầy đủ"
+                  placeholder="Enter your full name"
                   required
                 />
               </div>
               <div className="sp2-field">
-                <label className="sp2-label">Số điện thoại</label>
+                <label className="sp2-label">Phone Number</label>
                 <div className="sp2-input-icon-wrap">
                   <span className="sp2-input-icon"><IconPhone /></span>
                   <input
@@ -270,7 +264,7 @@ export default function ProfileStaff({ userId, baseUrl, onShowNotification }) {
                 </div>
               </div>
               <div className="sp2-field">
-                <label className="sp2-label">Địa chỉ Email <span className="sp2-lock-tag">Không thể thay đổi</span></label>
+                <label className="sp2-label">Email Address <span className="sp2-lock-tag">Read only</span></label>
                 <div className="sp2-input-icon-wrap">
                   <span className="sp2-input-icon"><IconMail /></span>
                   <input
@@ -282,7 +276,7 @@ export default function ProfileStaff({ userId, baseUrl, onShowNotification }) {
                 </div>
               </div>
               <div className="sp2-field">
-                <label className="sp2-label">Số CCCD <span className="sp2-lock-tag">Không thể thay đổi</span></label>
+                <label className="sp2-label">Identity Number <span className="sp2-lock-tag">Read only</span></label>
                 <div className="sp2-input-icon-wrap">
                   <span className="sp2-input-icon"><IconCard /></span>
                   <input
@@ -297,30 +291,29 @@ export default function ProfileStaff({ userId, baseUrl, onShowNotification }) {
             <div className="sp2-form-footer">
               <button type="submit" className="sp2-btn-save" disabled={saving}>
                 {saving ? (
-                  <><span className="sp2-btn-spinner" /> Đang lưu…</>
+                  <><span className="sp2-btn-spinner" /> Saving...</>
                 ) : (
-                  <><IconCheck /> Lưu thay đổi</>
+                  <><IconCheck /> Save Changes</>
                 )}
               </button>
             </div>
           </form>
         )}
 
-        {/* ── SECURITY TAB ── */}
         {activeTab === 'security' && (
           <form onSubmit={handleChangePassword} className="sp2-form">
             <div className="sp2-section-title">
-              <IconKey /> Đổi mật khẩu
+              <IconKey /> Change Password
             </div>
             <div className="sp2-security-note">
               <IconShield />
-              <p>Nên thay đổi mật khẩu định kỳ để bảo vệ tài khoản nhân viên của bạn.</p>
+              <p>Use a unique password and update it when you suspect unauthorized access.</p>
             </div>
             <div className="sp2-field-grid mp2-field-grid-1">
               {[
-                { label: 'Mật khẩu hiện tại', val: currentPassword, set: setCurrentPassword, show: showCur, toggle: setShowCur, ac: 'current-password' },
-                { label: 'Mật khẩu mới', val: newPassword, set: setNewPassword, show: showNew, toggle: setShowNew, ac: 'new-password' },
-                { label: 'Xác nhận mật khẩu mới', val: confirmPassword, set: setConfirmPassword, show: showCfm, toggle: setShowCfm, ac: 'new-password' },
+                { label: 'Current Password', val: currentPassword, set: setCurrentPassword, show: showCur, toggle: setShowCur, ac: 'current-password' },
+                { label: 'New Password', val: newPassword, set: setNewPassword, show: showNew, toggle: setShowNew, ac: 'new-password' },
+                { label: 'Confirm New Password', val: confirmPassword, set: setConfirmPassword, show: showCfm, toggle: setShowCfm, ac: 'new-password' },
               ].map(({ label, val, set, show, toggle, ac }) => (
                 <div className="sp2-field" key={label}>
                   <label className="sp2-label">{label}</label>
@@ -348,40 +341,39 @@ export default function ProfileStaff({ userId, baseUrl, onShowNotification }) {
             <div className="sp2-form-footer">
               <button type="submit" className="sp2-btn-save sp2-btn-danger" disabled={passwordSaving}>
                 {passwordSaving ? (
-                  <><span className="sp2-btn-spinner" /> Đang cập nhật…</>
+                  <><span className="sp2-btn-spinner" /> Updating...</>
                 ) : (
-                  <><IconKey /> Cập nhật mật khẩu</>
+                  <><IconKey /> Update Password</>
                 )}
               </button>
             </div>
           </form>
         )}
 
-        {/* ── ACTIVITY TAB ── */}
         {activeTab === 'activity' && (
           <div className="sp2-activity">
-            <div className="sp2-section-title"><IconClock /> Lịch sử hoạt động</div>
+            <div className="sp2-section-title"><IconClock /> Account Activity</div>
             <div className="sp2-timeline">
               <div className="sp2-tl-item">
                 <div className="sp2-tl-dot sp2-tl-dot-green" />
                 <div className="sp2-tl-content">
-                  <span className="sp2-tl-label">Lần đăng nhập gần nhất</span>
+                  <span className="sp2-tl-label">Last Login</span>
                   <span className="sp2-tl-value">
-                    {profile?.lastLogin ? fmtDate(profile.lastLogin) : 'Phiên hiện tại'}
+                    {profile?.lastLogin ? fmtDate(profile.lastLogin) : 'Current session'}
                   </span>
                 </div>
               </div>
               <div className="sp2-tl-item">
                 <div className="sp2-tl-dot sp2-tl-dot-blue" />
                 <div className="sp2-tl-content">
-                  <span className="sp2-tl-label">Ngày tạo tài khoản</span>
+                  <span className="sp2-tl-label">Account Created</span>
                   <span className="sp2-tl-value">{fmtDate(profile?.createdAt)}</span>
                 </div>
               </div>
               <div className="sp2-tl-item">
                 <div className="sp2-tl-dot sp2-tl-dot-purple" />
                 <div className="sp2-tl-content">
-                  <span className="sp2-tl-label">Trạng thái tài khoản</span>
+                  <span className="sp2-tl-label">Account Status</span>
                   <span className="sp2-tl-value sp2-tl-value-active">
                     <span className="sp2-pulse" /> {profile?.status || 'Active'}
                   </span>
@@ -390,7 +382,7 @@ export default function ProfileStaff({ userId, baseUrl, onShowNotification }) {
               <div className="sp2-tl-item">
                 <div className="sp2-tl-dot sp2-tl-dot-gray" />
                 <div className="sp2-tl-content">
-                  <span className="sp2-tl-label">Vai trò hệ thống</span>
+                  <span className="sp2-tl-label">System Role</span>
                   <span className="sp2-tl-value">{profile?.roleName || 'Staff'}</span>
                 </div>
               </div>

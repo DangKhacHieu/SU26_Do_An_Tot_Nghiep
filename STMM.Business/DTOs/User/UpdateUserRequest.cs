@@ -9,5 +9,7 @@ namespace STMM.Business.DTOs.User
         public string Cccd { get; set; } = null!;
         public string Status { get; set; } = null!;
         public string? Password { get; set; }
+        public int? MarketId { get; set; }
     }
 }
+

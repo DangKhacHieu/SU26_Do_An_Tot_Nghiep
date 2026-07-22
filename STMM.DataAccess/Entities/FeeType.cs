@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace STMM.DataAccess.Entities;
@@ -31,4 +31,7 @@ public partial class FeeType
     public virtual ICollection<InvoiceDetail> InvoiceDetails { get; set; } = new List<InvoiceDetail>();
 
     public virtual ICollection<Service> Services { get; set; } = new List<Service>();
+
+    public int? MarketId { get; set; }
+    public virtual Market? Market { get; set; }
 }

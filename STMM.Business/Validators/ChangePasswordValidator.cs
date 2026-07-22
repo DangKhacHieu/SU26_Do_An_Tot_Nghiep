@@ -14,7 +14,10 @@ namespace STMM.Business.Validators
                 .Cascade(CascadeMode.Stop)
                 .NotEmpty().WithMessage("New password is required.")
                 .Matches(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9]).{8,12}$")
-                .WithMessage("New password must be 8-12 characters and include uppercase, lowercase, numbers, and special characters.");
+                .WithMessage("Mật khẩu mới phải từ 8-12 ký tự, bao gồm chữ hoa, chữ thường, số và ký tự đặc biệt");
+
+            RuleFor(x => x.ConfirmPassword)
+                .Equal(x => x.NewPassword).WithMessage("Mật khẩu mới và mật khẩu xác nhận không khớp.");
         }
     }
 }

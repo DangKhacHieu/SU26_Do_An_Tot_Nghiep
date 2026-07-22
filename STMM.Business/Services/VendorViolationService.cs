@@ -28,6 +28,16 @@ namespace STMM.Business.Services
 
         public async Task<PagedResult<ViolationDto>> GetMyViolationsAsync(int vendorId, ViolationQueryParams queryParams, CancellationToken ct = default)
         {
+            if (queryParams.PageNumber <= 0)
+            {
+                throw new System.ArgumentException("Trang (PageNumber) phải lớn hơn 0.");
+            }
+            
+            if (queryParams.PageSize <= 0 || queryParams.PageSize > 100)
+            {
+                throw new System.ArgumentException("Số lượng (PageSize) phải nằm trong khoảng từ 1 đến 100.");
+            }
+
             var (items, totalCount) = await _violationRepository.GetViolationsForVendorPagedAsync(
                 vendorId,
                 queryParams.StallId,
@@ -51,6 +61,11 @@ namespace STMM.Business.Services
 
         public async Task<ViolationDto?> GetViolationDetailAsync(int vendorId, int violationId, CancellationToken ct = default)
         {
+            if (violationId <= 0)
+            {
+                throw new System.ArgumentException("ID biên bản vi phạm không hợp lệ.");
+            }
+
             var violation = await _violationRepository.GetViolationDetailForVendorAsync(violationId, vendorId, ct);
             if (violation == null)
             {

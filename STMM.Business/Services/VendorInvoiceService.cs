@@ -3,6 +3,8 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using STMM.Business.DTOs.Billing;
+using STMM.Business.DTOs.Common;
+using STMM.Business.Exceptions;
 using STMM.Business.Interfaces;
 using STMM.DataAccess.IRepositories;
 
@@ -17,11 +19,24 @@ namespace STMM.Business.Services
             _invoiceRepository = invoiceRepository;
         }
 
-        public async Task<IEnumerable<InvoiceDto>> GetVendorInvoicesAsync(int userId, int? stallId, int? month, int? year, CancellationToken ct = default)
+        public async Task<PagedResult<InvoiceDto>> GetVendorInvoicesAsync(int userId, int? stallId, int? month, int? year, int pageNumber, int pageSize, CancellationToken ct = default)
         {
-            var invoices = await _invoiceRepository.GetInvoicesByVendorAsync(userId, stallId, month, year, ct);
+            // Business Validations
+            if (stallId.HasValue && stallId.Value <= 0)
+                throw new BadRequestException("ID sạp không hợp lệ.");
 
-            return invoices.Select(i => new InvoiceDto
+            if (month.HasValue && (month.Value < 1 || month.Value > 12))
+                throw new BadRequestException("Tháng phải nằm trong khoảng từ 1 đến 12.");
+
+            if (year.HasValue && (year.Value < 2000 || year.Value > System.DateTime.Now.Year + 1))
+                throw new BadRequestException($"Năm không hợp lệ. Vui lòng nhập từ năm 2000 đến {System.DateTime.Now.Year + 1}.");
+
+            if (pageNumber <= 0) pageNumber = 1;
+            if (pageSize <= 0 || pageSize > 100) pageSize = 10;
+
+            var (items, totalCount) = await _invoiceRepository.GetInvoicesByVendorPagedAsync(userId, stallId, month, year, pageNumber, pageSize, ct);
+
+            var dtos = items.Select(i => new InvoiceDto
             {
                 InvoiceId = i.InvoiceId,
                 ContractId = i.ContractId,
@@ -47,6 +62,14 @@ namespace STMM.Business.Services
                     Amount = d.Amount
                 }).ToList()
             });
+
+            return new PagedResult<InvoiceDto>
+            {
+                Items = dtos,
+                TotalCount = totalCount,
+                PageNumber = pageNumber,
+                PageSize = pageSize
+            };
         }
     }
 }

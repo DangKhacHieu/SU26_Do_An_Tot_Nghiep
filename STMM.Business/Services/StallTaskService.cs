@@ -1,6 +1,5 @@
-using AutoMapper;
-using STMM.Business.DTOs.Common;
 using STMM.Business.DTOs.StallTask;
+using STMM.Business.Exceptions;
 using STMM.Business.Interfaces;
 using STMM.DataAccess.Entities;
 using STMM.DataAccess.IRepositories;
@@ -15,36 +14,29 @@ namespace STMM.Business.Services
     public class StallTaskService : IStallTaskService
     {
         private readonly IStallRepository _stallRepository;
-        private readonly IMapper _mapper;
+        private readonly IUserRepository _userRepository;
 
-        public StallTaskService(IStallRepository stallRepository, IMapper mapper)
+        public StallTaskService(
+            IStallRepository stallRepository,
+            IUserRepository userRepository)
         {
             _stallRepository = stallRepository;
-            _mapper = mapper;
+            _userRepository = userRepository;
         }
 
         /// <inheritdoc />
-        public async Task<PagedResult<StallTaskSummaryDto>> GetStallTasksAsync(
-            int staffUserId, StallTaskQueryParams queryParams, CancellationToken ct = default)
+        public async Task<IReadOnlyList<StallTaskSummaryDto>> GetStallTasksAsync(
+            int staffUserId,
+            CancellationToken ct = default)
         {
-            var (stalls, totalCount) = await _stallRepository.GetStallTasksPagedAsync(
+            var marketId = await GetStaffMarketIdAsync(staffUserId, ct);
+            var stalls = await _stallRepository.GetStallTasksAsync(
                 staffUserId,
-                queryParams.Search,
-                queryParams.Filter,
-                queryParams.PageNumber,
-                queryParams.PageSize,
+                marketId,
                 ct);
 
-            // Map to DTOs
             var items = stalls.Select(s =>
             {
-                var taskTypes = s.PendingTaskTypes.ToList();
-                if (s.HasUnpaidInvoice)
-                {
-                    // Unpaid invoice represents a CashCollection task
-                    taskTypes.Insert(0, "CashCollection");
-                }
-
                 return new StallTaskSummaryDto
                 {
                     StallId = s.StallId,
@@ -57,17 +49,38 @@ namespace STMM.Business.Services
                     UnpaidInvoiceCount = s.UnpaidInvoiceCount,
                     UnpaidTotalAmount = s.UnpaidTotalAmount,
                     PendingTaskCount = s.PendingTaskCount,
-                    TaskTypes = taskTypes
+                    TaskTypes = s.PendingTaskTypes.ToList()
                 };
             }).ToList();
 
-            return new PagedResult<StallTaskSummaryDto>
+            return items;
+        }
+
+        public async Task<IEnumerable<StaffStallLookupDto>> GetStallLookupAsync(
+            int staffUserId,
+            string? search,
+            CancellationToken ct = default)
+        {
+            var marketId = await GetStaffMarketIdAsync(staffUserId, ct);
+            var stalls = await _stallRepository.GetStaffStallLookupAsync(marketId, search, 100, ct);
+
+            return stalls.Select(s => new StaffStallLookupDto
             {
-                Items = items,
-                TotalCount = totalCount,
-                PageNumber = queryParams.PageNumber,
-                PageSize = queryParams.PageSize
-            };
+                StallId = s.StallId,
+                StallCode = s.StallCode,
+                AreaName = s.AreaName
+            });
+        }
+
+        private async Task<int> GetStaffMarketIdAsync(int staffUserId, CancellationToken ct)
+        {
+            var staff = await _userRepository.GetUserByIdWithRoleAsync(staffUserId, ct);
+            if (staff?.MarketId == null)
+            {
+                throw new ForbiddenException("The staff account is not assigned to a market.");
+            }
+
+            return staff.MarketId.Value;
         }
     }
 }

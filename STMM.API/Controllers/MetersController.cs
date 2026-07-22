@@ -22,6 +22,13 @@ namespace STMM.API.Controllers
             _meterService = meterService;
         }
 
+        private int? GetUserId()
+        {
+            var claim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (int.TryParse(claim, out int uid)) return uid;
+            return null;
+        }
+
         /// <summary>
         /// Get all active meters for a stall (for Staff).
         /// </summary>
@@ -29,7 +36,7 @@ namespace STMM.API.Controllers
         [Authorize(Roles = "Staff")]
         public async Task<IActionResult> GetMetersByStallId(int stallId, CancellationToken ct)
         {
-            var result = await _readingService.GetMetersByStallIdAsync(stallId, ct);
+            var result = await _readingService.GetMetersByStallIdAsync(GetUserId() ?? 0, stallId, ct);
             return Ok(result);
         }
 
@@ -40,20 +47,20 @@ namespace STMM.API.Controllers
         [Authorize(Roles = "Staff,Manager")]
         public async Task<IActionResult> GetMeterById(int id, CancellationToken ct)
         {
-            var result = await _meterService.GetMeterByIdAsync(id, ct);
+            var userId = GetUserId();
+            var result = await _meterService.GetMeterByIdAsync(id, userId, ct);
             return Ok(result);
         }
 
         /// <summary>
-        /// Get all meters with paging and filters (for Manager).
+        /// Get all meters in the manager's market.
         /// </summary>
         [HttpGet]
         [Authorize(Roles = "Manager")]
-        public async Task<IActionResult> GetMeters([FromQuery] MeterQueryParameters queryParams, CancellationToken ct)
+        public async Task<IActionResult> GetMeters(CancellationToken ct)
         {
-            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var userId = int.Parse(userIdClaim!);
-            var result = await _meterService.GetMetersAsync(queryParams, userId, ct);
+            var userId = GetUserId() ?? 0;
+            var result = await _meterService.GetMetersAsync(userId, ct);
             return Ok(result);
         }
 
@@ -64,8 +71,7 @@ namespace STMM.API.Controllers
         [Authorize(Roles = "Manager")]
         public async Task<IActionResult> CreateMeter([FromBody] CreateMeterRequest request, CancellationToken ct)
         {
-            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var userId = int.Parse(userIdClaim!);
+            var userId = GetUserId() ?? 0;
             var result = await _meterService.CreateMeterAsync(request, userId, ct);
             return CreatedAtAction(nameof(GetMeterById), new { id = result.MeterId }, result);
         }
@@ -77,7 +83,8 @@ namespace STMM.API.Controllers
         [Authorize(Roles = "Manager")]
         public async Task<IActionResult> UpdateMeter(int id, [FromBody] UpdateMeterRequest request, CancellationToken ct)
         {
-            var result = await _meterService.UpdateMeterAsync(id, request, ct);
+            var userId = GetUserId();
+            var result = await _meterService.UpdateMeterAsync(id, request, userId, ct);
             return Ok(result);
         }
 
@@ -88,21 +95,16 @@ namespace STMM.API.Controllers
         [Authorize(Roles = "Manager")]
         public async Task<IActionResult> DeleteMeter(int id, CancellationToken ct)
         {
-            var result = await _meterService.DeleteMeterAsync(id, ct);
+            var userId = GetUserId();
+            var result = await _meterService.DeleteMeterAsync(id, userId, ct);
             return Ok(result);
         }
 
-
-
-        /// <summary>
-        /// Get unassigned active meters (for Manager/Hải's Stall assign usecase).
-        /// </summary>
         [HttpGet("unassigned")]
         [Authorize(Roles = "Manager")]
         public async Task<IActionResult> GetUnassignedMeters([FromQuery] string? type, CancellationToken ct)
         {
-            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var userId = int.Parse(userIdClaim!);
+            var userId = GetUserId() ?? 0;
             var result = await _meterService.GetUnassignedMetersAsync(type, userId, ct);
             return Ok(result);
         }

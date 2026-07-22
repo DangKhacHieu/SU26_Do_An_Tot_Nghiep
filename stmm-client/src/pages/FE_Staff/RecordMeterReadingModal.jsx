@@ -1,31 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import readProblemDetail from '../../utils/readProblemDetail';
 import './RecordMeterReadingModal.css';
 
-const parseErrorMessage = (rawError) => {
-  if (!rawError) return "Có lỗi xảy ra, vui lòng thử lại.";
-  try {
-    const parsed = JSON.parse(rawError);
-    return parsed.detail || parsed.title || rawError;
-  } catch {
-    try {
-      return JSON.parse(`"${rawError}"`);
-    } catch {
-      return rawError.replace(/\\u([0-9a-fA-F]{4})/g, (match, grp) => 
-        String.fromCharCode(parseInt(grp, 16))
-      );
-    }
-  }
-};
-
-export default function RecordMeterReadingModal({ stallId, baseUrl, userId, onClose, onSuccess }) {
+export default function RecordMeterReadingModal({ stallId, baseUrl, onClose, onSuccess }) {
   const [meters, setMeters] = useState([]);
   const [meterId, setMeterId] = useState('');
   const [selectedMeter, setSelectedMeter] = useState(null);
   
-  // Form fields
   const [newValue, setNewValue] = useState('');
   const [recordedAt, setRecordedAt] = useState(() => {
-    // Default to today in YYYY-MM-DD format
     const today = new Date();
     const yyyy = today.getFullYear();
     const mm = String(today.getMonth() + 1).padStart(2, '0');
@@ -35,7 +18,6 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, userId, onCl
   const [imageUrl, setImageUrl] = useState('');
   const [isReplaced, setIsReplaced] = useState(false);
 
-  // UI state
   const [loading, setLoading] = useState(false);
   const [loadingMeters, setLoadingMeters] = useState(false);
   const [imageUploading, setImageUploading] = useState(false);
@@ -43,7 +25,7 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, userId, onCl
   const [submitError, setSubmitError] = useState(null);
   const [formErrors, setFormErrors] = useState({});
   const [dragActive, setDragActive] = useState(false);
-  const fileInputRef = React.useRef(null);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     const fetchMeters = async () => {
@@ -54,7 +36,7 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, userId, onCl
           const data = await response.json();
           setMeters(data);
         } else {
-          console.error("Failed to load meters for stall:", response.statusText);
+          setSubmitError(await readProblemDetail(response, 'Unable to load meters for this stall.'));
         }
       } catch (err) {
         console.error("Error loading meters:", err);
@@ -66,7 +48,6 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, userId, onCl
     fetchMeters();
   }, [stallId, baseUrl]);
 
-  // Handle selected meter changes
   const handleMeterChange = (e) => {
     const id = e.target.value;
     setMeterId(id);
@@ -98,8 +79,7 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, userId, onCl
       });
 
       if (!response.ok) {
-        const text = await response.text();
-        throw new Error(text || 'Failed to upload image.');
+        throw new Error(await readProblemDetail(response, 'Unable to upload image.'));
       }
 
       const result = await response.json();
@@ -152,10 +132,6 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, userId, onCl
     setImageUrl('');
   };
 
-  const handleSetMockImage = () => {
-    setImageUrl('https://images.unsplash.com/photo-1590247813693-5541d1c609fd?q=80&w=600&auto=format&fit=crop');
-  };
-
   const onButtonClick = () => {
     fileInputRef.current.click();
   };
@@ -206,7 +182,7 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, userId, onCl
     };
 
     try {
-      const response = await fetch(`${baseUrl}/api/meter-readings?userId=${userId}`, {
+      const response = await fetch(`${baseUrl}/api/meter-readings`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -215,14 +191,13 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, userId, onCl
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || `Failed to save meter reading: ${response.statusText}`);
+        throw new Error(await readProblemDetail(response, 'Unable to save meter reading.'));
       }
 
       const result = await response.json();
       onSuccess(result);
     } catch (err) {
-      setSubmitError(parseErrorMessage(err.message));
+      setSubmitError(err.message);
     } finally {
       setLoading(false);
     }
@@ -243,7 +218,6 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, userId, onCl
             </div>
           )}
 
-          {/* Select Utility Meter */}
           <div className="form-group">
             <label className="form-label required-field">SELECT UTILITY METER</label>
             <select
@@ -263,7 +237,6 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, userId, onCl
             {formErrors.meterId && <span className="error-text">{formErrors.meterId}</span>}
           </div>
 
-          {/* Previous Value Info */}
           <div className="form-group">
             <label className="form-label">PREVIOUS READING VALUE (READ-ONLY)</label>
             <input
@@ -275,7 +248,6 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, userId, onCl
             />
           </div>
 
-          {/* New Reading Value */}
           <div className="form-group">
             <label className="form-label required-field">NEW READING VALUE</label>
             <input
@@ -289,7 +261,6 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, userId, onCl
             {formErrors.newValue && <span className="error-text">{formErrors.newValue}</span>}
           </div>
 
-          {/* Checkbox Reset/Replacement */}
           <div className="form-group-checkbox">
             <label className="checkbox-container">
               <input
@@ -297,14 +268,13 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, userId, onCl
                 checked={isReplaced}
                 onChange={(e) => setIsReplaced(e.target.checked)}
               />
-              <span className="checkbox-label">⚠️ Thay thế công tơ mới (Reset chỉ số)</span>
+              <span className="checkbox-label">Meter was replaced (reset reading)</span>
             </label>
             <p className="helper-text-checkbox">
-              Tích chọn nếu thay mới công tơ. Hệ thống sẽ cho phép nhập chỉ số mới nhỏ hơn chỉ số cũ và đặt lại chỉ số cũ về 0.
+              Select this only when a physical meter was replaced and its reading restarted from zero.
             </p>
           </div>
 
-          {/* Recorded Date */}
           <div className="form-group">
             <label className="form-label required-field">RECORDED DATE</label>
             <input
@@ -316,20 +286,9 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, userId, onCl
             {formErrors.recordedAt && <span className="error-text">{formErrors.recordedAt}</span>}
           </div>
 
-          {/* Evidence Image Upload */}
           <div className="form-group">
-            <div className="label-with-toggle">
-              <label className="form-label required-field">PHOTO OF METER FACE (EVIDENCE)</label>
-              <button 
-                type="button" 
-                className="btn-text-toggle"
-                onClick={handleSetMockImage}
-              >
-                Use Mock Image URL
-              </button>
-            </div>
+            <label className="form-label required-field">PHOTO OF METER FACE (EVIDENCE)</label>
             
-            {/* Hidden native input */}
             <input 
               ref={fileInputRef}
               type="file" 
@@ -338,7 +297,6 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, userId, onCl
               style={{ display: 'none' }}
             />
 
-            {/* Drag and Drop Zone */}
             <div 
               className={`drag-drop-zone ${dragActive ? 'active' : ''} ${imageUrl ? 'disabled' : ''}`}
               onDragEnter={handleDrag}
@@ -362,7 +320,6 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, userId, onCl
             {imageError && <div className="error-text">Upload Error: {imageError}</div>}
             {formErrors.imageUrl && <span className="error-text">{formErrors.imageUrl}</span>}
 
-            {/* Previews Grid (Single Image Preview) */}
             {imageUrl && (
               <div className="preview-images-grid">
                 <div className="preview-image-card">

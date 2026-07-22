@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using FluentValidation;
+using FluentValidation.AspNetCore;
 using AutoMapper;
 using STMM.DataAccess.Data;
 using STMM.DataAccess.IRepositories;
@@ -9,6 +10,7 @@ using STMM.Business.Interfaces;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using STMM.Business.Services;
 using STMM.API.Middleware;
+using STMM.API.Filters;
 using System.Text.Json.Serialization;
 using System.IO;
 
@@ -76,6 +78,9 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // Register MemoryCache
 builder.Services.AddMemoryCache();
 
+// Register HttpContextAccessor
+builder.Services.AddHttpContextAccessor();
+
 // Register Repositories
 builder.Services.AddScoped<IAreaRepository, AreaRepository>();
 builder.Services.AddScoped<IAuditLogRepository, AuditLogRepository>();
@@ -113,7 +118,8 @@ builder.Services.AddAutoMapper(cfg =>
     cfg.AddProfile<MappingProfile>();
 });
 
-// Register FluentValidation (Scan all validators in the Business project)
+// Register FluentValidation
+builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssembly(typeof(MappingProfile).Assembly);
 
 // Register Business Services
@@ -153,11 +159,19 @@ builder.Services.AddScoped<IVendorInvoiceService, VendorInvoiceService>();
 builder.Services.AddScoped<IMarketService, MarketService>();
 builder.Services.AddScoped<IReviewService, ReviewService>();
 
+// Register MoMo Payment Service
+builder.Services.Configure<STMM.Business.DTOs.Payment.MomoConfig>(builder.Configuration.GetSection("MomoConfig"));
+builder.Services.AddHttpClient();
+builder.Services.AddScoped<IMomoService, MomoService>();
+
 // Register Background Services
 builder.Services.AddHostedService<STMM.API.BackgroundServices.MonthlyBillingWorker>();
 
 // 1. Controllers & JSON Options
-builder.Services.AddControllers()
+builder.Services.AddControllers(options => 
+    {
+        options.Filters.Add<ValidationFilterAttribute>();
+    })
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
@@ -165,6 +179,12 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals;
         options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
     });
+
+// Suppress default API behavior to allow our custom ValidationFilterAttribute to handle it
+builder.Services.Configure<Microsoft.AspNetCore.Mvc.ApiBehaviorOptions>(options =>
+{
+    options.SuppressModelStateInvalidFilter = true;
+});
 
 // 4. CORS Policy (Cho phép React Client kết nối)
 builder.Services.AddCors(options =>

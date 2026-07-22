@@ -1,5 +1,6 @@
 using AutoMapper;
 using FluentValidation;
+using Microsoft.EntityFrameworkCore;
 using STMM.Business.DTOs.Common;
 using STMM.Business.DTOs.Meter;
 using STMM.Business.Exceptions;
@@ -39,20 +40,18 @@ namespace STMM.Business.Services
             _userRepo = userRepo;
         }
 
-        public async Task<PagedResult<MeterDto>> GetMetersAsync(MeterQueryParameters queryParams, int userId, CancellationToken ct = default)
+        public async Task<IReadOnlyList<MeterDto>> GetMetersAsync(
+            int userId,
+            CancellationToken ct = default)
         {
-            var user = await _userRepo.GetByIdAsync(userId, ct);
-            var marketId = user?.MarketId;
+            var user = await _userRepo.Query().Include(u => u.Role).FirstOrDefaultAsync(u => u.UserId == userId, ct);
+            if (user != null && string.Equals(user.Role?.Name, "Manager", StringComparison.OrdinalIgnoreCase) && !user.MarketId.HasValue)
+            {
+                return new List<MeterDto>();
+            }
 
-            var (items, totalCount) = await _meterRepo.GetMetersPagedAsync(
-                queryParams.Type,
-                queryParams.IsActive,
-                queryParams.IsAssigned,
-                queryParams.Search,
-                queryParams.PageNumber,
-                queryParams.PageSize,
-                marketId,
-                ct);
+            var marketId = user?.MarketId;
+            var items = await _meterRepo.GetMetersForMarketAsync(marketId, ct);
 
             var dtos = _mapper.Map<IEnumerable<MeterDto>>(items).ToList();
             foreach (var dto in dtos)
@@ -62,20 +61,35 @@ namespace STMM.Business.Services
                 dto.LastReadingImageUrl = latest?.ImageUrl;
             }
 
-            return new PagedResult<MeterDto>
-            {
-                Items = dtos,
-                TotalCount = totalCount,
-                PageNumber = queryParams.PageNumber,
-                PageSize = queryParams.PageSize
-            };
+            return dtos;
         }
 
-        public async Task<MeterDto?> GetMeterByIdAsync(int id, CancellationToken ct = default)
+        public async Task<MeterDto?> GetMeterByIdAsync(int id, int? currentUserId = null, CancellationToken ct = default)
         {
+            if (currentUserId.HasValue)
+            {
+                var user = await _userRepo.Query().Include(u => u.Role).FirstOrDefaultAsync(u => u.UserId == currentUserId.Value, ct);
+                if (user != null && string.Equals(user.Role?.Name, "Manager", StringComparison.OrdinalIgnoreCase) && !user.MarketId.HasValue)
+                {
+                    throw new NotFoundException($"Meter with ID {id} not found.");
+                }
+            }
+
             var meter = await _meterRepo.GetMeterWithStallAsync(id, ct);
             if (meter == null)
                 throw new NotFoundException($"Meter with ID {id} not found.");
+
+            if (currentUserId.HasValue)
+            {
+                var user = await _userRepo.Query().Include(u => u.Role).FirstOrDefaultAsync(u => u.UserId == currentUserId.Value, ct);
+                if (user != null && string.Equals(user.Role?.Name, "Manager", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (meter.MarketId != user.MarketId)
+                    {
+                        throw new NotFoundException($"Meter with ID {id} not found.");
+                    }
+                }
+            }
 
             var dto = _mapper.Map<MeterDto>(meter);
             var latest = await _readingRepo.GetLatestReadingByMeterIdAsync(id, ct);
@@ -83,6 +97,17 @@ namespace STMM.Business.Services
             dto.LastReadingImageUrl = latest?.ImageUrl;
 
             return dto;
+        }
+
+        private async Task<int> GetUserMarketIdAsync(int userId, CancellationToken ct)
+        {
+            var user = await _userRepo.GetUserByIdWithRoleAsync(userId, ct);
+            if (user?.MarketId == null)
+            {
+                throw new ForbiddenException("The account is not assigned to a market.");
+            }
+
+            return user.MarketId.Value;
         }
 
         public async Task<MeterDto> CreateMeterAsync(CreateMeterRequest request, int userId, CancellationToken ct = default)
@@ -96,8 +121,9 @@ namespace STMM.Business.Services
             var user = await _userRepo.GetByIdAsync(userId, ct);
             if (user == null || user.MarketId == null)
             {
-                throw new BadRequestException("Manager does not belong to any market.");
+                throw new BadRequestException("Tài khoản Quản lý chưa sở hữu chợ nào được phê duyệt. Bạn chỉ có thể tạo công tơ mới sau khi chợ của bạn được phê duyệt.");
             }
+            var marketId = user.MarketId.Value;
 
             // Check SerialNumber unique
             var exists = await _meterRepo.ExistsSerialNumberAsync(request.SerialNumber.Trim(), null, ct);
@@ -113,7 +139,7 @@ namespace STMM.Business.Services
                 IsActive = true,
                 StallId = null,
                 InstalledAt = null,
-                MarketId = user.MarketId.Value
+                MarketId = marketId
             };
 
             await _meterRepo.AddAsync(meter, ct);
@@ -122,7 +148,7 @@ namespace STMM.Business.Services
             return _mapper.Map<MeterDto>(meter);
         }
 
-        public async Task<MeterDto> UpdateMeterAsync(int id, UpdateMeterRequest request, CancellationToken ct = default)
+        public async Task<MeterDto> UpdateMeterAsync(int id, UpdateMeterRequest request, int? currentUserId = null, CancellationToken ct = default)
         {
             var validationResult = await _updateValidator.ValidateAsync(request, ct);
             if (!validationResult.IsValid)
@@ -130,9 +156,31 @@ namespace STMM.Business.Services
                 throw new BadRequestException(string.Join("; ", validationResult.Errors.Select(e => e.ErrorMessage)));
             }
 
-            var meter = await _meterRepo.GetByIdAsync(id, ct);
+            var meter = await _meterRepo.GetMeterWithStallAsync(id, ct);
             if (meter == null)
                 throw new NotFoundException($"Meter with ID {id} not found.");
+
+            if (currentUserId.HasValue)
+            {
+                var user = await _userRepo.Query().Include(u => u.Role).FirstOrDefaultAsync(u => u.UserId == currentUserId.Value, ct);
+                if (user != null && string.Equals(user.Role?.Name, "Manager", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (!user.MarketId.HasValue || meter.MarketId != user.MarketId.Value)
+                    {
+                        throw new NotFoundException($"Meter with ID {id} not found.");
+                    }
+                }
+            }
+
+            if (meter.StallId.HasValue && request.Type.Trim() != meter.Type)
+            {
+                throw new BadRequestException("The type of a meter assigned to a stall cannot be changed.");
+            }
+
+            if (meter.StallId.HasValue && !request.IsActive)
+            {
+                throw new BadRequestException("A meter assigned to a stall cannot be deactivated. Replace or unassign it first.");
+            }
 
             // Check SerialNumber unique
             var exists = await _meterRepo.ExistsSerialNumberAsync(request.SerialNumber.Trim(), id, ct);
@@ -151,11 +199,23 @@ namespace STMM.Business.Services
             return _mapper.Map<MeterDto>(meter);
         }
 
-        public async Task<bool> DeleteMeterAsync(int id, CancellationToken ct = default)
+        public async Task<bool> DeleteMeterAsync(int id, int? currentUserId = null, CancellationToken ct = default)
         {
             var meter = await _meterRepo.GetMeterWithReadingsAsync(id, ct);
             if (meter == null)
                 throw new NotFoundException($"Meter with ID {id} not found.");
+
+            if (currentUserId.HasValue)
+            {
+                var user = await _userRepo.Query().Include(u => u.Role).FirstOrDefaultAsync(u => u.UserId == currentUserId.Value, ct);
+                if (user != null && string.Equals(user.Role?.Name, "Manager", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (!user.MarketId.HasValue || meter.MarketId != user.MarketId.Value)
+                    {
+                        throw new NotFoundException($"Meter with ID {id} not found.");
+                    }
+                }
+            }
 
             if (meter.StallId != null)
             {
@@ -172,11 +232,14 @@ namespace STMM.Business.Services
             return true;
         }
 
-
-
         public async Task<IEnumerable<MeterDto>> GetUnassignedMetersAsync(string? type, int userId, CancellationToken ct = default)
         {
-            var user = await _userRepo.GetByIdAsync(userId, ct);
+            var user = await _userRepo.Query().Include(u => u.Role).FirstOrDefaultAsync(u => u.UserId == userId, ct);
+            if (user != null && string.Equals(user.Role?.Name, "Manager", StringComparison.OrdinalIgnoreCase) && !user.MarketId.HasValue)
+            {
+                return new List<MeterDto>();
+            }
+
             var marketId = user?.MarketId;
 
             var meters = await _meterRepo.GetUnassignedMetersAsync(type, marketId, ct);

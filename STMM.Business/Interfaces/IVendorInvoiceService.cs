@@ -1,12 +1,12 @@
-using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using STMM.Business.DTOs.Billing;
+using STMM.Business.DTOs.Common;
 
 namespace STMM.Business.Interfaces
 {
     public interface IVendorInvoiceService
     {
-        Task<IEnumerable<InvoiceDto>> GetVendorInvoicesAsync(int userId, int? stallId, int? month, int? year, CancellationToken ct = default);
+        Task<PagedResult<InvoiceDto>> GetVendorInvoicesAsync(int userId, int? stallId, int? month, int? year, int pageNumber, int pageSize, CancellationToken ct = default);
     }
 }

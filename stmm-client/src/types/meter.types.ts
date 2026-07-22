@@ -50,14 +50,3 @@ export interface UpdateMeterRequest {
   type: string;
   isActive: boolean;
 }
-
-
-
-export interface MeterQueryParameters {
-  pageNumber: number;
-  pageSize: number;
-  type?: string;
-  isActive?: boolean;
-  isAssigned?: boolean;
-  search?: string;
-}

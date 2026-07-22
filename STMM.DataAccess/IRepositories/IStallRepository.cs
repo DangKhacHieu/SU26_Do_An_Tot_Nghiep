@@ -5,7 +5,13 @@ using System.Threading.Tasks;
 
 namespace STMM.DataAccess.IRepositories
 {
-    public record StallChecklistQueryResult(int StallId, string StallCode, string StallStatus, bool HasReadingThisMonth);
+    public record StallChecklistQueryResult(
+        int StallId,
+        string StallCode,
+        string StallStatus,
+        bool HasElectricityMeter,
+        bool HasWaterMeter,
+        bool HasReadingThisMonth);
 
     public record StallTaskSummaryQueryResult(
         int StallId,
@@ -21,16 +27,28 @@ namespace STMM.DataAccess.IRepositories
         IEnumerable<string> PendingTaskTypes
     );
 
+    public record StaffStallLookupQueryResult(int StallId, string StallCode, string AreaName);
+
     public interface IStallRepository : IBaseRepository<Stall>
     {
-        Task<(IEnumerable<StallTaskSummaryQueryResult> Items, int TotalCount)> GetStallTasksPagedAsync(
+        Task<IReadOnlyList<StallTaskSummaryQueryResult>> GetStallTasksAsync(
             int staffUserId,
-            string? search,
-            string? filter,
-            int pageNumber,
-            int pageSize,
+            int marketId,
             CancellationToken ct = default);
 
-        Task<List<StallChecklistQueryResult>> GetStallsChecklistByAreaAsync(int areaId, int year, int month, CancellationToken ct = default);
+        Task<IEnumerable<StaffStallLookupQueryResult>> GetStaffStallLookupAsync(
+            int marketId,
+            string? search,
+            int limit,
+            CancellationToken ct = default);
+
+        Task<Stall?> GetStallForMarketAsync(int stallId, int marketId, CancellationToken ct = default);
+
+        Task<List<StallChecklistQueryResult>> GetStallsChecklistByAreaAsync(
+            int areaId,
+            DateOnly effectiveDate,
+            int year,
+            int month,
+            CancellationToken ct = default);
     }
 }

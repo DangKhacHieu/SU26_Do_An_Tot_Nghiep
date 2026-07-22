@@ -33,23 +33,19 @@ namespace STMM.API.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetMyTasks(
-            [FromQuery] int userId, // staffUserId
-            [FromQuery] TaskQueryParams queryParams,
-            CancellationToken ct)
+        public async Task<IActionResult> GetMyTasks(CancellationToken ct)
         {
-            userId = GetUserId();
-            var result = await _staffTaskService.GetTasksForStaffAsync(userId, queryParams, ct);
+            var userId = GetUserId();
+            var result = await _staffTaskService.GetTasksForStaffAsync(userId, ct);
             return Ok(result);
         }
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetTaskById(
             int id,
-            [FromQuery] int userId, // staffUserId
             CancellationToken ct)
         {
-            userId = GetUserId();
+            var userId = GetUserId();
             var result = await _staffTaskService.GetTaskByIdForStaffAsync(id, userId, ct);
             return Ok(result);
         }
@@ -57,10 +53,9 @@ namespace STMM.API.Controllers
         [HttpGet("{id}/stalls")]
         public async Task<IActionResult> GetTaskStalls(
             int id,
-            [FromQuery] int userId, // staffUserId
             CancellationToken ct)
         {
-            userId = GetUserId();
+            var userId = GetUserId();
             var result = await _staffTaskService.GetStallsForUtilityTaskAsync(id, userId, ct);
             return Ok(result);
         }
@@ -68,16 +63,14 @@ namespace STMM.API.Controllers
         [HttpPatch("{id}/complete")]
         public async Task<IActionResult> CompleteTask(
             int id,
-            [FromQuery] int userId, // staffUserId
             [FromBody] CompleteTaskRequest request,
             CancellationToken ct)
         {
-            userId = GetUserId();
+            var userId = GetUserId();
             var result = await _staffTaskService.CompleteTaskAsync(userId, id, request, ct);
 
-            // Ghi nhật ký hoạt động
             var ipAddress = Request.HttpContext.Connection.RemoteIpAddress?.ToString();
-            await _auditLogService.LogAsync(userId, $"Hoàn thành tác vụ sửa chữa/hỗ trợ kỹ thuật (Tác vụ ID: {id})", ipAddress, ct);
+            await _auditLogService.LogAsync(userId, $"Completed staff task (Task ID: {id})", ipAddress, ct);
 
             return Ok(result);
         }

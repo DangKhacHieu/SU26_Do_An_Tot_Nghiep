@@ -73,15 +73,22 @@ namespace STMM.Business.DTOs.Billing
         public DateTime? CreatedAt { get; set; }
         public string StallCode { get; set; } = null!;
         public string TenantName { get; set; } = null!;
+        public string? VendorBankName { get; set; }
+        public string? VendorBankAccount { get; set; }
         public int InvoiceMonth { get; set; }
         public int InvoiceYear { get; set; }
         public decimal InvoiceTotalAmount { get; set; }
+        public string? InvoiceStatus { get; set; }
     }
 
     public class ResolveDisputeRequest
     {
         public bool Approve { get; set; }
         public string? Feedback { get; set; }
+        public bool IsRefund { get; set; }
+        public decimal? RefundAmount { get; set; }
+        public string? RefundMethod { get; set; } // "Transfer" or "Cash"
+        public string? TransactionCode { get; set; }
     }
 
     public class SendDebtNotificationRequest

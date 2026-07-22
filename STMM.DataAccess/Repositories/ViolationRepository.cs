@@ -11,36 +11,16 @@ namespace STMM.DataAccess.Repositories
         {
         }
 
-        public async Task<(IEnumerable<Violation> Items, int TotalCount)> GetViolationsPagedAsync(
+        public async Task<IReadOnlyList<Violation>> GetViolationsForStaffAsync(
             int userId,
-            string? status,
-            bool sortDescending,
-            int pageNumber,
-            int pageSize,
             CancellationToken ct = default)
         {
-            var query = _context.Violations
+            return await _context.Violations
                 .Include(v => v.Stall)
-                .Where(v => v.CreatedByUserId == userId);
-
-            if (!string.IsNullOrWhiteSpace(status))
-            {
-                query = query.Where(v => v.Status == status);
-            }
-
-            var totalCount = await query.CountAsync(ct);
-
-            query = sortDescending
-                ? query.OrderByDescending(v => v.CreatedAt)
-                : query.OrderBy(v => v.CreatedAt);
-
-            var items = await query
-                .Skip((pageNumber - 1) * pageSize)
-                .Take(pageSize)
+                .Where(v => v.CreatedByUserId == userId)
+                .OrderByDescending(v => v.CreatedAt)
                 .AsNoTracking()
                 .ToListAsync(ct);
-
-            return (items, totalCount);
         }
 
         public async Task<Violation?> GetViolationWithStallAsync(int id, int userId, CancellationToken ct = default)
@@ -52,6 +32,7 @@ namespace STMM.DataAccess.Repositories
         }
 
         public async Task<(IEnumerable<Violation> Items, int TotalCount)> GetViolationsPagedForManagerAsync(
+            int? marketId,
             string? status,
             string? searchTerm,
             bool sortDescending,
@@ -59,11 +40,16 @@ namespace STMM.DataAccess.Repositories
             int pageSize,
             CancellationToken ct = default)
         {
+            if (marketId == null)
+            {
+                return (new List<Violation>(), 0);
+            }
+
             var query = _context.Violations
                 .Include(v => v.Stall)
                 .Include(v => v.ViolationType)
                 .Include(v => v.CreatedByUser)
-                .AsQueryable();
+                .Where(v => v.Stall.Area.MarketId == marketId.Value);
 
             if (!string.IsNullOrWhiteSpace(status))
             {
@@ -76,17 +62,14 @@ namespace STMM.DataAccess.Repositories
                 var term = searchTerm.Trim().ToLower();
                 query = query.Where(v => v.Title.ToLower().Contains(term)
                                          || v.Description.ToLower().Contains(term)
-                                         || v.Stall.Code.ToLower().Contains(term)
-                                         || v.ViolationType.Name.ToLower().Contains(term)
-                                         || (v.CreatedByUser != null && v.CreatedByUser.Name.ToLower().Contains(term)));
+                                         || v.Stall.Code.ToLower().Contains(term));
             }
-
-            var totalCount = await query.CountAsync(ct);
 
             query = sortDescending
                 ? query.OrderByDescending(v => v.CreatedAt)
                 : query.OrderBy(v => v.CreatedAt);
 
+            var totalCount = await query.CountAsync(ct);
             var items = await query
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
@@ -96,15 +79,19 @@ namespace STMM.DataAccess.Repositories
             return (items, totalCount);
         }
 
-        public async Task<Violation?> GetViolationDetailsForManagerAsync(int id, CancellationToken ct = default)
+        public async Task<Violation?> GetViolationDetailsForManagerAsync(int id, int? marketId, CancellationToken ct = default)
         {
+            if (marketId == null) return null;
+
             return await _context.Violations
                 .Include(v => v.Stall)
                 .Include(v => v.ViolationType)
                 .Include(v => v.CreatedByUser)
                 .Include(v => v.Requests)
                 .AsNoTracking()
-                .FirstOrDefaultAsync(v => v.ViolationId == id, ct);
+                .FirstOrDefaultAsync(v =>
+                    v.ViolationId == id && v.Stall.Area.MarketId == marketId.Value,
+                    ct);
         }
 
         public async Task<bool> SimulateViolationAppealAsync(int violationId, CancellationToken ct = default)
@@ -224,6 +211,46 @@ namespace STMM.DataAccess.Repositories
                         c.StartDate <= DateOnly.FromDateTime(v.CreatedAt.Value) &&
                         c.EndDate >= DateOnly.FromDateTime(v.CreatedAt.Value)
                     ), ct);
+        }
+
+        public async Task<decimal> GetTotalFinesAsync(DateTime startDate, DateTime endDate, int? marketId = null, CancellationToken ct = default)
+        {
+            var query = _context.Violations.Where(v => v.CreatedAt >= startDate && v.CreatedAt < endDate && v.Status != "Approved");
+            if (marketId.HasValue)
+            {
+                query = query.Where(v => v.Stall.Area.MarketId == marketId.Value);
+            }
+            return await query.SumAsync(v => (decimal)(v.FineAmount ?? 0), ct);
+        }
+
+        public async Task<IEnumerable<Violation>> GetAllViolationsWithDetailsAsync(int? marketId = null, CancellationToken ct = default)
+        {
+            var query = _context.Violations
+                .Include(v => v.Stall)
+                .Include(v => v.ViolationType)
+                .AsQueryable();
+
+            if (marketId.HasValue)
+            {
+                query = query.Where(v => v.Stall.Area.MarketId == marketId.Value);
+            }
+
+            return await query
+                .OrderByDescending(v => v.ViolationId)
+                .ToListAsync(ct);
+        }
+
+        public async Task<bool> IsViolationTypeInUseAsync(int violationTypeId, CancellationToken ct = default)
+        {
+            return await _context.Violations.AnyAsync(v => v.ViolationTypeId == violationTypeId, ct);
+        }
+
+        public async Task<List<Violation>> GetUnpaidViolationsByStallIdAsync(int stallId, CancellationToken ct = default)
+        {
+            return await _context.Violations
+                .Include(v => v.ViolationType)
+                .Where(v => v.StallId == stallId && v.Status == "Unpaid")
+                .ToListAsync(ct);
         }
     }
 }

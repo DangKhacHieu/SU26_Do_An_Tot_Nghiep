@@ -20,7 +20,7 @@ namespace STMM.API.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetVendorInvoices([FromQuery] int? stallId, [FromQuery] int? month, [FromQuery] int? year, CancellationToken ct)
+        public async Task<IActionResult> GetVendorInvoices([FromQuery] int? stallId, [FromQuery] int? month, [FromQuery] int? year, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10, CancellationToken ct = default)
         {
             var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (!int.TryParse(userIdStr, out int userId))
@@ -28,7 +28,7 @@ namespace STMM.API.Controllers
                 return Unauthorized(new { message = "Không xác định được danh tính người dùng." });
             }
 
-            var invoices = await _vendorInvoiceService.GetVendorInvoicesAsync(userId, stallId, month, year, ct);
+            var invoices = await _vendorInvoiceService.GetVendorInvoicesAsync(userId, stallId, month, year, pageNumber, pageSize, ct);
             return Ok(invoices);
         }
     }

@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import readProblemDetail from '../../utils/readProblemDetail';
 import './MeterReadingHistory.css';
 
-export default function MeterReadingHistory({ stallId, baseUrl, userId, onViewMeterDetail, onOpenRecordModal, onBack }) {
+export default function MeterReadingHistory({ stallId, baseUrl, onViewMeterDetail, onOpenRecordModal, onBack }) {
   const [readings, setReadings] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
@@ -11,7 +12,7 @@ export default function MeterReadingHistory({ stallId, baseUrl, userId, onViewMe
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const fetchReadings = async () => {
+  const fetchReadings = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -22,7 +23,7 @@ export default function MeterReadingHistory({ stallId, baseUrl, userId, onViewMe
 
       const response = await fetch(url);
       if (!response.ok) {
-        throw new Error(`Failed to fetch meter readings: ${response.statusText}`);
+        throw new Error(await readProblemDetail(response, 'Unable to load meter readings.'));
       }
       const data = await response.json();
       setReadings(data.items || []);
@@ -34,11 +35,11 @@ export default function MeterReadingHistory({ stallId, baseUrl, userId, onViewMe
     } finally {
       setLoading(false);
     }
-  };
+  }, [baseUrl, meterType, pageNumber, pageSize, stallId]);
 
   useEffect(() => {
     fetchReadings();
-  }, [stallId, pageNumber, meterType]);
+  }, [fetchReadings]);
 
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
@@ -51,7 +52,6 @@ export default function MeterReadingHistory({ stallId, baseUrl, userId, onViewMe
 
   return (
     <div className="violation-list-container">
-      {/* Toolbar: Filters + CTA */}
       <div className="toolbar">
         <div className="toolbar-left">
           <select
@@ -79,7 +79,6 @@ export default function MeterReadingHistory({ stallId, baseUrl, userId, onViewMe
         </div>
       </div>
 
-      {/* Content Table card */}
       {loading ? (
         <div className="loading-state">Loading history...</div>
       ) : error ? (

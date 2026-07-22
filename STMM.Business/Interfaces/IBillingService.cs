@@ -7,10 +7,13 @@ namespace STMM.Business.Interfaces
 {
     public interface IBillingService
     {
+        Task<InvoiceDto> GetInvoiceDetailAsync(int invoiceId, CancellationToken ct = default);
+        Task<InvoiceDto> GetInvoiceDetailForAccountantAsync(int invoiceId, int accountantUserId, CancellationToken ct = default);
+
         /// <summary>
         /// Get invoice detail including InvoiceDetails, FeeType, Stall, and Vendor information.
         /// </summary>
-        Task<InvoiceDto> GetInvoiceDetailAsync(int invoiceId, CancellationToken ct = default);
+        Task<InvoiceDto> GetInvoiceDetailAsync(int staffUserId, int invoiceId, CancellationToken ct = default);
 
         /// <summary>
         /// Record cash payment collected at the stall.
@@ -21,7 +24,7 @@ namespace STMM.Business.Interfaces
         /// <summary>
         /// Get list of unpaid invoices for a specific stall.
         /// </summary>
-        Task<List<UnpaidInvoiceSummaryDto>> GetUnpaidInvoicesByStallAsync(int stallId, CancellationToken ct = default);
+        Task<List<UnpaidInvoiceSummaryDto>> GetUnpaidInvoicesByStallAsync(int staffUserId, int stallId, CancellationToken ct = default);
 
         /// <summary>
         /// Get a list of invoices with filters for Month, Year, Status, and search term.
@@ -31,12 +34,12 @@ namespace STMM.Business.Interfaces
         /// <summary>
         /// Bulk approves invoices and transitions their status from Draft to Unpaid (Issued).
         /// </summary>
-        Task<bool> BulkApproveInvoicesAsync(BulkApproveInvoicesRequest request, CancellationToken ct = default);
+        Task<bool> BulkApproveInvoicesAsync(BulkApproveInvoicesRequest request, int accountantUserId, CancellationToken ct = default);
 
         /// <summary>
         /// Creates a manual ad-hoc invoice (e.g. fines, asset compensation, liquidation fees) for a stall.
         /// </summary>
-        Task<InvoiceDto> CreateAdHocInvoiceAsync(CreateAdHocInvoiceRequest request, CancellationToken ct = default);
+        Task<InvoiceDto> CreateAdHocInvoiceAsync(CreateAdHocInvoiceRequest request, int accountantUserId, CancellationToken ct = default);
 
         /// <summary>
         /// Adjusts or back-fills a meter reading and automatically updates/recalculates the corresponding invoice.
@@ -61,7 +64,7 @@ namespace STMM.Business.Interfaces
         /// <summary>
         /// Retrieves detailed unpaid invoices and violations for a specific stall.
         /// </summary>
-        Task<StallDebtDetailDto> GetStallDebtDetailsAsync(int stallId, CancellationToken ct = default);
+        Task<StallDebtDetailDto> GetStallDebtDetailsAsync(int stallId, int accountantUserId, CancellationToken ct = default);
 
         /// <summary>
         /// Sends a debt notification reminder to the vendor of a stall.
@@ -82,5 +85,10 @@ namespace STMM.Business.Interfaces
         /// Tự động lập hóa đơn nháp kỳ hàng tháng cho tất cả các sạp có hợp đồng hoạt động và phí dịch vụ đăng ký tương ứng.
         /// </summary>
         Task<int> AutoGenerateMonthlyInvoicesAsync(int month, int year, CancellationToken ct = default);
+
+        /// <summary>
+        /// Hủy hóa đơn (Chỉ áp dụng cho hóa đơn Draft hoặc Unpaid).
+        /// </summary>
+        Task<bool> CancelInvoiceAsync(int invoiceId, CancelInvoiceRequest request, int accountantUserId, CancellationToken ct = default);
     }
 }

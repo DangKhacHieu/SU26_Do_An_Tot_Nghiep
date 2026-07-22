@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { showError } from '../../../utils/alert';
 import VendorViolationDetail from './VendorViolationDetail';
 
 const VendorViolationList = ({ stallId }) => {
     const [violations, setViolations] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('All');
     
@@ -35,7 +35,7 @@ const VendorViolationList = ({ stallId }) => {
             setViolations(response.data.items || []);
             setTotalCount(response.data.totalCount || 0);
         } catch (err) {
-            setError('Không thể tải danh sách biên bản vi phạm.');
+            showError('Thất bại', 'Không thể tải danh sách biên bản vi phạm.');
             console.error(err);
         } finally {
             setLoading(false);
@@ -113,8 +113,6 @@ const VendorViolationList = ({ stallId }) => {
                     </select>
                 </div>
             </div>
-
-            {error && <div style={{ color: 'red', marginBottom: '16px', fontSize: '14px' }}>{error}</div>}
 
             <div style={{ border: '1px solid #e5e7eb', borderRadius: '8px', overflow: 'hidden' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>

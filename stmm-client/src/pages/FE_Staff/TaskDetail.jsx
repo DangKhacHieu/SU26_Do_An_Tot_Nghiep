@@ -1,190 +1,162 @@
-import React, { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { getAuthHeaders } from '../../utils/authHeaders';
 import { TASK_STATUS, TASK_TYPE } from '../../constants/taskEnums';
 import TaskInfoCard from './components/TaskInfoCard';
 import QuotationPanel from './components/QuotationPanel';
 import UtilityChecklist from './components/UtilityChecklist';
 import CompleteTaskForm from './components/CompleteTaskForm';
+import RepairProgressStepper from './components/RepairProgressStepper';
 import './TaskDetail.css';
 
-export default function TaskDetail({ taskId, userId, baseUrl, onBack, onShowNotification, onViewIssueDetails }) {
+export default function TaskDetail({ taskId, baseUrl, onBack, onShowNotification, onViewIssueDetails }) {
   const [task, setTask] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [forbidden, setForbidden] = useState(false);
   const [utilityProgress, setUtilityProgress] = useState({ completed: 0, total: 0 });
+  const handleUtilityProgress = useCallback((completed, total) => {
+    setUtilityProgress({ completed, total });
+  }, []);
 
-  const fetchTaskDetails = async () => {
+  const fetchTaskDetails = useCallback(async () => {
     setLoading(true);
     setError(null);
-    setForbidden(false);
+
     try {
-      const response = await fetch(`${baseUrl}/api/staff/tasks/${taskId}?userId=${userId}`);
-      if (response.status === 403) {
-        setForbidden(true);
-        return;
-      }
+      const response = await fetch(`${baseUrl}/api/staff/tasks/${taskId}`, { headers: getAuthHeaders() });
       if (!response.ok) {
-        throw new Error(response.status === 404 ? 'Task not found.' : `Failed to load task: ${response.statusText}`);
+        let problem = null;
+        try {
+          problem = await response.json();
+        } catch { problem = null; }
+
+        throw new Error(response.status === 404
+          ? 'Task not found or no longer assigned to you.'
+          : problem?.detail || problem?.title || 'Failed to load task details.');
       }
-      const data = await response.json();
-      setTask(data);
-    } catch (err) {
-      console.error('Error loading task details:', err);
-      setError(err.message);
+
+      setTask(await response.json());
+    } catch (fetchError) {
+      console.error('Error loading task details:', fetchError);
+      setError(fetchError.message);
+      setTask(null);
     } finally {
       setLoading(false);
     }
-  };
+  }, [baseUrl, taskId]);
 
   useEffect(() => {
     fetchTaskDetails();
-  }, [taskId, userId]);
-
-  if (forbidden) {
-    return (
-      <div className="task-detail-container">
-        <div className="breadcrumb-path">
-          <span>Dashboard</span> &gt; <span>Daily Tasks</span> &gt; <span className="active-path">Access Error</span>
-        </div>
-        <div className="error-state">
-          <span className="error-icon" style={{ fontSize: '48px' }}>🚫</span>
-          <h3>Access Denied</h3>
-          <p className="error-message">You are not assigned to perform this task.</p>
-          <button onClick={onBack} className="btn-primary-dark">Back to List</button>
-        </div>
-      </div>
-    );
-  }
+  }, [fetchTaskDetails]);
 
   if (loading) {
-    return (
-      <div className="task-detail-container">
-        <div className="loading-state">
-          <span className="spinner"></span> Loading task details...
-        </div>
-      </div>
-    );
+    return <div className="task-detail-container"><div className="loading-state"><span className="spinner" /> Loading task details...</div></div>;
   }
 
   if (error || !task) {
     return (
       <div className="task-detail-container">
         <div className="error-state">
-          <h3>An error occurred</h3>
-          <p className="error-message">{error || 'Task data not found.'}</p>
-          <div style={{ display: 'flex', gap: '10px' }}>
+          <h3>Task details are unavailable</h3>
+          <p className="error-message">{error || 'Task data was not found.'}</p>
+          <div className="task-detail-error-actions">
             <button onClick={fetchTaskDetails} className="btn-primary-dark">Retry</button>
-            <button onClick={onBack} className="btn-secondary">Back</button>
+            <button onClick={onBack} className="btn-secondary">Back to List</button>
           </div>
         </div>
       </div>
     );
   }
 
-  // Evaluate complete form display condition based on Business Rules in revised plan
   const shouldShowCompleteForm = () => {
-    if (task.status === TASK_STATUS.COMPLETED || task.status === TASK_STATUS.CANCELLED) {
-      return false;
-    }
+    if ([TASK_STATUS.COMPLETED, TASK_STATUS.CANCELLED].includes(task.status)) return false;
 
     if (task.taskType === TASK_TYPE.REPAIR) {
-      const isLinkedToIssueOrRequest = task.requestId !== null || task.issueId !== null;
-      if (isLinkedToIssueOrRequest) {
-        // Repair có RequestId/IssueId -> chỉ hiện khi status === 'In_Progress'
-        return task.status === TASK_STATUS.IN_PROGRESS;
-      } else {
-        // Repair không có link -> hiện khi status === 'Pending' hoặc 'In_Progress'
-        return task.status === TASK_STATUS.PENDING || task.status === TASK_STATUS.IN_PROGRESS;
-      }
+      const isLinked = task.requestId !== null || task.issueId !== null;
+      return isLinked
+        ? task.status === TASK_STATUS.IN_PROGRESS
+        : [TASK_STATUS.PENDING, TASK_STATUS.IN_PROGRESS].includes(task.status);
     }
 
-    // Maintenance, UtilityReading, CashCollection -> hiện khi status === 'Pending' hoặc 'In_Progress'
-    return task.status === TASK_STATUS.PENDING || task.status === TASK_STATUS.IN_PROGRESS;
+    return [TASK_STATUS.PENDING, TASK_STATUS.IN_PROGRESS].includes(task.status);
   };
 
   return (
-    <div className="task-detail-container">
+    <main className="task-detail-container">
       <div className="breadcrumb-path">
-        <span onClick={onBack} className="link-path" style={{ cursor: 'pointer' }}>Dashboard</span> &gt; 
-        <span onClick={onBack} className="link-path" style={{ cursor: 'pointer' }}> Daily Tasks</span> &gt; 
-        <span className="active-path"> Details {task.taskId}</span>
+        <button type="button" onClick={onBack} className="link-path">Daily Tasks</button>
+        <span>/</span>
+        <span className="active-path">Task #{task.taskId}</span>
       </div>
 
-      <div className="section-header">
+      <header className="detail-header">
         <div>
-          <h1 className="main-title">Task: {task.title}</h1>
-          <p className="subtitle">Stall/Area: {task.areaName || 'None'} | Type: {task.taskType}</p>
+          <h1 className="main-title">{task.title}</h1>
+          <p className="subtitle">
+            Location: {task.stallCode || task.areaName || 'Location not specified'} | Type: {task.taskType}
+          </p>
         </div>
-        <button onClick={onBack} className="btn-secondary">
-          &larr; Back to List
-        </button>
-      </div>
+        <button onClick={onBack} className="btn-secondary">&larr; Back to List</button>
+      </header>
 
       <div className="detail-layout">
-        <div className="detail-left-col">
-          {/* Task main read-only info card */}
+        <section className="detail-left-col">
           <TaskInfoCard task={task} onViewIssueDetails={onViewIssueDetails} />
 
-          {/* Quotation management for Repair tasks */}
-          {task.taskType === TASK_TYPE.REPAIR && (
-            <QuotationPanel 
+          {task.taskType === TASK_TYPE.REPAIR ? (
+            <QuotationPanel
               taskId={task.taskId}
-              userId={userId}
               baseUrl={baseUrl}
               taskStatus={task.status}
               initialMaterials={task.materials}
               onRefreshTask={fetchTaskDetails}
               onShowNotification={onShowNotification}
             />
-          )}
+          ) : null}
 
-          {/* Stall checklist for Utility reading tasks */}
-          {task.taskType === TASK_TYPE.UTILITY_READING && (
-            <UtilityChecklist 
+          {task.taskType === TASK_TYPE.UTILITY_READING ? (
+            <UtilityChecklist
               taskId={task.taskId}
-              userId={userId}
               baseUrl={baseUrl}
               onShowNotification={onShowNotification}
-              onProgressChange={(completed, total) => setUtilityProgress({ completed, total })}
+              onProgressChange={handleUtilityProgress}
             />
-          )}
-        </div>
+          ) : null}
+        </section>
 
-        <div className="detail-right-col">
-          {/* Read-only evidence preview if task is already completed */}
-          {task.status === TASK_STATUS.COMPLETED && (task.imageBeforeUrl || task.imageAfterUrl) && (
+        <aside className="detail-right-col">
+          {task.taskType === TASK_TYPE.REPAIR ? <RepairProgressStepper status={task.status} /> : null}
+
+          {task.status === TASK_STATUS.COMPLETED && (task.imageBeforeUrl || task.imageAfterUrl) ? (
             <div className="evidence-panel">
-              <h3 className="card-section-title">📸 Completion Evidence Photos</h3>
+              <h3 className="card-section-title">Completion Evidence</h3>
               <div className="evidence-images-grid">
-                {task.imageBeforeUrl && (
+                {task.imageBeforeUrl ? (
                   <div className="evidence-image-wrapper">
                     <div className="evidence-label">BEFORE PHOTO</div>
                     <img src={task.imageBeforeUrl} alt="Before repair" className="evidence-img-large" />
                   </div>
-                )}
-                {task.imageAfterUrl && (
+                ) : null}
+                {task.imageAfterUrl ? (
                   <div className="evidence-image-wrapper">
                     <div className="evidence-label">AFTER PHOTO</div>
                     <img src={task.imageAfterUrl} alt="After repair" className="evidence-img-large" />
                   </div>
-                )}
+                ) : null}
               </div>
             </div>
-          )}
+          ) : null}
 
-          {/* Complete Task Form */}
-          {shouldShowCompleteForm() && (
-            <CompleteTaskForm 
+          {shouldShowCompleteForm() ? (
+            <CompleteTaskForm
               task={task}
-              userId={userId}
               baseUrl={baseUrl}
               onRefreshTask={fetchTaskDetails}
               onShowNotification={onShowNotification}
               utilityProgress={task.taskType === TASK_TYPE.UTILITY_READING ? utilityProgress : null}
             />
-          )}
-        </div>
+          ) : null}
+        </aside>
       </div>
-    </div>
+    </main>
   );
 }

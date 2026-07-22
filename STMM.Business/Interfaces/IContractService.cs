@@ -8,13 +8,13 @@ namespace STMM.Business.Interfaces
 {
     public interface IContractService
     {
-        Task<IEnumerable<ContractDto>> GetContractsAsync(string? search, string? status, CancellationToken ct);
-        Task<ContractDto?> GetContractByIdAsync(int contractId, CancellationToken ct);
-        Task<ContractDto> CreateContractAsync(CreateContractRequest request, CancellationToken ct);
-        Task<ContractDto> RenewContractAsync(int contractId, RenewContractRequest request, CancellationToken ct);
-        Task<ContractDto> TerminateContractAsync(int contractId, CancellationToken ct);
-        Task<IEnumerable<ContractVendorDto>> GetContractVendorsAsync(CancellationToken ct);
-        Task<IEnumerable<StallDto>> GetAvailableStallsAsync(CancellationToken ct);
+        Task<IEnumerable<ContractDto>> GetContractsAsync(string? search, string? status, int? currentUserId = null, CancellationToken ct = default);
+        Task<ContractDto?> GetContractByIdAsync(int contractId, int? currentUserId = null, CancellationToken ct = default);
+        Task<ContractDto> CreateContractAsync(CreateContractRequest request, int? currentUserId = null, CancellationToken ct = default);
+        Task<ContractDto> RenewContractAsync(int contractId, RenewContractRequest request, CancellationToken ct = default);
+        Task<ContractDto> TerminateContractAsync(int contractId, CancellationToken ct = default);
+        Task<IEnumerable<ContractVendorDto>> GetContractVendorsAsync(int? currentUserId = null, CancellationToken ct = default);
+        Task<IEnumerable<StallDto>> GetAvailableStallsAsync(int? currentUserId = null, CancellationToken ct = default);
         Task<ContractDto> AttachSignedFilesAsync(int contractId, AttachContractFilesRequest request, CancellationToken ct);
         Task<ContractDto> UpdateContractVendorInfoAsync(int contractId, UpdateContractVendorInfoRequest request, CancellationToken ct);
     }

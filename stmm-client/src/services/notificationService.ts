@@ -1,7 +1,7 @@
 import axios, { AxiosInstance } from 'axios';
 
-const _rawUrl = (import.meta.env.VITE_API_URL || 'http://localhost:5056/api').replace(/\/$/, '');
-const API_BASE_URL = _rawUrl.endsWith('/api') ? _rawUrl : `${_rawUrl}/api`;
+const rawUrl = (import.meta.env.VITE_API_URL || 'http://localhost:5056/api').replace(/\/$/, '');
+const API_BASE_URL = rawUrl.endsWith('/api') ? rawUrl : `${rawUrl}/api`;
 
 export interface NotificationDto {
   notiId: number;
@@ -9,11 +9,20 @@ export interface NotificationDto {
   content: string;
   notiType?: string;
   createdByUserId: number;
-  targetRole?: string;
   targetUserId?: number;
   isRead?: boolean;
   createdAt?: string;
 }
+
+interface ApiProblem {
+  detail?: string;
+  title?: string;
+}
+
+const errorMessage = (error: unknown, fallback: string) => {
+  if (!axios.isAxiosError<ApiProblem>(error)) return fallback;
+  return error.response?.data?.detail || error.response?.data?.title || fallback;
+};
 
 class NotificationService {
   private api: AxiosInstance;
@@ -21,63 +30,46 @@ class NotificationService {
   constructor() {
     this.api = axios.create({
       baseURL: API_BASE_URL,
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
     });
 
-    // Add interceptor to automatically add token to request header from localStorage
     this.api.interceptors.request.use((config) => {
       const token = localStorage.getItem('accessToken');
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
+      if (token) config.headers.Authorization = `Bearer ${token}`;
       return config;
     });
   }
 
-  /**
-   * Lấy danh sách thông báo của user hiện tại
-   */
   async getNotifications(): Promise<NotificationDto[]> {
     try {
       const response = await this.api.get<NotificationDto[]>('/notifications');
       return response.data;
-    } catch (error: any) {
-      throw new Error(error.response?.data?.message || 'Không thể lấy danh sách thông báo');
+    } catch (error: unknown) {
+      throw new Error(errorMessage(error, 'Unable to load notifications.'));
     }
   }
 
-  /**
-   * Đánh dấu thông báo đã đọc
-   */
   async markAsRead(notiId: number): Promise<void> {
     try {
       await this.api.put(`/notifications/${notiId}/read`);
-    } catch (error: any) {
-      throw new Error(error.response?.data?.message || 'Không thể đánh dấu thông báo đã đọc');
+    } catch (error: unknown) {
+      throw new Error(errorMessage(error, 'Unable to mark notification as read.'));
     }
   }
 
-  /**
-   * Đánh dấu tất cả thông báo là đã đọc
-   */
   async markAllAsRead(): Promise<void> {
     try {
       await this.api.put('/notifications/read-all');
-    } catch (error: any) {
-      throw new Error(error.response?.data?.message || 'Không thể đánh dấu tất cả thông báo là đã đọc');
+    } catch (error: unknown) {
+      throw new Error(errorMessage(error, 'Unable to mark all notifications as read.'));
     }
   }
 
-  /**
-   * Xóa thông báo
-   */
   async deleteNotification(notiId: number): Promise<void> {
     try {
       await this.api.delete(`/notifications/${notiId}`);
-    } catch (error: any) {
-      throw new Error(error.response?.data?.message || 'Không thể xóa thông báo');
+    } catch (error: unknown) {
+      throw new Error(errorMessage(error, 'Unable to delete notification.'));
     }
   }
 }

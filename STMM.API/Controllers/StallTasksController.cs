@@ -30,17 +30,19 @@ namespace STMM.API.Controllers
             return userId;
         }
 
-        /// <summary>
-        /// UC-48: View List Stall Tasks — Xem danh sách sạp cần thực hiện nhiệm vụ hoặc thu tiền.
-        /// </summary>
         [HttpGet]
         public async Task<IActionResult> GetStallTasks(
-            [FromQuery] int userId,
-            [FromQuery] StallTaskQueryParams queryParams,
             CancellationToken ct)
         {
-            userId = GetUserId();
-            var result = await _stallTaskService.GetStallTasksAsync(userId, queryParams, ct);
+            var userId = GetUserId();
+            var result = await _stallTaskService.GetStallTasksAsync(userId, ct);
+            return Ok(result);
+        }
+
+        [HttpGet("~/api/staff/stalls/lookup")]
+        public async Task<IActionResult> GetStallLookup([FromQuery] string? search, CancellationToken ct)
+        {
+            var result = await _stallTaskService.GetStallLookupAsync(GetUserId(), search, ct);
             return Ok(result);
         }
     }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace STMM.DataAccess.Entities;
@@ -34,4 +34,7 @@ public partial class ViolationType
     public bool? IsActive { get; set; }
 
     public virtual ICollection<Violation> Violations { get; set; } = new List<Violation>();
+
+    public int? MarketId { get; set; }
+    public virtual Market? Market { get; set; }
 }

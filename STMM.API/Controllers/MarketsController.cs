@@ -58,6 +58,19 @@ namespace STMM.API.Controllers
             return Ok(marketMap);
         }
 
+        [HttpGet("~/api/staff/market-map")]
+        [Authorize(Roles = "Staff")]
+        public async Task<ActionResult<MarketMapDto>> GetStaffMarketMap()
+        {
+            var claim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!int.TryParse(claim, out var userId))
+            {
+                return Unauthorized();
+            }
+
+            return Ok(await _marketService.GetMarketMapForStaffAsync(userId));
+        }
+
         [HttpPost("bulk")]
         public async Task<ActionResult<MarketDto>> CreateMarketBulk([FromBody] CreateMarketBulkRequest request)
         {
@@ -77,11 +90,15 @@ namespace STMM.API.Controllers
 
                 return Ok(market);
             }
+            catch (STMM.Business.Exceptions.BadRequestException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
             catch (System.Exception ex)
             {
                 var msg = ex.Message;
                 if (ex.InnerException != null) msg += " Inner: " + ex.InnerException.Message;
-                return BadRequest(new { message = msg });
+                return StatusCode(500, new { message = msg });
             }
         }
 
@@ -103,7 +120,7 @@ namespace STMM.API.Controllers
         }
 
         [HttpPut("{marketId}/status")]
-        // [Authorize(Roles = "Admin")] // Uncomment if you want to restrict to Admin
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult> ChangeStatus(int marketId, [FromBody] string status)
         {
             var result = await _marketService.ChangeMarketStatusAsync(marketId, status);

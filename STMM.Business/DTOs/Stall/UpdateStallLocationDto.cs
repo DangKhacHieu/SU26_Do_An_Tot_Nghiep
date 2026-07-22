@@ -10,5 +10,6 @@ namespace STMM.Business.DTOs.Stall
         public double? Height { get; set; }
         public double? Rotation { get; set; }
         public double? Size { get; set; }
+        public string? SvgPath { get; set; }
     }
 }

@@ -15,9 +15,14 @@ namespace STMM.DataAccess.Repositories
         {
         }
 
-        public async Task<IEnumerable<BusinessCategory>> GetAllCategoriesAsync(string? searchTerm = null, bool? isActive = null, CancellationToken ct = default)
+        public async Task<IEnumerable<BusinessCategory>> GetAllCategoriesAsync(string? searchTerm = null, bool? isActive = null, int? marketId = null, CancellationToken ct = default)
         {
             var query = _dbSet.AsQueryable();
+
+            if (marketId.HasValue)
+            {
+                query = query.Where(c => c.MarketId == marketId.Value);
+            }
 
             if (!string.IsNullOrWhiteSpace(searchTerm))
             {
