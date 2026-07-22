@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace STMM.DataAccess.Entities;
@@ -43,4 +43,7 @@ public partial class RepairPrice
     public DateTime? UpdatedAt { get; set; }
 
     public virtual ICollection<TaskMaterial> TaskMaterials { get; set; } = new List<TaskMaterial>();
+
+    public int? MarketId { get; set; }
+    public virtual Market? Market { get; set; }
 }

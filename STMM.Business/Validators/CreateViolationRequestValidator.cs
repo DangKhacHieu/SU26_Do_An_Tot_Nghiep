@@ -36,7 +36,8 @@ namespace STMM.Business.Validators
 
             RuleFor(x => x.FineAmount)
                 .GreaterThanOrEqualTo(0)
-                .WithMessage("Số tiền phạt không được âm.");
+                .WithMessage("Số tiền phạt không được âm.")
+                .LessThan(1000000000).WithMessage("Số tiền phạt quá lớn (vượt quá 1 tỷ).");
         }
     }
 }

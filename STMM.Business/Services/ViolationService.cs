@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using STMM.Business.DTOs.Common;
 using STMM.Business.DTOs.Violation;
+using STMM.Business.DTOs.Notification;
 using STMM.Business.Exceptions;
 using STMM.Business.Interfaces;
 using STMM.DataAccess.Entities;
@@ -22,9 +23,11 @@ namespace STMM.Business.Services
         private readonly IStallRepository _stallRepository;
         private readonly IViolationTypeRepository _violationTypeRepository;
         private readonly IMapper _mapper;
-        private readonly IValidator<CreateViolationRequest> _createValidator;
         private readonly INotificationService _notificationService;
         private readonly IUserRepository _userRepository;
+        private readonly IContractRepository _contractRepository;
+        private readonly IFeeTypeRepository _feeTypeRepository;
+        private readonly IInvoiceRepository _invoiceRepository;
         private readonly ILogger<ViolationService> _logger;
 
         public ViolationService(
@@ -32,18 +35,22 @@ namespace STMM.Business.Services
             IStallRepository stallRepository,
             IViolationTypeRepository violationTypeRepository,
             IMapper mapper,
-            IValidator<CreateViolationRequest> createValidator,
             INotificationService notificationService,
             IUserRepository userRepository,
+            IContractRepository contractRepository,
+            IFeeTypeRepository feeTypeRepository,
+            IInvoiceRepository invoiceRepository,
             ILogger<ViolationService> logger)
         {
             _violationRepository = violationRepository;
             _stallRepository = stallRepository;
             _violationTypeRepository = violationTypeRepository;
             _mapper = mapper;
-            _createValidator = createValidator;
             _notificationService = notificationService;
             _userRepository = userRepository;
+            _contractRepository = contractRepository;
+            _feeTypeRepository = feeTypeRepository;
+            _invoiceRepository = invoiceRepository;
             _logger = logger;
         }
 
@@ -71,12 +78,6 @@ namespace STMM.Business.Services
         public async Task<ViolationDto> CreateViolationAsync(
             int userId, CreateViolationRequest request, CancellationToken ct = default)
         {
-            var validationResult = await _createValidator.ValidateAsync(request, ct);
-            if (!validationResult.IsValid)
-            {
-                throw new BadRequestException(
-                    string.Join("; ", validationResult.Errors.Select(e => e.ErrorMessage)));
-            }
 
             var marketId = await GetMarketIdAsync(userId, "staff", ct);
             var stall = await _stallRepository.GetStallForMarketAsync(request.StallId, marketId, ct)
@@ -136,9 +137,10 @@ namespace STMM.Business.Services
             return _mapper.Map<ViolationDto>(violation);
         }
 
-        public async Task<IEnumerable<ViolationTypeDto>> GetViolationTypesAsync(CancellationToken ct = default)
+        public async Task<IEnumerable<ViolationTypeDto>> GetViolationTypesAsync(int userId, CancellationToken ct = default)
         {
-            var types = await _violationTypeRepository.FindAsync(vt => vt.IsActive != false, ct);
+            var user = await _userRepository.GetByIdAsync(userId, ct);
+            var types = await _violationTypeRepository.FindAsync(vt => vt.IsActive != false && (vt.MarketId == null || vt.MarketId == user!.MarketId), ct);
             return _mapper.Map<IEnumerable<ViolationTypeDto>>(types);
         }
 
@@ -198,37 +200,121 @@ namespace STMM.Business.Services
 
         public async Task<IEnumerable<ViolationDto>> GetAllViolationsAsync(int? accountantUserId = null, CancellationToken ct = default)
         {
-            IQueryable<Violation> query = _violationRepository.Query()
-                .Include(v => v.Stall)
-                .Include(v => v.ViolationType);
-
+            int? marketId = null;
             if (accountantUserId.HasValue)
             {
                 var user = await _userRepository.GetByIdAsync(accountantUserId.Value, ct);
-                if (user?.MarketId != null)
-                {
-                    query = query.Where(v => v.Stall.Area.MarketId == user.MarketId);
-                }
+                marketId = user?.MarketId;
             }
 
-            var list = await query
-                .OrderByDescending(v => v.ViolationId)
-                .ToListAsync(ct);
-
+            var list = await _violationRepository.GetAllViolationsWithDetailsAsync(marketId, ct);
             return _mapper.Map<IEnumerable<ViolationDto>>(list);
         }
 
-        public async Task<IEnumerable<ViolationTypeDto>> GetAllViolationTypesWithInactiveAsync(CancellationToken ct = default)
+        public async Task<bool> CreateInvoiceForViolationAsync(int violationId, int accountantUserId, CancellationToken ct = default)
         {
-            var list = await _violationTypeRepository.GetAllAsync(ct);
+            var accountantUser = await _userRepository.GetByIdAsync(accountantUserId, ct);
+            if (accountantUser == null || !accountantUser.MarketId.HasValue)
+            {
+                throw new ForbiddenException("Kế toán chưa được phân công quản lý chợ.");
+            }
+            var violation = await _violationRepository.GetViolationDetailsForManagerAsync(violationId, accountantUser.MarketId.Value, ct);
+            if (violation == null)
+            {
+                throw new NotFoundException($"Không tìm thấy biên bản vi phạm ID {violationId}.");
+            }
+
+            if (violation.Status == "Paid" || violation.Status == "Finalized")
+            {
+                throw new BadRequestException("Biên bản vi phạm này đã được xử lý (đã xuất hóa đơn hoặc thanh toán).");
+            }
+
+            if (!violation.FineAmount.HasValue || violation.FineAmount.Value <= 0)
+            {
+                throw new BadRequestException("Biên bản này chưa có số tiền phạt hợp lệ để tạo hóa đơn.");
+            }
+
+            var contract = await _contractRepository.GetActiveContractByStallIdAsync(violation.StallId, ct);
+            if (contract == null)
+            {
+                throw new BadRequestException($"Sạp {violation.Stall.Code} hiện không có hợp đồng thuê nào đang hiệu lực để ghi nhận hóa đơn.");
+            }
+
+            var feeType = await _feeTypeRepository.GetFeeTypeByNameContainsAsync("phạt", null, ct);
+            if (feeType == null)
+            {
+                feeType = await _feeTypeRepository.GetFeeTypeByNameContainsAsync("vi phạm", null, ct);
+            }
+
+            if (feeType == null)
+            {
+                throw new BadRequestException("Không tìm thấy Loại phí cấu hình cho 'Tiền phạt' trong hệ thống. Vui lòng tạo Loại phí này trước.");
+            }
+
+            var invoice = new Invoice
+            {
+                ContractId = contract.ContractId,
+                Month = DateTime.UtcNow.Month,
+                Year = DateTime.UtcNow.Year,
+                TotalAmount = violation.FineAmount.Value,
+                Status = "Unpaid",
+                DueDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(7)),
+                CreatedAt = DateTime.UtcNow,
+                IsDeleted = false
+            };
+
+            var invoiceDetail = new InvoiceDetail
+            {
+                FeeTypeId = feeType.FeeTypeId,
+                Description = $"Tiền phạt vi phạm: {violation.Title}",
+                Quantity = 1,
+                UnitPrice = violation.FineAmount.Value,
+                Amount = violation.FineAmount.Value,
+            };
+
+            invoice.InvoiceDetails.Add(invoiceDetail);
+
+            await _invoiceRepository.AddAsync(invoice, ct);
+
+            // Đổi trạng thái vi phạm thành Đã kết luận
+            var violationToUpdate = await _violationRepository.GetByIdAsync(violationId, ct);
+            if (violationToUpdate != null)
+            {
+                violationToUpdate.Status = "Finalized";
+                violationToUpdate.UpdatedAt = DateTime.UtcNow;
+            }
+
+            await _invoiceRepository.SaveChangesAsync(ct);
+            await _violationRepository.SaveChangesAsync(ct);
+
+            // Tự động gửi thông báo cho tiểu thương
+            await _notificationService.CreateAsync(new CreateNotificationRequest
+            {
+                Title = "Thông báo: Đã phát hành Hóa đơn phạt",
+                Content = $"Hóa đơn phạt vi phạm '{violation.Title}' với số tiền {violation.FineAmount.Value:N0} VNĐ đã được tạo. Vui lòng kiểm tra và thanh toán.",
+                NotiType = "Invoice",
+                CreatedByUserId = accountantUserId,
+                TargetUserId = contract.VendorId
+            }, ct);
+
+            return true;
+        }
+
+        public async Task<IEnumerable<ViolationTypeDto>> GetAllViolationTypesWithInactiveAsync(int userId, CancellationToken ct = default)
+        {
+            var user = await _userRepository.GetByIdAsync(userId, ct);
+            var list = await _violationTypeRepository.GetAllAsync(user?.MarketId, ct);
             return _mapper.Map<IEnumerable<ViolationTypeDto>>(list);
         }
 
-        public async Task<ViolationTypeDto> CreateViolationTypeAsync(CreateViolationTypeRequest request, CancellationToken ct = default)
+        public async Task<ViolationTypeDto> CreateViolationTypeAsync(int userId, CreateViolationTypeRequest request, CancellationToken ct = default)
         {
-            if (string.IsNullOrEmpty(request.Name))
+            var user = await _userRepository.GetByIdAsync(userId, ct);
+
+            var duplicate = await _violationTypeRepository.IsNameExistsAsync(request.Name, null, user?.MarketId, ct);
+            if (duplicate)
             {
-                throw new BadRequestException("Tên loại vi phạm không được để trống.");
+                throw new BadRequestException($"Tên loại vi phạm '{request.Name}' đã tồn tại.");
             }
 
             var vt = new ViolationType
@@ -236,7 +322,8 @@ namespace STMM.Business.Services
                 Name = request.Name,
                 Description = request.Description,
                 DefaultFine = request.DefaultFine,
-                IsActive = true
+                IsActive = true,
+                MarketId = user?.MarketId
             };
 
             await _violationTypeRepository.AddAsync(vt, ct);
@@ -251,6 +338,12 @@ namespace STMM.Business.Services
             if (vt == null)
             {
                 throw new NotFoundException($"Không tìm thấy Loại vi phạm ID {id}.");
+            }
+
+            var duplicate = await _violationTypeRepository.IsNameExistsAsync(request.Name, id, vt.MarketId, ct);
+            if (duplicate)
+            {
+                throw new BadRequestException($"Tên loại vi phạm '{request.Name}' đã tồn tại ở loại vi phạm khác.");
             }
 
             vt.Name = request.Name;
@@ -269,10 +362,14 @@ namespace STMM.Business.Services
             var vt = await _violationTypeRepository.GetByIdAsync(id, ct);
             if (vt == null) return false;
 
-            // Xóa mềm: ẩn hoạt động
-            vt.IsActive = false;
-            _violationTypeRepository.Update(vt);
+            var inUse = await _violationRepository.IsViolationTypeInUseAsync(id, ct);
 
+            if (inUse)
+            {
+                throw new BadRequestException($"Không thể xóa loại vi phạm '{vt.Name}' vì đang có biên bản vi phạm sử dụng nó.");
+            }
+
+            _violationTypeRepository.Delete(vt);
             await _violationTypeRepository.SaveChangesAsync(ct);
             return true;
         }

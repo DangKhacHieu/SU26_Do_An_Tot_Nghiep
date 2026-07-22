@@ -10,5 +10,6 @@ namespace STMM.DataAccess.IRepositories
         Task<MeterReading?> GetLatestReadingByMeterIdAsync(int meterId, CancellationToken ct = default);
 
         Task<bool> ExistsByMeterAndDateAsync(int meterId, DateOnly recordedAt, CancellationToken ct = default);
+        Task<MeterReading?> GetMeterReadingByMonthAndYearAsync(int meterId, int month, int year, CancellationToken ct = default);
     }
 }

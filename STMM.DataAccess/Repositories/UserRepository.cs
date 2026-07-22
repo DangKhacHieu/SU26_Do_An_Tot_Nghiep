@@ -109,5 +109,22 @@ namespace STMM.DataAccess.Repositories
                 .Include(u => u.Role)
                 .FirstOrDefaultAsync(u => u.Email.ToLower() == email.Trim().ToLower(), ct);
         }
+
+        public async Task<User?> GetFirstUserByRoleAsync(string roleName, CancellationToken ct = default)
+        {
+            return await _context.Users
+                .Include(u => u.Role)
+                .FirstOrDefaultAsync(u => u.Role.Name.ToLower() == roleName.ToLower(), ct);
+        }
+
+        public async Task<bool> IsEmailExistsAsync(string email, int? excludeId = null, CancellationToken ct = default)
+        {
+            var query = _context.Users.Where(u => u.Email.ToLower() == email.ToLower());
+            if (excludeId.HasValue)
+            {
+                query = query.Where(u => u.UserId != excludeId.Value);
+            }
+            return await query.AnyAsync(ct);
+        }
     }
 }

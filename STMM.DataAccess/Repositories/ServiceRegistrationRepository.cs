@@ -12,6 +12,14 @@ namespace STMM.DataAccess.Repositories
         {
         }
 
+        public async Task<List<ServiceRegistration>> GetActiveServiceRegistrationsByStallIdAsync(int stallId, CancellationToken ct = default)
+        {
+            return await _context.ServiceRegistrations
+                .Include(sr => sr.Service)
+                .Where(sr => sr.StallId == stallId && sr.Status == "Active")
+                .ToListAsync(ct);
+        }
+
         public async Task<ServiceRegistration?> GetRegistrationWithRelationsAsync(int id)
         {
             return await _context.ServiceRegistrations

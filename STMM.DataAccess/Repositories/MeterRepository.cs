@@ -129,5 +129,19 @@ namespace STMM.DataAccess.Repositories
             return await query.ToListAsync(ct);
         }
 
+        public async Task<Meter?> GetMeterWithReadingsAsync(int meterId, CancellationToken ct = default)
+        {
+            return await _context.Meters
+                .Include(m => m.MeterReadings)
+                .Include(m => m.Stall)
+                .FirstOrDefaultAsync(m => m.MeterId == meterId, ct);
+        }
+
+        public async Task<Meter?> GetActiveMeterByStallAndTypeAsync(int stallId, string meterType, CancellationToken ct = default)
+        {
+            return await _context.Meters
+                .Where(m => m.StallId == stallId && m.Type == meterType && m.IsActive == true)
+                .FirstOrDefaultAsync(ct);
+        }
     }
 }

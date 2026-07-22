@@ -129,5 +129,32 @@ namespace STMM.DataAccess.Repositories
             await _context.SaveChangesAsync(ct);
             return request;
         }
+
+        public async Task<List<Request>> GetInvoiceDisputesAsync(int? accountantMarketId = null, CancellationToken ct = default)
+        {
+            var query = _context.Requests
+                .Include(r => r.Invoice)
+                .Include(r => r.Stall)
+                .Include(r => r.Vendor)
+                    .ThenInclude(v => v.User)
+                .Where(r => r.RequestType == "InvoiceDispute");
+
+            if (accountantMarketId.HasValue)
+            {
+                query = query.Where(r => r.Stall.Area.MarketId == accountantMarketId.Value);
+            }
+
+            return await query
+                .OrderByDescending(r => r.CreatedAt)
+                .ToListAsync(ct);
+        }
+
+        public async Task<Request?> GetRequestWithStallAndVendorAsync(int requestId, CancellationToken ct = default)
+        {
+            return await _context.Requests
+                .Include(r => r.Stall)
+                .Include(r => r.Vendor)
+                .FirstOrDefaultAsync(r => r.RequestId == requestId, ct);
+        }
     }
 }

@@ -58,5 +58,14 @@ namespace STMM.DataAccess.Repositories
             return await _context.MeterReadings
                 .AnyAsync(r => r.MeterId == meterId && r.RecordedAt == recordedAt, ct);
         }
+
+        public async Task<MeterReading?> GetMeterReadingByMonthAndYearAsync(int meterId, int month, int year, CancellationToken ct = default)
+        {
+            return await _context.MeterReadings
+                .Where(mr => mr.MeterId == meterId && 
+                             mr.RecordedAt.Month == month && 
+                             mr.RecordedAt.Year == year)
+                .FirstOrDefaultAsync(ct);
+        }
     }
 }

@@ -18,7 +18,8 @@ import {
   Building2,
   TrendingUp,
   ChevronDown,
-  X
+  X,
+  Trash2
 } from 'lucide-react';
 import './AccountantLayout.css';
 
@@ -69,6 +70,9 @@ export default function AccountantLayout() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isDark, setIsDark] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [selectedNoti, setSelectedNoti] = useState(null);
+
   const [currentUser, setCurrentUser] = useState({
     name: 'Lê Thanh Bình',
     email: 'binhlt.accountant@stmm.vn',
@@ -76,7 +80,71 @@ export default function AccountantLayout() {
     avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=200'
   });
 
+  const fetchNotifications = async () => {
+    try {
+      const token = localStorage.getItem('accessToken');
+      if (!token) return;
+      const res = await fetch('http://localhost:5056/api/notifications', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setNotifications(data);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleMarkAllAsRead = async () => {
+    try {
+      const token = localStorage.getItem('accessToken');
+      if (!token) return;
+      await fetch('http://localhost:5056/api/notifications/read-all', {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      setNotifications(notifications.map(n => ({ ...n, isRead: true })));
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleReadNotification = async (noti) => {
+    setSelectedNoti(noti);
+    setShowNotifications(false);
+    if (!noti.isRead) {
+      try {
+        const token = localStorage.getItem('accessToken');
+        if (!token) return;
+        await fetch(`http://localhost:5056/api/notifications/${noti.id}/read`, {
+          method: 'PUT',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        setNotifications(notifications.map(n => n.id === noti.id ? { ...n, isRead: true } : n));
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  };
+
+  const handleDeleteNotification = async (e, notiId) => {
+    e.stopPropagation();
+    try {
+      const token = localStorage.getItem('accessToken');
+      if (!token) return;
+      await fetch(`http://localhost:5056/api/notifications/${notiId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      setNotifications(notifications.filter(n => n.id !== notiId));
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   useEffect(() => {
+    fetchNotifications();
     const loadSession = () => {
       const session = localStorage.getItem('user');
       if (session) {
@@ -241,33 +309,43 @@ export default function AccountantLayout() {
                 title="Thông báo"
               >
                 <Bell size={17} />
-                <span className="notif-badge">3</span>
+                {notifications.filter(n => !n.isRead).length > 0 && (
+                  <span className="notif-badge">{notifications.filter(n => !n.isRead).length}</span>
+                )}
               </button>
 
               {showNotifications && (
                 <div className="notifications-dropdown">
                   <div className="notif-header">
                     <h4>Thông báo</h4>
-                    <button className="mark-read-btn" onClick={() => setShowNotifications(false)}>
-                      Đánh dấu đã đọc
+                    <button className="mark-read-btn" onClick={handleMarkAllAsRead}>
+                      Đánh dấu tất cả đã đọc
                     </button>
                   </div>
                   <div className="notif-list">
-                    {[
-                      { title: 'Kiosk B-05 tải lên hóa đơn điện nước cần xác nhận.', time: '10 phút trước', unread: true },
-                      { title: 'Biên bản vi phạm mới cho Kiosk B-12 đã được chuyển đến kế toán.', time: '1 giờ trước', unread: true },
-                      { title: 'Cấu hình giá điện tháng 06 đã áp dụng thành công.', time: 'Hôm qua', unread: false },
-                    ].map((n, i) => (
-                      <div key={i} className={`notif-item ${n.unread ? 'unread' : ''}`}>
-                        <div className="notif-item-inner">
-                          {n.unread && <span className="notif-dot" />}
+                    {notifications.length > 0 ? notifications.map((n) => (
+                      <div key={n.id} className={`notif-item ${!n.isRead ? 'unread' : ''}`} onClick={() => handleReadNotification(n)}>
+                        <div className="notif-item-inner" style={{ position: 'relative', paddingRight: '24px' }}>
+                          {!n.isRead && <span className="notif-dot" />}
                           <div>
                             <p className="notif-text">{n.title}</p>
-                            <span className="notif-time">{n.time}</span>
+                            <span className="notif-time">{new Date(n.createdAt).toLocaleString('vi-VN')}</span>
                           </div>
+                          <button 
+                            className="btn-ghost btn-icon" 
+                            style={{ position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)', padding: 4 }}
+                            onClick={(e) => handleDeleteNotification(e, n.id)}
+                            title="Xóa thông báo"
+                          >
+                            <Trash2 size={14} color="var(--danger)" />
+                          </button>
                         </div>
                       </div>
-                    ))}
+                    )) : (
+                      <div style={{ padding: '16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
+                        Không có thông báo nào.
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -294,6 +372,28 @@ export default function AccountantLayout() {
           <Outlet />
         </main>
       </div>
+
+      {/* Notification Detail Modal */}
+      {selectedNoti && (
+        <div className="modal-overlay" onClick={() => setSelectedNoti(null)} style={{ zIndex: 9999 }}>
+          <div className="modal-container" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <span className="modal-title">Chi Tiết Thông Báo</span>
+              <button className="modal-close-btn" onClick={() => setSelectedNoti(null)}><X size={16} /></button>
+            </div>
+            <div className="modal-body" style={{ minHeight: '120px' }}>
+              <h3 style={{ marginBottom: 12, color: 'var(--text-title)', fontSize: 16 }}>{selectedNoti.title}</h3>
+              <p style={{ color: 'var(--text-primary)', whiteSpace: 'pre-line', lineHeight: 1.5 }}>{selectedNoti.content}</p>
+              <div style={{ marginTop: 16, fontSize: 12, color: 'var(--text-muted)' }}>
+                Thời gian: {new Date(selectedNoti.createdAt).toLocaleString('vi-VN')}
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={() => setSelectedNoti(null)}>Đóng</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

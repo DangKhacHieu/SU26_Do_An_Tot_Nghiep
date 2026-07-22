@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace STMM.DataAccess.Entities;
@@ -39,4 +39,7 @@ public partial class SystemConfig
     public DateTime? UpdatedAt { get; set; }
 
     public virtual User UpdatedByUser { get; set; } = null!;
+
+    public int? MarketId { get; set; }
+    public virtual Market? Market { get; set; }
 }

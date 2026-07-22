@@ -2,13 +2,30 @@ import React, { useState, useEffect } from 'react';
 import {
   Plus, Edit3, Trash2, ShieldAlert, Search, DollarSign,
   CheckCircle, Clock, AlertCircle, Eye, AlertTriangle,
-  RefreshCw, Info, X, ShieldOff
+  RefreshCw, Info, X, ShieldOff, FileText
 } from 'lucide-react';
 
 const getStatusBadge = (status) => {
   if (status === 'Paid') return { cls: 'badge badge-success', label: 'Đã đóng phạt' };
-  if (status === 'Unpaid' || status === 'Pending') return { cls: 'badge badge-danger', label: 'Chưa nộp phạt' };
+  if (status === 'Unpaid' || status === 'Pending') return { cls: 'badge badge-warning', label: 'Chờ duyệt' };
+  if (status === 'Notified') return { cls: 'badge badge-info', label: 'Đã thông báo' };
+  if (status === 'Appealed') return { cls: 'badge badge-neutral', label: 'Kháng nghị' };
+  if (status === 'Approved') return { cls: 'badge badge-success', label: 'Chấp nhận KH' };
+  if (status === 'Rejected') return { cls: 'badge badge-danger', label: 'Bác bỏ KH' };
+  if (status === 'Finalized') return { cls: 'badge badge-neutral', label: 'Đã kết luận' };
   return { cls: 'badge badge-neutral', label: status };
+};
+
+const canCreateInvoice = (vio) => {
+  if (vio.status === 'Paid' || vio.status === 'Finalized') return false;
+  if (vio.status === 'Rejected') return true;
+  if (vio.status === 'Notified') {
+    const createdDate = new Date(vio.createdAt || vio.date);
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    return createdDate <= oneWeekAgo;
+  }
+  return false;
 };
 
 const formatDate = (d) => {
@@ -30,11 +47,17 @@ export default function ViolationsPenalties() {
 
   const [activeModal, setActiveModal] = useState(null);
   const [selectedItem, setSelectedItem] = useState(null);
+  const [invoiceConfirmVio, setInvoiceConfirmVio] = useState(null);
   const [typeForm, setTypeForm] = useState({ name: '', description: '', defaultFine: 500000, isActive: true });
+  const [modalError, setModalError] = useState(null);
 
   const [violationsPage, setViolationsPage] = useState(1);
   const [typesPage, setTypesPage] = useState(1);
   const itemsPerPage = 5;
+
+  useEffect(() => {
+    setModalError(null);
+  }, [activeModal]);
 
   const showNotification = (type, message) => {
     setNotification({ type, message });
@@ -89,7 +112,7 @@ export default function ViolationsPenalties() {
     const matchSearch = v.stallCode.toLowerCase().includes(q) || 
                         v.title.toLowerCase().includes(q) || 
                         (v.violationTypeName || v.violationType?.name || '').toLowerCase().includes(q);
-    const matchStatus = statusFilter === 'all' || (statusFilter === 'Paid' && v.status === 'Paid') || (statusFilter === 'Unpaid' && (v.status === 'Unpaid' || v.status === 'Pending'));
+    const matchStatus = statusFilter === 'all' || v.status === statusFilter;
     return matchSearch && matchStatus;
   });
 
@@ -103,10 +126,19 @@ export default function ViolationsPenalties() {
       showNotification('success', `${isEdit ? 'Cập nhật' : 'Thêm'} loại vi phạm thành công!`);
       setActiveModal(null);
     } else {
+      setModalError(null);
       const token = localStorage.getItem('accessToken');
       fetch(url, { method: isEdit ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify(typeForm) })
-        .then(r => { if (!r.ok) throw new Error(); showNotification('success', 'Cập nhật thành công!'); setActiveModal(null); loadAllData(); })
-        .catch(() => showNotification('danger', 'Không thể cập nhật loại vi phạm.'));
+        .then(async r => { 
+          if (!r.ok) {
+            const errData = await r.json().catch(() => ({}));
+            throw new Error(errData.detail || errData.title || 'Không thể cập nhật loại vi phạm.');
+          } 
+          showNotification('success', 'Cập nhật thành công!'); 
+          setActiveModal(null); 
+          loadAllData(); 
+        })
+        .catch(e => setModalError(e.message));
     }
   };
 
@@ -116,10 +148,49 @@ export default function ViolationsPenalties() {
       showNotification('success', 'Đã xóa loại vi phạm!');
       setActiveModal(null);
     } else {
+      setModalError(null);
       const token = localStorage.getItem('accessToken');
       fetch(`http://localhost:5056/api/violations/types/${selectedItem.violationTypeId}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } })
-        .then(r => { if (!r.ok) throw new Error(); showNotification('success', 'Xóa thành công!'); setActiveModal(null); loadAllData(); })
-        .catch(() => showNotification('danger', 'Thao tác xóa thất bại.'));
+        .then(async r => { 
+          if (!r.ok) {
+            const errData = await r.json().catch(() => ({}));
+            throw new Error(errData.detail || errData.title || 'Thao tác xóa thất bại.');
+          } 
+          showNotification('success', 'Xóa thành công!'); 
+          setActiveModal(null); 
+          loadAllData(); 
+        })
+        .catch(e => setModalError(e.message));
+    }
+  };
+
+  const handleCreateInvoiceClick = (vio) => {
+    setInvoiceConfirmVio(vio);
+  };
+
+  const confirmCreateInvoice = () => {
+    if (!invoiceConfirmVio) return;
+    const violationId = invoiceConfirmVio.violationId;
+    if (isMock) {
+      showNotification('success', 'Tạo hóa đơn phạt thành công (Mô phỏng)!');
+      setInvoiceConfirmVio(null);
+    } else {
+      setModalError(null);
+      const token = localStorage.getItem('accessToken');
+      fetch(`http://localhost:5056/api/violations/${violationId}/invoice`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } })
+        .then(async r => { 
+          if (!r.ok) {
+            const errData = await r.json().catch(() => ({}));
+            throw new Error(errData.message || errData.detail || errData.title || 'Không thể tạo hóa đơn.');
+          } 
+          showNotification('success', 'Tạo hóa đơn phạt thành công!'); 
+          setInvoiceConfirmVio(null);
+          loadAllData(); 
+        })
+        .catch(e => {
+            showNotification('danger', e.message);
+            setInvoiceConfirmVio(null);
+        });
     }
   };
 
@@ -133,7 +204,7 @@ export default function ViolationsPenalties() {
         </div>
         <div className="page-actions">
           {activeTab === 'types' && (
-            <button className="btn btn-primary" onClick={() => { setSelectedItem(null); setTypeForm({ name: '', description: '', defaultFine: 500000, isActive: true }); setActiveModal('type'); }}>
+            <button className="btn btn-primary" onClick={() => { setSelectedItem(null); setTypeForm({ name: '', description: '', defaultFine: 500000, isActive: true }); setModalError(null); setActiveModal('type'); }}>
               <Plus size={15} /> Thêm loại vi phạm
             </button>
           )}
@@ -190,7 +261,10 @@ export default function ViolationsPenalties() {
                   </div>
                   <select className="filter-select" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
                     <option value="all">Mọi trạng thái</option>
-                    <option value="Unpaid">Chưa nộp phạt</option>
+                    <option value="Pending">Chờ duyệt</option>
+                    <option value="Notified">Đã thông báo</option>
+                    <option value="Appealed">Kháng nghị</option>
+                    <option value="Rejected">Bác bỏ KH (Cần nộp phạt)</option>
                     <option value="Paid">Đã nộp phạt</option>
                   </select>
                   <span className="badge badge-neutral">{filteredViolations.length} biên bản</span>
@@ -226,9 +300,20 @@ export default function ViolationsPenalties() {
                             <td className="text-right"><strong style={{ color: 'var(--danger)' }}>{(vio.fineAmount || vio.penalty).toLocaleString('vi-VN')} ₫</strong></td>
                             <td><span className={cls}>{label}</span></td>
                             <td className="text-right">
-                              <button className="btn btn-secondary btn-sm" onClick={() => { setSelectedItem(vio); setActiveModal('details'); }}>
-                                <Eye size={13} /> Xem
-                              </button>
+                              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                                {canCreateInvoice(vio) && (
+                                  <button 
+                                    className="btn btn-primary btn-sm" 
+                                    onClick={() => handleCreateInvoiceClick(vio)}
+                                    title="Tạo hóa đơn thu tiền phạt"
+                                  >
+                                    <FileText size={13} /> Hóa đơn
+                                  </button>
+                                )}
+                                <button className="btn btn-secondary btn-sm" onClick={() => { setSelectedItem(vio); setActiveModal('details'); }}>
+                                  <Eye size={13} /> Xem
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         );
@@ -408,19 +493,25 @@ export default function ViolationsPenalties() {
             </div>
             <form onSubmit={handleTypeSubmit}>
               <div className="modal-body">
+                {modalError && (
+                  <div className="alert alert-danger" style={{ marginBottom: 16 }}>
+                    <AlertTriangle size={16} className="alert-icon" />
+                    <span>{modalError}</span>
+                  </div>
+                )}
                 <div>
                   <label className="form-label">Tên loại vi phạm</label>
-                  <input type="text" className="form-input" required value={typeForm.name}
+                  <input type="text" className="form-input" required maxLength={100} value={typeForm.name}
                     placeholder="Ví dụ: Lấn chiếm hành lang..." onChange={e => setTypeForm({ ...typeForm, name: e.target.value })} />
                 </div>
                 <div>
                   <label className="form-label">Tiền phạt mặc định (VNĐ)</label>
-                  <input type="number" className="form-input" required value={typeForm.defaultFine}
+                  <input type="number" className="form-input" required min={0} value={typeForm.defaultFine}
                     onChange={e => setTypeForm({ ...typeForm, defaultFine: parseFloat(e.target.value) || 0 })} />
                 </div>
                 <div>
                   <label className="form-label">Mô tả ý nghĩa</label>
-                  <textarea className="form-textarea" rows={3} value={typeForm.description}
+                  <textarea className="form-textarea" rows={3} maxLength={500} value={typeForm.description}
                     onChange={e => setTypeForm({ ...typeForm, description: e.target.value })} />
                 </div>
               </div>
@@ -442,6 +533,12 @@ export default function ViolationsPenalties() {
               <button className="modal-close-btn" onClick={() => setActiveModal(null)}><X size={16} /></button>
             </div>
             <div className="modal-body">
+              {modalError && (
+                <div className="alert alert-danger" style={{ marginBottom: 16 }}>
+                  <AlertTriangle size={16} className="alert-icon" />
+                  <span>{modalError}</span>
+                </div>
+              )}
               <div className="alert alert-danger">
                 <AlertTriangle size={16} className="alert-icon" />
                 <span>Bạn sắp xóa loại vi phạm <strong>"{selectedItem.name}"</strong>. Hành động này không thể hoàn tác.</span>
@@ -450,6 +547,28 @@ export default function ViolationsPenalties() {
             <div className="modal-footer">
               <button className="btn btn-secondary" onClick={() => setActiveModal(null)}>Hủy</button>
               <button className="btn btn-danger" onClick={deleteViolationType}>Xác nhận xóa</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Confirm Invoice */}
+      {invoiceConfirmVio && (
+        <div className="modal-overlay" onClick={() => setInvoiceConfirmVio(null)}>
+          <div className="modal-container modal-container-sm" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <span className="modal-title">Xác nhận lập hóa đơn</span>
+              <button className="modal-close-btn" onClick={() => setInvoiceConfirmVio(null)}><X size={16} /></button>
+            </div>
+            <div className="modal-body">
+              <div className="alert alert-warning">
+                <AlertTriangle size={16} className="alert-icon" />
+                <span>Bạn có chắc chắn muốn lập hóa đơn tiền phạt <strong>{(invoiceConfirmVio.fineAmount || invoiceConfirmVio.penalty).toLocaleString('vi-VN')} ₫</strong> cho biên bản <strong>VIO-{invoiceConfirmVio.violationId}</strong>?<br/><br/>Hành động này không thể hoàn tác, tiểu thương sẽ nhận được thông báo nộp phạt, và trạng thái biên bản sẽ đổi thành Đã kết luận.</span>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={() => setInvoiceConfirmVio(null)}>Hủy</button>
+              <button className="btn btn-primary" onClick={confirmCreateInvoice}>Lập Hóa Đơn</button>
             </div>
           </div>
         </div>

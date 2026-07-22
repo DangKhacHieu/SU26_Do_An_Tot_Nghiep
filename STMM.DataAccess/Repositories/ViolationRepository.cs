@@ -208,5 +208,45 @@ namespace STMM.DataAccess.Repositories
                         c.EndDate >= DateOnly.FromDateTime(v.CreatedAt.Value)
                     ), ct);
         }
+
+        public async Task<decimal> GetTotalFinesAsync(DateTime startDate, DateTime endDate, int? marketId = null, CancellationToken ct = default)
+        {
+            var query = _context.Violations.Where(v => v.CreatedAt >= startDate && v.CreatedAt < endDate);
+            if (marketId.HasValue)
+            {
+                query = query.Where(v => v.Stall.Area.MarketId == marketId.Value);
+            }
+            return await query.SumAsync(v => (decimal)(v.FineAmount ?? 0), ct);
+        }
+
+        public async Task<IEnumerable<Violation>> GetAllViolationsWithDetailsAsync(int? marketId = null, CancellationToken ct = default)
+        {
+            var query = _context.Violations
+                .Include(v => v.Stall)
+                .Include(v => v.ViolationType)
+                .AsQueryable();
+
+            if (marketId.HasValue)
+            {
+                query = query.Where(v => v.Stall.Area.MarketId == marketId.Value);
+            }
+
+            return await query
+                .OrderByDescending(v => v.ViolationId)
+                .ToListAsync(ct);
+        }
+
+        public async Task<bool> IsViolationTypeInUseAsync(int violationTypeId, CancellationToken ct = default)
+        {
+            return await _context.Violations.AnyAsync(v => v.ViolationTypeId == violationTypeId, ct);
+        }
+
+        public async Task<List<Violation>> GetUnpaidViolationsByStallIdAsync(int stallId, CancellationToken ct = default)
+        {
+            return await _context.Violations
+                .Include(v => v.ViolationType)
+                .Where(v => v.StallId == stallId && v.Status == "Unpaid")
+                .ToListAsync(ct);
+        }
     }
 }

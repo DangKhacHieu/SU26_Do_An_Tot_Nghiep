@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using STMM.DataAccess.Data;
@@ -11,9 +12,11 @@ using STMM.DataAccess.Data;
 namespace STMM.DataAccess.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260719210038_AddMarketIdToMasterData")]
+    partial class AddMarketIdToMasterData
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1053,18 +1056,6 @@ namespace STMM.DataAccess.Migrations
                         .HasColumnName("paid_by")
                         .HasComment("Đối tượng chi trả: Vendor=Tiểu thương chịu | Market=Chợ chịu. Quyết định ai duyệt báo giá khi status=Quoted");
 
-                    b.Property<string>("PayerContractClause")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)")
-                        .HasColumnName("payer_contract_clause")
-                        .HasComment("Điều khoản hợp đồng làm căn cứ xác định bên chịu phí");
-
-                    b.Property<string>("PayerDecisionNote")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)")
-                        .HasColumnName("payer_decision_note")
-                        .HasComment("Ghi chú cho quyết định xử lý báo giá gần nhất của Manager");
-
                     b.Property<decimal?>("QuotationAmount")
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)")
@@ -1120,12 +1111,6 @@ namespace STMM.DataAccess.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("vendor_id")
                         .HasComment("Tiểu thương gửi yêu cầu");
-
-                    b.Property<string>("VendorRejectReason")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)")
-                        .HasColumnName("vendor_reject_reason")
-                        .HasComment("Lý do Vendor từ chối báo giá gần nhất");
 
                     b.Property<int?>("ViolationId")
                         .HasColumnType("integer")

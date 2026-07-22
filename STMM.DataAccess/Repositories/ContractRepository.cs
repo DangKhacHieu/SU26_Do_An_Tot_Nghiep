@@ -52,6 +52,79 @@ namespace STMM.DataAccess.Repositories
                 .Include(c => c.ContractFiles)
                 .FirstOrDefaultAsync(c => c.ContractId == contractId && c.IsDeleted != true, ct);
         }
+        public async Task<Contract?> GetActiveContractByStallIdAsync(int stallId, CancellationToken ct = default)
+        {
+            return await _dbSet
+                .Include(c => c.Stall)
+                    .ThenInclude(s => s.Area)
+                .Include(c => c.Vendor)
+                    .ThenInclude(v => v.User)
+                .Where(c => c.StallId == stallId && c.Status == "Active" && c.IsDeleted != true)
+                .FirstOrDefaultAsync(ct);
+        }
+
+        public async Task<List<Stall>> GetStallsWithDebtAsync(int? accountantMarketId = null, string? search = null, CancellationToken ct = default)
+        {
+            var query = _dbSet
+                .Select(c => c.Stall)
+                .Distinct();
+
+            if (accountantMarketId.HasValue)
+            {
+                query = query.Where(s => s.Area.MarketId == accountantMarketId.Value);
+            }
+
+            var stallsQuery = query
+                .Include(s => s.Contracts)
+                    .ThenInclude(c => c.Vendor)
+                        .ThenInclude(v => v.User)
+                .Include(s => s.Contracts)
+                    .ThenInclude(c => c.Invoices)
+                        .ThenInclude(i => i.InvoiceDetails)
+                            .ThenInclude(d => d.FeeType)
+                .Include(s => s.Violations)
+                    .ThenInclude(v => v.ViolationType)
+                .AsQueryable();
+
+            var stalls = await stallsQuery.ToListAsync(ct);
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var sLower = search.ToLower();
+                stalls = stalls.Where(s => s.Code.ToLower().Contains(sLower) || 
+                                          (s.Contracts.FirstOrDefault(c => c.Status == "Active")?.Vendor?.User?.Name ?? "").ToLower().Contains(sLower)).ToList();
+            }
+
+            return stalls;
+        }
+
+        public async Task<Stall?> GetStallWithDebtDetailsAsync(int stallId, CancellationToken ct = default)
+        {
+            return await _dbSet
+                .Where(c => c.StallId == stallId)
+                .Select(c => c.Stall)
+                .Distinct()
+                .Include(s => s.Area)
+                .Include(s => s.Contracts)
+                    .ThenInclude(c => c.Vendor)
+                        .ThenInclude(v => v.User)
+                .Include(s => s.Contracts)
+                    .ThenInclude(c => c.Invoices)
+                        .ThenInclude(i => i.InvoiceDetails)
+                            .ThenInclude(d => d.FeeType)
+                .Include(s => s.Violations)
+                    .ThenInclude(v => v.ViolationType)
+                .FirstOrDefaultAsync(ct);
+        }
+
+        public async Task<List<Contract>> GetAllActiveContractsWithDetailsAsync(CancellationToken ct = default)
+        {
+            return await _dbSet
+                .Include(c => c.Stall)
+                .Include(c => c.Vendor)
+                .Where(c => c.Status == "Active" && c.IsDeleted != true)
+                .ToListAsync(ct);
+        }
     }
 }
 

@@ -342,6 +342,12 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Unit)
                 .HasComment("Đơn vị tính (kWh, m³, tháng)")
                 .HasColumnName("unit");
+            entity.Property(e => e.MarketId)
+                .HasColumnName("market_id");
+
+            entity.HasOne(d => d.Market).WithMany()
+                .HasForeignKey(d => d.MarketId)
+                .HasConstraintName("fk_fee_types_markets");
         });
 
         modelBuilder.Entity<Invoice>(entity =>
@@ -723,7 +729,7 @@ public partial class AppDbContext : DbContext
 
             entity.ToTable("repair_prices", tb => tb.HasComment("Danh mục đơn giá vật tư sửa chữa"));
 
-            entity.HasIndex(e => e.ItemName, "repair_prices_item_name_key").IsUnique();
+            entity.HasIndex(e => new { e.MarketId, e.ItemName }, "idx_repair_prices_market_item").IsUnique();
 
             entity.Property(e => e.RepairPriceId)
                 .HasComment("Mã định danh hạng mục giá sửa chữa")
@@ -752,6 +758,13 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.UpdatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnName("updated_at");
+
+            entity.Property(e => e.MarketId)
+                .HasColumnName("market_id");
+
+            entity.HasOne(d => d.Market).WithMany()
+                .HasForeignKey(d => d.MarketId)
+                .HasConstraintName("fk_repair_prices_markets");
         });
 
         modelBuilder.Entity<Request>(entity =>
@@ -972,6 +985,13 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.FeeTypeId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("fk_services_fee_types");
+
+            entity.Property(e => e.MarketId)
+                .HasColumnName("market_id");
+
+            entity.HasOne(d => d.Market).WithMany()
+                .HasForeignKey(d => d.MarketId)
+                .HasConstraintName("fk_services_markets");
         });
 
         modelBuilder.Entity<ServiceRegistration>(entity =>
@@ -1123,7 +1143,7 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => e.UpdatedByUserId, "idx_system_configs_updated_by_user_id");
 
-            entity.HasIndex(e => e.ConfigKey, "system_configs_config_key_key").IsUnique();
+            entity.HasIndex(e => new { e.MarketId, e.ConfigKey }, "idx_system_configs_market_key").IsUnique();
 
             entity.Property(e => e.ConfigId)
                 .HasComment("Mã cấu hình")
@@ -1150,6 +1170,13 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.UpdatedByUserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("fk_system_configs_users");
+
+            entity.Property(e => e.MarketId)
+                .HasColumnName("market_id");
+
+            entity.HasOne(d => d.Market).WithMany()
+                .HasForeignKey(d => d.MarketId)
+                .HasConstraintName("fk_system_configs_markets");
         });
 
         modelBuilder.Entity<StaffTask>(entity =>
@@ -1507,6 +1534,13 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Name)
                 .HasComment("Tên loại vi phạm (VD: Lấn chiếm, Vệ sinh, PCCC, Kinh doanh trái phép)")
                 .HasColumnName("name");
+
+            entity.Property(e => e.MarketId)
+                .HasColumnName("market_id");
+
+            entity.HasOne(d => d.Market).WithMany()
+                .HasForeignKey(d => d.MarketId)
+                .HasConstraintName("fk_violation_types_markets");
         });
 
         OnModelCreatingPartial(modelBuilder);
