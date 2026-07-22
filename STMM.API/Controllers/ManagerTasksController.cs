@@ -33,10 +33,9 @@ namespace STMM.API.Controllers
 
         [HttpGet]
         public async Task<IActionResult> GetTasks(
-            [FromQuery] TaskQueryParams queryParams,
             CancellationToken ct)
         {
-            var result = await _staffTaskService.GetTasksForManagerAsync(GetUserId(), queryParams, ct);
+            var result = await _staffTaskService.GetTasksForManagerAsync(GetUserId(), ct);
             return Ok(result);
         }
 

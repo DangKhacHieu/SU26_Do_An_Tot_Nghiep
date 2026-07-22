@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { getAuthHeaders } from '../../utils/authHeaders';
 import './ViolationDetails.css';
 
 export default function ViolationDetails({ violationId, baseUrl, onBack }) {
@@ -11,7 +12,7 @@ export default function ViolationDetails({ violationId, baseUrl, onBack }) {
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch(`${baseUrl}/api/violations/${violationId}`);
+        const response = await fetch(`${baseUrl}/api/violations/${violationId}`, { headers: getAuthHeaders() });
         if (!response.ok) {
           let problem = null;
           try { problem = await response.json(); } catch { problem = null; }

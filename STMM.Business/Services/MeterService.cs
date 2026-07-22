@@ -1,6 +1,5 @@
 using AutoMapper;
 using FluentValidation;
-using STMM.Business.DTOs.Common;
 using STMM.Business.DTOs.Meter;
 using STMM.Business.Exceptions;
 using STMM.Business.Interfaces;
@@ -39,19 +38,12 @@ namespace STMM.Business.Services
             _userRepo = userRepo;
         }
 
-        public async Task<PagedResult<MeterDto>> GetMetersAsync(MeterQueryParameters queryParams, int userId, CancellationToken ct = default)
+        public async Task<IReadOnlyList<MeterDto>> GetMetersAsync(
+            int userId,
+            CancellationToken ct = default)
         {
             var marketId = await GetUserMarketIdAsync(userId, ct);
-
-            var (items, totalCount) = await _meterRepo.GetMetersPagedAsync(
-                queryParams.Type,
-                queryParams.IsActive,
-                queryParams.IsAssigned,
-                queryParams.Search,
-                queryParams.PageNumber,
-                queryParams.PageSize,
-                marketId,
-                ct);
+            var items = await _meterRepo.GetMetersForMarketAsync(marketId, ct);
 
             var dtos = _mapper.Map<IEnumerable<MeterDto>>(items).ToList();
             foreach (var dto in dtos)
@@ -61,13 +53,7 @@ namespace STMM.Business.Services
                 dto.LastReadingImageUrl = latest?.ImageUrl;
             }
 
-            return new PagedResult<MeterDto>
-            {
-                Items = dtos,
-                TotalCount = totalCount,
-                PageNumber = queryParams.PageNumber,
-                PageSize = queryParams.PageSize
-            };
+            return dtos;
         }
 
         public async Task<MeterDto?> GetMeterByIdAsync(int id, int userId, CancellationToken ct = default)

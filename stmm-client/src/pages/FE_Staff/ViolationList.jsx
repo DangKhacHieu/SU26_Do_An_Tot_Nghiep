@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { getAuthHeaders } from '../../utils/authHeaders';
 import './ViolationList.css';
 
 const PAGE_SIZE = 8;
@@ -14,7 +15,6 @@ const readProblemDetail = async (response) => {
 
 export default function ViolationList({ baseUrl, onViewDetails, onOpenCreateModal }) {
   const [violations, setViolations] = useState([]);
-  const [totalCount, setTotalCount] = useState(0);
   const [pageNumber, setPageNumber] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
   const [appliedSearch, setAppliedSearch] = useState('');
@@ -25,29 +25,44 @@ export default function ViolationList({ baseUrl, onViewDetails, onOpenCreateModa
     setLoading(true);
     setError('');
     try {
-      const params = new URLSearchParams({
-        pageNumber: String(pageNumber),
-        pageSize: String(PAGE_SIZE),
-        sortDescending: 'true',
-      });
-      if (appliedSearch) params.set('searchTerm', appliedSearch);
-
-      const response = await fetch(`${baseUrl}/api/violations?${params}`);
+      const response = await fetch(`${baseUrl}/api/violations`, { headers: getAuthHeaders() });
       if (!response.ok) throw new Error(await readProblemDetail(response));
       const data = await response.json();
-      setViolations(data.items || []);
-      setTotalCount(data.totalCount || 0);
+      setViolations(Array.isArray(data) ? data : []);
     } catch (fetchError) {
       setViolations([]);
       setError(fetchError.message);
     } finally {
       setLoading(false);
     }
-  }, [appliedSearch, baseUrl, pageNumber]);
+  }, [baseUrl]);
 
   useEffect(() => { fetchViolations(); }, [fetchViolations]);
 
+  const filteredViolations = useMemo(() => {
+    const normalizedSearch = appliedSearch.trim().toLowerCase();
+    if (!normalizedSearch) return violations;
+
+    return violations.filter((violation) => [
+      violation.violationId,
+      violation.title,
+      violation.description,
+      violation.stallCode,
+    ].some((value) => String(value || '').toLowerCase().includes(normalizedSearch)));
+  }, [appliedSearch, violations]);
+
+  const totalCount = filteredViolations.length;
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+  const safePageNumber = Math.min(pageNumber, totalPages);
+  const visibleViolations = useMemo(() => {
+    const startIndex = (safePageNumber - 1) * PAGE_SIZE;
+    return filteredViolations.slice(startIndex, startIndex + PAGE_SIZE);
+  }, [filteredViolations, safePageNumber]);
+
+  useEffect(() => {
+    if (pageNumber !== safePageNumber) setPageNumber(safePageNumber);
+  }, [pageNumber, safePageNumber]);
+
   const applySearch = (event) => {
     event.preventDefault();
     setPageNumber(1);
@@ -67,8 +82,8 @@ export default function ViolationList({ baseUrl, onViewDetails, onOpenCreateModa
 
       {loading ? <div className="loading-state">Loading violations...</div> : null}
       {!loading && error ? <div className="error-state"><p className="error-message">{error}</p><button className="btn-secondary" onClick={fetchViolations}>Retry</button></div> : null}
-      {!loading && !error && violations.length === 0 ? <div className="empty-state"><p>No violations found.</p></div> : null}
-      {!loading && !error && violations.length > 0 ? (
+      {!loading && !error && visibleViolations.length === 0 ? <div className="empty-state"><p>No violations found.</p></div> : null}
+      {!loading && !error && visibleViolations.length > 0 ? (
         <>
           <div className="table-card">
             <div className="table-card-header"><span className="table-card-title">Violations</span><span className="table-count-badge">{totalCount} violations</span></div>
@@ -76,7 +91,7 @@ export default function ViolationList({ baseUrl, onViewDetails, onOpenCreateModa
               <table className="staff-table">
                 <thead><tr><th>ID</th><th>Violation</th><th>Location</th><th>Fine</th><th>Status</th><th>Reported</th><th>Action</th></tr></thead>
                 <tbody>
-                  {violations.map((violation) => (
+                  {visibleViolations.map((violation) => (
                     <tr key={violation.violationId}>
                       <td><strong>#{violation.violationId}</strong></td>
                       <td>{violation.title}</td>
@@ -93,10 +108,10 @@ export default function ViolationList({ baseUrl, onViewDetails, onOpenCreateModa
           </div>
           {totalPages > 1 ? (
             <div className="pagination-wrapper">
-              <span className="pagination-info">Page {pageNumber} of {totalPages}</span>
+              <span className="pagination-info">Page {safePageNumber} of {totalPages}</span>
               <div className="pagination-buttons">
-                <button className="btn-page" onClick={() => setPageNumber((page) => Math.max(1, page - 1))} disabled={pageNumber === 1}>Prev</button>
-                <button className="btn-page" onClick={() => setPageNumber((page) => Math.min(totalPages, page + 1))} disabled={pageNumber === totalPages}>Next</button>
+                <button className="btn-page" onClick={() => setPageNumber((page) => Math.max(1, page - 1))} disabled={safePageNumber === 1}>Prev</button>
+                <button className="btn-page" onClick={() => setPageNumber((page) => Math.min(totalPages, page + 1))} disabled={safePageNumber === totalPages}>Next</button>
               </div>
             </div>
           ) : null}

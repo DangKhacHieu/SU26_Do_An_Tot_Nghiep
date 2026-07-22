@@ -4,13 +4,8 @@ namespace STMM.DataAccess.IRepositories
 {
     public interface IIssueRepository : IBaseRepository<Issue>
     {
-        Task<(IEnumerable<Issue> Items, int TotalCount)> GetIssuesPagedAsync(
+        Task<IReadOnlyList<Issue>> GetIssuesForStaffAsync(
             int staffUserId,
-            string? status,
-            string? searchTerm,
-            bool sortDescending,
-            int pageNumber,
-            int pageSize,
             CancellationToken ct = default);
 
         Task<Issue?> GetIssueForStaffAsync(int issueId, int staffUserId, CancellationToken ct = default);

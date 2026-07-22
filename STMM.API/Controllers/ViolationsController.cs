@@ -35,10 +35,9 @@ namespace STMM.API.Controllers
         [HttpGet]
         [Authorize(Roles = "Staff")]
         public async Task<IActionResult> GetViolations(
-            [FromQuery] ViolationQueryParams queryParams,
             CancellationToken ct)
         {
-            var result = await _violationService.GetViolationsAsync(GetUserId(), queryParams, ct);
+            var result = await _violationService.GetViolationsAsync(GetUserId(), ct);
             return Ok(result);
         }
 

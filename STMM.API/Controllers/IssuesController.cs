@@ -20,10 +20,9 @@ namespace STMM.API.Controllers
 
         [HttpGet]
         public async Task<IActionResult> GetIssues(
-            [FromQuery] IssueQueryParams queryParams,
             CancellationToken ct)
         {
-            var result = await _issueService.GetIssuesAsync(GetUserId(), queryParams, ct);
+            var result = await _issueService.GetIssuesAsync(GetUserId(), ct);
             return Ok(result);
         }
 

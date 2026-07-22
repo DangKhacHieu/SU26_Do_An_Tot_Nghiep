@@ -31,13 +31,9 @@ namespace STMM.DataAccess.IRepositories
 
     public interface IStallRepository : IBaseRepository<Stall>
     {
-        Task<(IEnumerable<StallTaskSummaryQueryResult> Items, int TotalCount)> GetStallTasksPagedAsync(
+        Task<IReadOnlyList<StallTaskSummaryQueryResult>> GetStallTasksAsync(
             int staffUserId,
             int marketId,
-            string? search,
-            string? filter,
-            int pageNumber,
-            int pageSize,
             CancellationToken ct = default);
 
         Task<IEnumerable<StaffStallLookupQueryResult>> GetStaffStallLookupAsync(

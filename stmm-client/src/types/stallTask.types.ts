@@ -11,10 +11,3 @@ export interface StallTaskSummaryDto {
   pendingTaskCount: number;
   taskTypes: string[];
 }
-
-export interface StallTaskQueryParams {
-  pageNumber?: number;
-  pageSize?: number;
-  filter?: 'All' | 'HasUnpaidInvoice' | 'HasTask';
-  search?: string;
-}

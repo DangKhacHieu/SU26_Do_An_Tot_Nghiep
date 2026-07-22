@@ -47,25 +47,12 @@ namespace STMM.Business.Services
             _logger = logger;
         }
 
-        public async Task<PagedResult<ViolationDto>> GetViolationsAsync(
-            int userId, ViolationQueryParams queryParams, CancellationToken ct = default)
+        public async Task<IReadOnlyList<ViolationDto>> GetViolationsAsync(
+            int userId,
+            CancellationToken ct = default)
         {
-            var (items, totalCount) = await _violationRepository.GetViolationsPagedAsync(
-                userId,
-                queryParams.Status,
-                queryParams.SearchTerm,
-                queryParams.SortDescending,
-                queryParams.PageNumber,
-                queryParams.PageSize,
-                ct);
-
-            return new PagedResult<ViolationDto>
-            {
-                Items = _mapper.Map<IEnumerable<ViolationDto>>(items),
-                TotalCount = totalCount,
-                PageNumber = queryParams.PageNumber,
-                PageSize = queryParams.PageSize
-            };
+            var items = await _violationRepository.GetViolationsForStaffAsync(userId, ct);
+            return _mapper.Map<List<ViolationDto>>(items);
         }
 
         public async Task<ViolationDto> GetViolationByIdAsync(

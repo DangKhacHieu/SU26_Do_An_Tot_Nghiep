@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { getAuthHeaders } from '../../utils/authHeaders';
 import './CreateViolationModal.css';
 
 const readProblemDetail = async (response, fallback) => {
@@ -53,8 +54,8 @@ export default function CreateViolationModal({ baseUrl, onClose, onSuccess, pref
     const loadOptions = async () => {
       try {
         const [typesResponse, stallsResponse] = await Promise.all([
-          fetch(`${baseUrl}/api/violations/types`),
-          fetch(`${baseUrl}/api/staff/stalls/lookup`),
+          fetch(`${baseUrl}/api/violations/types`, { headers: getAuthHeaders() }),
+          fetch(`${baseUrl}/api/staff/stalls/lookup`, { headers: getAuthHeaders() }),
         ]);
         if (!typesResponse.ok) {
           throw new Error(await readProblemDetail(typesResponse, 'Unable to load violation types.'));
@@ -127,7 +128,10 @@ export default function CreateViolationModal({ baseUrl, onClose, onSuccess, pref
     try {
       const response = await fetch(`${baseUrl}/api/violations`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(),
+        },
         body: JSON.stringify({
           violationTypeId: Number(violationTypeId),
           stallId: Number(stallId),

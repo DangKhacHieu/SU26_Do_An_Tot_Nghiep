@@ -88,53 +88,16 @@ namespace STMM.DataAccess.Repositories
                     ct);
         }
 
-        public async Task<(IEnumerable<Meter> Items, int TotalCount)> GetMetersPagedAsync(string? type, bool? isActive, bool? isAssigned, string? search, int pageNumber, int pageSize, int? marketId = null, CancellationToken ct = default)
+        public async Task<IReadOnlyList<Meter>> GetMetersForMarketAsync(
+            int marketId,
+            CancellationToken ct = default)
         {
-            var query = _context.Meters
+            return await _context.Meters
                 .Include(m => m.Stall)
-                .AsQueryable();
-
-            if (marketId.HasValue)
-            {
-                query = query.Where(m => m.MarketId == marketId.Value);
-            }
-
-            if (!string.IsNullOrEmpty(type))
-            {
-                query = query.Where(m => m.Type == type);
-            }
-
-            if (isActive.HasValue)
-            {
-                query = query.Where(m => m.IsActive == isActive.Value);
-            }
-
-            if (isAssigned.HasValue)
-            {
-                if (isAssigned.Value)
-                {
-                    query = query.Where(m => m.StallId != null);
-                }
-                else
-                {
-                    query = query.Where(m => m.StallId == null);
-                }
-            }
-
-            if (!string.IsNullOrEmpty(search))
-            {
-                var normSearch = search.Trim().ToLower();
-                query = query.Where(m => m.SerialNumber.ToLower().Contains(normSearch));
-            }
-
-            var totalCount = await query.CountAsync(ct);
-            var items = await query
+                .Where(m => m.MarketId == marketId)
                 .OrderBy(m => m.MeterId)
-                .Skip((pageNumber - 1) * pageSize)
-                .Take(pageSize)
+                .AsNoTracking()
                 .ToListAsync(ct);
-
-            return (items, totalCount);
         }
 
         public async Task<bool> ExistsSerialNumberAsync(string serialNumber, int? excludeMeterId = null, CancellationToken ct = default)

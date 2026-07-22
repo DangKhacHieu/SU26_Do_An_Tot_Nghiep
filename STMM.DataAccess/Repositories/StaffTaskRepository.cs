@@ -79,25 +79,15 @@ namespace STMM.DataAccess.Repositories
             return GetTasksPagedAsync(query, status, taskType, search, pageNumber, pageSize, ct);
         }
 
-        public Task<(IEnumerable<StaffTask> Items, int TotalCount)> GetTasksForMarketPagedAsync(
+        public async Task<IReadOnlyList<StaffTask>> GetTasksForMarketAsync(
             int marketId,
-            int? staffUserId,
-            string? status,
-            string? taskType,
-            string? search,
-            int pageNumber,
-            int pageSize,
             CancellationToken ct = default)
         {
-            var query = BuildTaskQuery()
-                .Where(t => t.AssignedToUser.MarketId == marketId);
-
-            if (staffUserId.HasValue)
-            {
-                query = query.Where(t => t.AssignedToUserId == staffUserId.Value);
-            }
-
-            return GetTasksPagedAsync(query, status, taskType, search, pageNumber, pageSize, ct);
+            return await BuildTaskQuery()
+                .Where(t => t.AssignedToUser.MarketId == marketId)
+                .OrderByDescending(t => t.CreatedAt)
+                .AsNoTracking()
+                .ToListAsync(ct);
         }
 
         public async Task<IReadOnlyList<StaffTask>> GetTasksForStaffAsync(

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { getAuthHeaders } from '../../utils/authHeaders';
 import './CreateIssueModal.css';
 
 const readProblemDetail = async (response, fallback) => {
@@ -10,9 +11,9 @@ const readProblemDetail = async (response, fallback) => {
   }
 };
 
-export default function CreateIssueModal({ baseUrl, onClose, onSuccess }) {
+export default function CreateIssueModal({ baseUrl, onClose, onSuccess, prefilledStallId }) {
   const [stalls, setStalls] = useState([]);
-  const [stallId, setStallId] = useState('');
+  const [stallId, setStallId] = useState(prefilledStallId ? String(prefilledStallId) : '');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [uploadedImages, setUploadedImages] = useState([]);
@@ -48,7 +49,7 @@ export default function CreateIssueModal({ baseUrl, onClose, onSuccess }) {
 
     const loadStalls = async () => {
       try {
-        const response = await fetch(`${baseUrl}/api/staff/stalls/lookup`);
+        const response = await fetch(`${baseUrl}/api/staff/stalls/lookup`, { headers: getAuthHeaders() });
         if (!response.ok) {
           throw new Error(await readProblemDetail(response, 'Unable to load stalls.'));
         }
@@ -111,7 +112,10 @@ export default function CreateIssueModal({ baseUrl, onClose, onSuccess }) {
     try {
       const response = await fetch(`${baseUrl}/api/staff/issues`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(),
+        },
         body: JSON.stringify({
           stallId: Number(stallId),
           title: title.trim(),

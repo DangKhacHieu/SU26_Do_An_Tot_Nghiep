@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { getAuthHeaders } from '../../utils/authHeaders';
 import { TASK_STATUS, TASK_TYPE } from '../../constants/taskEnums';
 import TaskInfoCard from './components/TaskInfoCard';
 import QuotationPanel from './components/QuotationPanel';
@@ -21,7 +22,7 @@ export default function TaskDetail({ taskId, baseUrl, onBack, onShowNotification
     setError(null);
 
     try {
-      const response = await fetch(`${baseUrl}/api/staff/tasks/${taskId}`);
+      const response = await fetch(`${baseUrl}/api/staff/tasks/${taskId}`, { headers: getAuthHeaders() });
       if (!response.ok) {
         let problem = null;
         try {

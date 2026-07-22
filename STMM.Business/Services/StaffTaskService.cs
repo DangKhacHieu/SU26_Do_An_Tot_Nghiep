@@ -1,7 +1,6 @@
 using AutoMapper;
 using FluentValidation;
 using Microsoft.Extensions.Logging;
-using STMM.Business.DTOs.Common;
 using STMM.Business.DTOs.Notification;
 using STMM.Business.DTOs.Task;
 using STMM.Business.Exceptions;
@@ -62,26 +61,13 @@ namespace STMM.Business.Services
         }
 
         /// <inheritdoc />
-        public async Task<PagedResult<TaskSummaryDto>> GetTasksForManagerAsync(int managerUserId, TaskQueryParams q, CancellationToken ct = default)
+        public async Task<IReadOnlyList<TaskSummaryDto>> GetTasksForManagerAsync(
+            int managerUserId,
+            CancellationToken ct = default)
         {
             var marketId = await GetManagerMarketIdAsync(managerUserId, ct);
-            var (items, totalCount) = await _staffTaskRepository.GetTasksForMarketPagedAsync(
-                marketId: marketId,
-                staffUserId: q.AssignedToUserId,
-                status: q.Status,
-                taskType: q.TaskType,
-                search: q.Search,
-                pageNumber: q.PageNumber,
-                pageSize: q.PageSize,
-                ct: ct);
-
-            return new PagedResult<TaskSummaryDto>
-            {
-                Items = _mapper.Map<IEnumerable<TaskSummaryDto>>(items),
-                TotalCount = totalCount,
-                PageNumber = q.PageNumber,
-                PageSize = q.PageSize
-            };
+            var items = await _staffTaskRepository.GetTasksForMarketAsync(marketId, ct);
+            return _mapper.Map<List<TaskSummaryDto>>(items);
         }
 
         /// <inheritdoc />

@@ -4,13 +4,8 @@ namespace STMM.DataAccess.IRepositories
 {
     public interface IViolationRepository : IBaseRepository<Violation>
     {
-        Task<(IEnumerable<Violation> Items, int TotalCount)> GetViolationsPagedAsync(
+        Task<IReadOnlyList<Violation>> GetViolationsForStaffAsync(
             int userId,
-            string? status,
-            string? searchTerm,
-            bool sortDescending,
-            int pageNumber,
-            int pageSize,
             CancellationToken ct = default);
 
         Task<Violation?> GetViolationWithStallAsync(int id, int userId, CancellationToken ct = default);

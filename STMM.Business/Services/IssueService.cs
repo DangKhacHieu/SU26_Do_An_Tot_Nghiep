@@ -36,21 +36,12 @@ namespace STMM.Business.Services
         }
 
         /// <inheritdoc />
-        public async Task<PagedResult<IssueDto>> GetIssuesAsync(
+        public async Task<IReadOnlyList<IssueDto>> GetIssuesAsync(
             int staffUserId,
-            IssueQueryParams queryParams,
             CancellationToken ct = default)
         {
-            var (items, totalCount) = await _issueRepository.GetIssuesPagedAsync(
-                staffUserId,
-                queryParams.Status,
-                queryParams.SearchTerm,
-                queryParams.SortDescending,
-                queryParams.PageNumber,
-                queryParams.PageSize,
-                ct);
-
-            return BuildPagedResult(items, totalCount, queryParams);
+            var items = await _issueRepository.GetIssuesForStaffAsync(staffUserId, ct);
+            return items.Select(MapIssueToDto).ToList();
         }
 
         /// <inheritdoc />

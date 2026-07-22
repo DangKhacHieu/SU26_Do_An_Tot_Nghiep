@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import meterService from '../../services/meterService';
 import './MeterManagement.css';
 
@@ -24,8 +24,6 @@ export default function MeterManagement({ addToast }) {
   const [isAssignedFilter, setIsAssignedFilter] = useState(DEFAULT_ASSIGNED_FILTER);
   const [pageNumber, setPageNumber] = useState(1);
   const [pageSize] = useState(10);
-  const [totalCount, setTotalCount] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
 
   // Modal states
   const [modalType, setModalType] = useState(null);
@@ -41,28 +39,45 @@ export default function MeterManagement({ addToast }) {
   const fetchMeters = useCallback(async () => {
     setLoading(true);
     try {
-      const queryParams = {
-        pageNumber,
-        pageSize,
-        search: search.trim() || undefined,
-        type: typeFilter || undefined,
-        isActive: isActiveFilter === 'true' ? true : isActiveFilter === 'false' ? false : undefined,
-        isAssigned: isAssignedFilter === 'true' ? true : isAssignedFilter === 'false' ? false : undefined
-      };
-      const res = await meterService.getMeters(queryParams);
-      setMeters(res.items || []);
-      setTotalCount(res.totalCount || 0);
-      setTotalPages(res.totalPages || 0);
+      const res = await meterService.getMeters();
+      setMeters(Array.isArray(res) ? res : []);
     } catch (error) {
       addToast(error.message || 'Không thể tải danh sách công tơ.', 'error');
     } finally {
       setLoading(false);
     }
-  }, [addToast, isActiveFilter, isAssignedFilter, pageNumber, pageSize, search, typeFilter]);
+  }, [addToast]);
 
   useEffect(() => {
     fetchMeters();
   }, [fetchMeters]);
+
+  const filteredMeters = useMemo(() => {
+    const normalizedSearch = search.trim().toLowerCase();
+
+    return meters.filter((meter) => {
+      const matchesSearch = !normalizedSearch
+        || String(meter.serialNumber || '').toLowerCase().includes(normalizedSearch);
+      const matchesType = !typeFilter || meter.type === typeFilter;
+      const matchesActive = !isActiveFilter || String(Boolean(meter.isActive)) === isActiveFilter;
+      const isAssigned = meter.stallId !== null && meter.stallId !== undefined;
+      const matchesAssigned = !isAssignedFilter || String(isAssigned) === isAssignedFilter;
+
+      return matchesSearch && matchesType && matchesActive && matchesAssigned;
+    });
+  }, [isActiveFilter, isAssignedFilter, meters, search, typeFilter]);
+
+  const totalCount = filteredMeters.length;
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const safePageNumber = Math.min(pageNumber, totalPages);
+  const visibleMeters = useMemo(() => {
+    const startIndex = (safePageNumber - 1) * pageSize;
+    return filteredMeters.slice(startIndex, startIndex + pageSize);
+  }, [filteredMeters, pageSize, safePageNumber]);
+
+  useEffect(() => {
+    if (pageNumber !== safePageNumber) setPageNumber(safePageNumber);
+  }, [pageNumber, safePageNumber]);
 
   const handleClearFilters = () => {
     setSearch('');
@@ -292,7 +307,7 @@ export default function MeterManagement({ addToast }) {
             <div className="spinner" />
             <span className="state-empty-text">Đang tải kho công tơ cùng chợ...</span>
           </div>
-        ) : meters.length === 0 ? (
+        ) : visibleMeters.length === 0 ? (
           <div className="state-empty">
             <IconEmpty />
             <span className="state-empty-text">
@@ -321,8 +336,8 @@ export default function MeterManagement({ addToast }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {meters.map((meter, idx) => {
-                    const rowNum = (pageNumber - 1) * pageSize + idx + 1;
+                  {visibleMeters.map((meter, idx) => {
+                    const rowNum = (safePageNumber - 1) * pageSize + idx + 1;
                     return (
                       <tr key={meter.meterId}>
                         <td className="row-no">{rowNum}</td>
@@ -397,7 +412,7 @@ export default function MeterManagement({ addToast }) {
               <div className="pagination">
                 <button
                   className="btn-pagination"
-                  disabled={pageNumber <= 1}
+                  disabled={safePageNumber <= 1}
                   onClick={() => setPageNumber(p => Math.max(1, p - 1))}
                   title="Trang trước"
                 >
@@ -408,7 +423,7 @@ export default function MeterManagement({ addToast }) {
                   {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
                     <button
                       key={page}
-                      className={`btn-page-num ${page === pageNumber ? 'active' : ''}`}
+                      className={`btn-page-num ${page === safePageNumber ? 'active' : ''}`}
                       onClick={() => setPageNumber(page)}
                     >
                       {page}
@@ -418,7 +433,7 @@ export default function MeterManagement({ addToast }) {
 
                 <button
                   className="btn-pagination"
-                  disabled={pageNumber >= totalPages}
+                  disabled={safePageNumber >= totalPages}
                   onClick={() => setPageNumber(p => Math.min(totalPages, p + 1))}
                   title="Trang sau"
                 >

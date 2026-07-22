@@ -150,10 +150,11 @@ export default function CreateTaskModal({
     const fetchUtilityReadingTasks = async () => {
       setLoadingUtilityTasks(true);
       try {
-        const res = await fetch(`${baseUrl}/api/manager/tasks?PageNumber=1&PageSize=1000&TaskType=UtilityReading`);
+        const res = await fetch(`${baseUrl}/api/manager/tasks`);
         if (res.ok) {
           const data = await res.json();
-          setUtilityReadingTasks(data.items || data.Items || []);
+          const tasks = Array.isArray(data) ? data : [];
+          setUtilityReadingTasks(tasks.filter((task) => (task.taskType || task.TaskType) === 'UtilityReading'));
         } else {
           addToastRef.current('Cannot load existing utility reading assignments.', 'error');
         }

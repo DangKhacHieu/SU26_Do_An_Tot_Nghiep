@@ -11,13 +11,9 @@ namespace STMM.DataAccess.Repositories
         {
         }
 
-        public async Task<(IEnumerable<StallTaskSummaryQueryResult> Items, int TotalCount)> GetStallTasksPagedAsync(
+        public async Task<IReadOnlyList<StallTaskSummaryQueryResult>> GetStallTasksAsync(
             int staffUserId,
             int marketId,
-            string? search,
-            string? filter,
-            int pageNumber,
-            int pageSize,
             CancellationToken ct = default)
         {
             var effectiveDate = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
@@ -25,71 +21,30 @@ namespace STMM.DataAccess.Repositories
                 s.IsDeleted != true &&
                 s.Area.MarketId == marketId);
 
-            if (!string.IsNullOrWhiteSpace(search))
-            {
-                var trimmedSearch = search.Trim().ToUpper();
-                query = query.Where(s => s.Code.ToUpper().Contains(trimmedSearch));
-            }
-
-            if (filter == "HasUnpaidInvoice")
-            {
-                query = query.Where(s => s.Contracts.Any(c => c.IsDeleted != true && c.Status == "Active" &&
-                                                             c.Invoices.Any(i => i.IsDeleted != true && i.Status == "Unpaid")));
-            }
-            else if (filter == "HasTask")
-            {
-                query = query.Where(s =>
-                    s.Issues.Any(i => i.StaffTasks.Any(t =>
-                        t.AssignedToUserId == staffUserId &&
-                        t.Status != "Completed" &&
-                        t.Status != "Cancelled")) ||
-                    s.Requests.Any(r => r.StaffTasks.Any(t =>
-                        t.AssignedToUserId == staffUserId &&
-                        t.Status != "Completed" &&
-                        t.Status != "Cancelled")) ||
-                    s.Area.StaffTasks.Any(t =>
-                        t.AssignedToUserId == staffUserId &&
-                        t.Status != "Completed" &&
-                        t.Status != "Cancelled" &&
-                        t.TaskType == "UtilityReading" &&
-                        s.Contracts.Any(c =>
-                            c.IsDeleted != true &&
-                            c.Status == "Active" &&
-                            c.StartDate <= effectiveDate &&
-                            c.EndDate >= effectiveDate)));
-            }
-            else
-            {
-                query = query.Where(s =>
-                    s.Contracts.Any(c => c.IsDeleted != true && c.Status == "Active" &&
-                                         c.Invoices.Any(i => i.IsDeleted != true && i.Status == "Unpaid")) ||
-                    s.Issues.Any(i => i.StaffTasks.Any(t =>
-                        t.AssignedToUserId == staffUserId &&
-                        t.Status != "Completed" &&
-                        t.Status != "Cancelled")) ||
-                    s.Requests.Any(r => r.StaffTasks.Any(t =>
-                        t.AssignedToUserId == staffUserId &&
-                        t.Status != "Completed" &&
-                        t.Status != "Cancelled")) ||
-                    s.Area.StaffTasks.Any(t =>
-                        t.AssignedToUserId == staffUserId &&
-                        t.Status != "Completed" &&
-                        t.Status != "Cancelled" &&
-                        t.TaskType == "UtilityReading" &&
-                        s.Contracts.Any(c =>
-                            c.IsDeleted != true &&
-                            c.Status == "Active" &&
-                            c.StartDate <= effectiveDate &&
-                            c.EndDate >= effectiveDate))
-                );
-            }
-
-            var totalCount = await query.CountAsync(ct);
+            query = query.Where(s =>
+                s.Contracts.Any(c => c.IsDeleted != true && c.Status == "Active" &&
+                                     c.Invoices.Any(i => i.IsDeleted != true && i.Status == "Unpaid")) ||
+                s.Issues.Any(i => i.StaffTasks.Any(t =>
+                    t.AssignedToUserId == staffUserId &&
+                    t.Status != "Completed" &&
+                    t.Status != "Cancelled")) ||
+                s.Requests.Any(r => r.StaffTasks.Any(t =>
+                    t.AssignedToUserId == staffUserId &&
+                    t.Status != "Completed" &&
+                    t.Status != "Cancelled")) ||
+                s.Area.StaffTasks.Any(t =>
+                    t.AssignedToUserId == staffUserId &&
+                    t.Status != "Completed" &&
+                    t.Status != "Cancelled" &&
+                    t.TaskType == "UtilityReading" &&
+                    s.Contracts.Any(c =>
+                        c.IsDeleted != true &&
+                        c.Status == "Active" &&
+                        c.StartDate <= effectiveDate &&
+                        c.EndDate >= effectiveDate)));
 
             var stallsList = await query
                 .OrderBy(s => s.Code)
-                .Skip((pageNumber - 1) * pageSize)
-                .Take(pageSize)
                 .Select(s => new {
                     s.StallId,
                     s.AreaId,
@@ -173,7 +128,7 @@ namespace STMM.DataAccess.Repositories
                 );
             }).ToList();
 
-            return (items, totalCount);
+            return items;
         }
 
         public async Task<IEnumerable<StaffStallLookupQueryResult>> GetStaffStallLookupAsync(

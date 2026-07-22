@@ -1,4 +1,3 @@
-using STMM.Business.DTOs.Common;
 using STMM.Business.DTOs.StallTask;
 using STMM.Business.Exceptions;
 using STMM.Business.Interfaces;
@@ -26,24 +25,14 @@ namespace STMM.Business.Services
         }
 
         /// <inheritdoc />
-        public async Task<PagedResult<StallTaskSummaryDto>> GetStallTasksAsync(
-            int staffUserId, StallTaskQueryParams queryParams, CancellationToken ct = default)
+        public async Task<IReadOnlyList<StallTaskSummaryDto>> GetStallTasksAsync(
+            int staffUserId,
+            CancellationToken ct = default)
         {
-            ValidateQueryParams(queryParams);
-
-            var filter = string.IsNullOrWhiteSpace(queryParams.Filter)
-                ? "All"
-                : queryParams.Filter.Trim();
-            var search = queryParams.Search?.Trim();
-
             var marketId = await GetStaffMarketIdAsync(staffUserId, ct);
-            var (stalls, totalCount) = await _stallRepository.GetStallTasksPagedAsync(
+            var stalls = await _stallRepository.GetStallTasksAsync(
                 staffUserId,
                 marketId,
-                search,
-                filter,
-                queryParams.PageNumber,
-                queryParams.PageSize,
                 ct);
 
             var items = stalls.Select(s =>
@@ -64,40 +53,7 @@ namespace STMM.Business.Services
                 };
             }).ToList();
 
-            return new PagedResult<StallTaskSummaryDto>
-            {
-                Items = items,
-                TotalCount = totalCount,
-                PageNumber = queryParams.PageNumber,
-                PageSize = queryParams.PageSize
-            };
-        }
-
-        private static void ValidateQueryParams(StallTaskQueryParams queryParams)
-        {
-            if (queryParams.PageNumber < 1)
-            {
-                throw new BadRequestException("PageNumber must be at least 1.");
-            }
-
-            if (queryParams.PageSize is < 1 or > 100)
-            {
-                throw new BadRequestException("PageSize must be between 1 and 100.");
-            }
-
-            var filter = string.IsNullOrWhiteSpace(queryParams.Filter)
-                ? "All"
-                : queryParams.Filter.Trim();
-            var allowedFilters = new[] { "All", "HasUnpaidInvoice", "HasTask" };
-            if (!allowedFilters.Contains(filter, StringComparer.Ordinal))
-            {
-                throw new BadRequestException("Filter must be All, HasUnpaidInvoice, or HasTask.");
-            }
-
-            if (queryParams.Search?.Trim().Length > 100)
-            {
-                throw new BadRequestException("Search must not exceed 100 characters.");
-            }
+            return items;
         }
 
         public async Task<IEnumerable<StaffStallLookupDto>> GetStallLookupAsync(

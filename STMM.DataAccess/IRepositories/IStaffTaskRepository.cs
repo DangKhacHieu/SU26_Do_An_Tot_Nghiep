@@ -33,14 +33,8 @@ namespace STMM.DataAccess.IRepositories
             int staffUserId,
             CancellationToken ct = default);
 
-        Task<(IEnumerable<StaffTask> Items, int TotalCount)> GetTasksForMarketPagedAsync(
+        Task<IReadOnlyList<StaffTask>> GetTasksForMarketAsync(
             int marketId,
-            int? staffUserId,
-            string? status, 
-            string? taskType, 
-            string? search, 
-            int pageNumber, 
-            int pageSize, 
             CancellationToken ct = default);
             
         Task<StaffTask?> GetTaskByIdWithRelationsAsync(int taskId, CancellationToken ct = default);

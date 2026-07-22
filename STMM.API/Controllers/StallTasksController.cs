@@ -32,11 +32,10 @@ namespace STMM.API.Controllers
 
         [HttpGet]
         public async Task<IActionResult> GetStallTasks(
-            [FromQuery] StallTaskQueryParams queryParams,
             CancellationToken ct)
         {
             var userId = GetUserId();
-            var result = await _stallTaskService.GetStallTasksAsync(userId, queryParams, ct);
+            var result = await _stallTaskService.GetStallTasksAsync(userId, ct);
             return Ok(result);
         }
 

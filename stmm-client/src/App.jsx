@@ -451,7 +451,7 @@ function AppContent() {
       : `/manager/${page}`;
 
     if (window.location.pathname !== newPath) {
-      window.history.pushState({}, "", newPath);
+      routerNavigate(newPath);
       setPath(newPath);
     }
   };
@@ -687,6 +687,16 @@ function AppContent() {
           />
         );
       case "task-details":
+        if (!currentUserId) {
+          return (
+            <TaskListManager
+              baseUrl={baseUrl}
+              navigate={navigate}
+              addToast={addToast}
+            />
+          );
+        }
+
         return (
           <TaskDetailManager
             taskId={currentUserId}
@@ -1240,9 +1250,15 @@ function AppContent() {
       <Route path="/stalls/:id" element={<StallDetailWrapper user={user} onLogout={handleLogout} navigatePath={navigatePath} />} />
 
       {/* 3. Admin & Manager & Staff & Vendor Console Routes */}
-      <Route path="/admin/dashboard" element={renderManagerOrAdminConsole()} />
-      <Route path="/manager/dashboard" element={renderManagerOrAdminConsole()} />
-      <Route path="/staff/dashboard" element={renderStaffConsole()} />
+      <Route element={<ProtectedRoute allowedRoles={["Admin", "SystemAdmin"]} />}>
+        <Route path="/admin/*" element={renderManagerOrAdminConsole()} />
+      </Route>
+      <Route element={<ProtectedRoute allowedRoles={["Manager"]} />}>
+        <Route path="/manager/*" element={renderManagerOrAdminConsole()} />
+      </Route>
+      <Route element={<ProtectedRoute allowedRoles={["Staff"]} />}>
+        <Route path="/staff/*" element={renderStaffConsole()} />
+      </Route>
       
       {/* Vendor Portal Route */}
       <Route element={<ProtectedRoute allowedRoles={["Vendor"]} />}>

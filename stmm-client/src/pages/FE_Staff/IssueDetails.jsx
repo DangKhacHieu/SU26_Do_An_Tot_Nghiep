@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { getAuthHeaders } from '../../utils/authHeaders';
 import './IssueDetails.css';
 
 export default function IssueDetails({ issueId, baseUrl, onBack }) {
@@ -11,7 +12,7 @@ export default function IssueDetails({ issueId, baseUrl, onBack }) {
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch(`${baseUrl}/api/staff/issues/${issueId}`);
+        const response = await fetch(`${baseUrl}/api/staff/issues/${issueId}`, { headers: getAuthHeaders() });
         if (!response.ok) {
           let problem = null;
           try { problem = await response.json(); } catch { problem = null; }

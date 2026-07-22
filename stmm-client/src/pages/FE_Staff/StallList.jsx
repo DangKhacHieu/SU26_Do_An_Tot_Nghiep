@@ -1,12 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import CreateViolationModal from './CreateViolationModal';
 import readProblemDetail from '../../utils/readProblemDetail';
 import './StallList.css';
 
 export default function StallList({ baseUrl, onShowNotification, onViewMeterHistory, onViewInvoices }) {
   const [stalls, setStalls] = useState([]);
-  const [totalCount, setTotalCount] = useState(0);
-  const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -24,22 +22,12 @@ export default function StallList({ baseUrl, onShowNotification, onViewMeterHist
     setLoading(true);
     setError(null);
     try {
-      let url = `${baseUrl}/api/staff/stall-tasks?pageNumber=${pageNumber}&pageSize=${pageSize}`;
-      if (filterType !== 'All') {
-        url += `&filter=${filterType}`;
-      }
-      if (appliedSearch.trim() !== '') {
-        url += `&search=${encodeURIComponent(appliedSearch.trim())}`;
-      }
-
-      const response = await fetch(url);
+      const response = await fetch(`${baseUrl}/api/staff/stall-tasks`);
       if (!response.ok) {
         throw new Error(await readProblemDetail(response, 'Unable to load stalls.'));
       }
       const data = await response.json();
-      setStalls(data.items || []);
-      setTotalCount(data.totalCount || 0);
-      setTotalPages(data.totalPages || 1);
+      setStalls(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error("Error fetching stalls checklist:", err);
       setError(err.message);
@@ -47,11 +35,37 @@ export default function StallList({ baseUrl, onShowNotification, onViewMeterHist
     } finally {
       setLoading(false);
     }
-  }, [appliedSearch, baseUrl, filterType, pageNumber, pageSize]);
+  }, [baseUrl]);
 
   useEffect(() => {
     fetchStalls();
   }, [fetchStalls]);
+
+  const filteredStalls = useMemo(() => {
+    const normalizedSearch = appliedSearch.trim().toLowerCase();
+
+    return stalls.filter((stall) => {
+      const matchesSearch = !normalizedSearch
+        || String(stall.stallCode || '').toLowerCase().includes(normalizedSearch);
+      const matchesFilter = filterType === 'All'
+        || (filterType === 'HasTask' && Number(stall.pendingTaskCount || 0) > 0)
+        || (filterType === 'HasUnpaidInvoice' && Boolean(stall.hasUnpaidInvoice));
+
+      return matchesSearch && matchesFilter;
+    });
+  }, [appliedSearch, filterType, stalls]);
+
+  const totalCount = filteredStalls.length;
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const safePageNumber = Math.min(pageNumber, totalPages);
+  const visibleStalls = useMemo(() => {
+    const startIndex = (safePageNumber - 1) * pageSize;
+    return filteredStalls.slice(startIndex, startIndex + pageSize);
+  }, [filteredStalls, pageSize, safePageNumber]);
+
+  useEffect(() => {
+    if (pageNumber !== safePageNumber) setPageNumber(safePageNumber);
+  }, [pageNumber, safePageNumber]);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
@@ -160,14 +174,14 @@ export default function StallList({ baseUrl, onShowNotification, onViewMeterHist
           <p className="error-message">Error: {error}</p>
           <button className="btn-secondary" onClick={fetchStalls}>Retry</button>
         </div>
-      ) : stalls.length === 0 ? (
+      ) : visibleStalls.length === 0 ? (
         <div className="empty-state">
           <p>No stalls match the selected filters.</p>
         </div>
       ) : (
         <>
           <div className="stalls-grid">
-            {stalls.map((stall) => (
+            {visibleStalls.map((stall) => (
               <div key={stall.stallId} className="stall-card">
                 <div className="stall-card-header">
                   <div className="stall-code-container">
@@ -255,13 +269,13 @@ export default function StallList({ baseUrl, onShowNotification, onViewMeterHist
 
           <div className="pagination-wrapper">
             <span className="pagination-info">
-              Showing {stalls.length} of {totalCount} stalls
+              Showing {visibleStalls.length} of {totalCount} stalls
             </span>
             <div className="pagination-buttons">
               <button 
                 className="btn-page" 
                 onClick={() => setPageNumber(p => Math.max(p - 1, 1))}
-                disabled={pageNumber === 1}
+                disabled={safePageNumber === 1}
               >
                 Prev
               </button>
@@ -269,7 +283,7 @@ export default function StallList({ baseUrl, onShowNotification, onViewMeterHist
               {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
                 <button
                   key={p}
-                  className={`btn-page ${pageNumber === p ? 'active' : ''}`}
+                  className={`btn-page ${safePageNumber === p ? 'active' : ''}`}
                   onClick={() => setPageNumber(p)}
                 >
                   {p}
@@ -279,7 +293,7 @@ export default function StallList({ baseUrl, onShowNotification, onViewMeterHist
               <button 
                 className="btn-page" 
                 onClick={() => setPageNumber(p => Math.min(p + 1, totalPages))}
-                disabled={pageNumber === totalPages}
+                disabled={safePageNumber === totalPages}
               >
                 Next
               </button>

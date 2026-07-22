@@ -53,15 +53,6 @@ export interface CompleteTaskRequest {
   completionNotes?: string;
 }
 
-export interface TaskQueryParams {
-  pageNumber?: number;
-  pageSize?: number;
-  status?: string;
-  taskType?: string;
-  assignedToUserId?: number;
-  search?: string;
-}
-
 export interface UtilityStallChecklistDto {
   stallId: number;
   stallCode: string;

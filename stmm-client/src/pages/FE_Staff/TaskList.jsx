@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { getAuthHeaders } from '../../utils/authHeaders';
 import {
   CalendarDays,
   CheckCircle2,
@@ -70,7 +71,7 @@ export default function TaskList({ baseUrl, onViewDetails, onMapView }) {
     setError(null);
 
     try {
-      const response = await fetch(`${baseUrl}/api/staff/tasks`);
+      const response = await fetch(`${baseUrl}/api/staff/tasks`, { headers: getAuthHeaders() });
       if (!response.ok) {
         throw new Error(await readProblemDetail(response));
       }

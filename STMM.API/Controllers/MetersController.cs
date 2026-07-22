@@ -56,15 +56,15 @@ namespace STMM.API.Controllers
         }
 
         /// <summary>
-        /// Get all meters with paging and filters (for Manager).
+        /// Get all meters in the manager's market.
         /// </summary>
         [HttpGet]
         [Authorize(Roles = "Manager")]
-        public async Task<IActionResult> GetMeters([FromQuery] MeterQueryParameters queryParams, CancellationToken ct)
+        public async Task<IActionResult> GetMeters(CancellationToken ct)
         {
             var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
             var userId = int.Parse(userIdClaim!);
-            var result = await _meterService.GetMetersAsync(queryParams, userId, ct);
+            var result = await _meterService.GetMetersAsync(userId, ct);
             return Ok(result);
         }
 
