@@ -435,16 +435,16 @@ function AppContent() {
     }
   }, [path]);
 
-  const addToast = (message, type = "info") => {
-    const id = Date.now();
+  const addToast = useCallback((message, type = "info") => {
+    const id = Date.now() + Math.random();
     setToasts((prev) => [...prev, { id, message, type }]);
 
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
     }, 4000);
-  };
+  }, []);
 
-  const navigate = (page, id = null) => {
+  const navigate = useCallback((page, id = null) => {
     setCurrentUserId(id);
     setCurrentPage(page);
 
@@ -456,7 +456,7 @@ function AppContent() {
       routerNavigate(newPath);
       setPath(newPath);
     }
-  };
+  }, [routerNavigate]);
 
   // =========================
   // Staff Console State
@@ -595,7 +595,7 @@ function AppContent() {
       case "users":
         return <UserListManager navigate={navigate} addToast={addToast} />;
       case "requests":
-        return <RequestListManager navigate={navigate} addToast={addToast} />;
+        return <RequestListManager baseUrl={baseUrl} navigate={navigate} addToast={addToast} />;
       case "request-detail":
         return (
           <RequestDetailManager
@@ -606,11 +606,12 @@ function AppContent() {
           />
         );
       case "violations":
-        return <ViolationListManager navigate={navigate} addToast={addToast} />;
+        return <ViolationListManager baseUrl={baseUrl} navigate={navigate} addToast={addToast} />;
       case "violation-details":
         return (
           <ViolationDetailsManager
             violationId={currentUserId}
+            baseUrl={baseUrl}
             navigate={navigate}
             addToast={addToast}
           />
@@ -635,7 +636,7 @@ function AppContent() {
           />
         );
       case "meters":
-        return <MeterManagement addToast={addToast} />;
+        return <MeterManagement baseUrl={baseUrl} addToast={addToast} />;
       case "form":
         return (
           <UserFormManager

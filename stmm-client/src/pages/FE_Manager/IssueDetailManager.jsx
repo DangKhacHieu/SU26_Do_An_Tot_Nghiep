@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { getAuthHeaders } from '../../utils/authHeaders';
 import './IssueDetailManager.css';
 import CreateTaskModal from './CreateTaskModal';
 
@@ -48,7 +49,7 @@ export default function IssueDetailManager({ issueId, userId, baseUrl, navigate,
   const fetchIssueDetail = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${baseUrl}/api/manager/issues/${issueId}`);
+      const res = await fetch(`${baseUrl}/api/manager/issues/${issueId}`, { headers: getAuthHeaders() });
       if (!res.ok) throw new Error();
       setIssue(await res.json());
     } catch {

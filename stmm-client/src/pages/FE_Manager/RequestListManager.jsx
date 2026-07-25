@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import './RequestListManager.css';
 
 const API_BASE = "http://localhost:5056/api/manager/requests";
@@ -54,7 +54,7 @@ const IconFilter = () => (
   </svg>
 );
 
-export default function RequestListManager({ navigate, addToast }) {
+export default function RequestListManager({ baseUrl, navigate, addToast }) {
   const [requests, setRequests] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -65,13 +65,12 @@ export default function RequestListManager({ navigate, addToast }) {
   const pageSize = 8;
   const searchRef = useRef(null);
 
-  useEffect(() => { setPage(1); }, [searchQuery, statusFilter, typeFilter]);
-  useEffect(() => { fetchRequests(); }, [searchQuery, statusFilter, typeFilter, page]);
+  const apiBase = `${baseUrl || "http://localhost:5056"}/api/manager/requests`;
 
-  const fetchRequests = async () => {
+  const fetchRequests = useCallback(async () => {
     setLoading(true);
     try {
-      let url = `${API_BASE}?pageNumber=${page}&pageSize=${pageSize}`;
+      let url = `${apiBase}?pageNumber=${page}&pageSize=${pageSize}`;
       if (statusFilter) url += `&status=${encodeURIComponent(statusFilter)}`;
       if (typeFilter)   url += `&requestType=${encodeURIComponent(typeFilter)}`;
       if (searchQuery)  url += `&searchTerm=${encodeURIComponent(searchQuery)}`;
@@ -85,7 +84,10 @@ export default function RequestListManager({ navigate, addToast }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [apiBase, page, searchQuery, statusFilter, typeFilter, addToast]);
+
+  useEffect(() => { setPage(1); }, [searchQuery, statusFilter, typeFilter]);
+  useEffect(() => { fetchRequests(); }, [fetchRequests]);
 
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 

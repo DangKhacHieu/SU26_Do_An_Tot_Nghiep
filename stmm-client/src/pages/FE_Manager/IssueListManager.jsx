@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { getAuthHeaders } from '../../utils/authHeaders';
 import './IssueListManager.css';
 
 const STATUS_META = {
@@ -51,16 +52,13 @@ export default function IssueListManager({ userId, baseUrl, navigate, addToast }
   const pageSize = 8;
   const searchRef = useRef(null);
 
-  useEffect(() => { setPage(1); }, [searchQuery, statusFilter]);
-  useEffect(() => { fetchIssues(); }, [searchQuery, statusFilter, page]);
-
-  const fetchIssues = async () => {
+  const fetchIssues = useCallback(async () => {
     setLoading(true);
     try {
       let url = `${baseUrl}/api/manager/issues?pageNumber=${page}&pageSize=${pageSize}&sortDescending=true`;
       if (statusFilter) url += `&status=${encodeURIComponent(statusFilter)}`;
 
-      const res = await fetch(url);
+      const res = await fetch(url, { headers: getAuthHeaders() });
       if (!res.ok) throw new Error();
       const data = await res.json();
 
@@ -84,7 +82,10 @@ export default function IssueListManager({ userId, baseUrl, navigate, addToast }
     } finally {
       setLoading(false);
     }
-  };
+  }, [baseUrl, page, pageSize, searchQuery, statusFilter, addToast]);
+
+  useEffect(() => { setPage(1); }, [searchQuery, statusFilter]);
+  useEffect(() => { fetchIssues(); }, [fetchIssues]);
 
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 

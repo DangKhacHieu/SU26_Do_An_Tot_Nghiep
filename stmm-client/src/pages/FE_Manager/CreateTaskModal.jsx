@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
+import { getAuthHeaders } from '../../utils/authHeaders';
 import {
   AlertCircle,
   ClipboardPlus,
@@ -115,7 +116,7 @@ export default function CreateTaskModal({
     const fetchStaffs = async () => {
       setLoadingStaffs(true);
       try {
-        const res = await fetch(`${baseUrl}/api/manager/users?roleName=Staff`);
+        const res = await fetch(`${baseUrl}/api/manager/users?roleName=Staff`, { headers: getAuthHeaders() });
         if (res.ok) {
           const data = await res.json();
           setStaffs(data.filter(u => u.status === 'Active') || []);
@@ -133,7 +134,7 @@ export default function CreateTaskModal({
     const fetchAreas = async () => {
       setLoadingAreas(true);
       try {
-        const res = await fetch(`${baseUrl}/api/Areas`);
+        const res = await fetch(`${baseUrl}/api/Areas`, { headers: getAuthHeaders() });
         if (res.ok) {
           const data = await res.json();
           setAreas(data || []);
@@ -150,7 +151,7 @@ export default function CreateTaskModal({
     const fetchUtilityReadingTasks = async () => {
       setLoadingUtilityTasks(true);
       try {
-        const res = await fetch(`${baseUrl}/api/manager/tasks`);
+        const res = await fetch(`${baseUrl}/api/manager/tasks`, { headers: getAuthHeaders() });
         if (res.ok) {
           const data = await res.json();
           const tasks = Array.isArray(data) ? data : [];
@@ -207,7 +208,7 @@ export default function CreateTaskModal({
       setLoadingRequests(true);
       setRequestLoadError('');
       try {
-        const res = await fetch(`${baseUrl}/api/manager/requests?status=Pending&requestType=FacilityIssue&pageSize=100`);
+        const res = await fetch(`${baseUrl}/api/manager/requests?status=Pending&requestType=FacilityIssue&pageSize=100`, { headers: getAuthHeaders() });
         if (!res.ok) {
           throw new Error(`Request list failed with status ${res.status}`);
         }
@@ -248,7 +249,7 @@ export default function CreateTaskModal({
       setLoadingIssues(true);
       setIssueLoadError('');
       try {
-        const res = await fetch(`${baseUrl}/api/manager/issues?pageNumber=1&pageSize=100&sortDescending=true`);
+        const res = await fetch(`${baseUrl}/api/manager/issues?pageNumber=1&pageSize=100&sortDescending=true`, { headers: getAuthHeaders() });
         if (!res.ok) {
           throw new Error(`Issue list failed with status ${res.status}`);
         }
@@ -409,7 +410,10 @@ export default function CreateTaskModal({
     try {
       const res = await fetch(`${baseUrl}/api/manager/tasks`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          ...getAuthHeaders(),
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify(body),
       });
 
