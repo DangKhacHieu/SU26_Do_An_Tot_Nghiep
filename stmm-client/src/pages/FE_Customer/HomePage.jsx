@@ -39,7 +39,10 @@ export default function HomePage({
     const fetchMarkets = async () => {
       try {
         const data = await getAllMarkets();
-        setMarkets(data || []);
+        const activeOnly = (data || []).filter(
+          (m) => (m.status || m.Status || "").toLowerCase() === "active"
+        );
+        setMarkets(activeOnly);
       } catch (error) {
         console.error("Error fetching markets on home page:", error);
       } finally {

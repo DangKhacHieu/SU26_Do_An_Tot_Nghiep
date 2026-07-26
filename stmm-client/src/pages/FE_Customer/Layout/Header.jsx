@@ -154,8 +154,12 @@ export default function Header({
     handleMarketClick(marketId);
   };
 
+  const activeMarkets = markets.filter(
+    (m) => (m.status || m.Status || "").toLowerCase() === "active"
+  );
+
   const filteredMarkets = searchQuery.trim()
-    ? markets.filter((m) =>
+    ? activeMarkets.filter((m) =>
         m.marketName?.toLowerCase().includes(searchQuery.toLowerCase())
       )
     : [];
@@ -212,10 +216,10 @@ export default function Header({
               </button>
               {isMarketDropdownOpen && (
                 <ul className="market-dropdown-menu">
-                  {markets.length === 0 ? (
+                  {activeMarkets.length === 0 ? (
                     <li className="market-item-empty">No markets available</li>
                   ) : (
-                    markets.map((market) => (
+                    activeMarkets.map((market) => (
                       <li
                         key={market.marketId}
                         className="market-item"
