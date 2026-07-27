@@ -6,6 +6,7 @@ using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using STMM.Business.DTOs.Market;
 using STMM.Business.Interfaces;
+using STMM.Business.Exceptions;
 using STMM.DataAccess.IRepositories;
 using STMM.DataAccess.Entities;
 using STMM.DataAccess.Data;
@@ -15,12 +16,21 @@ namespace STMM.Business.Services
     public class MarketService : IMarketService
     {
         private readonly IMarketRepository _marketRepository;
+        private readonly IUserRepository _userRepository;
+        private readonly IBusinessCategoryRepository _categoryRepository;
         private readonly IMapper _mapper;
         private readonly AppDbContext _context;
 
-        public MarketService(IMarketRepository marketRepository, IMapper mapper, AppDbContext context)
+        public MarketService(
+            IMarketRepository marketRepository, 
+            IUserRepository userRepository,
+            IBusinessCategoryRepository categoryRepository,
+            IMapper mapper, 
+            AppDbContext context)
         {
             _marketRepository = marketRepository;
+            _userRepository = userRepository;
+            _categoryRepository = categoryRepository;
             _mapper = mapper;
             _context = context;
         }
@@ -89,43 +99,77 @@ namespace STMM.Business.Services
             return marketMapDto;
         }
 
+        public async Task<MarketMapDto> GetMarketMapForStaffAsync(int staffUserId)
+        {
+            var marketId = await _context.Users
+                .Where(user => user.UserId == staffUserId)
+                .Select(user => user.MarketId)
+                .FirstOrDefaultAsync();
+
+            if (!marketId.HasValue)
+            {
+                throw new ForbiddenException("The staff account is not assigned to a market.");
+            }
+
+            return await GetMarketMapAsync(marketId.Value)
+                ?? throw new NotFoundException("Market map not found.");
+        }
+
         public async Task<MarketDto> CreateMarketBulkAsync(CreateMarketBulkRequest request, int currentUserId)
         {
+            if (string.IsNullOrWhiteSpace(request.MarketName))
+                throw new STMM.Business.Exceptions.BadRequestException("Tên chợ không được để trống.");
+                
+            if (request.Areas == null || !request.Areas.Any())
+                throw new STMM.Business.Exceptions.BadRequestException("Chợ phải có ít nhất một khu vực.");
+
             // 1. Validation
-            var user = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.UserId == currentUserId);
-            if (user != null && user.Role?.Name == "Manager" && user.MarketId.HasValue)
+            var user = await _userRepository.Query().Include(u => u.Role).FirstOrDefaultAsync(u => u.UserId == currentUserId);
+            if (user != null && string.Equals(user.Role?.Name, "Manager", StringComparison.OrdinalIgnoreCase))
             {
-                var currentMarket = await _context.Markets.FindAsync(user.MarketId.Value);
-                if (currentMarket != null && currentMarket.IsDeleted != true && currentMarket.Status != "Rejected" && currentMarket.Status != "Inactive")
+                var existingMarket = await _marketRepository.Query()
+                    .FirstOrDefaultAsync(m => (m.CreatorId == currentUserId || (user.MarketId.HasValue && m.MarketId == user.MarketId.Value)) 
+                                           && m.IsDeleted != true 
+                                           && m.Status != "Rejected" 
+                                           && m.Status != "Inactive");
+                if (existingMarket != null)
                 {
-                    throw new Exception("Quản lý này đã sở hữu một chợ đang hoạt động hoặc chờ duyệt. Mỗi quản lý chỉ được phép tạo và quản lý duy nhất 1 chợ.");
+                    if (existingMarket.Status == "Pending")
+                    {
+                        throw new STMM.Business.Exceptions.BadRequestException("Bạn đã gửi yêu cầu đăng ký chợ đang chờ Admin duyệt. Vui lòng chờ Admin phê duyệt hoặc từ chối trước khi đăng ký chợ mới.");
+                    }
+                    else
+                    {
+                        throw new STMM.Business.Exceptions.BadRequestException("Bạn đã sở hữu một chợ đang hoạt động trên hệ thống. Mỗi quản lý chỉ được phép tạo và quản lý duy nhất 1 chợ.");
+                    }
                 }
             }
 
-            var isMarketNameExist = await _context.Markets.AnyAsync(m => m.MarketName == request.MarketName && m.IsDeleted != true && m.Status != "Rejected" && m.Status != "Inactive");
+            var reqNameLower = request.MarketName.Trim().ToLower();
+            var isMarketNameExist = await _marketRepository.Query().AnyAsync(m => m.MarketName.ToLower() == reqNameLower && m.IsDeleted != true && m.Status != "Rejected" && m.Status != "Inactive");
             if (isMarketNameExist)
             {
-                throw new Exception("Tên chợ đã tồn tại trên hệ thống (chợ đang hoạt động hoặc chờ duyệt).");
+                throw new STMM.Business.Exceptions.BadRequestException("Tên chợ đã tồn tại trên hệ thống (chợ đang hoạt động hoặc chờ duyệt).");
             }
 
             // Check duplicate stall names within the new market
-            var allStallCodes = request.Areas.SelectMany(a => a.Stalls).Select(s => s.Code).ToList();
+            var allStallCodes = request.Areas.Where(a => a.Stalls != null).SelectMany(a => a.Stalls).Select(s => s.Code).Where(c => !string.IsNullOrWhiteSpace(c)).ToList();
             if (allStallCodes.Count != allStallCodes.Distinct().Count())
             {
-                throw new Exception("Tên sạp không được trùng lặp bên trong cùng một chợ.");
+                throw new STMM.Business.Exceptions.BadRequestException("Tên sạp không được trùng lặp bên trong cùng một chợ.");
             }
 
             // Get a default CategoryId to avoid Foreign Key constraints
-            var firstCategory = await _context.BusinessCategories.FirstOrDefaultAsync();
+            var firstCategory = await _categoryRepository.Query().FirstOrDefaultAsync();
             int defaultCategoryId = firstCategory?.CategoryId ?? 1;
 
-            // 2. Map and Save
+            // 2. Map and Save using EF Core Graph Insertion and Transaction
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
                 var newMarket = new Market
                 {
-                    MarketName = request.MarketName,
+                    MarketName = request.MarketName.Trim(),
                     Address = request.Address,
                     Size = request.Size,
                     SvgPath = request.SvgPath,
@@ -136,24 +180,14 @@ namespace STMM.Business.Services
                     Status = "Pending",
                     CreatorId = currentUserId,
                     CreatedAt = DateTime.UtcNow,
-                    IsDeleted = false
+                    IsDeleted = false,
+                    Areas = new List<Area>()
                 };
-
-                _context.Markets.Add(newMarket);
-                await _context.SaveChangesAsync();
-
-                if (user != null && user.Role?.Name == "Manager")
-                {
-                    user.MarketId = newMarket.MarketId;
-                    _context.Users.Update(user);
-                    await _context.SaveChangesAsync();
-                }
 
                 foreach (var areaReq in request.Areas)
                 {
-                        var newArea = new Area
+                    var newArea = new Area
                     {
-                        MarketId = newMarket.MarketId,
                         Name = areaReq.Name,
                         Description = areaReq.Description,
                         CategoryId = areaReq.CategoryId > 0 ? areaReq.CategoryId : defaultCategoryId,
@@ -164,42 +198,37 @@ namespace STMM.Business.Services
                         MaxX = areaReq.MaxX,
                         MaxY = areaReq.MaxY,
                         CreatedAt = DateTime.UtcNow,
-                        IsDeleted = false
+                        IsDeleted = false,
+                        Stalls = new List<Stall>()
                     };
-                    _context.Areas.Add(newArea);
-                    await _context.SaveChangesAsync();
 
-                    foreach (var stallReq in areaReq.Stalls)
+                    if (areaReq.Stalls != null)
                     {
-                        var newStall = new Stall
+                        foreach (var stallReq in areaReq.Stalls)
                         {
-                            Code = stallReq.Code,
-                            AreaId = newArea.AreaId,
-                            CategoryId = stallReq.CategoryId > 0 ? stallReq.CategoryId : defaultCategoryId,
-                            Status = stallReq.Status ?? "Available",
-                            Size = stallReq.Size,
-                            MapX = stallReq.MapX,
-                            MapY = stallReq.MapY,
-                            Width = stallReq.Width,
-                            Height = stallReq.Height,
-                            Rotation = stallReq.Rotation,
-                            SvgPath = stallReq.SvgPath,
-                            CreatedAt = DateTime.UtcNow,
-                            IsDeleted = false
-                        };
-                        _context.Stalls.Add(newStall);
+                            var newStall = new Stall
+                            {
+                                Code = stallReq.Code,
+                                CategoryId = stallReq.CategoryId > 0 ? stallReq.CategoryId : defaultCategoryId,
+                                Status = stallReq.Status ?? "Available",
+                                Size = stallReq.Size,
+                                MapX = stallReq.MapX,
+                                MapY = stallReq.MapY,
+                                Width = stallReq.Width,
+                                Height = stallReq.Height,
+                                Rotation = stallReq.Rotation,
+                                SvgPath = stallReq.SvgPath,
+                                CreatedAt = DateTime.UtcNow,
+                                IsDeleted = false
+                            };
+                            newArea.Stalls.Add(newStall);
+                        }
                     }
-                    await _context.SaveChangesAsync();
+                    newMarket.Areas.Add(newArea);
                 }
 
-                // 4. Update the logged-in Manager to own this new Market
-                if (user != null && user.Role != null && user.Role.Name == "Manager")
-                {
-                    user.MarketId = newMarket.MarketId;
-                    _context.Users.Update(user);
-                    await _context.SaveChangesAsync();
-                }
-
+                _context.Markets.Add(newMarket);
+                await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
 
                 return _mapper.Map<MarketDto>(newMarket);
@@ -207,8 +236,7 @@ namespace STMM.Business.Services
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
-                var msg = ex.Message;
-                if (ex.InnerException != null) msg += " Inner: " + ex.InnerException.Message;
+                var msg = ex.InnerException != null ? $"{ex.Message} -> {ex.InnerException.Message}" : ex.Message;
                 throw new Exception($"Lỗi khi tạo chợ: {msg}");
             }
         }
@@ -229,6 +257,14 @@ namespace STMM.Business.Services
             }
             _context.Areas.RemoveRange(market.Areas);
             _context.Markets.Remove(market);
+
+            // Detach any user assigned to this market
+            var usersInMarket = await _context.Users.Where(u => u.MarketId == marketId).ToListAsync();
+            foreach (var u in usersInMarket)
+            {
+                u.MarketId = null;
+                _context.Users.Update(u);
+            }
 
             await _context.SaveChangesAsync();
             
@@ -252,8 +288,28 @@ namespace STMM.Business.Services
             if (market == null) return false;
 
             market.Status = status;
-            _marketRepository.Update(market);
-            await _marketRepository.SaveChangesAsync();
+            _context.Markets.Update(market);
+
+            if (status.Equals("Active", StringComparison.OrdinalIgnoreCase) || status.Equals("Approved", StringComparison.OrdinalIgnoreCase))
+            {
+                var creator = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.UserId == market.CreatorId);
+                if (creator != null && creator.Role?.Name == "Manager")
+                {
+                    creator.MarketId = market.MarketId;
+                    _context.Users.Update(creator);
+                }
+            }
+            else if (status.Equals("Rejected", StringComparison.OrdinalIgnoreCase) || status.Equals("Inactive", StringComparison.OrdinalIgnoreCase))
+            {
+                var creator = await _context.Users.FirstOrDefaultAsync(u => u.MarketId == marketId);
+                if (creator != null)
+                {
+                    creator.MarketId = null;
+                    _context.Users.Update(creator);
+                }
+            }
+
+            await _context.SaveChangesAsync();
             return true;
         }
 

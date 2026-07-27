@@ -11,39 +11,37 @@ namespace STMM.DataAccess.Repositories
         {
         }
 
-        public async Task<(IEnumerable<Issue> Items, int TotalCount)> GetIssuesPagedAsync(
+        public async Task<IReadOnlyList<Issue>> GetIssuesForStaffAsync(
             int staffUserId,
-            List<int> assignedIssueIds,
-            string? status,
-            bool sortDescending,
-            int pageNumber,
-            int pageSize,
             CancellationToken ct = default)
         {
-            var query = _context.Issues
+            return await _context.Issues
                 .Include(i => i.Stall)
                 .Include(i => i.CreatedByUser)
                 .Include(i => i.StaffTasks)
-                .Where(i => i.CreatedByUserId == staffUserId || assignedIssueIds.Contains(i.IssueId));
-
-            if (!string.IsNullOrWhiteSpace(status))
-            {
-                query = query.Where(i => i.Status == status);
-            }
-
-            var totalCount = await query.CountAsync(ct);
-
-            query = sortDescending
-                ? query.OrderByDescending(i => i.CreatedAt)
-                : query.OrderBy(i => i.CreatedAt);
-
-            var items = await query
-                .Skip((pageNumber - 1) * pageSize)
-                .Take(pageSize)
+                .Where(i =>
+                    i.CreatedByUserId == staffUserId ||
+                    i.StaffTasks.Any(t => t.AssignedToUserId == staffUserId))
+                .OrderByDescending(i => i.CreatedAt)
                 .AsNoTracking()
                 .ToListAsync(ct);
+        }
 
-            return (items, totalCount);
+        public Task<Issue?> GetIssueForStaffAsync(
+            int issueId,
+            int staffUserId,
+            CancellationToken ct = default)
+        {
+            return _context.Issues
+                .Include(i => i.Stall)
+                .Include(i => i.CreatedByUser)
+                .Include(i => i.StaffTasks)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(i =>
+                    i.IssueId == issueId &&
+                    (i.CreatedByUserId == staffUserId ||
+                     i.StaffTasks.Any(t => t.AssignedToUserId == staffUserId)),
+                    ct);
         }
 
         public async Task<Issue?> GetIssueWithRelationsAsync(int issueId, bool tracking = false, CancellationToken ct = default)
@@ -69,21 +67,37 @@ namespace STMM.DataAccess.Repositories
         }
 
         public async Task<(IEnumerable<Issue> Items, int TotalCount)> GetIssuesForManagerPagedAsync(
+            int? marketId,
             string? status,
+            string? searchTerm,
             bool sortDescending,
             int pageNumber,
             int pageSize,
             CancellationToken ct = default)
         {
+            if (marketId == null)
+            {
+                return (new List<Issue>(), 0);
+            }
+
             var query = _context.Issues
                 .Include(i => i.Stall)
                 .Include(i => i.CreatedByUser)
                 .Include(i => i.StaffTasks)
-                .AsQueryable();
+                .Where(i => i.Stall.Area.MarketId == marketId.Value);
 
             if (!string.IsNullOrWhiteSpace(status))
             {
                 query = query.Where(i => i.Status == status);
+            }
+
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                var term = searchTerm.Trim().ToLower();
+                query = query.Where(i =>
+                    i.Title.ToLower().Contains(term) ||
+                    i.Description.ToLower().Contains(term) ||
+                    i.Stall.Code.ToLower().Contains(term));
             }
 
             var totalCount = await query.CountAsync(ct);
@@ -99,6 +113,23 @@ namespace STMM.DataAccess.Repositories
                 .ToListAsync(ct);
 
             return (items, totalCount);
+        }
+
+        public Task<Issue?> GetIssueForManagerAsync(
+            int issueId,
+            int? marketId,
+            CancellationToken ct = default)
+        {
+            if (marketId == null) return Task.FromResult<Issue?>(null);
+
+            return _context.Issues
+                .Include(i => i.Stall)
+                .Include(i => i.CreatedByUser)
+                .Include(i => i.StaffTasks)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(i =>
+                    i.IssueId == issueId && i.Stall.Area.MarketId == marketId.Value,
+                    ct);
         }
     }
 }

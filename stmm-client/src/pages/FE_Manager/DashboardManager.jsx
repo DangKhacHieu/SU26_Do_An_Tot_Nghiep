@@ -35,7 +35,7 @@ export default function DashboardManager({ addToast, navigate, baseUrl, user }) 
     try {
       const usersUrl = `${base}/api/manager/users`;
       const contractsUrl = `${base}/api/manager/contracts`;
-      const tasksUrl = `${base}/api/manager/tasks?PageNumber=1&PageSize=1000`;
+      const tasksUrl = `${base}/api/manager/tasks`;
       const requestsUrl = `${base}/api/manager/requests?PageNumber=1&PageSize=1000`;
       const violationsUrl = `${base}/api/manager/violations?PageNumber=1&PageSize=1000`;
       const issuesUrl = `${base}/api/manager/issues?pageNumber=1&pageSize=1000`;
@@ -43,7 +43,7 @@ export default function DashboardManager({ addToast, navigate, baseUrl, user }) 
       const [usersData, contractsData, tasksData, requestsData, violationsData, issuesData] = await Promise.all([
         fetchWithDefault(usersUrl, []),
         fetchWithDefault(contractsUrl, []),
-        fetchWithDefault(tasksUrl, { items: [], totalCount: 0 }),
+        fetchWithDefault(tasksUrl, []),
         fetchWithDefault(requestsUrl, { items: [], totalCount: 0 }),
         fetchWithDefault(violationsUrl, { items: [], totalCount: 0 }),
         fetchWithDefault(issuesUrl, { items: [], totalCount: 0 }),
@@ -52,7 +52,7 @@ export default function DashboardManager({ addToast, navigate, baseUrl, user }) 
       setStats({
         users: Array.isArray(usersData) ? usersData : [],
         contracts: Array.isArray(contractsData) ? contractsData : [],
-        tasks: Array.isArray(tasksData.items || tasksData.Items) ? (tasksData.items || tasksData.Items) : [],
+        tasks: Array.isArray(tasksData) ? tasksData : [],
         requests: Array.isArray(requestsData.items || requestsData.Items) ? (requestsData.items || requestsData.Items) : [],
         violations: Array.isArray(violationsData.items || violationsData.Items) ? (violationsData.items || violationsData.Items) : [],
         issues: Array.isArray(issuesData.items || issuesData.Items) ? (issuesData.items || issuesData.Items) : [],

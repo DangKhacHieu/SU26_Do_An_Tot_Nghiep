@@ -44,11 +44,13 @@ namespace STMM.Business.Interfaces
         // ── Submit ────────────────────────────────────────────────────────────
 
         /// <summary>
-        /// Finalises the quotation: calculates ActualCost, transitions task to PendingApproval,
-        /// sets PaidBy on the linked Request, and notifies the appropriate party.
+        /// Finalises the quotation, transitions the task to PendingApproval,
+        /// and sends a linked Request to Manager for a payer decision.
         /// Requires at least one material line.
         /// </summary>
-        /// <param name="paidBy">"Market" (BQL chịu phí) or "Vendor" (Tiểu thương chịu phí).</param>
-        Task<TaskDto> SubmitQuotationAsync(int taskId, int staffUserId, string paidBy, CancellationToken ct = default);
+        Task<TaskDto> SubmitQuotationAsync(
+            int taskId,
+            int staffUserId,
+            CancellationToken ct = default);
     }
 }

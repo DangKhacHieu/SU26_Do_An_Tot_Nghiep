@@ -8,9 +8,10 @@ import {
     updateStallStatus 
 } from '../api/stallApi';
 import StallForm from './StallForm';
+import PolygonDrawer from './PolygonDrawer';
 import styles from './StallLayoutEditor.module.css';
 
-const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, areaHeight }) => {
+const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, areaHeight, areaSize, polygonClipPath, svgPath, validateStallBounds }) => {
     const [stalls, setStalls] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedStall, setSelectedStall] = useState(null);
@@ -20,7 +21,8 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
     const [errorMessage, setErrorMessage] = useState(null);
     const [deleteSuccess, setDeleteSuccess] = useState(null);
     const [renderKey, setRenderKey] = useState(0);
-    const [hoveredStallId, setHoveredStallId] = useState(null);
+    const [isDrawingStall, setIsDrawingStall] = useState(false);
+    const [drawnStallData, setDrawnStallData] = useState(null);
     
     // Size of the area container, e.g., representing the full market area map
     const editorRef = useRef(null);
@@ -155,6 +157,56 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
         }
     };
 
+    const getPolygonFillColor = (status) => {
+        switch (status) {
+            case 'Available': return '#ffffff'; // White
+            case 'Maintenance': return '#facc15'; // Yellow
+            case 'Rented': return '#3b82f6'; // Blue
+            default: return '#ffffff';
+        }
+    };
+
+    const getPolygonCentroid = (svgPath) => {
+        if (!svgPath) return { x: '50%', y: '50%' };
+        const matches = [...svgPath.matchAll(/(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)/g)];
+        if (matches.length < 3) return { x: '50%', y: '50%' };
+        
+        let pts = matches.map(m => ({ x: parseFloat(m[1]), y: parseFloat(m[2]) }));
+        if (pts[0].x !== pts[pts.length - 1].x || pts[0].y !== pts[pts.length - 1].y) {
+            pts.push(pts[0]);
+        }
+        
+        let signedArea = 0;
+        let cx = 0;
+        let cy = 0;
+        
+        for (let i = 0; i < pts.length - 1; i++) {
+            const x0 = pts[i].x;
+            const y0 = pts[i].y;
+            const x1 = pts[i+1].x;
+            const y1 = pts[i+1].y;
+            
+            const a = x0 * y1 - x1 * y0;
+            signedArea += a;
+            cx += (x0 + x1) * a;
+            cy += (y0 + y1) * a;
+        }
+        
+        signedArea *= 0.5;
+        cx = cx / (6 * signedArea);
+        cy = cy / (6 * signedArea);
+        
+        if (signedArea === 0 || isNaN(cx) || isNaN(cy)) {
+             return { x: '50%', y: '50%' };
+        }
+        
+        return { x: cx, y: cy };
+    };
+
+    const getPolygonTextColor = (status) => {
+        return status === 'Rented' ? '#ffffff' : '#1e293b'; // White text for blue background, dark otherwise
+    };
+
     const renderViewModal = () => {
         if (!viewingStall) return null;
         
@@ -244,9 +296,15 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
     return (
         <div className={styles.editorContainer}>
             {isEditMode && (
-              <div style={{position: 'absolute', bottom: 8, right: 8, zIndex: 100}}>
+              <div style={{position: 'absolute', bottom: 8, right: 8, zIndex: 100, display: 'flex', gap: 8}}>
                   <button 
-                      onClick={() => { setSelectedStall(null); setIsFormOpen(true); }} 
+                      onClick={() => setIsDrawingStall(true)} 
+                      style={{background: 'var(--color-secondary, #64748b)', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '16px', cursor: 'pointer', fontWeight: 'bold', boxShadow: '0 2px 8px rgba(81, 117, 148, 0.4)', fontSize: 11}}
+                  >
+                      🖊️ VẼ SẠP
+                  </button>
+                  <button 
+                      onClick={() => { setSelectedStall(null); setDrawnStallData(null); setIsFormOpen(true); }} 
                       style={{background: 'var(--color-primary)', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '16px', cursor: 'pointer', fontWeight: 'bold', boxShadow: '0 2px 8px rgba(81, 117, 148, 0.4)', fontSize: 11}}
                   >
                       + THÊM SẠP
@@ -255,6 +313,27 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
             )}
 
             <div className={styles.gridContainer} ref={editorRef}>
+                {svgPath && (() => {
+                    const matches = [...svgPath.matchAll(/(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)/g)];
+                    if (matches.length > 0) {
+                        const xs = matches.map(m => parseFloat(m[1]));
+                        const ys = matches.map(m => parseFloat(m[2]));
+                        const pMinX = Math.min(...xs);
+                        const pMinY = Math.min(...ys);
+                        const pMaxX = Math.max(...xs);
+                        const pMaxY = Math.max(...ys);
+                        const areaW = pMaxX - pMinX || areaWidth || 1000;
+                        const areaH = pMaxY - pMinY || areaHeight || 1000;
+                        
+                        return (
+                            <svg style={{ position: 'absolute', top: 0, left: 0, width: areaW, height: areaH, pointerEvents: 'none', zIndex: 0 }}>
+                                <path d={matches.map((m, i) => `${i === 0 ? 'M' : 'L'} ${parseFloat(m[1]) - pMinX},${parseFloat(m[2]) - pMinY}`).join(' ') + ' Z'} 
+                                      fill="rgba(59, 130, 246, 0.05)" stroke="#3b82f6" strokeWidth="2" strokeDasharray="6 4" />
+                            </svg>
+                        );
+                    }
+                    return null;
+                })()}
                 {loading ? (
                     <div className={styles.loading}>Loading stalls...</div>
                 ) : (
@@ -271,45 +350,72 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
                             enableResizing={isEditMode}
                             className={`${styles.stallNode} stall-node-prevent-drag`}
                             style={{ 
-                                backgroundColor: '#3b82f6',
-                                border: '1px solid #2563eb',
-                                borderRadius: '3px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                color: '#ffffff',
-                                fontSize: '11px',
-                                fontWeight: 'bold',
-                                cursor: isEditMode ? 'move' : 'pointer',
+                                borderLeftColor: stall.svgPath ? 'transparent' : getStatusColor(stall.status),
+                                cursor: isEditMode ? 'move' : 'default',
                                 zIndex: isEditMode ? 10 : 1,
-                                position: 'relative'
-                            }}
-                            onMouseEnter={() => setHoveredStallId(stall.stallId)}
-                            onMouseLeave={() => setHoveredStallId(null)}
-                            onClick={(e) => {
-                                if (!isEditMode) {
-                                    e.stopPropagation();
-                                    setViewingStall(stall);
-                                }
+                                ...(stall.svgPath ? {
+                                    background: 'transparent',
+                                    border: 'none',
+                                    boxShadow: 'none',
+                                    overflow: 'visible'
+                                } : {})
                             }}
                         >
-                            <span style={{ pointerEvents: 'none' }}>{stall.code}</span>
-                            
-                            {/* Hover Actions Menu */}
-                            {hoveredStallId === stall.stallId && isEditMode && (
-                                <div style={{ position: 'absolute', top: -28, right: -28, display: 'flex', gap: '4px', background: 'rgba(255,255,255,0.9)', padding: '2px', borderRadius: '4px', boxShadow: '0 2px 4px rgba(0,0,0,0.2)', zIndex: 100 }}>
-                                    <button 
-                                        onClick={(e) => { e.stopPropagation(); setSelectedStall(stall); setIsFormOpen(true); }}
-                                        style={{ background: '#3b82f6', color: 'white', border: 'none', borderRadius: '2px', cursor: 'pointer', padding: '2px 6px', fontSize: '10px' }}
-                                        title="Sửa Sạp"
-                                    >✎</button>
-                                    <button 
-                                        onClick={(e) => { e.stopPropagation(); requestDelete(stall.stallId); }}
-                                        style={{ background: '#ef4444', color: 'white', border: 'none', borderRadius: '2px', cursor: 'pointer', padding: '2px 6px', fontSize: '10px' }}
-                                        title="Xóa Sạp"
-                                    >✕</button>
-                                </div>
+                            {stall.svgPath && (
+                                <svg width={stall.width || 100} height={stall.height || 100} viewBox={`0 0 ${stall.width || 100} ${stall.height || 100}`} style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none' }}>
+                                    <path d={stall.svgPath} fill={getPolygonFillColor(stall.status)} fillOpacity={1.0} stroke="#64748b" strokeWidth="1.5" />
+                                </svg>
                             )}
+                            <div className={styles.stallContent} style={{ 
+                                position: stall.svgPath ? 'absolute' : 'relative', 
+                                zIndex: 2,
+                                ...(stall.svgPath ? {
+                                    left: getPolygonCentroid(stall.svgPath).x,
+                                    top: getPolygonCentroid(stall.svgPath).y,
+                                    transform: 'translate(-50%, -50%)',
+                                    width: 'auto',
+                                    height: 'auto',
+                                    background: 'transparent',
+                                    padding: '0',
+                                    margin: '0',
+                                    pointerEvents: 'auto'
+                                } : {})
+                            }}>
+                                <strong style={stall.svgPath ? { color: getPolygonTextColor(stall.status), fontSize: '18px', textShadow: '0 1px 2px rgba(0,0,0,0.1)' } : {}}>{stall.code}</strong>
+                                {!stall.svgPath && (
+                                    <span className={styles.statusBadge} style={{ backgroundColor: getStatusColor(stall.status) }}>
+                                        {stall.status || 'Available'}
+                                    </span>
+                                )}
+                                <div className={stall.svgPath ? styles.stallActionsPolygon : styles.stallActions}>
+                                    {isEditMode ? (
+                                        <>
+                                            <button 
+                                                className={styles.iconBtn} 
+                                                onClick={(e) => { e.stopPropagation(); setSelectedStall(stall); setIsFormOpen(true); }}
+                                                title="Sửa Sạp"
+                                            >
+                                                ✎
+                                            </button>
+                                            <button 
+                                                className={styles.iconBtnDanger} 
+                                                onClick={(e) => { e.stopPropagation(); requestDelete(stall.stallId); }}
+                                                title="Xóa Sạp"
+                                            >
+                                                ✕
+                                            </button>
+                                        </>
+                                    ) : (
+                                        <button 
+                                            className={styles.iconBtn} 
+                                            onClick={(e) => { e.stopPropagation(); setViewingStall(stall); }}
+                                            title="Thông tin Sạp"
+                                        >
+                                            ℹ
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
                         </Rnd>
                     ))
                 )}
@@ -318,14 +424,60 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
             {isFormOpen && (
                 <StallForm 
                     initialData={selectedStall} 
+                    drawnData={drawnStallData}
                     areaId={areaId}
-                    onSave={() => {
-                        setIsFormOpen(false);
-                        fetchStalls();
-                    }}
-                    onCancel={() => setIsFormOpen(false)}
                     areaWidth={areaWidth}
                     areaHeight={areaHeight}
+                    areaSize={1000} // Temporary fallback if areaSize isn't passed
+                    onSave={() => {
+                        setIsFormOpen(false);
+                        setDrawnStallData(null);
+                        fetchStalls();
+                    }}
+                    onCancel={() => {
+                        setIsFormOpen(false);
+                        setDrawnStallData(null);
+                    }}
+                />
+            )}
+
+            {isDrawingStall && (
+                <PolygonDrawer 
+                    stallMode={true}
+                    cWidth={4000}
+                    cHeight={4000}
+                    svgOffsetX={2000 - (areaWidth || 0) / 2}
+                    svgOffsetY={2000 - (areaHeight || 0) / 2}
+                    maxAllowedAreaSize={areaSize}
+                    existingAreas={stalls}
+                    marketPolygon={(() => {
+                        if (!svgPath) {
+                            if (!areaWidth || !areaHeight) return null;
+                            return [
+                                [0, 0],
+                                [areaWidth, 0],
+                                [areaWidth, areaHeight],
+                                [0, areaHeight]
+                            ];
+                        }
+                        const matches = [...svgPath.matchAll(/(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)/g)];
+                        if (matches.length === 0) return null;
+                        const xs = matches.map(m => parseFloat(m[1]));
+                        const ys = matches.map(m => parseFloat(m[2]));
+                        const pMinX = Math.min(...xs);
+                        const pMinY = Math.min(...ys);
+                        return matches.map(m => [
+                            parseFloat(m[1]) - pMinX,
+                            parseFloat(m[2]) - pMinY
+                        ]);
+                    })()}
+                    onComplete={(drawData) => {
+                        setDrawnStallData(drawData);
+                        setIsDrawingStall(false);
+                        setSelectedStall(null);
+                        setIsFormOpen(true);
+                    }}
+                    onCancel={() => setIsDrawingStall(false)}
                 />
             )}
             

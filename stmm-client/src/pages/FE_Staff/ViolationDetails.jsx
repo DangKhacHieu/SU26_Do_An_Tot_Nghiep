@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import { getAuthHeaders } from '../../utils/authHeaders';
 import './ViolationDetails.css';
 
-export default function ViolationDetails({ violationId, userId, baseUrl, onBack }) {
+export default function ViolationDetails({ violationId, baseUrl, onBack }) {
   const [violation, setViolation] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -11,9 +12,13 @@ export default function ViolationDetails({ violationId, userId, baseUrl, onBack 
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch(`${baseUrl}/api/violations/${violationId}?userId=${userId}`);
+        const response = await fetch(`${baseUrl}/api/violations/${violationId}`, { headers: getAuthHeaders() });
         if (!response.ok) {
-          throw new Error(`Failed to load details: ${response.statusText}`);
+          let problem = null;
+          try { problem = await response.json(); } catch { problem = null; }
+          throw new Error(response.status === 404
+            ? 'Violation not found or unavailable.'
+            : problem?.detail || problem?.title || 'Unable to load violation details.');
         }
         const data = await response.json();
         setViolation(data);
@@ -25,7 +30,7 @@ export default function ViolationDetails({ violationId, userId, baseUrl, onBack 
     };
 
     fetchDetails();
-  }, [violationId, userId, baseUrl]);
+  }, [violationId, baseUrl]);
 
   const formatVnd = (amount) => {
     if (amount === undefined || amount === null) return '0 VND';
@@ -122,10 +127,7 @@ export default function ViolationDetails({ violationId, userId, baseUrl, onBack 
                 src={violation.imageUrl} 
                 alt="Violation Evidence" 
                 className="evidence-img"
-                onError={(e) => {
-                  e.target.onerror = null;
-                  e.target.src = 'https://placehold.co/400x300?text=No+Image+Found';
-                }}
+                onError={(event) => { event.currentTarget.hidden = true; }}
               />
             ) : (
               <div className="no-photo-placeholder">

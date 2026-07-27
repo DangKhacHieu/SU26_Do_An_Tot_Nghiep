@@ -4,7 +4,7 @@ import { createStall, updateStall, updateStallStatus, updateStallLocation, getUn
 import { getAllCategories } from '../api/categoryApi';
 import styles from './MarketAreaForm.module.css';
 
-const StallForm = ({ initialData, areaId, areaWidth, areaHeight, onSave, onCancel }) => {
+const StallForm = ({ initialData, drawnData, areaId, areaWidth, areaHeight, areaSize, getValidPosition, onSave, onCancel }) => {
     const [formData, setFormData] = useState({
         code: '',
         categoryName: '',
@@ -13,6 +13,7 @@ const StallForm = ({ initialData, areaId, areaWidth, areaHeight, onSave, onCance
         description: '',
         width: 100,
         height: 100,
+        svgPath: '',
         electricityMeterId: '',
         waterMeterId: ''
     });
@@ -56,10 +57,21 @@ const StallForm = ({ initialData, areaId, areaWidth, areaHeight, onSave, onCance
                 size: initialData.size || '',
                 description: initialData.description || '',
                 width: initialData.width || 100,
-                height: initialData.height || 100
+                height: initialData.height || 100,
+                svgPath: initialData.svgPath || '',
+                electricityMeterId: '',
+                waterMeterId: ''
             });
+        } else if (drawnData) {
+            setFormData(prev => ({
+                ...prev,
+                size: (drawnData.areaM2 || drawnData.area || 0).toString(),
+                width: drawnData.width,
+                height: drawnData.height,
+                svgPath: drawnData.svgPath
+            }));
         }
-    }, [initialData]);
+    }, [initialData, drawnData]);
 
     const PX_PER_M2 = 900; // 1 m2 = 900 pixels vuông (30px * 30px)
 
@@ -102,23 +114,24 @@ const StallForm = ({ initialData, areaId, areaWidth, areaHeight, onSave, onCance
             };
 
             if (initialData?.stallId) {
-                await updateStall(initialData.stallId, payload);
-                
-                let currentWidth = parseFloat(formData.width) || 100;
-                let currentHeight = parseFloat(formData.height) || 100;
-                
-                // Clamp width and height to area bounds if available
-                if (areaWidth) currentWidth = Math.min(currentWidth, areaWidth);
-                if (areaHeight) currentHeight = Math.min(currentHeight, areaHeight);
-                
-                if (currentWidth !== initialData.width || currentHeight !== initialData.height) {
-                    await updateStallLocation(initialData.stallId, {
-                        width: currentWidth,
-                        height: currentHeight,
-                        mapX: initialData.mapX || 0,
-                        mapY: initialData.mapY || 0
-                    });
+                if (initialData.status !== formData.status) {
+                    await updateStallStatus(initialData.stallId, formData.status);
                 }
+                
+                await updateStallLocation(initialData.stallId, {
+                    width: Number(formData.width),
+                    height: Number(formData.height),
+                    mapX: initialData.mapX,
+                    mapY: initialData.mapY,
+                    svgPath: formData.svgPath
+                });
+                
+                await updateStall(initialData.stallId, {
+                    code: formData.code,
+                    categoryName: formData.categoryName,
+                    size: Number(formData.size),
+                    description: formData.description
+                });
             } else {
                 let currentWidth = parseFloat(formData.width) || 100;
                 let currentHeight = parseFloat(formData.height) || 100;
@@ -126,8 +139,22 @@ const StallForm = ({ initialData, areaId, areaWidth, areaHeight, onSave, onCance
                 // Clamp width and height to area bounds if available
                 if (areaWidth) currentWidth = Math.min(currentWidth, areaWidth);
                 if (areaHeight) currentHeight = Math.min(currentHeight, areaHeight);
+                
+                const initialPos = drawnData 
+                    ? { x: drawnData.minX, y: drawnData.minY }
+                    : getValidPosition
+                        ? getValidPosition(currentWidth, currentHeight)
+                        : { x: 0, y: 0 };
 
-                await createStall({ ...payload, areaId, width: currentWidth, height: currentHeight });
+                await createStall({ 
+                    ...payload, 
+                    areaId, 
+                    width: currentWidth, 
+                    height: currentHeight, 
+                    mapX: initialPos.x, 
+                    mapY: initialPos.y,
+                    svgPath: formData.svgPath
+                });
             }
             onSave();
         } catch (err) {
@@ -194,23 +221,19 @@ const StallForm = ({ initialData, areaId, areaWidth, areaHeight, onSave, onCance
                     
                     <div className={styles.formGroup}>
                         <label htmlFor="categoryName">Tên sạp / Ngành hàng (Category) <span style={{color: '#ff4d4f'}}>*</span></label>
-                        <input
+                        <select
                             className={styles.input}
-                            type="text"
                             id="categoryName"
                             name="categoryName"
                             value={formData.categoryName}
                             onChange={handleChange}
                             required
-                            list="category-suggestions"
-                            placeholder="e.g., Fresh Seafood, Fashion..."
-                            autoComplete="off"
-                        />
-                        <datalist id="category-suggestions">
+                        >
+                            <option value="">-- Chọn ngành hàng --</option>
                             {categories.map(c => (
-                                <option key={c.categoryId} value={c.name} />
+                                <option key={c.categoryId} value={c.name}>{c.name}</option>
                             ))}
-                        </datalist>
+                        </select>
                     </div>
 
                     <div className={styles.formGroup}>
@@ -262,36 +285,38 @@ const StallForm = ({ initialData, areaId, areaWidth, areaHeight, onSave, onCance
                         </select>
                     </div>
 
-                    <div className={styles.formGroup} style={{display: 'flex', gap: 12}}>
-                        <div style={{flex: 1}}>
-                            <label htmlFor="width">Chiều dài hiển thị (px)</label>
-                            <input
-                                className={styles.input}
-                                type="number"
-                                id="width"
-                                name="width"
-                                value={formData.width}
-                                onChange={handleChange}
-                                max={areaWidth || undefined}
-                                title={areaWidth ? `Tối đa ${areaWidth}px (bằng với Khu vực)` : ""}
-                                required
-                            />
+                    {!formData.svgPath && (
+                        <div className={styles.formGroup} style={{display: 'flex', gap: 12}}>
+                            <div style={{flex: 1}}>
+                                <label htmlFor="width">Chiều dài hiển thị (px)</label>
+                                <input
+                                    className={styles.input}
+                                    type="number"
+                                    id="width"
+                                    name="width"
+                                    value={formData.width}
+                                    onChange={handleChange}
+                                    max={areaWidth || undefined}
+                                    title={areaWidth ? `Tối đa ${areaWidth}px (bằng với Khu vực)` : ""}
+                                    required
+                                />
+                            </div>
+                            <div style={{flex: 1}}>
+                                <label htmlFor="height">Chiều rộng hiển thị (px)</label>
+                                <input
+                                    className={styles.input}
+                                    type="number"
+                                    id="height"
+                                    name="height"
+                                    value={formData.height}
+                                    onChange={handleChange}
+                                    max={areaHeight || undefined}
+                                    title={areaHeight ? `Tối đa ${areaHeight}px (bằng với Khu vực)` : ""}
+                                    required
+                                />
+                            </div>
                         </div>
-                        <div style={{flex: 1}}>
-                            <label htmlFor="height">Chiều rộng hiển thị (px)</label>
-                            <input
-                                className={styles.input}
-                                type="number"
-                                id="height"
-                                name="height"
-                                value={formData.height}
-                                onChange={handleChange}
-                                max={areaHeight || undefined}
-                                title={areaHeight ? `Tối đa ${areaHeight}px (bằng với Khu vực)` : ""}
-                                required
-                            />
-                        </div>
-                    </div>
+                    )}
 
                     {/* Tạm thời ẩn phần chọn Đồng hồ theo yêu cầu
                     {!initialData && (

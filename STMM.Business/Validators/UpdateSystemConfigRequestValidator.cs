@@ -23,11 +23,25 @@ namespace STMM.Business.Validators
                             context.AddFailure("Số ngày hạn thanh toán hóa đơn phải là số nguyên dương lớn hơn 0.");
                         }
                     }
-                    else if (key == "vat_rate")
+                    else if (key == "vat_tax_rate")
                     {
                         if (!double.TryParse(val, out var vat) || vat < 0 || vat > 100)
                         {
                             context.AddFailure("Thuế suất VAT phải là số từ 0 đến 100 (%).");
+                        }
+                    }
+                    else if (key == "late_penalty_rate_per_day")
+                    {
+                        if (!double.TryParse(val, out var penalty) || penalty < 0)
+                        {
+                            context.AddFailure("Lãi suất phạt trễ hạn phải là số lớn hơn hoặc bằng 0.");
+                        }
+                    }
+                    else if (key == "reminder_days_before_due")
+                    {
+                        if (!int.TryParse(val, out var days) || days < 0)
+                        {
+                            context.AddFailure("Số ngày nhắc nhở trước hạn chót phải lớn hơn hoặc bằng 0.");
                         }
                     }
                     else if (key == "auto_invoice_day")

@@ -1,6 +1,7 @@
 using AutoMapper;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using STMM.Business.DTOs.Billing;
 using STMM.Business.DTOs.Notification;
 using STMM.Business.Exceptions;
@@ -27,11 +28,13 @@ namespace STMM.Business.Services
         private readonly IRequestRepository _requestRepository;
         private readonly IMapper _mapper;
         private readonly INotificationService _notificationService;
-        private readonly IValidator<ReceiveCashPaymentRequest> _paymentValidator;
         private readonly IEmailService _emailService;
         private readonly IUserRepository _userRepository;
         private readonly ISystemConfigRepository _systemConfigRepository;
         private readonly IServiceRegistrationRepository _serviceRegistrationRepository;
+        private readonly IStallRepository _stallRepository;
+        private readonly ILogger<BillingService> _logger;
+        private readonly FluentValidation.IValidator<ReceiveCashPaymentRequest> _paymentValidator;
 
         public BillingService(
             IInvoiceRepository invoiceRepository,
@@ -44,11 +47,13 @@ namespace STMM.Business.Services
             IRequestRepository requestRepository,
             IMapper mapper,
             INotificationService notificationService,
-            IValidator<ReceiveCashPaymentRequest> paymentValidator,
             IEmailService emailService,
             IUserRepository userRepository,
             ISystemConfigRepository systemConfigRepository,
-            IServiceRegistrationRepository serviceRegistrationRepository)
+            IServiceRegistrationRepository serviceRegistrationRepository,
+            IStallRepository stallRepository,
+            ILogger<BillingService> logger,
+            FluentValidation.IValidator<ReceiveCashPaymentRequest> paymentValidator)
         {
             _invoiceRepository = invoiceRepository;
             _paymentRepository = paymentRepository;
@@ -60,17 +65,56 @@ namespace STMM.Business.Services
             _requestRepository = requestRepository;
             _mapper = mapper;
             _notificationService = notificationService;
-            _paymentValidator = paymentValidator;
             _emailService = emailService;
             _userRepository = userRepository;
             _systemConfigRepository = systemConfigRepository;
             _serviceRegistrationRepository = serviceRegistrationRepository;
+            _stallRepository = stallRepository;
+            _logger = logger;
+            _paymentValidator = paymentValidator;
+        }
+
+        public async Task<InvoiceDto> GetInvoiceDetailAsync(
+            int invoiceId,
+            CancellationToken ct = default)
+        {
+            var invoice = await _invoiceRepository.GetInvoiceDetailsWithRelationsAsync(invoiceId, ct);
+            if (invoice == null)
+            {
+                throw new NotFoundException($"Invoice with ID {invoiceId} not found.");
+            }
+
+            return MapInvoiceToDto(invoice);
+        }
+
+        public async Task<InvoiceDto> GetInvoiceDetailForAccountantAsync(
+            int invoiceId,
+            int accountantUserId,
+            CancellationToken ct = default)
+        {
+            var invoice = await _invoiceRepository.GetInvoiceDetailsWithRelationsAsync(invoiceId, ct);
+            if (invoice == null)
+            {
+                throw new NotFoundException($"Invoice with ID {invoiceId} not found.");
+            }
+
+            var accountantUser = await _userRepository.GetByIdAsync(accountantUserId, ct);
+            if (accountantUser != null && accountantUser.MarketId.HasValue)
+            {
+                if (invoice.Contract?.Stall?.Area?.MarketId != accountantUser.MarketId)
+                {
+                    throw new ForbiddenException("Bạn không có quyền xem chi tiết hóa đơn của chợ khác.");
+                }
+            }
+
+            return MapInvoiceToDto(invoice);
         }
 
         /// <inheritdoc />
-        public async Task<InvoiceDto> GetInvoiceDetailAsync(int invoiceId, CancellationToken ct = default)
+        public async Task<InvoiceDto> GetInvoiceDetailAsync(int staffUserId, int invoiceId, CancellationToken ct = default)
         {
-            var invoice = await _invoiceRepository.GetInvoiceDetailsWithRelationsAsync(invoiceId, ct);
+            var marketId = await GetUserMarketIdAsync(staffUserId, ct);
+            var invoice = await _invoiceRepository.GetInvoiceDetailsWithRelationsAsync(invoiceId, marketId, ct);
 
             if (invoice == null)
             {
@@ -84,7 +128,6 @@ namespace STMM.Business.Services
         public async Task<PaymentResultDto> ReceiveCashPaymentAsync(
             int staffUserId, ReceiveCashPaymentRequest request, CancellationToken ct = default)
         {
-            // Validate request
             var validationResult = await _paymentValidator.ValidateAsync(request, ct);
             if (!validationResult.IsValid)
             {
@@ -92,22 +135,20 @@ namespace STMM.Business.Services
                     string.Join("; ", validationResult.Errors.Select(e => e.ErrorMessage)));
             }
 
-            // Load invoice with relations
-            var invoice = await _invoiceRepository.GetInvoiceWithRelationsForPaymentAsync(request.InvoiceId, ct);
+            var marketId = await GetUserMarketIdAsync(staffUserId, ct);
+            var invoice = await _invoiceRepository.GetInvoiceWithRelationsForPaymentAsync(request.InvoiceId, marketId, ct);
 
             if (invoice == null)
             {
                 throw new NotFoundException($"Invoice with ID {request.InvoiceId} not found.");
             }
 
-            // Only unpaid invoices can be collected
             if (invoice.Status != "Unpaid")
             {
                 throw new BadRequestException(
                     $"Invoice is in status '{invoice.Status}'. Payment can only be collected for 'Unpaid' invoices.");
             }
 
-            // Create payment record - collect 100% of amount
             var transactionCode = $"CASH-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..8].ToUpper()}";
             var payment = new Payment
             {
@@ -120,25 +161,33 @@ namespace STMM.Business.Services
 
             await _paymentRepository.AddAsync(payment, ct);
 
-            // Set status to pending confirmation
             invoice.Status = "Pending Confirmation";
 
-            // Send notification to Vendor
             var vendor = invoice.Contract.Vendor;
             var stall = invoice.Contract.Stall;
 
-            await _notificationService.CreateAsync(new CreateNotificationRequest
+            try
             {
-                Title = "Cash Payment Recorded",
-                Content = $"Staff recorded cash payment for invoice of month {invoice.Month}/{invoice.Year} " +
-                          $"at stall {stall.Code} for amount {invoice.TotalAmount:#,##0} VND. " +
-                          $"Please wait for accountant confirmation.",
-                NotiType = "Invoice",
-                CreatedByUserId = staffUserId,
-                TargetUserId = vendor.UserId
-            }, ct);
+                await _notificationService.CreateAsync(new CreateNotificationRequest
+                {
+                    Title = "Cash Payment Recorded",
+                    Content = $"Staff recorded cash payment for invoice of month {invoice.Month}/{invoice.Year} " +
+                              $"at stall {stall.Code} for amount {invoice.TotalAmount:#,##0} VND. " +
+                              $"Please wait for accountant confirmation.",
+                    NotiType = "Invoice",
+                    CreatedByUserId = staffUserId,
+                    TargetUserId = vendor.UserId
+                }, ct);
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError(
+                    exception,
+                    "Unable to notify vendor {VendorUserId} about cash payment for invoice {InvoiceId}.",
+                    vendor.UserId,
+                    invoice.InvoiceId);
+            }
 
-            // Save all changes in 1 transaction
             await _invoiceRepository.SaveChangesAsync(ct);
 
             return new PaymentResultDto
@@ -154,9 +203,22 @@ namespace STMM.Business.Services
         }
 
         /// <inheritdoc />
-        public async Task<List<UnpaidInvoiceSummaryDto>> GetUnpaidInvoicesByStallAsync(int stallId, CancellationToken ct = default)
+        public async Task<List<UnpaidInvoiceSummaryDto>> GetUnpaidInvoicesByStallAsync(
+            int staffUserId,
+            int stallId,
+            CancellationToken ct = default)
         {
-            var invoices = await _invoiceRepository.GetUnpaidInvoicesByStallAsync(stallId, ct);
+            var marketId = await GetUserMarketIdAsync(staffUserId, ct);
+            var invoices = await _invoiceRepository.GetUnpaidInvoicesByStallAsync(stallId, marketId, ct);
+            if (invoices.Count == 0)
+            {
+                var stall = await _stallRepository.GetStallForMarketAsync(stallId, marketId, ct);
+                if (stall == null)
+                {
+                    throw new NotFoundException($"Stall with ID {stallId} not found.");
+                }
+            }
+
             return invoices.Select(i => new UnpaidInvoiceSummaryDto
             {
                 InvoiceId = i.InvoiceId,
@@ -171,59 +233,51 @@ namespace STMM.Business.Services
             }).ToList();
         }
 
+        private async Task<int> GetUserMarketIdAsync(int userId, CancellationToken ct)
+        {
+            var user = await _userRepository.GetUserByIdWithRoleAsync(userId, ct);
+            if (user?.MarketId == null)
+            {
+                throw new ForbiddenException("The staff account is not assigned to a market.");
+            }
+
+            return user.MarketId.Value;
+        }
+
         /// <inheritdoc />
         public async Task<IEnumerable<InvoiceDto>> GetInvoicesAsync(int? month, int? year, string? status, string? search, int? accountantUserId = null, CancellationToken ct = default)
         {
-            var query = _invoiceRepository.Query()
-                .Include(i => i.Contract)
-                    .ThenInclude(c => c.Stall)
-                .Include(i => i.Contract)
-                    .ThenInclude(c => c.Vendor)
-                        .ThenInclude(v => v.User)
-                .Where(i => i.IsDeleted != true);
-
+            int? marketId = null;
             if (accountantUserId.HasValue)
             {
                 var user = await _userRepository.GetByIdAsync(accountantUserId.Value, ct);
-                if (user?.MarketId != null)
-                {
-                    query = query.Where(i => i.Contract.Stall.Area.MarketId == user.MarketId);
-                }
+                marketId = user?.MarketId;
             }
 
-            if (month.HasValue && month.Value > 0)
-            {
-                query = query.Where(i => i.Month == month.Value);
-            }
-            if (year.HasValue && year.Value > 0)
-            {
-                query = query.Where(i => i.Year == year.Value);
-            }
-            if (!string.IsNullOrEmpty(status) && status != "all")
-            {
-                query = query.Where(i => i.Status == status);
-            }
-            if (!string.IsNullOrEmpty(search))
-            {
-                var searchLower = search.ToLower();
-                query = query.Where(i => i.InvoiceId.ToString().Contains(searchLower) || 
-                                     i.Contract.Stall.Code.ToLower().Contains(searchLower) || 
-                                     i.Contract.Vendor.User.Name.ToLower().Contains(searchLower) ||
-                                     i.Contract.Vendor.BusinessName.ToLower().Contains(searchLower));
-            }
-
-            var invoices = await query.OrderByDescending(i => i.InvoiceId).ToListAsync(ct);
+            var invoices = await _invoiceRepository.GetInvoicesWithDetailsAsync(month, year, status, search, marketId, ct);
             return invoices.Select(MapInvoiceToDto);
         }
 
         /// <inheritdoc />
-        public async Task<bool> BulkApproveInvoicesAsync(BulkApproveInvoicesRequest request, CancellationToken ct = default)
+        public async Task<bool> BulkApproveInvoicesAsync(BulkApproveInvoicesRequest request, int accountantUserId, CancellationToken ct = default)
         {
             if (request == null || !request.InvoiceIds.Any()) return false;
 
-            var invoices = await _invoiceRepository.Query()
-                .Where(i => request.InvoiceIds.Contains(i.InvoiceId) && i.Status == "Draft" && i.IsDeleted != true)
-                .ToListAsync(ct);
+            int? marketId = null;
+            var accountantUser = await _userRepository.GetByIdAsync(accountantUserId, ct);
+            if (accountantUser != null)
+            {
+                marketId = accountantUser.MarketId;
+            }
+
+            var dueDaysConfig = await _systemConfigRepository.GetSystemConfigByKeyAsync("invoice_due_days", marketId, ct);
+            int dueDays = 15;
+            if (dueDaysConfig != null && int.TryParse(dueDaysConfig.ConfigValue, out int configDays))
+            {
+                dueDays = configDays;
+            }
+
+            var invoices = await _invoiceRepository.GetDraftInvoicesByIdsAsync(request.InvoiceIds, marketId, ct);
 
             if (!invoices.Any()) return false;
 
@@ -232,7 +286,20 @@ namespace STMM.Business.Services
                 invoice.Status = "Unpaid";
                 if (!invoice.DueDate.HasValue)
                 {
-                    invoice.DueDate = DateOnly.FromDateTime(DateTime.Today.AddDays(15));
+                    invoice.DueDate = DateOnly.FromDateTime(DateTime.Today.AddDays(dueDays));
+                }
+
+                // Send notification to Vendor
+                if (invoice.Contract?.Vendor != null)
+                {
+                    await _notificationService.CreateAsync(new CreateNotificationRequest
+                    {
+                        CreatedByUserId = accountantUserId,
+                        TargetUserId = invoice.Contract.Vendor.UserId,
+                        Title = "Thông báo: Hóa đơn mới đã được phát hành",
+                        Content = $"Hóa đơn kỳ {invoice.Month}/{invoice.Year} cho sạp {invoice.Contract.Stall?.Code} đã được ban quản lý phát hành với tổng số tiền là {invoice.TotalAmount:#,##0} VNĐ. Vui lòng thanh toán trước ngày {invoice.DueDate?.ToString("dd/MM/yyyy")}.",
+                        NotiType = "Invoice"
+                    }, ct);
                 }
             }
 
@@ -241,18 +308,34 @@ namespace STMM.Business.Services
         }
 
         /// <inheritdoc />
-        public async Task<InvoiceDto> CreateAdHocInvoiceAsync(CreateAdHocInvoiceRequest request, CancellationToken ct = default)
+        public async Task<InvoiceDto> CreateAdHocInvoiceAsync(CreateAdHocInvoiceRequest request, int accountantUserId, CancellationToken ct = default)
         {
-            var contract = await _contractRepository.Query()
-                .Include(c => c.Stall)
-                .Include(c => c.Vendor)
-                    .ThenInclude(v => v.User)
-                .Where(c => c.StallId == request.StallId && c.Status == "Active" && c.IsDeleted != true)
-                .FirstOrDefaultAsync(ct);
+            if (request.Amount <= 0)
+            {
+                throw new BadRequestException("Số tiền hóa đơn phải lớn hơn 0.");
+            }
+
+            var feeType = await _feeTypeRepository.GetByIdAsync(request.FeeTypeId, ct);
+            if (feeType == null)
+            {
+                throw new NotFoundException($"Không tìm thấy loại phí ID {request.FeeTypeId}.");
+            }
+
+            var contract = await _contractRepository.GetActiveContractByStallIdAsync(request.StallId, ct);
 
             if (contract == null)
             {
                 throw new NotFoundException($"Không tìm thấy hợp đồng hoạt động cho gian hàng ID {request.StallId}.");
+            }
+
+            // Cross-tenant check: Accountant can only create invoice for stalls in their market
+            var accountantUser = await _userRepository.GetByIdAsync(accountantUserId, ct);
+            if (accountantUser != null && accountantUser.MarketId.HasValue)
+            {
+                if (contract.Stall?.Area?.MarketId != accountantUser.MarketId)
+                {
+                    throw new ForbiddenException("Bạn không có quyền tạo hóa đơn cho sạp thuộc khu vực/chợ khác.");
+                }
             }
 
             var invoice = new Invoice
@@ -290,10 +373,19 @@ namespace STMM.Business.Services
         /// <inheritdoc />
         public async Task<bool> AdjustMeterReadingAsync(int creatorUserId, MeterReadingAdjustmentRequest request, CancellationToken ct = default)
         {
+            // Cross-tenant check
+            var accountantUser = await _userRepository.GetByIdAsync(creatorUserId, ct);
+            if (accountantUser != null && accountantUser.MarketId.HasValue)
+            {
+                var stallContract = await _contractRepository.GetActiveContractByStallIdAsync(request.StallId, ct);
+                if (stallContract != null && stallContract.Stall?.Area?.MarketId != accountantUser.MarketId)
+                {
+                    throw new ForbiddenException("Bạn không có quyền chỉnh sửa chỉ số điện/nước của sạp thuộc chợ khác.");
+                }
+            }
+
             // 1. Get or create active Meter for StallId & Type
-            var meter = await _meterRepository.Query()
-                .Where(m => m.StallId == request.StallId && m.Type == request.MeterType && m.IsActive == true)
-                .FirstOrDefaultAsync(ct);
+            var meter = await _meterRepository.GetActiveMeterByStallAndTypeAsync(request.StallId, request.MeterType, ct);
 
             if (meter == null)
             {
@@ -310,11 +402,7 @@ namespace STMM.Business.Services
             }
 
             // 2. Find or Create MeterReading for this period
-            var reading = await _meterReadingRepository.Query()
-                .Where(mr => mr.MeterId == meter.MeterId && 
-                             mr.RecordedAt.Month == request.Month && 
-                             mr.RecordedAt.Year == request.Year)
-                .FirstOrDefaultAsync(ct);
+            var reading = await _meterReadingRepository.GetMeterReadingByMonthAndYearAsync(meter.MeterId, request.Month, request.Year, ct);
 
             if (reading == null)
             {
@@ -340,21 +428,11 @@ namespace STMM.Business.Services
             await _meterReadingRepository.SaveChangesAsync(ct);
 
             // 3. Find corresponding Invoice of the stall in this month/year to update
-            var contract = await _contractRepository.Query()
-                .Where(c => c.StallId == request.StallId && c.Status == "Active" && c.IsDeleted != true)
-                .FirstOrDefaultAsync(ct);
+            var contract = await _contractRepository.GetActiveContractByStallIdAsync(request.StallId, ct);
 
             if (contract != null)
             {
-                var invoice = await _invoiceRepository.Query()
-                    .Include(i => i.InvoiceDetails)
-                        .ThenInclude(d => d.FeeType)
-                    .Where(i => i.ContractId == contract.ContractId && 
-                                 i.Month == request.Month && 
-                                 i.Year == request.Year && 
-                                 i.IsDeleted != true &&
-                                 (i.Status == "Draft" || i.Status == "Unpaid"))
-                    .FirstOrDefaultAsync(ct);
+                var invoice = await _invoiceRepository.GetDraftOrUnpaidInvoiceForContractAsync(contract.ContractId, request.Month, request.Year, ct);
 
                 if (invoice != null)
                 {
@@ -362,9 +440,7 @@ namespace STMM.Business.Services
                     if (consumption < 0) consumption = 0;
 
                     var feeTypeName = request.MeterType == "Electricity" ? "Điện" : "Nước";
-                    var feeType = await _feeTypeRepository.Query()
-                        .Where(f => f.Name.Contains(feeTypeName))
-                        .FirstOrDefaultAsync(ct);
+                    var feeType = await _feeTypeRepository.GetFeeTypeByNameContainsAsync(feeTypeName, null, ct);
 
                     int feeTypeId = feeType?.FeeTypeId ?? (request.MeterType == "Electricity" ? 2 : 3);
                     decimal unitPrice = request.MeterType == "Electricity" ? 3500 : 18000;
@@ -445,27 +521,14 @@ namespace STMM.Business.Services
         /// <inheritdoc />
         public async Task<IEnumerable<PaymentVerificationDto>> GetPendingPaymentsAsync(int? accountantUserId = null, CancellationToken ct = default)
         {
-            IQueryable<Payment> query = _paymentRepository.Query()
-                .Include(p => p.Invoice)
-                    .ThenInclude(i => i.Contract)
-                        .ThenInclude(c => c.Stall)
-                .Include(p => p.Invoice)
-                    .ThenInclude(i => i.Contract)
-                        .ThenInclude(c => c.Vendor)
-                            .ThenInclude(v => v.User);
-
+            int? marketId = null;
             if (accountantUserId.HasValue)
             {
                 var user = await _userRepository.GetByIdAsync(accountantUserId.Value, ct);
-                if (user?.MarketId != null)
-                {
-                    query = query.Where(p => p.Invoice.Contract.Stall.Area.MarketId == user.MarketId);
-                }
+                marketId = user?.MarketId;
             }
 
-            var payments = await query
-                .OrderByDescending(p => p.PaidAt)
-                .ToListAsync(ct);
+            var payments = await _paymentRepository.GetPendingPaymentsWithDetailsAsync(marketId, ct);
 
             return payments.Select(p => new PaymentVerificationDto
             {
@@ -484,11 +547,7 @@ namespace STMM.Business.Services
         /// <inheritdoc />
         public async Task<bool> VerifyPaymentAsync(int paymentId, VerifyPaymentRequest request, int accountantUserId, CancellationToken ct = default)
         {
-            var payment = await _paymentRepository.Query()
-                .Include(p => p.Invoice)
-                    .ThenInclude(i => i.Contract)
-                        .ThenInclude(c => c.Vendor)
-                .FirstOrDefaultAsync(p => p.PaymentId == paymentId, ct);
+            var payment = await _paymentRepository.GetPaymentWithInvoiceAndVendorAsync(paymentId, ct);
 
             if (payment == null)
             {
@@ -503,6 +562,16 @@ namespace STMM.Business.Services
 
             var vendor = invoice.Contract?.Vendor;
             var targetUserId = vendor?.UserId ?? 0;
+
+            // Check if the accountant belongs to the same market as the invoice
+            var accountantUser = await _userRepository.GetByIdAsync(accountantUserId, ct);
+            if (accountantUser != null && accountantUser.MarketId.HasValue)
+            {
+                if (invoice.Contract?.Stall?.Area?.MarketId != accountantUser.MarketId)
+                {
+                    throw new ForbiddenException("Bạn không có quyền duyệt thanh toán cho giao dịch của chợ khác.");
+                }
+            }
 
             if (request.Approve)
             {
@@ -552,37 +621,14 @@ namespace STMM.Business.Services
         /// <inheritdoc />
         public async Task<IEnumerable<DebtOfStallDto>> GetStallsDebtListAsync(string? search, int? accountantUserId = null, CancellationToken ct = default)
         {
-            var query = _contractRepository.Query()
-                .Select(c => c.Stall)
-                .Distinct();
-
+            int? marketId = null;
             if (accountantUserId.HasValue)
             {
                 var user = await _userRepository.GetByIdAsync(accountantUserId.Value, ct);
-                if (user?.MarketId != null)
-                {
-                    query = query.Where(s => s.Area.MarketId == user.MarketId);
-                }
+                marketId = user?.MarketId;
             }
 
-            var stalls = await query
-                .Include(s => s.Contracts)
-                    .ThenInclude(c => c.Vendor)
-                        .ThenInclude(v => v.User)
-                .Include(s => s.Contracts)
-                    .ThenInclude(c => c.Invoices)
-                        .ThenInclude(i => i.InvoiceDetails)
-                            .ThenInclude(d => d.FeeType)
-                .Include(s => s.Violations)
-                    .ThenInclude(v => v.ViolationType)
-                .ToListAsync(ct);
-
-            if (!string.IsNullOrWhiteSpace(search))
-            {
-                var sLower = search.ToLower();
-                stalls = stalls.Where(s => s.Code.ToLower().Contains(sLower) || 
-                                          (s.Contracts.FirstOrDefault(c => c.Status == "Active")?.Vendor?.User?.Name ?? "").ToLower().Contains(sLower)).ToList();
-            }
+            var stalls = await _contractRepository.GetStallsWithDebtAsync(marketId, search, ct);
 
             var list = new List<DebtOfStallDto>();
             foreach (var s in stalls)
@@ -623,7 +669,7 @@ namespace STMM.Business.Services
                 }
 
                 var unpaidViolations = s.Violations
-                    .Where(v => v.Status == "Unpaid")
+                      .Where(v => v.Status == "Pending" || v.Status == "Notified" || v.Status == "Appealed" || v.Status == "Rejected")
                     .ToList();
 
                 decimal violationDebt = unpaidViolations.Sum(v => v.FineAmount ?? v.ViolationType?.DefaultFine ?? 0);
@@ -649,26 +695,22 @@ namespace STMM.Business.Services
         }
 
         /// <inheritdoc />
-        public async Task<StallDebtDetailDto> GetStallDebtDetailsAsync(int stallId, CancellationToken ct = default)
+        public async Task<StallDebtDetailDto> GetStallDebtDetailsAsync(int stallId, int accountantUserId, CancellationToken ct = default)
         {
-            var stall = await _contractRepository.Query()
-                .Where(c => c.StallId == stallId)
-                .Select(c => c.Stall)
-                .Distinct()
-                .Include(s => s.Contracts)
-                    .ThenInclude(c => c.Vendor)
-                        .ThenInclude(v => v.User)
-                .Include(s => s.Contracts)
-                    .ThenInclude(c => c.Invoices)
-                        .ThenInclude(i => i.InvoiceDetails)
-                            .ThenInclude(d => d.FeeType)
-                .Include(s => s.Violations)
-                    .ThenInclude(v => v.ViolationType)
-                .FirstOrDefaultAsync(ct);
+            var stall = await _contractRepository.GetStallWithDebtDetailsAsync(stallId, ct);
 
             if (stall == null)
             {
                 throw new NotFoundException($"Không tìm thấy sạp ID {stallId}");
+            }
+
+            var accountantUser = await _userRepository.GetByIdAsync(accountantUserId, ct);
+            if (accountantUser != null && accountantUser.MarketId.HasValue)
+            {
+                if (stall.Area?.MarketId != accountantUser.MarketId)
+                {
+                    throw new ForbiddenException("Bạn không có quyền xem chi tiết công nợ của sạp thuộc chợ khác.");
+                }
             }
 
             var activeContract = stall.Contracts.FirstOrDefault(c => c.Status == "Active" && c.IsDeleted != true);
@@ -690,8 +732,8 @@ namespace STMM.Business.Services
                 })
                 .ToList();
 
-            var unpaidViolations = stall.Violations
-                .Where(v => v.Status == "Unpaid")
+              var unpaidViolations = stall.Violations
+                  .Where(v => v.Status == "Pending" || v.Status == "Notified" || v.Status == "Appealed" || v.Status == "Rejected")
                 .OrderByDescending(v => v.CreatedAt)
                 .Select(v => new UnpaidViolationDetailDto
                 {
@@ -716,24 +758,17 @@ namespace STMM.Business.Services
         /// <inheritdoc />
         public async Task<bool> SendDebtReminderAsync(SendDebtNotificationRequest request, int senderUserId, CancellationToken ct = default)
         {
-            var stall = await _contractRepository.Query()
-                .Where(c => c.StallId == request.StallId && c.Status == "Active")
-                .Select(c => new { c.Stall.Code, c.Vendor.UserId, Email = c.Vendor.User.Email, Name = c.Vendor.User.Name })
-                .FirstOrDefaultAsync(ct);
+            var activeContract = await _contractRepository.GetActiveContractByStallIdAsync(request.StallId, ct);
+            var stall = activeContract != null ? new { Code = activeContract.Stall.Code, UserId = activeContract.Vendor.UserId, Email = activeContract.Vendor.User.Email, Name = activeContract.Vendor.User.Name } : null;
 
             if (stall == null)
             {
                 throw new NotFoundException($"Không tìm thấy sạp hoạt động ID {request.StallId} để gửi nhắc nợ.");
             }
 
-            var unpaidInvoicesSum = await _invoiceRepository.Query()
-                .Where(i => i.Contract.StallId == request.StallId && i.IsDeleted != true && (i.Status == "Unpaid" || i.Status == "Pending Confirmation"))
-                .SumAsync(i => i.TotalAmount, ct);
+            var unpaidInvoicesSum = await _invoiceRepository.GetTotalUnpaidAmountByStallIdAsync(request.StallId, ct);
 
-            var violations = await _violationRepository.Query()
-                .Include(v => v.ViolationType)
-                .Where(v => v.StallId == request.StallId && v.Status == "Unpaid")
-                .ToListAsync(ct);
+            var violations = await _violationRepository.GetUnpaidViolationsByStallIdAsync(request.StallId, ct);
             var unpaidViolationsSum = violations.Sum(v => v.FineAmount ?? v.ViolationType?.DefaultFine ?? 0);
 
             var totalDebt = unpaidInvoicesSum + unpaidViolationsSum;
@@ -781,25 +816,14 @@ namespace STMM.Business.Services
         /// <inheritdoc />
         public async Task<IEnumerable<DisputeResolutionDto>> GetInvoiceDisputesAsync(int? accountantUserId = null, CancellationToken ct = default)
         {
-            var query = _requestRepository.Query()
-                .Include(r => r.Invoice)
-                .Include(r => r.Stall)
-                .Include(r => r.Vendor)
-                    .ThenInclude(v => v.User)
-                .Where(r => r.RequestType == "InvoiceDispute");
-
+            int? marketId = null;
             if (accountantUserId.HasValue)
             {
                 var user = await _userRepository.GetByIdAsync(accountantUserId.Value, ct);
-                if (user?.MarketId != null)
-                {
-                    query = query.Where(r => r.Stall.Area.MarketId == user.MarketId);
-                }
+                marketId = user?.MarketId;
             }
 
-            var disputes = await query
-                .OrderByDescending(r => r.CreatedAt)
-                .ToListAsync(ct);
+            var disputes = await _requestRepository.GetInvoiceDisputesAsync(marketId, ct);
 
             return disputes.Select(r => new DisputeResolutionDto
             {
@@ -811,19 +835,19 @@ namespace STMM.Business.Services
                 CreatedAt = r.CreatedAt,
                 StallCode = r.Stall?.Code ?? "N/A",
                 TenantName = r.Vendor?.User?.Name ?? "N/A",
+                VendorBankName = r.Vendor?.BankName,
+                VendorBankAccount = r.Vendor?.BankAccount,
                 InvoiceMonth = r.Invoice?.Month ?? 0,
                 InvoiceYear = r.Invoice?.Year ?? 0,
-                InvoiceTotalAmount = r.Invoice?.TotalAmount ?? 0
+                InvoiceTotalAmount = r.Invoice?.TotalAmount ?? 0,
+                InvoiceStatus = r.Invoice?.Status ?? "Unpaid"
             });
         }
 
         /// <inheritdoc />
         public async Task<bool> ResolveInvoiceDisputeAsync(int requestId, ResolveDisputeRequest request, int accountantUserId, CancellationToken ct = default)
         {
-            var dispute = await _requestRepository.Query()
-                .Include(r => r.Stall)
-                .Include(r => r.Vendor)
-                .FirstOrDefaultAsync(r => r.RequestId == requestId, ct);
+            var dispute = await _requestRepository.GetRequestWithStallAndVendorAsync(requestId, ct);
 
             if (dispute == null)
             {
@@ -833,12 +857,57 @@ namespace STMM.Business.Services
             dispute.Status = request.Approve ? "Approved" : "Rejected";
             dispute.UpdatedAt = DateTime.UtcNow;
             _requestRepository.Update(dispute);
+            
+            string refundMsg = "";
+            if (request.Approve && request.IsRefund && request.RefundAmount > 0 && dispute.InvoiceId.HasValue)
+            {
+                var invoice = await _invoiceRepository.GetInvoiceDetailsWithRelationsAsync(dispute.InvoiceId.Value, ct);
+                if (invoice != null)
+                {
+                    if (invoice.Status == "Paid")
+                    {
+                        var payment = new Payment
+                        {
+                            InvoiceId = dispute.InvoiceId.Value,
+                            Amount = -request.RefundAmount.Value, // Negative amount for refund
+                            Method = request.RefundMethod ?? "Cash",
+                            TransactionCode = string.IsNullOrWhiteSpace(request.TransactionCode) ? $"RF-REQ-{requestId}" : request.TransactionCode,
+                            PaidAt = DateTime.UtcNow
+                        };
+                        await _paymentRepository.AddAsync(payment, ct);
+                        
+                        string methodText = request.RefundMethod == "Transfer" ? "Chuyển khoản" : "Tiền mặt";
+                        refundMsg = $" Ban quản lý đã hoàn lại số tiền {request.RefundAmount.Value:#,##0} VNĐ qua hình thức {methodText}.";
+                    }
+                    else if (invoice.Status == "Unpaid" || invoice.Status == "Draft")
+                    {
+                        var feeTypeId = invoice.InvoiceDetails.FirstOrDefault()?.FeeTypeId ?? 1;
+                        var detail = new InvoiceDetail
+                        {
+                            InvoiceId = invoice.InvoiceId,
+                            Description = "Giảm trừ do giải quyết khiếu nại hóa đơn",
+                            Amount = -request.RefundAmount.Value,
+                            UnitPrice = -request.RefundAmount.Value,
+                            Quantity = 1,
+                            FeeTypeId = feeTypeId
+                        };
+
+                        invoice.InvoiceDetails.Add(detail);
+                        invoice.TotalAmount -= request.RefundAmount.Value;
+                        if (invoice.TotalAmount < 0) invoice.TotalAmount = 0;
+                        
+                        _invoiceRepository.Update(invoice);
+                        
+                        refundMsg = $" Hóa đơn của bạn đã được điều chỉnh giảm trừ số tiền {request.RefundAmount.Value:#,##0} VNĐ.";
+                    }
+                }
+            }
 
             var targetUserId = dispute.Vendor?.UserId ?? 0;
             if (targetUserId > 0)
             {
                 var content = request.Approve
-                    ? $"Kháng nghị hóa đơn sạp {dispute.Stall?.Code} của bạn đã ĐƯỢC CHẤP NHẬN. Kế toán sẽ thực hiện điều chỉnh hóa đơn sớm nhất. Phản hồi: {request.Feedback}"
+                    ? $"Kháng nghị hóa đơn sạp {dispute.Stall?.Code} của bạn đã ĐƯỢC CHẤP NHẬN.{refundMsg} Kế toán sẽ thực hiện điều chỉnh hóa đơn sớm nhất. Phản hồi: {request.Feedback}"
                     : $"Kháng nghị hóa đơn sạp {dispute.Stall?.Code} của bạn đã BỊ TỪ CHỐI. Phản hồi của Kế toán: {request.Feedback ?? "Không chấp nhận yêu cầu"}";
 
                 await _notificationService.CreateAsync(new CreateNotificationRequest
@@ -859,22 +928,14 @@ namespace STMM.Business.Services
         public async Task<int> AutoGenerateMonthlyInvoicesAsync(int month, int year, CancellationToken ct = default)
         {
             // 1. Get all active contracts
-            var activeContracts = await _contractRepository.Query()
-                .Include(c => c.Stall)
-                .Include(c => c.Vendor)
-                .Where(c => c.Status == "Active" && c.IsDeleted != true)
-                .ToListAsync(ct);
+            var activeContracts = await _contractRepository.GetAllActiveContractsWithDetailsAsync(ct);
 
             // Get invoice due days from config
-            var dueDaysConfig = await _systemConfigRepository.Query()
-                .Where(c => c.ConfigKey == "invoice_due_days")
-                .FirstOrDefaultAsync(ct);
+            var dueDaysConfig = await _systemConfigRepository.GetSystemConfigByKeyAsync("invoice_due_days", null, ct);
             int dueDays = dueDaysConfig != null && int.TryParse(dueDaysConfig.ConfigValue, out var parsedDays) ? parsedDays : 15;
 
             // Get fee types to link correctly
-            var rentFeeType = await _feeTypeRepository.Query()
-                .Where(f => f.Name.Contains("thuê") || f.Name.Contains("mặt bằng") || f.FeeTypeId == 1)
-                .FirstOrDefaultAsync(ct);
+            var rentFeeType = await _feeTypeRepository.GetRentFeeTypeAsync(null, ct);
             int rentFeeTypeId = rentFeeType?.FeeTypeId ?? 1;
 
             int count = 0;
@@ -882,16 +943,12 @@ namespace STMM.Business.Services
             foreach (var contract in activeContracts)
             {
                 // Check if invoice already exists for this month/year/contract
-                var exists = await _invoiceRepository.Query()
-                    .AnyAsync(i => i.ContractId == contract.ContractId && i.Month == month && i.Year == year && i.IsDeleted != true, ct);
+                var exists = await _invoiceRepository.ExistsInvoiceForContractAsync(contract.ContractId, month, year, ct);
 
                 if (exists) continue;
 
                 // Find active service registrations for this stall
-                var activeServices = await _serviceRegistrationRepository.Query()
-                    .Include(sr => sr.Service)
-                    .Where(sr => sr.StallId == contract.StallId && sr.Status == "Active")
-                    .ToListAsync(ct);
+                var activeServices = await _serviceRegistrationRepository.GetActiveServiceRegistrationsByStallIdAsync(contract.StallId, ct);
 
                 decimal totalAmount = contract.RentFee + activeServices.Sum(s => s.Service.Price);
 
@@ -943,6 +1000,59 @@ namespace STMM.Business.Services
             }
 
             return count;
+        }
+
+        /// <inheritdoc />
+        public async Task<bool> CancelInvoiceAsync(int invoiceId, CancelInvoiceRequest request, int accountantUserId, CancellationToken ct = default)
+        {
+            int? marketId = null;
+            var accountantUser = await _userRepository.GetByIdAsync(accountantUserId, ct);
+            if (accountantUser != null)
+            {
+                marketId = accountantUser.MarketId;
+            }
+
+            var invoice = await _invoiceRepository.GetInvoiceDetailsWithRelationsAsync(invoiceId, ct);
+            if (invoice == null)
+            {
+                throw new Exception("Hóa đơn không tồn tại.");
+            }
+
+            // Cross-tenant data isolation check
+            if (marketId.HasValue && invoice.Contract?.Stall?.Area?.MarketId != marketId.Value)
+            {
+                throw new Exception("Không có quyền hủy hóa đơn của chợ khác.");
+            }
+
+            // Only allow canceling unpaid or draft invoices
+            if (invoice.Status != "Unpaid" && invoice.Status != "Draft")
+            {
+                throw new Exception("Chỉ được phép hủy các hóa đơn ở trạng thái Nháp (Draft) hoặc Chưa thanh toán (Unpaid).");
+            }
+
+            invoice.Status = "Canceled";
+            
+            // Note: If you have a specific database field for CancelReason, you can map it here.
+            // For now, we will include the reason in the notification sent to the vendor.
+
+            _invoiceRepository.Update(invoice);
+            await _invoiceRepository.SaveChangesAsync(ct);
+
+            // Send notification to Vendor
+            if (invoice.Contract?.Vendor != null)
+            {
+                string reasonText = string.IsNullOrWhiteSpace(request.Reason) ? "Không có lý do cụ thể." : request.Reason;
+                await _notificationService.CreateAsync(new CreateNotificationRequest
+                {
+                    CreatedByUserId = accountantUserId,
+                    TargetUserId = invoice.Contract.Vendor.UserId,
+                    Title = "Thông báo: Hóa đơn đã bị hủy",
+                    Content = $"Hóa đơn kỳ {invoice.Month}/{invoice.Year} cho sạp {invoice.Contract.Stall?.Code} đã bị hủy bởi ban quản lý. Lý do: {reasonText}",
+                    NotiType = "Invoice"
+                }, ct);
+            }
+
+            return true;
         }
     }
 }

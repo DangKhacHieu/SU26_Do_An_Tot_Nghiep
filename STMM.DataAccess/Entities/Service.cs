@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace STMM.DataAccess.Entities;
@@ -57,4 +57,7 @@ public partial class Service
     public virtual FeeType FeeType { get; set; } = null!;
 
     public virtual ICollection<ServiceRegistration> ServiceRegistrations { get; set; } = new List<ServiceRegistration>();
+
+    public int? MarketId { get; set; }
+    public virtual Market? Market { get; set; }
 }

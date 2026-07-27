@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using STMM.Business.DTOs.Billing;
 using STMM.Business.Interfaces;
@@ -8,6 +10,7 @@ namespace STMM.API.Controllers
 {
     [ApiController]
     [Route("api/accountant/billing")]
+    [Authorize(Roles = "Accountant,Admin")]
     public class AccountantBillingController : ControllerBase
     {
         private readonly IBillingService _billingService;
@@ -26,9 +29,9 @@ namespace STMM.API.Controllers
             [FromQuery] int? year,
             [FromQuery] string? status,
             [FromQuery] string? search,
-            [FromQuery] int? userId,
             CancellationToken ct)
         {
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("userId")?.Value ?? "0");
             var result = await _billingService.GetInvoicesAsync(month, year, status, search, userId, ct);
             return Ok(result);
         }
@@ -39,7 +42,8 @@ namespace STMM.API.Controllers
         [HttpGet("invoices/{invoiceId}")]
         public async Task<IActionResult> GetInvoiceDetail(int invoiceId, CancellationToken ct)
         {
-            var result = await _billingService.GetInvoiceDetailAsync(invoiceId, ct);
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("userId")?.Value ?? "0");
+            var result = await _billingService.GetInvoiceDetailForAccountantAsync(invoiceId, userId, ct);
             return Ok(result);
         }
 
@@ -51,7 +55,11 @@ namespace STMM.API.Controllers
             [FromBody] BulkApproveInvoicesRequest request,
             CancellationToken ct)
         {
-            var result = await _billingService.BulkApproveInvoicesAsync(request, ct);
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("userId")?.Value;
+            if (!int.TryParse(userIdClaim, out var userId))
+                return Unauthorized(new { message = "Không xác định được danh tính kế toán." });
+
+            var result = await _billingService.BulkApproveInvoicesAsync(request, userId, ct);
             return Ok(result);
         }
 
@@ -63,7 +71,11 @@ namespace STMM.API.Controllers
             [FromBody] CreateAdHocInvoiceRequest request,
             CancellationToken ct)
         {
-            var result = await _billingService.CreateAdHocInvoiceAsync(request, ct);
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("userId")?.Value;
+            if (!int.TryParse(userIdClaim, out var userId))
+                return Unauthorized(new { message = "Không xác định được danh tính kế toán." });
+
+            var result = await _billingService.CreateAdHocInvoiceAsync(request, userId, ct);
             return Ok(result);
         }
 
@@ -73,12 +85,33 @@ namespace STMM.API.Controllers
         /// </summary>
         [HttpPost("meter-readings/adjust")]
         public async Task<IActionResult> AdjustMeterReading(
-            [FromQuery] int userId,
             [FromBody] MeterReadingAdjustmentRequest request,
             CancellationToken ct)
         {
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("userId")?.Value ?? "0");
             var result = await _billingService.AdjustMeterReadingAsync(userId, request, ct);
             return Ok(result);
+        }
+
+        /// <summary>
+        /// Hủy bỏ một hóa đơn (chỉ dành cho hóa đơn Chưa thanh toán hoặc Nháp).
+        /// </summary>
+        [HttpPost("invoices/{invoiceId}/cancel")]
+        public async Task<IActionResult> CancelInvoice(
+            int invoiceId, 
+            [FromBody] CancelInvoiceRequest request, 
+            CancellationToken ct)
+        {
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("userId")?.Value ?? "0");
+            try
+            {
+                var result = await _billingService.CancelInvoiceAsync(invoiceId, request, userId, ct);
+                return Ok(new { success = result, message = "Hủy hóa đơn thành công." });
+            }
+            catch (System.Exception ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
         }
     }
 }

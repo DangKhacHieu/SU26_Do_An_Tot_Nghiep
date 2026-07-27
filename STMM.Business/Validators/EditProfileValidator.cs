@@ -9,13 +9,13 @@ namespace STMM.Business.Validators
         {
             RuleFor(x => x.Name)
                 .Cascade(CascadeMode.Stop)
-                .NotEmpty().WithMessage("Tên không được để trống")
-                .MaximumLength(100).WithMessage("Tên không được vượt quá 100 ký tự");
+                .NotEmpty().WithMessage("Name is required.")
+                .MaximumLength(100).WithMessage("Name cannot exceed 100 characters.");
 
             RuleFor(x => x.Phone)
                 .Cascade(CascadeMode.Stop)
-                .NotEmpty().WithMessage("Số điện thoại không được để trống")
-                .Matches(@"^\d{9,11}$").WithMessage("Số điện thoại chỉ gồm 9-11 chữ số");
+                .NotEmpty().WithMessage("Phone number is required.")
+                .Matches(@"^\d{9,11}$").WithMessage("Phone number must contain 9 to 11 digits.");
         }
     }
 }

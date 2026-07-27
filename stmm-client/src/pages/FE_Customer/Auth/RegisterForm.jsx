@@ -64,14 +64,14 @@ export default function RegisterForm({ onBack, onGoToLogin, onRegistered }) {
     setLoading(true);
     try {
       const res = await authService.loginWithGoogle(response.credential);
-      setSuccess("Đăng nhập bằng Google thành công.");
+      setSuccess("Google login successful.");
       setTimeout(() => {
         if (onRegistered) {
           onRegistered(res.user || res);
         }
       }, 700);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Đăng nhập Google thất bại");
+      setError(err instanceof Error ? err.message : "Google login failed");
     } finally {
       setLoading(false);
     }
@@ -92,12 +92,12 @@ export default function RegisterForm({ onBack, onGoToLogin, onRegistered }) {
         cccd,
       });
 
-      setSuccess(res.message || "Đăng ký thành công! Vui lòng kiểm tra OTP xác thực email.");
+      setSuccess(res.message || "Registration successful! Please check your email for the verification OTP.");
       setVerificationEmail(res.email || email);
       setNeedsVerification(true);
       setOtpCode(""); // clear any input
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Đăng ký thất bại");
+      setError(err instanceof Error ? err.message : "Registration failed");
     } finally {
       setLoading(false);
     }
@@ -111,7 +111,7 @@ export default function RegisterForm({ onBack, onGoToLogin, onRegistered }) {
 
     try {
       const res = await authService.verifyEmail(verificationEmail, otpCode);
-      setSuccess("Xác thực email thành công! Đang chuyển hướng...");
+      setSuccess("Email verified successfully! Redirecting...");
 
       setTimeout(() => {
         if (onRegistered) {
@@ -119,7 +119,7 @@ export default function RegisterForm({ onBack, onGoToLogin, onRegistered }) {
         }
       }, 1000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Xác thực mã OTP thất bại");
+      setError(err instanceof Error ? err.message : "OTP code verification failed");
     } finally {
       setLoading(false);
     }
@@ -132,10 +132,10 @@ export default function RegisterForm({ onBack, onGoToLogin, onRegistered }) {
 
     try {
       await authService.resendVerificationCode(verificationEmail);
-      setSuccess("Mã xác thực OTP mới đã được gửi!");
+      setSuccess("New OTP verification code has been sent!");
       setResendCooldown(60);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Không thể gửi lại mã xác thực");
+      setError(err instanceof Error ? err.message : "Unable to resend verification code");
     } finally {
       setResendLoading(false);
     }
@@ -155,29 +155,29 @@ export default function RegisterForm({ onBack, onGoToLogin, onRegistered }) {
               <span className="register-badge">EMAIL VERIFICATION</span>
 
               <h1>
-                Xác thực <br />
-                Tài khoản
+                Verify <br />
+                Account
               </h1>
 
               <p>
-                Hệ thống đã gửi một mã xác thực OTP 6 chữ số tới địa chỉ email{" "}
-                <strong>{verificationEmail}</strong>. Vui lòng kiểm tra hộp thư đến (hoặc hòm thư rác) và nhập mã để kích hoạt tài khoản.
+                The system has sent a 6-digit OTP verification code to the email address{" "}
+                <strong>{verificationEmail}</strong>. Please check your inbox (or spam folder) and enter the code to activate your account.
               </p>
 
               <div className="register-mini-list">
                 <div>
                   <strong>01</strong>
-                  <span>Tạo tài khoản thành công</span>
+                  <span>Account created successfully</span>
                 </div>
 
                 <div style={{ borderColor: "#f6f0d7" }}>
                   <strong style={{ background: "rgba(246, 240, 215, 0.4)" }}>02</strong>
-                  <span style={{ color: "#f6f0d7" }}>Nhập mã OTP xác thực email</span>
+                  <span style={{ color: "#f6f0d7" }}>Enter OTP code to verify email</span>
                 </div>
 
                 <div>
                   <strong>03</strong>
-                  <span>Trải nghiệm hệ thống Smart Market</span>
+                  <span>Experience Smart Market system</span>
                 </div>
               </div>
             </div>
@@ -194,18 +194,18 @@ export default function RegisterForm({ onBack, onGoToLogin, onRegistered }) {
                   setSuccess("");
                 }}
               >
-                ← Trở lại đăng ký
+                ← Back to register
               </button>
 
               <div>
-                <h2>Xác nhận OTP</h2>
-                <p>Nhập mã xác thực của bạn để tiếp tục</p>
+                <h2>Confirm OTP</h2>
+                <p>Enter your verification code to continue</p>
               </div>
             </div>
 
             <form className="register-modern-form" onSubmit={handleVerifySubmit}>
               <div className="register-input-group">
-                <label>Mã OTP (6 chữ số)</label>
+                <label>OTP Code (6 digits)</label>
                 <div className="otp-input-container">
                   <input
                     value={otpCode}
@@ -229,13 +229,13 @@ export default function RegisterForm({ onBack, onGoToLogin, onRegistered }) {
                 className="register-submit-btn"
                 disabled={loading}
               >
-                {loading ? "Đang xác thực..." : "Kích hoạt tài khoản"}
+                {loading ? "Verifying..." : "Activate account"}
                 <span>→</span>
               </button>
             </form>
 
             <div className="otp-resend-container">
-              <p>Không nhận được mã xác thực?</p>
+              <p>Didn't receive verification code?</p>
               <button
                 type="button"
                 className="otp-resend-btn"
@@ -243,10 +243,10 @@ export default function RegisterForm({ onBack, onGoToLogin, onRegistered }) {
                 onClick={handleResendCode}
               >
                 {resendLoading
-                  ? "Đang gửi..."
+                  ? "Sending..."
                   : resendCooldown > 0
-                    ? `Gửi lại sau (${resendCooldown}s)`
-                    : "Gửi lại mã OTP mới"}
+                    ? `Resend in (${resendCooldown}s)`
+                    : "Resend new OTP code"}
               </button>
             </div>
           </div>
@@ -273,8 +273,8 @@ export default function RegisterForm({ onBack, onGoToLogin, onRegistered }) {
             </h1>
 
             <p>
-              Tạo tài khoản mới để sử dụng hệ thống quản lý chợ thông minh, quản
-              lý hồ sơ và trải nghiệm các chức năng của STMM.
+              Create a new account to use the smart market management system, manage
+              your profile, and experience the functions of STMM.
             </p>
 
             <div className="register-mini-list">
@@ -307,8 +307,8 @@ export default function RegisterForm({ onBack, onGoToLogin, onRegistered }) {
             </button>
 
             <div>
-              <h2>Đăng ký</h2>
-              <p>Điền thông tin để tạo tài khoản mới</p>
+              <h2>Register</h2>
+              <p>Fill in the information to create a new account</p>
             </div>
           </div>
 
@@ -320,7 +320,7 @@ export default function RegisterForm({ onBack, onGoToLogin, onRegistered }) {
                 <input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Nguyễn Văn A"
+                  placeholder="John Doe"
                   required
                 />
               </div>
@@ -361,7 +361,7 @@ export default function RegisterForm({ onBack, onGoToLogin, onRegistered }) {
                   <input
                     value={cccd}
                     onChange={(e) => setCccd(e.target.value)}
-                    placeholder="Nhập CCCD"
+                    placeholder="Enter National ID/CCCD"
                     required
                   />
                 </div>
@@ -376,7 +376,7 @@ export default function RegisterForm({ onBack, onGoToLogin, onRegistered }) {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   type={showPassword ? "text" : "password"}
-                  placeholder="Tạo mật khẩu"
+                  placeholder="Create password"
                   required
                 />
 
@@ -400,19 +400,19 @@ export default function RegisterForm({ onBack, onGoToLogin, onRegistered }) {
               className="register-submit-btn"
               disabled={loading}
             >
-              {loading ? "Đang tạo tài khoản..." : "Create account"}
+              {loading ? "Creating account..." : "Create account"}
               <span>→</span>
             </button>
           </form>
 
           <div className="auth-divider">
-            <span>Hoặc</span>
+            <span>Or</span>
           </div>
 
           <div id="google-register-btn" className="google-btn-container"></div>
 
           <p className="register-switch-text">
-            Đã có tài khoản?{" "}
+            Already have an account?{" "}
             <button type="button" onClick={onGoToLogin}>
               Login
             </button>

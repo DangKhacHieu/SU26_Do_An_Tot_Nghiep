@@ -19,6 +19,7 @@ namespace STMM.Business.Services
     {
         private readonly IUserRepository _userRepository;
         private readonly IRoleRepository _roleRepository;
+        private readonly IVendorRepository _vendorRepository;
         private readonly IMapper _mapper;
         private readonly IValidator<CreateUserRequest> _createUserValidator;
         private readonly IValidator<UpdateUserRequest> _updateUserValidator;
@@ -27,6 +28,7 @@ namespace STMM.Business.Services
         public UserService(
             IUserRepository userRepository,
             IRoleRepository roleRepository,
+            IVendorRepository vendorRepository,
             IMapper mapper,
             IValidator<CreateUserRequest> createUserValidator,
             IValidator<UpdateUserRequest> updateUserValidator,
@@ -34,28 +36,57 @@ namespace STMM.Business.Services
         {
             _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
             _roleRepository = roleRepository ?? throw new ArgumentNullException(nameof(roleRepository));
+            _vendorRepository = vendorRepository ?? throw new ArgumentNullException(nameof(vendorRepository));
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
             _createUserValidator = createUserValidator ?? throw new ArgumentNullException(nameof(createUserValidator));
             _updateUserValidator = updateUserValidator ?? throw new ArgumentNullException(nameof(updateUserValidator));
             _editProfileValidator = editProfileValidator ?? throw new ArgumentNullException(nameof(editProfileValidator));
         }
 
-        public async Task<IEnumerable<UserDto>> GetUsersAsync(string? roleName, string? search, CancellationToken ct = default)
+        private async Task<(User? caller, int? marketId, bool isManager)> GetCallerInfoAsync(int? currentUserId, CancellationToken ct)
         {
+            if (!currentUserId.HasValue) return (null, null, false);
+            var user = await _userRepository.Query().Include(u => u.Role).FirstOrDefaultAsync(u => u.UserId == currentUserId.Value, ct);
+            if (user == null) return (null, null, false);
+            bool isManager = string.Equals(user.Role?.Name, "Manager", StringComparison.OrdinalIgnoreCase);
+            return (user, user.MarketId, isManager);
+        }
+
+        private async Task<int?> GetCallerMarketIdAsync(int? currentUserId, CancellationToken ct)
+        {
+            var (_, marketId, _) = await GetCallerInfoAsync(currentUserId, ct);
+            return marketId;
+        }
+
+        public async Task<IEnumerable<UserDto>> GetUsersAsync(string? roleName, string? search, int? currentUserId = null, CancellationToken ct = default)
+        {
+            var (caller, marketId, isManager) = await GetCallerInfoAsync(currentUserId, ct);
+            if (isManager && !marketId.HasValue)
+            {
+                return new List<UserDto>();
+            }
+
             var users = await _userRepository.GetUsersWithRolesAsync(
                 roleName,
                 search,
                 limitToManageableRoles: true,
-                ct);
+                marketId: marketId,
+                ct: ct);
 
             return _mapper.Map<IEnumerable<UserDto>>(users);
         }
 
-        public async Task<UserDetailDto> GetUserByIdAsync(int id, CancellationToken ct = default)
+        public async Task<UserDetailDto> GetUserByIdAsync(int id, int? currentUserId = null, CancellationToken ct = default)
         {
             if (id <= 0)
             {
                 throw new BadRequestException("ID người dùng không hợp lệ.");
+            }
+
+            var (caller, callerMarketId, isManager) = await GetCallerInfoAsync(currentUserId, ct);
+            if (isManager && !callerMarketId.HasValue)
+            {
+                throw new NotFoundException($"Không tìm thấy người dùng có ID {id}.");
             }
 
             var user = await _userRepository.GetUserByIdWithRoleAsync(id, ct);
@@ -65,11 +96,22 @@ namespace STMM.Business.Services
                 throw new NotFoundException($"Không tìm thấy người dùng có ID {id}.");
             }
 
+            if (callerMarketId.HasValue && user.MarketId != callerMarketId.Value)
+            {
+                throw new NotFoundException($"Không tìm thấy người dùng có ID {id}.");
+            }
+
             return _mapper.Map<UserDetailDto>(user);
         }
 
-        public async Task<UserDto> RegisterUserAsync(CreateUserRequest request, CancellationToken ct = default)
+        public async Task<UserDto> RegisterUserAsync(CreateUserRequest request, int? creatorUserId = null, CancellationToken ct = default)
         {
+            var (creator, callerMarketId, isManager) = await GetCallerInfoAsync(creatorUserId, ct);
+            if (isManager && !callerMarketId.HasValue)
+            {
+                throw new BadRequestException("Tài khoản Quản lý chưa sở hữu chợ nào được phê duyệt. Bạn chỉ có thể tạo tài khoản mới sau khi chợ của bạn được phê duyệt.");
+            }
+
             var validationResult = await _createUserValidator.ValidateAsync(request, ct);
 
             if (!validationResult.IsValid)
@@ -115,6 +157,8 @@ namespace STMM.Business.Services
                 throw new BadRequestException("Số CCCD này đã được sử dụng.");
             }
 
+            int? assignedMarketId = request.MarketId ?? callerMarketId;
+
             var hashedPassword = BCrypt.Net.BCrypt.HashPassword(request.Password);
 
             var user = new User
@@ -125,6 +169,7 @@ namespace STMM.Business.Services
                 Password = hashedPassword,
                 Phone = request.Phone,
                 Cccd = request.Cccd,
+                MarketId = assignedMarketId,
                 Status = "Active",
                 IsDeleted = false,
                 CreatedAt = DateTime.UtcNow,
@@ -134,13 +179,38 @@ namespace STMM.Business.Services
             await _userRepository.AddAsync(user, ct);
             await _userRepository.SaveChangesAsync(ct);
 
+            // Check if role is Vendor, ensure Vendor profile is created
+            if (role.Name.ToLower() == "vendor")
+            {
+                var existingVendor = await _vendorRepository.Query().FirstOrDefaultAsync(v => v.UserId == user.UserId, ct);
+                if (existingVendor == null)
+                {
+                    var vendor = new Vendor
+                    {
+                        UserId = user.UserId,
+                        BusinessName = $"Cơ sở kinh doanh của {user.Name}",
+                        Address = "Chưa cập nhật",
+                        CreatedAt = DateTime.UtcNow,
+                        IsDeleted = false
+                    };
+                    await _vendorRepository.AddAsync(vendor, ct);
+                    await _vendorRepository.SaveChangesAsync(ct);
+                }
+            }
+
             user.Role = role;
 
             return _mapper.Map<UserDto>(user);
         }
 
-        public async Task<UserDto> UpdateUserAsync(int id, UpdateUserRequest request, CancellationToken ct = default)
+        public async Task<UserDto> UpdateUserAsync(int id, UpdateUserRequest request, int? currentUserId = null, CancellationToken ct = default)
         {
+            var (caller, callerMarketId, isManager) = await GetCallerInfoAsync(currentUserId, ct);
+            if (isManager && !callerMarketId.HasValue)
+            {
+                throw new BadRequestException("Tài khoản Quản lý chưa sở hữu chợ nào được phê duyệt.");
+            }
+
             var validationResult = await _updateUserValidator.ValidateAsync(request, ct);
 
             if (!validationResult.IsValid)
@@ -152,6 +222,11 @@ namespace STMM.Business.Services
             var user = await _userRepository.GetUserByIdWithRoleAsync(id, ct);
 
             if (user == null)
+            {
+                throw new NotFoundException($"Không tìm thấy người dùng có ID {id}.");
+            }
+
+            if (callerMarketId.HasValue && user.MarketId != callerMarketId.Value)
             {
                 throw new NotFoundException($"Không tìm thấy người dùng có ID {id}.");
             }
@@ -203,6 +278,14 @@ namespace STMM.Business.Services
             user.Cccd = request.Cccd;
             user.Status = request.Status;
             user.UpdatedAt = DateTime.UtcNow;
+            if (request.MarketId.HasValue)
+            {
+                user.MarketId = request.MarketId.Value;
+            }
+            else if (callerMarketId.HasValue && !user.MarketId.HasValue)
+            {
+                user.MarketId = callerMarketId.Value;
+            }
 
             if (!string.IsNullOrEmpty(request.Password))
             {
@@ -280,7 +363,7 @@ namespace STMM.Business.Services
             return _mapper.Map<UserDto>(user);
         }
 
-        public async Task<UserDto> LockUnlockUserAsync(int id, string status, CancellationToken ct = default)
+        public async Task<UserDto> LockUnlockUserAsync(int id, string status, int? currentUserId = null, CancellationToken ct = default)
         {
             if (status != "Active" && status != "Locked" && status != "Suspended")
             {
@@ -294,6 +377,12 @@ namespace STMM.Business.Services
                 throw new NotFoundException($"Không tìm thấy người dùng có ID {id}.");
             }
 
+            var callerMarketId = await GetCallerMarketIdAsync(currentUserId, ct);
+            if (callerMarketId.HasValue && user.MarketId != callerMarketId.Value)
+            {
+                throw new NotFoundException($"Không tìm thấy người dùng có ID {id}.");
+            }
+
             user.Status = status;
             user.UpdatedAt = DateTime.UtcNow;
 
@@ -303,11 +392,17 @@ namespace STMM.Business.Services
             return _mapper.Map<UserDto>(user);
         }
 
-        public async Task<bool> DeleteUserAsync(int id, CancellationToken ct = default)
+        public async Task<bool> DeleteUserAsync(int id, int? currentUserId = null, CancellationToken ct = default)
         {
             var user = await _userRepository.GetByIdAsync(id, ct);
 
             if (user == null || user.IsDeleted == true)
+            {
+                throw new NotFoundException($"Không tìm thấy người dùng có ID {id}.");
+            }
+
+            var callerMarketId = await GetCallerMarketIdAsync(currentUserId, ct);
+            if (callerMarketId.HasValue && user.MarketId != callerMarketId.Value)
             {
                 throw new NotFoundException($"Không tìm thấy người dùng có ID {id}.");
             }
@@ -345,7 +440,8 @@ namespace STMM.Business.Services
                 roleName,
                 search,
                 limitToManageableRoles: false,
-                ct);
+                marketId: null,
+                ct: ct);
 
             return _mapper.Map<IEnumerable<UserDto>>(users);
         }
@@ -356,7 +452,7 @@ namespace STMM.Business.Services
             return _mapper.Map<IEnumerable<RoleDto>>(roles);
         }
 
-        public async Task<UserDto> ResetPasswordAsync(int id, string newPassword, CancellationToken ct = default)
+        public async Task<UserDto> ResetPasswordAsync(int id, string newPassword, int? currentUserId = null, CancellationToken ct = default)
         {
             if (string.IsNullOrEmpty(newPassword) || newPassword.Length < 6)
             {
@@ -366,6 +462,12 @@ namespace STMM.Business.Services
             var user = await _userRepository.GetUserByIdWithRoleAsync(id, ct);
 
             if (user == null)
+            {
+                throw new NotFoundException($"Không tìm thấy người dùng có ID {id}.");
+            }
+
+            var callerMarketId = await GetCallerMarketIdAsync(currentUserId, ct);
+            if (callerMarketId.HasValue && user.MarketId != callerMarketId.Value)
             {
                 throw new NotFoundException($"Không tìm thấy người dùng có ID {id}.");
             }

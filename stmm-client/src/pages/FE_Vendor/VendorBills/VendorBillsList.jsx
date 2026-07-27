@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { vendorInvoiceApi } from '../../../services/vendorInvoiceApi';
+import VendorRequestCreate from '../VendorRequests/VendorRequestCreate';
 
 import { showError } from '../../../utils/alert';
 
@@ -23,6 +24,11 @@ export default function VendorBillsList({ vendorId, stallId }) {
 
     // Modal state
     const [selectedInvoice, setSelectedInvoice] = useState(null);
+
+    // Disputing state
+    const [isDisputing, setIsDisputing] = useState(false);
+    const [disputeInvoiceId, setDisputeInvoiceId] = useState(null);
+    const [disputeStallId, setDisputeStallId] = useState(null);
 
     const currentYear = new Date().getFullYear();
     const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
@@ -99,6 +105,15 @@ export default function VendorBillsList({ vendorId, stallId }) {
                 return <span className="bill-badge badge-secondary">{status}</span>;
         }
     };
+
+    if (isDisputing) {
+        return <VendorRequestCreate 
+            onBack={() => setIsDisputing(false)} 
+            onSuccess={() => { setIsDisputing(false); fetchInvoices(); }} 
+            prefillInvoiceId={disputeInvoiceId}
+            prefillStallId={disputeStallId}
+        />;
+    }
 
     return (
         <div className="vendor-bills-container fade-in">
@@ -253,6 +268,17 @@ export default function VendorBillsList({ vendorId, stallId }) {
                             </table>
                         </div>
                         <div className="bill-modal-footer">
+                            <button 
+                                className="btn-cancel" 
+                                style={{ backgroundColor: '#f59e0b', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', marginRight: 'auto' }}
+                                onClick={() => {
+                                    setDisputeInvoiceId(selectedInvoice.invoiceId);
+                                    setDisputeStallId(selectedInvoice.stallId);
+                                    setIsDisputing(true);
+                                    setSelectedInvoice(null);
+                                }}>
+                                Khiếu nại hóa đơn
+                            </button>
                             {selectedInvoice.status?.toLowerCase() !== 'paid' && (
                                 <div className="payment-options" style={{ display: 'flex', gap: '10px' }}>
                                     <button 

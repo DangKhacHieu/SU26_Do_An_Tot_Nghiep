@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import Header from "../Layout/Header";
 import Footer from "../Layout/Footer";
-import { getStallById } from "../../FE_Manager/MarketArea/api/stallApi";
-import { getStallReviews, submitStallReview } from "../../../services/reviewApi";
+import { getStallById } from "../../../services/stallApi";
+import { getStallReviews, submitStallReview, updateStallReview } from "../../../services/reviewApi";
 import "./StallDetailPage.css";
 
 export default function StallDetailPage({
@@ -29,6 +29,49 @@ export default function StallDetailPage({
   const [submitError, setSubmitError] = useState("");
   const [submitSuccess, setSubmitSuccess] = useState(false);
 
+  const [editingReviewId, setEditingReviewId] = useState(null);
+  const [editRating, setEditRating] = useState(5);
+  const [editComment, setEditComment] = useState("");
+  const [editSubmitting, setEditSubmitting] = useState(false);
+  const [editError, setEditError] = useState("");
+
+  const handleStartEdit = (review) => {
+    setEditingReviewId(review.reviewId);
+    setEditRating(review.rating);
+    setEditComment(review.comment || "");
+    setEditError("");
+  };
+
+  const handleCancelEdit = () => {
+    setEditingReviewId(null);
+    setEditRating(5);
+    setEditComment("");
+    setEditError("");
+  };
+
+  const handleSaveEdit = async (reviewId) => {
+    if (!user) return;
+    if (editRating < 1 || editRating > 5) {
+      setEditError("Rating score must be between 1 and 5 stars.");
+      return;
+    }
+
+    try {
+      setEditSubmitting(true);
+      setEditError("");
+      await updateStallReview(reviewId, user.userId, editRating, editComment);
+      setEditingReviewId(null);
+      await fetchReviews();
+    } catch (err) {
+      console.error("Lỗi khi cập nhật đánh giá:", err);
+      setEditError(
+        err.response?.data || "Could not update review. Please try again."
+      );
+    } finally {
+      setEditSubmitting(false);
+    }
+  };
+
   const fetchReviews = async () => {
     try {
       setReviewsLoading(true);
@@ -39,7 +82,7 @@ export default function StallDetailPage({
       }
     } catch (err) {
       console.error("Lỗi khi tải đánh giá sạp hàng:", err);
-      setReviewsError("Không thể tải đánh giá từ máy chủ.");
+      setReviewsError("Could not load reviews from server.");
     } finally {
       setReviewsLoading(false);
     }
@@ -54,11 +97,11 @@ export default function StallDetailPage({
         if (data) {
           setStall(data);
         } else {
-          setError("Không tìm thấy thông tin sạp hàng.");
+          setError("Stall information not found.");
         }
       } catch (err) {
         console.error("Error loading stall detail:", err);
-        setError("Không thể tải thông tin sạp hàng từ máy chủ.");
+        setError("Could not load stall details from server.");
       } finally {
         setLoading(false);
       }
@@ -71,6 +114,7 @@ export default function StallDetailPage({
       setSubmitError("");
       setNewComment("");
       setNewRating(5);
+      handleCancelEdit();
     }
   }, [stallId]);
 
@@ -78,7 +122,7 @@ export default function StallDetailPage({
     e.preventDefault();
     if (!user) return;
     if (newRating < 1 || newRating > 5) {
-      setSubmitError("Điểm đánh giá phải từ 1 đến 5 sao.");
+      setSubmitError("Rating score must be between 1 and 5 stars.");
       return;
     }
 
@@ -93,7 +137,7 @@ export default function StallDetailPage({
     } catch (err) {
       console.error("Lỗi khi gửi đánh giá:", err);
       setSubmitError(
-        err.response?.data || "Không thể gửi đánh giá đến máy chủ. Vui lòng thử lại."
+        err.response?.data || "Could not submit review to the server. Please try again."
       );
     } finally {
       setSubmitting(false);
@@ -112,13 +156,13 @@ export default function StallDetailPage({
   const getStatusLabel = (status) => {
     switch (status) {
       case "Available":
-        return "Trống (Sẵn sàng thuê)";
+        return "Available";
       case "Rented":
-        return "Đã thuê";
+        return "Rented";
       case "Maintenance":
-        return "Đang bảo trì";
+        return "Maintenance";
       default:
-        return status || "Trống";
+        return status || "Available";
     }
   };
 
@@ -150,21 +194,21 @@ export default function StallDetailPage({
         <div className="stall-detail-shell">
           <div className="detail-header-nav">
             <button type="button" className="btn-back-map" onClick={onBack}>
-              ← Quay lại Sơ đồ chợ
+              ← Back to Stall Map
             </button>
           </div>
 
           {loading ? (
             <div className="detail-loading-box">
               <div className="spinner"></div>
-              <p>Đang tải chi tiết sạp hàng...</p>
+              <p>Loading stall details...</p>
             </div>
           ) : error ? (
             <div className="detail-error-card">
-              <h2>Lỗi tải dữ liệu</h2>
+              <h2>Error loading data</h2>
               <p>{error}</p>
               <button type="button" className="btn-action-primary" onClick={onBack}>
-                Quay lại
+                Back
               </button>
             </div>
           ) : stall ? (
@@ -190,31 +234,31 @@ export default function StallDetailPage({
                   </span>
                 </div>
 
-                <h1>Thông tin chi tiết Sạp {stall.code}</h1>
+                <h1>Detailed Information of Stall {stall.code}</h1>
                 <p className="stall-intro">
-                  Xem đầy đủ thông số kỹ thuật, tình trạng đăng ký và chính sách bảo hiểm của gian hàng.
+                  View full specifications, registration status, and fire insurance policies of the stall.
                 </p>
 
                 <div className="info-grid">
                   <div className="info-item">
-                    <span className="info-label">Khu vực phân khu:</span>
+                    <span className="info-label">Section area:</span>
                     <strong className="info-val">{stall.areaName || "N/A"}</strong>
                   </div>
 
                   <div className="info-item">
-                    <span className="info-label">Ngành hàng kinh doanh:</span>
-                    <strong className="info-val">{stall.categoryName || "Chưa có"}</strong>
+                    <span className="info-label">Business category:</span>
+                    <strong className="info-val">{stall.categoryName || "None"}</strong>
                   </div>
 
                   <div className="info-item">
-                    <span className="info-label">Diện tích mặt bằng:</span>
+                    <span className="info-label">Floor area:</span>
                     <strong className="info-val">
                       {stall.size ? `${stall.size} m²` : "N/A"}
                     </strong>
                   </div>
 
                   <div className="info-item">
-                    <span className="info-label">Kích thước hiển thị:</span>
+                    <span className="info-label">Display size:</span>
                     <strong className="info-val">
                       {stall.width && stall.height
                         ? `${Math.round(stall.width / 10)}m x ${Math.round(stall.height / 10)}m`
@@ -223,24 +267,24 @@ export default function StallDetailPage({
                   </div>
 
                   <div className="info-item">
-                    <span className="info-label">Góc xoay hiển thị:</span>
+                    <span className="info-label">Display rotation angle:</span>
                     <strong className="info-val">{stall.rotation || 0}°</strong>
                   </div>
 
                   <div className="info-item">
-                    <span className="info-label">Ngày khởi tạo sạp:</span>
+                    <span className="info-label">Stall creation date:</span>
                     <strong className="info-val">
                       {stall.createdAt
-                        ? new Date(stall.createdAt).toLocaleDateString("vi-VN")
+                        ? new Date(stall.createdAt).toLocaleDateString("en-US")
                         : "N/A"}
                     </strong>
                   </div>
 
                   {stall.fireInsuranceExpiry && (
                     <div className="info-item insurance-alert">
-                      <span className="info-label">Hạn bảo hiểm hỏa hoạn:</span>
+                      <span className="info-label">Fire insurance expiry:</span>
                       <strong className="info-val">
-                        {new Date(stall.fireInsuranceExpiry).toLocaleDateString("vi-VN")}
+                        {new Date(stall.fireInsuranceExpiry).toLocaleDateString("en-US")}
                       </strong>
                     </div>
                   )}
@@ -252,33 +296,33 @@ export default function StallDetailPage({
                     className="btn-action-primary"
                     onClick={() =>
                       alert(
-                        `Liên hệ Ban quản lý chợ qua hotline: 1900-STMM hoặc gửi email tới support@stmm.com để làm thủ tục thuê sạp ${stall.code}.`
+                        `Contact the Market Management via hotline: 1900-STMM or email support@stmm.com to register for renting Stall ${stall.code}.`
                       )
                     }
                   >
-                    Đăng ký thuê sạp hàng
+                    Register to rent stall
                   </button>
                   <button
                     type="button"
                     className="btn-action-secondary"
                     onClick={onBack}
                   >
-                    Quay lại sơ đồ mặt bằng
+                    Back to blueprint layout
                   </button>
                 </div>
               </div>
             </div>
 
             <div className="reviews-card">
-              <h2>Đánh giá & Nhận xét</h2>
+              <h2>Reviews & Ratings</h2>
               <p style={{ color: "#617157", fontSize: "14px", marginBottom: "20px" }}>
-                Ý kiến từ khách hàng và cộng đồng về sạp hàng {stall.code}.
+                Customer and community feedback on Stall {stall.code}.
               </p>
 
               {reviewsLoading && reviewsData.reviews.length === 0 ? (
                 <div style={{ textAlign: "center", padding: "20px" }}>
                   <div className="spinner" style={{ margin: "0 auto 10px", width: "32px", height: "32px" }}></div>
-                  <p style={{ color: "#617157", fontSize: "13px" }}>Đang tải đánh giá...</p>
+                  <p style={{ color: "#617157", fontSize: "13px" }}>Loading reviews...</p>
                 </div>
               ) : (
                 <>
@@ -292,7 +336,7 @@ export default function StallDetailPage({
                         {renderStars(Math.round(reviewsData.averageRating || reviewsData.AverageRating || 0))}
                       </span>
                       <span className="score-count">
-                        ({reviewsData.totalReviews || 0} đánh giá)
+                        ({reviewsData.totalReviews || 0} reviews)
                       </span>
                     </div>
 
@@ -304,7 +348,7 @@ export default function StallDetailPage({
                           : 0;
                         return (
                           <div className="bar-row" key={star}>
-                            <span className="bar-lbl">{star} sao</span>
+                            <span className="bar-lbl">{star} stars</span>
                             <div className="bar-track">
                               <div className="bar-fill" style={{ width: `${percentage}%` }}></div>
                             </div>
@@ -318,11 +362,11 @@ export default function StallDetailPage({
                   {/* Submit Review Box */}
                   {user ? (
                     <form className="review-form-box" onSubmit={handleSubmitReview}>
-                      <h3>Gửi đánh giá của bạn</h3>
+                      <h3>Submit your review</h3>
                       
                       {submitSuccess && (
                         <div style={{ background: "#dcfce7", color: "#15803d", padding: "12px 16px", borderRadius: "10px", fontSize: "13px", fontWeight: "600", marginBottom: "16px" }}>
-                          ✓ Đánh giá của bạn đã được gửi thành công! Cảm ơn bạn.
+                          ✓ Your review has been submitted successfully! Thank you.
                         </div>
                       )}
                       
@@ -333,7 +377,7 @@ export default function StallDetailPage({
                       )}
 
                       <div className="rating-select-row">
-                        <span className="rating-label">Điểm số:</span>
+                        <span className="rating-label">Rating:</span>
                         <div style={{ display: "flex", gap: "6px" }}>
                           {[1, 2, 3, 4, 5].map((star) => (
                             <button
@@ -352,10 +396,10 @@ export default function StallDetailPage({
                       </div>
 
                       <div className="comment-input-row">
-                        <span className="comment-label">Nhận xét của bạn:</span>
+                        <span className="comment-label">Your comment:</span>
                         <textarea
                           rows="3"
-                          placeholder="Chia sẻ trải nghiệm của bạn về sạp hàng này..."
+                          placeholder="Share your experience about this stall..."
                           value={newComment}
                           onChange={(e) => {
                             setNewComment(e.target.value);
@@ -371,14 +415,14 @@ export default function StallDetailPage({
                         style={{ padding: "10px 24px" }}
                         disabled={submitting}
                       >
-                        {submitting ? "Đang gửi..." : "Gửi đánh giá"}
+                        {submitting ? "Sending..." : "Submit review"}
                       </button>
                     </form>
                   ) : (
                     <div className="guest-prompt-box">
-                      <p>Bạn cần đăng nhập để gửi nhận xét & đánh giá cho sạp hàng này.</p>
+                      <p>You need to login to submit reviews & ratings for this stall.</p>
                       <button type="button" onClick={onGoToLogin}>
-                        Đăng nhập ngay
+                        Login now
                       </button>
                     </div>
                   )}
@@ -386,12 +430,12 @@ export default function StallDetailPage({
                   {/* Reviews List */}
                   <div className="reviews-list">
                     <h3 style={{ fontSize: "1.2rem", fontWeight: "800", color: "#1d2818", borderBottom: "1.5px solid #eee", paddingBottom: "12px", marginTop: "12px" }}>
-                      Danh sách đánh giá
+                      Reviews List
                     </h3>
                     
                     {reviewsData.reviews.length === 0 ? (
                       <p style={{ textAlign: "center", color: "#8fa085", fontSize: "13.5px", padding: "24px 0" }}>
-                        Chưa có đánh giá nào cho sạp hàng này. Hãy là người đầu tiên nhận xét!
+                        No reviews yet for this stall. Be the first to write a review!
                       </p>
                     ) : (
                       reviewsData.reviews.map((review) => (
@@ -404,13 +448,13 @@ export default function StallDetailPage({
                                   : "U"}
                               </div>
                               <div>
-                                <span className="reviewer-name">{review.userName || "Người dùng"}</span>
+                                <span className="reviewer-name">{review.userName || "User"}</span>
                                 <div className="review-stars">{renderStars(review.rating)}</div>
                               </div>
                             </div>
-                            <span className="review-date">
+                            <span className="review-date" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                               {review.createdAt
-                                ? new Date(review.createdAt).toLocaleDateString("vi-VN", {
+                                ? new Date(review.createdAt).toLocaleDateString("en-US", {
                                     day: "2-digit",
                                     month: "2-digit",
                                     year: "numeric",
@@ -418,9 +462,69 @@ export default function StallDetailPage({
                                     minute: "2-digit"
                                   })
                                 : ""}
+                              {review.userId === user?.userId && editingReviewId !== review.reviewId && (
+                                <button
+                                  type="button"
+                                  className="review-edit-btn"
+                                  onClick={() => handleStartEdit(review)}
+                                >
+                                  Edit
+                                </button>
+                              )}
                             </span>
                           </div>
-                          <p className="review-comment">{review.comment}</p>
+                          {editingReviewId === review.reviewId ? (
+                            <div className="review-edit-form">
+                              <div className="rating-select-row">
+                                <span className="rating-label">New rating:</span>
+                                <div style={{ display: "flex", gap: "6px" }}>
+                                  {[1, 2, 3, 4, 5].map((star) => (
+                                    <button
+                                      type="button"
+                                      key={star}
+                                      className={`star-interactive-btn ${star <= editRating ? "active" : ""}`}
+                                      onClick={() => setEditRating(star)}
+                                    >
+                                      ★
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                              <div className="comment-input-row" style={{ marginBottom: "12px" }}>
+                                <textarea
+                                  rows="2"
+                                  value={editComment}
+                                  onChange={(e) => setEditComment(e.target.value)}
+                                  required
+                                />
+                              </div>
+                              {editError && (
+                                <div className="edit-error-msg">⚠ {editError}</div>
+                              )}
+                              <div className="edit-form-actions">
+                                <button 
+                                  type="button" 
+                                  className="btn-action-primary" 
+                                  style={{ padding: "8px 16px", fontSize: "13px", borderRadius: "8px" }}
+                                  onClick={() => handleSaveEdit(review.reviewId)}
+                                  disabled={editSubmitting}
+                                >
+                                  {editSubmitting ? "Saving..." : "Save changes"}
+                                </button>
+                                <button 
+                                  type="button" 
+                                  className="btn-action-secondary" 
+                                  style={{ padding: "8px 16px", fontSize: "13px", borderRadius: "8px" }}
+                                  onClick={handleCancelEdit}
+                                  disabled={editSubmitting}
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <p className="review-comment">{review.comment}</p>
+                          )}
                         </div>
                       ))
                     )}

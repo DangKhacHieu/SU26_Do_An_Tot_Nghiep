@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { BrowserRouter, Routes, Route, Navigate, Outlet, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Bell, UserRound } from "lucide-react";
 import "./App.css";
 import "./AppDashboard.css";
 import "./pages/FE_Staff/FE_Staff.css";
@@ -36,6 +37,9 @@ import TaskDetail from "./pages/FE_Staff/TaskDetail";
 import TaskMapView from "./pages/FE_Staff/TaskMapView";
 import SidebarStaff from "./pages/FE_Staff/SidebarStaff";
 import ProfileStaff from "./pages/FE_Staff/ProfileStaff";
+import StaffNotifications from "./pages/FE_Staff/StaffNotifications";
+import StaffDashboard from "./pages/FE_Staff/StaffDashboard";
+import notificationService from "./services/notificationService";
 
 // FE Manager Imports
 import SidebarManager from "./pages/FE_Manager/SidebarManager";
@@ -91,14 +95,23 @@ function ProtectedRoute({ allowedRoles }) {
   if (!userStr) {
     return <Navigate to="/login" replace />;
   }
-  try {
-    const user = JSON.parse(userStr);
-    if (allowedRoles && !allowedRoles.includes(user.roleName)) {
-      return <Navigate to="/" replace />;
+
+  const user = (() => {
+    try {
+      return JSON.parse(userStr);
+    } catch {
+      return null;
     }
-  } catch (e) {
+  })();
+
+  if (!user) {
     return <Navigate to="/login" replace />;
   }
+
+  if (allowedRoles && !allowedRoles.includes(user.roleName)) {
+    return <Navigate to="/" replace />;
+  }
+
   return <Outlet />;
 }
 
@@ -208,11 +221,6 @@ const PAGE_TITLES = {
     sub: "Quản lý kho công tơ Điện/Nước khả dụng trong cùng chợ để tạo sạp.",
   },
 
-  meters: {
-    title: "Quản lý Công tơ",
-    sub: "Quản lý kho công tơ Điện/Nước khả dụng trong cùng chợ để tạo sạp.",
-  },
-
   // Admin System Titles
   "admin-dashboard": {
     title: "Tổng quan hệ thống (Admin)",
@@ -248,6 +256,10 @@ const STAFF_PAGE_TITLES = {
   tasks: {
     title: "Daily Tasks",
     sub: "View and update your assigned repair and maintenance tasks.",
+  },
+  "task-map": {
+    title: "Task Map",
+    sub: "Locate stalls related to your active assigned tasks.",
   },
   "task-details": {
     title: "Task Details",
@@ -333,21 +345,18 @@ function MarketMapWrapper({ user, onLogout, navigatePath }) {
 function AppContent() {
   const routerNavigate = useNavigate();
   const [path, setPath] = useState(window.location.pathname);
-  const [search, setSearch] = useState(window.location.search);
   const [user, setUser] = useState(authService.getUser());
 
-  const navigatePath = (to, replace = false) => {
+  const navigatePath = useCallback((to, replace = false) => {
     routerNavigate(to, { replace });
     setPath(to.split("?")[0]);
-    setSearch(to.includes("?") ? to.substring(to.indexOf("?")) : "");
-  };
+  }, [routerNavigate]);
 
   useEffect(() => {
     setUser(authService.getUser());
 
     const handlePopState = () => {
       setPath(window.location.pathname);
-      setSearch(window.location.search);
       setUser(authService.getUser());
     };
 
@@ -358,24 +367,26 @@ function AppContent() {
     };
   }, []);
 
-  // Auto-redirect console roles (admin, manager, staff) to their respective dashboards if they try to access customer pages or auth pages
+  // Auto-redirect console roles (admin, manager, staff, vendor, accountant) to their respective dashboards if they try to access customer pages or auth pages
   useEffect(() => {
     if (user) {
       const role = user.roleName?.toLowerCase();
       const isAdmin = role === "admin" || role === "systemadmin" || role?.includes("admin");
-      if (isAdmin && !path.startsWith("/admin/")) {
+      if (isAdmin && !path.startsWith("/admin")) {
         navigatePath("/admin/dashboard", true);
-      } else if (role === "manager" && !path.startsWith("/manager/")) {
+      } else if (role === "manager" && !path.startsWith("/manager")) {
         navigatePath("/manager/dashboard", true);
-      } else if (role === "staff" && !path.startsWith("/staff/")) {
+      } else if (role === "staff" && !path.startsWith("/staff")) {
         navigatePath("/staff/dashboard", true);
-      } else if (role === "vendor" && ["/login", "/register", "/forgot-password"].includes(path)) {
+      } else if (role === "vendor" && !path.startsWith("/vendor")) {
         navigatePath("/vendor/dashboard", true);
+      } else if (role === "accountant" && !path.startsWith("/accountant")) {
+        navigatePath("/accountant", true);
       } else if (role === "customer" && ["/login", "/register", "/forgot-password"].includes(path)) {
         navigatePath("/", true);
       }
     }
-  }, [user, path]);
+  }, [navigatePath, user, path]);
 
   const handleLoginSuccess = (loginResult) => {
     const loginUser = loginResult?.user || null;
@@ -392,7 +403,7 @@ function AppContent() {
   const handleLogout = () => {
     authService.logout();
     setUser(null);
-    navigatePath("/", true); // Clean up the session entry in the history stack
+    window.location.href = "/";
   };
 
   // =========================
@@ -424,32 +435,28 @@ function AppContent() {
     }
   }, [path]);
 
-  const addToast = (message, type = "info") => {
-    const id = Date.now();
+  const addToast = useCallback((message, type = "info") => {
+    const id = Date.now() + Math.random();
     setToasts((prev) => [...prev, { id, message, type }]);
 
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
     }, 4000);
-  };
+  }, []);
 
-  const navigate = (page, id = null) => {
+  const navigate = useCallback((page, id = null) => {
     setCurrentUserId(id);
     setCurrentPage(page);
 
-    let newPath = "";
-    if (page.startsWith("admin-")) {
-      const sub = page.substring(6); // e.g. "admin-users" -> "users"
-      newPath = `/admin/${sub}`;
-    } else {
-      newPath = `/manager/${page}`;
-    }
+    const newPath = page.startsWith("admin-")
+      ? `/admin/${page.substring(6)}`
+      : `/manager/${page}`;
 
     if (window.location.pathname !== newPath) {
-      window.history.pushState({}, "", newPath);
+      routerNavigate(newPath);
       setPath(newPath);
     }
-  };
+  }, [routerNavigate]);
 
   // =========================
   // Staff Console State
@@ -457,7 +464,6 @@ function AppContent() {
   const [currentStaffView, setCurrentStaffView] = useState("dashboard");
   const [selectedViolationId, setSelectedViolationId] = useState(null);
   const [selectedTaskId, setSelectedTaskId] = useState(null);
-  const [taskViewOrigin, setTaskViewOrigin] = useState("tasks");
   const [showCreateModal, setShowCreateModal] = useState(false);
 
   // Issue state
@@ -476,23 +482,36 @@ function AppContent() {
   const [selectedStallCodeForInvoices, setSelectedStallCodeForInvoices] =
     useState("");
 
-  // Developer configuration testing tools
   const [userId, setUserId] = useState(user?.userId || 1);
 
-  // Sync userId when logged in user updates
   useEffect(() => {
     if (user && user.userId) {
       setUserId(user.userId);
     }
   }, [user]);
 
-  const [baseUrl, setBaseUrl] = useState(
-    (import.meta.env.VITE_API_URL || "http://localhost:5056").replace(
-      /\/api\/?$/,
-      "",
-    ),
+  const baseUrl = (import.meta.env.VITE_API_URL || "http://localhost:5056").replace(
+    /\/api\/?$/,
+    "",
   );
   const [notification, setNotification] = useState(null);
+  const [staffUnreadNotifications, setStaffUnreadNotifications] = useState(0);
+  const [staffNotificationsOpen, setStaffNotificationsOpen] = useState(false);
+
+  const loadStaffUnreadNotifications = useCallback(async () => {
+    if (user?.roleName?.toLowerCase() !== "staff") return;
+
+    try {
+      const items = await notificationService.getNotifications();
+      setStaffUnreadNotifications(items.filter((item) => !item.isRead).length);
+    } catch (error) {
+      console.error("Unable to load Staff notifications:", error);
+    }
+  }, [user?.roleName]);
+
+  useEffect(() => {
+    loadStaffUnreadNotifications();
+  }, [loadStaffUnreadNotifications]);
 
   const handleShowNotification = (message, type = "success") => {
     setNotification({ message, type });
@@ -576,21 +595,23 @@ function AppContent() {
       case "users":
         return <UserListManager navigate={navigate} addToast={addToast} />;
       case "requests":
-        return <RequestListManager navigate={navigate} addToast={addToast} />;
+        return <RequestListManager baseUrl={baseUrl} navigate={navigate} addToast={addToast} />;
       case "request-detail":
         return (
           <RequestDetailManager
             requestId={currentUserId}
+            baseUrl={baseUrl}
             navigate={navigate}
             addToast={addToast}
           />
         );
       case "violations":
-        return <ViolationListManager navigate={navigate} addToast={addToast} />;
+        return <ViolationListManager baseUrl={baseUrl} navigate={navigate} addToast={addToast} />;
       case "violation-details":
         return (
           <ViolationDetailsManager
             violationId={currentUserId}
+            baseUrl={baseUrl}
             navigate={navigate}
             addToast={addToast}
           />
@@ -615,7 +636,7 @@ function AppContent() {
           />
         );
       case "meters":
-        return <MeterManagement navigate={navigate} addToast={addToast} />;
+        return <MeterManagement baseUrl={baseUrl} addToast={addToast} />;
       case "form":
         return (
           <UserFormManager
@@ -663,17 +684,25 @@ function AppContent() {
       case "tasks":
         return (
           <TaskListManager
-            userId={userId}
             baseUrl={baseUrl}
             navigate={navigate}
             addToast={addToast}
           />
         );
       case "task-details":
+        if (!currentUserId) {
+          return (
+            <TaskListManager
+              baseUrl={baseUrl}
+              navigate={navigate}
+              addToast={addToast}
+            />
+          );
+        }
+
         return (
           <TaskDetailManager
             taskId={currentUserId}
-            userId={userId}
             baseUrl={baseUrl}
             onBack={() => navigate("tasks")}
             addToast={addToast}
@@ -765,43 +794,6 @@ function AppContent() {
     );
   };
 
-  const renderConsoleSwitcher = (activeMode) => {
-    return (
-      <div className="header-actions">
-        <select
-          value={activeMode}
-          onChange={(e) => {
-            const mode = e.target.value;
-            if (mode === "admin") {
-              setCurrentPage("admin-dashboard");
-              navigatePath("/admin/dashboard");
-            } else if (mode === "manager") {
-              setCurrentPage("dashboard");
-              navigatePath("/manager/dashboard");
-            } else if (mode === "staff") {
-              navigatePath("/staff/dashboard");
-            }
-          }}
-          style={{
-            padding: "6px 12px",
-            borderRadius: "6px",
-            border: "1px solid var(--border-color)",
-            fontSize: "13px",
-            fontWeight: "600",
-            cursor: "pointer",
-            background: "#f8fafc",
-            color: "var(--text-main)",
-            outline: "none",
-          }}
-        >
-          <option value="manager">Manager Console</option>
-          <option value="admin">Admin System Console</option>
-          <option value="staff">Staff Console</option>
-        </select>
-      </div>
-    );
-  };
-
   const renderManagerOrAdminConsole = () => {
     return (
       <div className="app-container">
@@ -877,6 +869,7 @@ function AppContent() {
           />
 
 
+
           <main className="app-main-content">
             <div className="main-top-navbar">
               <div
@@ -911,23 +904,36 @@ function AppContent() {
                 </p>
               </div>
               <div className="navbar-icons-placeholder">
-                <span
-                  className="nav-icon"
+                <button
+                  type="button"
+                  className="nav-icon staff-notification-button"
                   title="Notifications"
-                  onClick={() => navigatePath("/notifications")}
+                  aria-label={`Notifications${staffUnreadNotifications > 0 ? `, ${staffUnreadNotifications} unread` : ""}`}
+                  aria-expanded={staffNotificationsOpen}
+                  onClick={() => setStaffNotificationsOpen((current) => !current)}
                 >
-                  🔔
-                </span>
-                <span className="nav-icon" title="Help">
-                  ❓
-                </span>
-                <span
+                  <Bell size={20} aria-hidden="true" />
+                  {staffUnreadNotifications > 0 && (
+                    <span className="staff-notification-badge">
+                      {staffUnreadNotifications > 99 ? "99+" : staffUnreadNotifications}
+                    </span>
+                  )}
+                </button>
+                {staffNotificationsOpen ? (
+                  <StaffNotifications
+                    onClose={() => setStaffNotificationsOpen(false)}
+                    onUnreadChange={setStaffUnreadNotifications}
+                  />
+                ) : null}
+                <button
+                  type="button"
                   className="nav-icon"
                   title="Profile"
+                  aria-label="Open profile"
                   onClick={() => setCurrentStaffView("profile")}
                 >
-                  👤
-                </span>
+                  <UserRound size={20} aria-hidden="true" />
+                </button>
                 <div
                   className="user-profile-circle"
                   onClick={() => setCurrentStaffView("profile")}
@@ -945,7 +951,6 @@ function AppContent() {
             <div className="main-content-scroll">
               {currentStaffView === "violations" && (
                 <ViolationList
-                  userId={userId}
                   baseUrl={baseUrl}
                   onViewDetails={handleViewDetails}
                   onOpenCreateModal={() => setShowCreateModal(true)}
@@ -955,7 +960,6 @@ function AppContent() {
               {currentStaffView === "violation-details" && (
                 <ViolationDetails
                   violationId={selectedViolationId}
-                  userId={userId}
                   baseUrl={baseUrl}
                   onBack={() => setCurrentStaffView("violations")}
                 />
@@ -965,7 +969,6 @@ function AppContent() {
                 <MeterReadingHistory
                   stallId={selectedStallIdForMeters}
                   baseUrl={baseUrl}
-                  userId={userId}
                   onViewMeterDetail={(meterId) => {
                     setSelectedMeterIdForDetail(meterId);
                     setCurrentStaffView("meter-details");
@@ -984,74 +987,31 @@ function AppContent() {
               )}
 
               {currentStaffView === "dashboard" && (
-                <div className="mock-view">
-                  <h1>📊 Staff Dashboard</h1>
-                  <p>
-                    Welcome back, {user?.name || "Staff"}! Here is your daily
-                    overview.
-                  </p>
-                  <div className="mock-grid">
-                    <div className="mock-card">
-                      <h3>My Daily Tasks</h3>
-                      <button
-                        className="btn-secondary"
-                        onClick={() => setCurrentStaffView("tasks")}
-                      >
-                        Go to Tasks
-                      </button>
-                    </div>
-                    <div className="mock-card">
-                      <h3>Stalls Directory</h3>
-                      <button
-                        className="btn-secondary"
-                        onClick={() => setCurrentStaffView("stall-list")}
-                      >
-                        Go to Stalls
-                      </button>
-                    </div>
-                    <div className="mock-card">
-                      <h3>My Reported Violations</h3>
-                      <button
-                        className="btn-secondary"
-                        onClick={() => setCurrentStaffView("violations")}
-                      >
-                        Go to Violations
-                      </button>
-                    </div>
-                    <div className="mock-card">
-                      <h3>Facilities Incidents</h3>
-                      <button
-                        className="btn-secondary"
-                        onClick={() => setCurrentStaffView("issues")}
-                      >
-                        Go to Issues
-                      </button>
-                    </div>
-                  </div>
-                </div>
+                <StaffDashboard
+                  baseUrl={baseUrl}
+                  staffName={user?.name}
+                  onOpenTasks={() => setCurrentStaffView("tasks")}
+                  onOpenTask={(id) => { setSelectedTaskId(id); setCurrentStaffView("task-details"); }}
+                />
               )}
 
               {currentStaffView === "tasks" && (
                 <TaskList
-                  userId={userId}
                   baseUrl={baseUrl}
+                  onMapView={() => setCurrentStaffView("task-map")}
                   onViewDetails={(id) => {
                     setSelectedTaskId(id);
-                    setTaskViewOrigin("tasks");
                     setCurrentStaffView("task-details");
                   }}
-                  onViewMap={() => setCurrentStaffView("task-map")}
                 />
               )}
 
               {currentStaffView === "task-map" && (
                 <TaskMapView
-                  userId={userId}
                   baseUrl={baseUrl}
                   onBack={() => setCurrentStaffView("tasks")}
                   onViewDetails={(id) => {
                     setSelectedTaskId(id);
-                    setTaskViewOrigin("task-map");
                     setCurrentStaffView("task-details");
                   }}
                 />
@@ -1060,9 +1020,8 @@ function AppContent() {
               {currentStaffView === "task-details" && (
                 <TaskDetail
                   taskId={selectedTaskId}
-                  userId={userId}
                   baseUrl={baseUrl}
-                  onBack={() => setCurrentStaffView(taskViewOrigin)}
+                  onBack={() => setCurrentStaffView("tasks")}
                   onShowNotification={handleShowNotification}
                   onViewIssueDetails={handleViewIssueDetails}
                 />
@@ -1070,7 +1029,6 @@ function AppContent() {
 
               {currentStaffView === "issues" && (
                 <IssueList
-                  userId={userId}
                   baseUrl={baseUrl}
                   onViewDetails={handleViewIssueDetails}
                   onOpenCreateModal={() => setShowCreateIssueModal(true)}
@@ -1080,7 +1038,6 @@ function AppContent() {
               {currentStaffView === "issue-details" && (
                 <IssueDetails
                   issueId={selectedIssueId}
-                  userId={userId}
                   baseUrl={baseUrl}
                   onBack={() => setCurrentStaffView("issues")}
                 />
@@ -1089,7 +1046,6 @@ function AppContent() {
               {currentStaffView === "stall-list" && (
                 <StallList
                   baseUrl={baseUrl}
-                  userId={userId}
                   onShowNotification={handleShowNotification}
                   onViewMeterHistory={(stallId) => {
                     setSelectedStallIdForMeters(stallId);
@@ -1108,7 +1064,6 @@ function AppContent() {
                   stallId={selectedStallIdForInvoices}
                   stallCode={selectedStallCodeForInvoices}
                   baseUrl={baseUrl}
-                  userId={userId}
                   onBack={() => setCurrentStaffView("stall-list")}
                   onShowNotification={handleShowNotification}
                 />
@@ -1132,7 +1087,6 @@ function AppContent() {
         {/* Create Violation Modal */}
         {showCreateModal && (
           <CreateViolationModal
-            userId={userId}
             baseUrl={baseUrl}
             onClose={() => setShowCreateModal(false)}
             onSuccess={handleCreateSuccess}
@@ -1142,7 +1096,6 @@ function AppContent() {
         {/* Create Issue Modal */}
         {showCreateIssueModal && (
           <CreateIssueModal
-            userId={userId}
             baseUrl={baseUrl}
             onClose={() => setShowCreateIssueModal(false)}
             onSuccess={handleCreateIssueSuccess}
@@ -1154,7 +1107,6 @@ function AppContent() {
           <RecordMeterReadingModal
             stallId={selectedStallIdForMeters}
             baseUrl={baseUrl}
-            userId={userId}
             onClose={() => setShowRecordReadingModal(false)}
             onSuccess={(newReading) => {
               setShowRecordReadingModal(false);
@@ -1176,25 +1128,33 @@ function AppContent() {
   // =========================
   // Main Routes Rendering
   // =========================
-  // Synchronous route guards to prevent rendering customer pages for console roles (admin, manager, staff)
+  // Synchronous route guards to prevent rendering customer pages for console roles (admin, manager, staff, vendor, accountant)
   if (user) {
     const role = user.roleName?.toLowerCase();
     const isAdmin = role === "admin" || role === "systemadmin" || role?.includes("admin");
     const isManager = role === "manager";
     const isStaff = role === "staff";
+    const isVendor = role === "vendor";
+    const isAccountant = role === "accountant";
 
-    if (isAdmin && !path.startsWith("/admin/")) {
+    if (isAdmin && !path.startsWith("/admin")) {
       return <div className="loading-state">Đang chuyển hướng đến trang Admin...</div>;
     }
-    if (isManager && !path.startsWith("/manager/")) {
+    if (isManager && !path.startsWith("/manager")) {
       return <div className="loading-state">Đang chuyển hướng đến trang Manager...</div>;
     }
-    if (isStaff && !path.startsWith("/staff/")) {
+    if (isStaff && !path.startsWith("/staff")) {
       return <div className="loading-state">Đang chuyển hướng đến trang Nhân viên...</div>;
     }
-    
+    if (isVendor && !path.startsWith("/vendor")) {
+      return <div className="loading-state">Đang chuyển hướng đến trang Vendor...</div>;
+    }
+    if (isAccountant && !path.startsWith("/accountant")) {
+      return <div className="loading-state">Đang chuyển hướng đến trang Kế toán...</div>;
+    }
+
     // Prevent logged-in users from seeing auth pages
-    if ((role === "customer" || role === "vendor") && ["/login", "/register", "/forgot-password"].includes(path)) {
+    if (role === "customer" && ["/login", "/register", "/forgot-password"].includes(path)) {
       return <div className="loading-state">Đang chuyển hướng...</div>;
     }
   }
@@ -1302,9 +1262,15 @@ function AppContent() {
       <Route path="/stalls/:id" element={<StallDetailWrapper user={user} onLogout={handleLogout} navigatePath={navigatePath} />} />
 
       {/* 3. Admin & Manager & Staff & Vendor Console Routes */}
-      <Route path="/admin/dashboard" element={renderManagerOrAdminConsole()} />
-      <Route path="/manager/dashboard" element={renderManagerOrAdminConsole()} />
-      <Route path="/staff/dashboard" element={renderStaffConsole()} />
+      <Route element={<ProtectedRoute allowedRoles={["Admin", "SystemAdmin"]} />}>
+        <Route path="/admin/*" element={renderManagerOrAdminConsole()} />
+      </Route>
+      <Route element={<ProtectedRoute allowedRoles={["Manager"]} />}>
+        <Route path="/manager/*" element={renderManagerOrAdminConsole()} />
+      </Route>
+      <Route element={<ProtectedRoute allowedRoles={["Staff"]} />}>
+        <Route path="/staff/*" element={renderStaffConsole()} />
+      </Route>
       
       {/* Vendor Portal Route */}
       <Route element={<ProtectedRoute allowedRoles={["Vendor"]} />}>

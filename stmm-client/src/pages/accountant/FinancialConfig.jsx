@@ -1,4 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
+import * as yup from 'yup';
 import { 
   Plus, 
   Edit3, 
@@ -13,7 +16,8 @@ import {
   RefreshCw, 
   Info,
   CheckCircle,
-  X
+  X,
+  Receipt
 } from 'lucide-react';
 
 export default function FinancialConfig() {
@@ -43,9 +47,31 @@ export default function FinancialConfig() {
   const [selectedTierKey, setSelectedTierKey] = useState('electricity_tiers'); // 'electricity_tiers' | 'water_tiers'
 
   // Form states
-  const [feeForm, setFeeForm] = useState({ name: '', unit: '', description: '' });
+  // react-hook-form setup for Fee Form
+  const feeSchema = yup.object().shape({
+    name: yup.string().trim().required('Tên phí không được để trống.'),
+    unit: yup.string().trim().required('Đơn vị tính không được để trống.'),
+    description: yup.string().trim().nullable()
+  });
+  
+  const { 
+    register: registerFee, 
+    handleSubmit: handleSubmitFee, 
+    reset: resetFeeForm,
+    formState: { errors: feeErrors } 
+  } = useForm({
+    resolver: yupResolver(feeSchema)
+  });
   const [serviceForm, setServiceForm] = useState({ name: '', description: '', price: 0, billingCycle: 'Monthly', feeTypeId: 1 });
   const [sysForm, setSysForm] = useState({ configKey: '', configValue: '', description: '' });
+  
+  const [configForm, setConfigForm] = useState({
+    auto_invoice_day: '5',
+    invoice_due_days: '15',
+    late_penalty_rate_per_day: '0.05',
+    reminder_days_before_due: '3',
+    vat_tax_rate: '0'
+  });
   
   // Tier forms
   const [newTierPrice, setNewTierPrice] = useState(1000);
@@ -61,6 +87,7 @@ export default function FinancialConfig() {
     setActiveModal(null);
     setModalError(null);
     setSelectedItem(null);
+    resetFeeForm({ name: '', unit: '', description: '' });
   };
 
   // Fetch all config data
@@ -104,6 +131,18 @@ export default function FinancialConfig() {
     loadAllConfigData();
   }, []);
 
+  useEffect(() => {
+    if (systemConfigs.length > 0) {
+      const form = { ...configForm };
+      systemConfigs.forEach(c => {
+        if (form[c.configKey] !== undefined) {
+          form[c.configKey] = c.configValue;
+        }
+      });
+      setConfigForm(form);
+    }
+  }, [systemConfigs]);
+
   // Mock initializers
   const getMockFees = () => [
     { feeTypeId: 1, name: 'Tiền thuê mặt bằng', unit: 'Tháng', description: 'Chi phí thuê sạp định kỳ' },
@@ -132,78 +171,78 @@ export default function FinancialConfig() {
   const getMockWaterTiers = () => [
     { step: 1, from: 0, to: 10, price: 10000 },
     { step: 2, from: 11, to: 20, price: 15000 },
-    { step: 3, from: 21, to: null, price: 22000 },
+    { step: 3, from: 21, to: null, price: 22000    }
   ];
 
-  // --- CRUD OPERATORS ---
+  const handleSaveAllConfigs = async (e) => {
+    e.preventDefault();
+    if (configForm.auto_invoice_day < 1 || configForm.auto_invoice_day > 28) {
+      return showToast('error', 'Ngày chốt sổ phải từ 1 đến 28.');
+    }
+    if (configForm.invoice_due_days < 1) {
+      return showToast('error', 'Hạn thanh toán phải lớn hơn 0.');
+    }
+    
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('accessToken');
+      if (!isMock) {
+        const keys = Object.keys(configForm);
+        for (const key of keys) {
+          const res = await fetch('http://localhost:5056/api/accountant/config/system-configs', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ configKey: key, configValue: configForm[key].toString(), updatedByUserId: 1 })
+          });
+          if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            throw new Error(errData.detail || errData.title || `Lỗi cập nhật ${key}`);
+          }
+        }
+      }
+      showToast('success', 'Lưu cấu hình hệ thống thành công!');
+      loadAllConfigData();
+    } catch(err) {
+      showToast('error', err.message || 'Lỗi khi lưu cấu hình');
+      setLoading(false);
+    }
+  };
+
+  // --- TABS & RENDERING ---
 
   // 1. Fee Types
-  const handleFeeSubmit = (e) => {
-    e.preventDefault();
-    const nameTrimmed = feeForm.name ? feeForm.name.trim() : '';
-    const unitTrimmed = feeForm.unit ? feeForm.unit.trim() : '';
-    const descTrimmed = feeForm.description ? feeForm.description.trim() : '';
-
-    if (!nameTrimmed) {
-      setModalError('Tên loại phí không được để trống.');
-      return;
-    }
-    if (nameTrimmed.length > 100) {
-      setModalError('Tên loại phí không vượt quá 100 ký tự.');
-      return;
-    }
-    if (!unitTrimmed) {
-      setModalError('Đơn vị tính không được để trống.');
-      return;
-    }
-    if (unitTrimmed.length > 50) {
-      setModalError('Đơn vị tính không vượt quá 50 ký tự.');
-      return;
-    }
-    if (descTrimmed.length > 500) {
-      setModalError('Mô tả không vượt quá 500 ký tự.');
-      return;
-    }
-
-    // Kiểm tra trùng lặp tên loại phí
-    const isEdit = !!selectedItem;
-    const isDuplicate = feeTypes.some(f => {
-      const isSelf = isEdit && f.feeTypeId === selectedItem.feeTypeId;
-      return !isSelf && f.name.trim().toLowerCase() === nameTrimmed.toLowerCase();
-    });
-
-    if (isDuplicate) {
-      setModalError('Tên loại phí này đã tồn tại trong danh sách.');
-      return;
-    }
-
-    const payload = {
-      name: nameTrimmed,
-      unit: unitTrimmed,
-      description: descTrimmed
+  const handleFeeSubmit = handleSubmitFee((data) => {
+    const payload = { 
+      name: data.name, 
+      unit: data.unit, 
+      description: data.description || '' 
     };
 
-    const url = isEdit ? `http://localhost:5056/api/accountant/config/fee-types/${selectedItem.feeTypeId}` : 'http://localhost:5056/api/accountant/config/fee-types';
-    const method = isEdit ? 'PUT' : 'POST';
-
     if (isMock) {
-      if (isEdit) {
+      if (selectedItem) {
         setFeeTypes(feeTypes.map(f => f.feeTypeId === selectedItem.feeTypeId ? { ...f, ...payload } : f));
+        showToast('success', 'Đã cập nhật loại phí (Mock)!');
       } else {
         setFeeTypes([...feeTypes, { feeTypeId: Math.floor(Math.random() * 100) + 10, ...payload }]);
+        showToast('success', 'Đã thêm loại phí (Mock)!');
       }
-      showToast('success', 'Đã cập nhật loại phí (Mock)!');
       closeModal();
     } else {
+      const url = selectedItem 
+        ? `http://localhost:5056/api/accountant/config/fee-types/${selectedItem.feeTypeId}` 
+        : 'http://localhost:5056/api/accountant/config/fee-types';
+      const method = selectedItem ? 'PUT' : 'POST';
       const token = localStorage.getItem('accessToken');
+      
       fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify(payload)
       })
-      .then(res => {
+      .then(async res => {
         if (!res.ok) {
-          return res.text().then(text => { throw new Error(text || 'Thao tác thất bại'); });
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.detail || errData.title || 'Thao tác thất bại');
         }
         showToast('success', 'Cập nhật loại phí thành công!');
         closeModal();
@@ -211,7 +250,7 @@ export default function FinancialConfig() {
       })
       .catch(err => setModalError(err.message));
     }
-  };
+  });
 
   const deleteFeeType = () => {
     if (isMock) {
@@ -221,10 +260,11 @@ export default function FinancialConfig() {
     } else {
       const token = localStorage.getItem('accessToken');
       fetch(`http://localhost:5056/api/accountant/config/fee-types/${selectedItem.feeTypeId}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } })
-      .then(res => {
-        if (!res.ok) {
-          return res.text().then(text => { throw new Error(text || 'Không thể xóa loại phí này.'); });
-        }
+        .then(async res => {
+          if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            throw new Error(errData.detail || errData.title || 'Không thể xóa loại phí này.');
+          }
         showToast('success', 'Xóa loại phí thành công!');
         closeModal();
         loadAllConfigData();
@@ -241,39 +281,7 @@ export default function FinancialConfig() {
     const priceVal = parseFloat(serviceForm.price);
     const feeIdVal = parseInt(serviceForm.feeTypeId);
 
-    if (!nameTrimmed) {
-      setModalError('Tên dịch vụ không được để trống.');
-      return;
-    }
-    if (nameTrimmed.length > 150) {
-      setModalError('Tên dịch vụ không vượt quá 150 ký tự.');
-      return;
-    }
-    if (isNaN(priceVal) || priceVal < 0) {
-      setModalError('Đơn giá dịch vụ phải lớn hơn hoặc bằng 0.');
-      return;
-    }
-    if (!feeIdVal || feeIdVal <= 0) {
-      setModalError('Vui lòng chọn loại phí liên kết.');
-      return;
-    }
-    if (descTrimmed.length > 500) {
-      setModalError('Mô tả dịch vụ không vượt quá 500 ký tự.');
-      return;
-    }
-
-    // Kiểm tra trùng lặp tên dịch vụ (chỉ so với dịch vụ đang hoạt động)
     const isEdit = !!selectedItem;
-    const isDuplicate = services.some(s => {
-      const isSelf = isEdit && s.serviceId === selectedItem.serviceId;
-      const isSrvActive = s.isActive !== false;
-      return !isSelf && isSrvActive && s.name.trim().toLowerCase() === nameTrimmed.toLowerCase();
-    });
-
-    if (isDuplicate) {
-      setModalError('Tên dịch vụ này đã tồn tại và đang hoạt động.');
-      return;
-    }
 
     const isServiceActive = serviceForm.isActive !== undefined ? serviceForm.isActive : true;
 
@@ -300,9 +308,10 @@ export default function FinancialConfig() {
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify(payload)
       })
-      .then(res => {
+      .then(async res => {
         if (!res.ok) {
-          return res.text().then(text => { throw new Error(text || 'Thao tác thất bại'); });
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.detail || errData.title || 'Thao tác thất bại');
         }
         showToast('success', 'Cập nhật dịch vụ thành công!');
         closeModal();
@@ -320,10 +329,11 @@ export default function FinancialConfig() {
     } else {
       const token = localStorage.getItem('accessToken');
       fetch(`http://localhost:5056/api/accountant/config/services/${selectedItem.serviceId}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } })
-      .then(res => {
-        if (!res.ok) {
-          return res.text().then(text => { throw new Error(text || 'Không thể xóa dịch vụ này.'); });
-        }
+        .then(async res => {
+          if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            throw new Error(errData.detail || errData.title || 'Không thể xóa dịch vụ này.');
+          }
         showToast('success', 'Xóa dịch vụ thành công!');
         closeModal();
         loadAllConfigData();
@@ -356,10 +366,11 @@ export default function FinancialConfig() {
           updatedByUserId: 1
         })
       })
-      .then(res => {
-        if (!res.ok) {
-          return res.text().then(text => { throw new Error(text || 'Thao tác cập nhật cấu hình thất bại.'); });
-        }
+        .then(async res => {
+          if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            throw new Error(errData.detail || errData.title || 'Thao tác cập nhật cấu hình thất bại.');
+          }
         showToast('success', 'Cập nhật cấu hình thành công!');
         closeModal();
         loadAllConfigData();
@@ -440,10 +451,11 @@ export default function FinancialConfig() {
           updatedByUserId: 1
         })
       })
-      .then(res => {
-        if (!res.ok) {
-          return res.text().then(text => { throw new Error(text || 'Không thể lưu bậc thang'); });
-        }
+        .then(async res => {
+          if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            throw new Error(errData.detail || errData.title || 'Không thể lưu bậc thang.');
+          }
         showToast('success', 'Cấu hình biểu giá bậc thang thành công!');
         closeModal();
         loadAllConfigData();
@@ -468,8 +480,11 @@ export default function FinancialConfig() {
     }
 
     if (window.confirm(`Bạn có chắc chắn muốn xóa Bậc ${stepNum}?`)) {
-      const updatedTiers = currentTiers.filter(t => t.step !== stepNum);
-      // Ensure the new last step's "to" value is open-ended (null) if desired, or let users edit it later
+      let updatedTiers = currentTiers.filter(t => t.step !== stepNum);
+      // Ensure the new last step's "to" value is open-ended (null)
+      if (updatedTiers.length > 0) {
+        updatedTiers = updatedTiers.map(t => t.step === maxStep - 1 ? { ...t, to: null } : t);
+      }
       saveTiersToBackend(key, updatedTiers);
     }
   };
@@ -570,61 +585,58 @@ export default function FinancialConfig() {
                   </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '14px' }}>
-                  {systemConfigs.map(cfg => (
-                    <div
-                      key={cfg.configId}
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        padding: '18px 20px',
-                        backgroundColor: 'var(--bg-base)',
-                        borderRadius: 'var(--radius-md)',
-                        border: '1px solid var(--border)',
-                        gap: '16px',
-                      }}
-                    >
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: 0 }}>
-                        <span style={{
-                          fontSize: '11px',
-                          fontWeight: '700',
-                          color: 'var(--primary)',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.06em',
-                          fontFamily: "'SF Mono', 'Fira Code', monospace",
-                        }}>
-                          {cfg.configKey}
-                        </span>
-                        <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-                          {cfg.description}
-                        </span>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
-                        <span style={{
-                          fontSize: '24px',
-                          fontWeight: '800',
-                          color: 'var(--text-title)',
-                          letterSpacing: '-0.04em',
-                          lineHeight: '1',
-                        }}>
-                          {cfg.configValue}
-                        </span>
-                        <button
-                          className="btn btn-ghost btn-sm"
-                          onClick={() => {
-                            setSelectedItem(cfg);
-                            setSysForm({ configKey: cfg.configKey, configValue: cfg.configValue, description: cfg.description });
-                            setActiveModal('sys_edit');
-                          }}
-                          title="Chỉnh sửa"
-                        >
-                          <Edit3 size={14} />
-                        </button>
+                <form onSubmit={handleSaveAllConfigs}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
+                    
+                    {/* Nhóm Chu kỳ & Thanh toán */}
+                    <div style={{ padding: '16px', background: 'var(--bg-base)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
+                      <h4 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--primary)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: 6 }}><Receipt size={16}/> Chu kỳ & Thanh toán</h4>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        <div>
+                          <label className="form-label" style={{ fontSize: 13, marginBottom: 4 }}>Ngày chốt sổ sinh hóa đơn (từ mùng 1 đến 28)</label>
+                          <input type="number" min="1" max="28" required className="form-input" style={{ width: '100%' }} value={configForm.auto_invoice_day} onChange={e => setConfigForm({...configForm, auto_invoice_day: e.target.value})} />
+                        </div>
+                        <div>
+                          <label className="form-label" style={{ fontSize: 13, marginBottom: 4 }}>Thời hạn thanh toán hóa đơn (số ngày)</label>
+                          <input type="number" min="1" required className="form-input" style={{ width: '100%' }} value={configForm.invoice_due_days} onChange={e => setConfigForm({...configForm, invoice_due_days: e.target.value})} />
+                        </div>
                       </div>
                     </div>
-                  ))}
-                </div>
+
+                    {/* Nhóm Thông báo & Chế tài */}
+                    <div style={{ padding: '16px', background: 'var(--bg-base)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
+                      <h4 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--danger)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: 6 }}><AlertTriangle size={16}/> Thông báo & Chế tài</h4>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        <div>
+                          <label className="form-label" style={{ fontSize: 13, marginBottom: 4 }}>Nhắc nhở trước hạn chót (số ngày)</label>
+                          <input type="number" min="0" required className="form-input" style={{ width: '100%' }} value={configForm.reminder_days_before_due} onChange={e => setConfigForm({...configForm, reminder_days_before_due: e.target.value})} />
+                        </div>
+                        <div>
+                          <label className="form-label" style={{ fontSize: 13, marginBottom: 4 }}>Lãi suất phạt trễ hạn (% / ngày)</label>
+                          <input type="number" step="0.01" min="0" required className="form-input" style={{ width: '100%' }} value={configForm.late_penalty_rate_per_day} onChange={e => setConfigForm({...configForm, late_penalty_rate_per_day: e.target.value})} />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Nhóm Thuế & Phí chung */}
+                    <div style={{ padding: '16px', background: 'var(--bg-base)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
+                      <h4 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--warning)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: 6 }}><CreditCard size={16}/> Thuế & Phí chung</h4>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        <div>
+                          <label className="form-label" style={{ fontSize: 13, marginBottom: 4 }}>Thuế giá trị gia tăng - VAT (%)</label>
+                          <input type="number" min="0" max="100" required className="form-input" style={{ width: '100%' }} value={configForm.vat_tax_rate} onChange={e => setConfigForm({...configForm, vat_tax_rate: e.target.value})} />
+                        </div>
+                      </div>
+                    </div>
+
+                  </div>
+                  
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
+                    <button type="submit" className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Save size={16} /> Lưu Cấu Hình Hệ Thống
+                    </button>
+                  </div>
+                </form>
               </div>
 
               {/* Utility Tiers — side by side */}
@@ -688,13 +700,15 @@ export default function FinancialConfig() {
                             {t.price.toLocaleString('vi-VN')} đ
                           </td>
                           <td className="text-right">
-                            <button
-                              className="btn btn-ghost btn-sm"
-                              onClick={() => deleteTierStep('electricity_tiers', t.step)}
-                              style={{ color: 'var(--danger)' }}
-                            >
-                              <Trash2 size={13} />
-                            </button>
+                            {t.step === electricTiers.length && (
+                              <button
+                                className="btn btn-ghost btn-sm"
+                                onClick={() => deleteTierStep('electricity_tiers', t.step)}
+                                style={{ color: 'var(--danger)' }}
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            )}
                           </td>
                         </tr>
                       ))}
@@ -760,13 +774,15 @@ export default function FinancialConfig() {
                             {t.price.toLocaleString('vi-VN')} đ
                           </td>
                           <td className="text-right">
-                            <button
-                              className="btn btn-ghost btn-sm"
-                              onClick={() => deleteTierStep('water_tiers', t.step)}
-                              style={{ color: 'var(--danger)' }}
-                            >
-                              <Trash2 size={13} />
-                            </button>
+                            {t.step === waterTiers.length && (
+                              <button
+                                className="btn btn-ghost btn-sm"
+                                onClick={() => deleteTierStep('water_tiers', t.step)}
+                                style={{ color: 'var(--danger)' }}
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            )}
                           </td>
                         </tr>
                       ))}
@@ -794,7 +810,7 @@ export default function FinancialConfig() {
                   className="btn btn-primary btn-sm"
                   onClick={() => {
                     setSelectedItem(null);
-                    setFeeForm({ name: '', unit: '', description: '' });
+                    resetFeeForm({ name: '', unit: '', description: '' });
                     setActiveModal('fee');
                   }}
                 >
@@ -834,7 +850,7 @@ export default function FinancialConfig() {
                             className="btn btn-ghost btn-sm"
                             onClick={() => {
                               setSelectedItem(f);
-                              setFeeForm({ name: f.name, unit: f.unit || '', description: f.description || '' });
+                              resetFeeForm({ name: f.name, unit: f.unit, description: f.description || '' });
                               setActiveModal('fee');
                             }}
                             title="Chỉnh sửa"
@@ -1045,36 +1061,32 @@ export default function FinancialConfig() {
                     <span>{modalError}</span>
                   </div>
                 )}
-                <div>
-                  <label className="form-label">Tên loại phí <span style={{ color: 'var(--danger)' }}>*</span></label>
-                  <input
-                    className="form-input"
-                    type="text"
-                    required
-                    value={feeForm.name}
-                    onChange={e => setFeeForm({ ...feeForm, name: e.target.value })}
-                    placeholder="Ví dụ: Tiền phạt, Phí bảo vệ..."
+                <div className="mb-3">
+                  <label className="form-label">Tên khoản phí <span className="text-danger">*</span></label>
+                  <input 
+                    type="text" 
+                    className={`form-input ${feeErrors.name ? 'is-invalid' : ''}`}
+                    {...registerFee('name')}
                   />
+                  {feeErrors.name && <div style={{ color: 'var(--danger)', fontSize: '0.85rem' }}>{feeErrors.name.message}</div>}
                 </div>
-                <div>
-                  <label className="form-label">Đơn vị tính</label>
-                  <input
-                    className="form-input"
-                    type="text"
-                    value={feeForm.unit}
-                    onChange={e => setFeeForm({ ...feeForm, unit: e.target.value })}
-                    placeholder="Ví dụ: Tháng, Cái, Lần..."
+                <div className="mb-3">
+                  <label className="form-label">Đơn vị tính (VD: kWh, m3, tháng) <span className="text-danger">*</span></label>
+                  <input 
+                    type="text" 
+                    className={`form-input ${feeErrors.unit ? 'is-invalid' : ''}`}
+                    {...registerFee('unit')}
                   />
+                  {feeErrors.unit && <div style={{ color: 'var(--danger)', fontSize: '0.85rem' }}>{feeErrors.unit.message}</div>}
                 </div>
-                <div>
-                  <label className="form-label">Mô tả ý nghĩa</label>
-                  <textarea
-                    className="form-textarea"
-                    value={feeForm.description}
-                    onChange={e => setFeeForm({ ...feeForm, description: e.target.value })}
-                    rows={3}
-                    placeholder="Mô tả ngắn gọn về loại phí này..."
-                  />
+                <div className="mb-3">
+                  <label className="form-label">Mô tả</label>
+                  <textarea 
+                    className={`form-textarea ${feeErrors.description ? 'is-invalid' : ''}`}
+                    rows="3" 
+                    {...registerFee('description')}
+                  ></textarea>
+                  {feeErrors.description && <div style={{ color: 'var(--danger)', fontSize: '0.85rem' }}>{feeErrors.description.message}</div>}
                 </div>
               </div>
               <div className="modal-footer">
@@ -1153,6 +1165,7 @@ export default function FinancialConfig() {
                     className="form-input"
                     type="text"
                     required
+                    maxLength={150}
                     value={serviceForm.name}
                     onChange={e => setServiceForm({ ...serviceForm, name: e.target.value })}
                     placeholder="Tên dịch vụ..."
@@ -1166,6 +1179,7 @@ export default function FinancialConfig() {
                       className="form-input"
                       type="number"
                       required
+                      min={0}
                       value={serviceForm.price}
                       onChange={e => setServiceForm({ ...serviceForm, price: parseFloat(e.target.value) || 0 })}
                     />
@@ -1216,6 +1230,7 @@ export default function FinancialConfig() {
                   <textarea
                     className="form-textarea"
                     value={serviceForm.description}
+                    maxLength={500}
                     onChange={e => setServiceForm({ ...serviceForm, description: e.target.value })}
                     rows={3}
                     placeholder="Mô tả chi tiết dịch vụ..."
@@ -1343,6 +1358,7 @@ export default function FinancialConfig() {
                       className="form-input"
                       type="text"
                       required
+                      maxLength={255}
                       value={sysForm.configValue}
                       onChange={e => setSysForm({ ...sysForm, configValue: e.target.value })}
                     />
@@ -1382,10 +1398,10 @@ export default function FinancialConfig() {
                 <form onSubmit={handleAddTierStep}>
                   <div className="modal-body">
                     {modalError && (
-                      <div className="alert alert-danger" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
-                        <AlertTriangle size={16} className="alert-icon" style={{ flexShrink: 0 }} />
-                        <span>{modalError}</span>
-                      </div>
+                        <div className="alert alert-danger" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', whiteSpace: 'pre-line' }}>
+                          <AlertTriangle size={16} className="alert-icon" />
+                          <span>{modalError}</span>
+                        </div>
                     )}
                     {hasTiers ? (
                       <div className="alert alert-info" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>

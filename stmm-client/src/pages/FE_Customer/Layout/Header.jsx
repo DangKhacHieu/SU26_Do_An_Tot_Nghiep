@@ -140,6 +140,14 @@ export default function Header({
     }
   };
 
+  const handleLogoutClick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (onLogout) {
+      onLogout();
+    }
+  };
+
   const handleSearchSuggestionClick = (marketId) => {
     setSearchQuery("");
     setShowSearchSuggestions(false);
@@ -205,7 +213,7 @@ export default function Header({
               {isMarketDropdownOpen && (
                 <ul className="market-dropdown-menu">
                   {markets.length === 0 ? (
-                    <li className="market-item-empty">Không có chợ nào</li>
+                    <li className="market-item-empty">No markets available</li>
                   ) : (
                     markets.map((market) => (
                       <li
@@ -220,12 +228,6 @@ export default function Header({
                 </ul>
               )}
             </div>
-            <button type="button" className="nav-link">
-              News
-            </button>
-            <button type="button" className="nav-link">
-              Dashboard
-            </button>
           </nav>
 
           <div className="header-actions">
@@ -233,7 +235,7 @@ export default function Header({
               <div className="search-box">
                 <input
                   type="text"
-                  placeholder="Tìm kiếm chợ..."
+                  placeholder="Search markets..."
                   value={searchQuery}
                   onChange={(e) => {
                     setSearchQuery(e.target.value);
@@ -288,19 +290,19 @@ export default function Header({
                 {isOpen && (
                   <div className="notification-dropdown">
                     <div className="dropdown-header">
-                      <h4>Thông báo</h4>
+                      <h4>Notifications</h4>
                       {unreadCount > 0 && (
                         <span className="unread-count-badge">
-                          {unreadCount} chưa đọc
+                          {unreadCount} unread
                         </span>
                       )}
                     </div>
                     <ul className="dropdown-list">
                       {loading ? (
-                        <li className="dropdown-item-empty">Đang tải...</li>
+                        <li className="dropdown-item-empty">Loading...</li>
                       ) : notifications.length === 0 ? (
                         <li className="dropdown-item-empty">
-                          Không có thông báo mới
+                          No new notifications
                         </li>
                       ) : (
                         notifications.slice(0, 5).map((item, index) => (
@@ -319,7 +321,7 @@ export default function Header({
                             <span className="item-time">
                               {item.createdAt
                                 ? new Date(item.createdAt).toLocaleString(
-                                    "vi-VN",
+                                    "en-US",
                                     {
                                       hour: "2-digit",
                                       minute: "2-digit",
@@ -339,7 +341,7 @@ export default function Header({
                         className="view-all-btn"
                         onClick={handleViewAll}
                       >
-                        Xem tất cả thông báo
+                        View all notifications
                       </button>
                     </div>
                   </div>
@@ -364,7 +366,7 @@ export default function Header({
                     .slice(0, 2)
                     .toUpperCase()}
                 </button>
-                <button type="button" className="logout-btn" onClick={onLogout}>
+                <button type="button" className="logout-btn" onClick={handleLogoutClick}>
                   Logout
                 </button>
               </div>
@@ -394,7 +396,7 @@ export default function Header({
                     : "default"
                 }`}
               >
-                {selectedNoti.notiType || "Thông báo"}
+                {selectedNoti.notiType || "Notification"}
               </span>
               <button
                 className="noti-modal-close"
@@ -407,16 +409,16 @@ export default function Header({
             <p className="noti-modal-body">{selectedNoti.content}</p>
             <div className="noti-modal-footer">
               <span className="noti-modal-time">
-                Nhận lúc:{" "}
+                Received at:{" "}
                 {selectedNoti.createdAt
-                  ? new Date(selectedNoti.createdAt).toLocaleString("vi-VN")
+                  ? new Date(selectedNoti.createdAt).toLocaleString("en-US")
                   : ""}
               </span>
               <button
                 className="noti-modal-btn"
                 onClick={() => setSelectedNoti(null)}
               >
-                Đóng
+                Close
               </button>
             </div>
           </div>

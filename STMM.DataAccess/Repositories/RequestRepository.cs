@@ -89,6 +89,23 @@ namespace STMM.DataAccess.Repositories
                 .FirstOrDefaultAsync(r => r.RequestId == requestId, ct);
         }
 
+        public Task<Request?> GetRequestWithRelationsForMarketAsync(
+            int requestId,
+            int marketId,
+            CancellationToken ct = default)
+        {
+            return _context.Requests
+                .Include(r => r.Stall)
+                    .ThenInclude(s => s.Area)
+                .Include(r => r.Vendor)
+                    .ThenInclude(v => v.User)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(r =>
+                    r.RequestId == requestId &&
+                    r.Stall.Area.MarketId == marketId,
+                    ct);
+        }
+
         public async Task<Request?> ApproveOrRejectAppealAsync(int requestId, bool isApproved, CancellationToken ct = default)
         {
             var request = await _context.Requests
@@ -111,6 +128,33 @@ namespace STMM.DataAccess.Repositories
 
             await _context.SaveChangesAsync(ct);
             return request;
+        }
+
+        public async Task<List<Request>> GetInvoiceDisputesAsync(int? accountantMarketId = null, CancellationToken ct = default)
+        {
+            var query = _context.Requests
+                .Include(r => r.Invoice)
+                .Include(r => r.Stall)
+                .Include(r => r.Vendor)
+                    .ThenInclude(v => v.User)
+                .Where(r => r.RequestType == "InvoiceDispute");
+
+            if (accountantMarketId.HasValue)
+            {
+                query = query.Where(r => r.Stall.Area.MarketId == accountantMarketId.Value);
+            }
+
+            return await query
+                .OrderByDescending(r => r.CreatedAt)
+                .ToListAsync(ct);
+        }
+
+        public async Task<Request?> GetRequestWithStallAndVendorAsync(int requestId, CancellationToken ct = default)
+        {
+            return await _context.Requests
+                .Include(r => r.Stall)
+                .Include(r => r.Vendor)
+                .FirstOrDefaultAsync(r => r.RequestId == requestId, ct);
         }
     }
 }

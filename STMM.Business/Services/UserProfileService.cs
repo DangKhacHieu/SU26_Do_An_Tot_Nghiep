@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+
 using STMM.Business.DTOs.Profile;
 using STMM.Business.Exceptions;
 using STMM.Business.Interfaces;
@@ -22,16 +22,12 @@ namespace STMM.Business.Services
 
         public async Task<UserProfileDto> GetProfileAsync(int userId, CancellationToken ct = default)
         {
-            var user = await _userRepository.Query()
-                .Include(u => u.Role)
-                .FirstOrDefaultAsync(u => u.UserId == userId, ct);
+            var user = await _userRepository.GetUserByIdWithRoleAsync(userId, ct);
 
             if (user == null)
             {
                 // Fallback: Find the first Accountant in the database
-                user = await _userRepository.Query()
-                    .Include(u => u.Role)
-                    .FirstOrDefaultAsync(u => u.Role.Name == "Accountant", ct);
+                user = await _userRepository.GetFirstUserByRoleAsync("Accountant", ct);
             }
 
             if (user == null)
@@ -44,15 +40,11 @@ namespace STMM.Business.Services
 
         public async Task<UserProfileDto> UpdateProfileAsync(int userId, UpdateProfileRequest request, CancellationToken ct = default)
         {
-            var user = await _userRepository.Query()
-                .Include(u => u.Role)
-                .FirstOrDefaultAsync(u => u.UserId == userId, ct);
+            var user = await _userRepository.GetUserByIdWithRoleAsync(userId, ct);
 
             if (user == null)
             {
-                user = await _userRepository.Query()
-                    .Include(u => u.Role)
-                    .FirstOrDefaultAsync(u => u.Role.Name == "Accountant", ct);
+                user = await _userRepository.GetFirstUserByRoleAsync("Accountant", ct);
             }
 
             if (user == null)
@@ -60,22 +52,8 @@ namespace STMM.Business.Services
                 throw new NotFoundException($"Không tìm thấy tài khoản người dùng ID {userId}.");
             }
 
-            if (string.IsNullOrWhiteSpace(request.Name))
-            {
-                throw new BadRequestException("Họ và tên không được để trống.");
-            }
-            if (string.IsNullOrWhiteSpace(request.Email))
-            {
-                throw new BadRequestException("Email không được để trống.");
-            }
-            if (string.IsNullOrWhiteSpace(request.Phone))
-            {
-                throw new BadRequestException("Số điện thoại không được để trống.");
-            }
-
             // Check duplicate email
-            var duplicateEmail = await _userRepository.Query()
-                .AnyAsync(u => u.Email.ToLower() == request.Email.ToLower() && u.UserId != user.UserId, ct);
+            var duplicateEmail = await _userRepository.IsEmailExistsAsync(request.Email, user.UserId, ct);
             if (duplicateEmail)
             {
                 throw new BadRequestException($"Email '{request.Email}' đã được sử dụng bởi tài khoản khác.");
@@ -94,31 +72,16 @@ namespace STMM.Business.Services
 
         public async Task<bool> ChangePasswordAsync(int userId, ChangePasswordRequest request, CancellationToken ct = default)
         {
-            var user = await _userRepository.Query()
-                .FirstOrDefaultAsync(u => u.UserId == userId, ct);
+            var user = await _userRepository.GetByIdAsync(userId, ct);
 
             if (user == null)
             {
-                user = await _userRepository.Query()
-                    .FirstOrDefaultAsync(u => u.Role.Name == "Accountant", ct);
+                user = await _userRepository.GetFirstUserByRoleAsync("Accountant", ct);
             }
 
             if (user == null)
             {
                 throw new NotFoundException($"Không tìm thấy tài khoản người dùng ID {userId}.");
-            }
-
-            if (string.IsNullOrWhiteSpace(request.CurrentPassword))
-            {
-                throw new BadRequestException("Mật khẩu hiện tại không được để trống.");
-            }
-            if (string.IsNullOrWhiteSpace(request.NewPassword))
-            {
-                throw new BadRequestException("Mật khẩu mới không được để trống.");
-            }
-            if (request.NewPassword.Length < 6)
-            {
-                throw new BadRequestException("Mật khẩu mới phải có độ dài tối thiểu 6 ký tự.");
             }
 
             // Verify password with BCrypt and plain-text fallback

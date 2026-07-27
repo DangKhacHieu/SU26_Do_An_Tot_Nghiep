@@ -79,6 +79,21 @@ public partial class Request
     public string? PaidBy { get; set; }
 
     /// <summary>
+    /// Lý do Vendor từ chối báo giá gần nhất.
+    /// </summary>
+    public string? VendorRejectReason { get; set; }
+
+    /// <summary>
+    /// Ghi chú cho quyết định xử lý báo giá gần nhất của Manager.
+    /// </summary>
+    public string? PayerDecisionNote { get; set; }
+
+    /// <summary>
+    /// Điều khoản hợp đồng được Manager dùng để xác định bên chịu phí.
+    /// </summary>
+    public string? PayerContractClause { get; set; }
+
+    /// <summary>
     /// Đánh giá chất lượng sửa chữa của Vendor (1–5 sao)
     /// </summary>
     public int? RepairRating { get; set; }

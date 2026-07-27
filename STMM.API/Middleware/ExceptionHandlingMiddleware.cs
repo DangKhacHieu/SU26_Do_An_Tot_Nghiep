@@ -74,7 +74,21 @@ namespace STMM.API.Middleware
                     context.Response.StatusCode = StatusCodes.Status500InternalServerError;
                     problemDetails.Status = StatusCodes.Status500InternalServerError;
                     problemDetails.Title = "Internal Server Error";
-                    if (_env.IsDevelopment())
+
+                    var isDbError = exception.Message.Contains("transient") || 
+                                    exception.Message.Contains("Npgsql") || 
+                                    exception.Message.Contains("PostgreSQL") || 
+                                    (exception.InnerException != null && (
+                                        exception.InnerException.Message.Contains("Npgsql") ||
+                                        exception.InnerException.Message.Contains("Connection") ||
+                                        exception.InnerException.Message.Contains("Socket")
+                                    ));
+
+                    if (isDbError)
+                    {
+                        problemDetails.Detail = "Database connection failed. Please ensure the database server is running.";
+                    }
+                    else if (_env.IsDevelopment())
                     {
                         var inner = exception.InnerException != null
                             ? $"\nInnerException: {exception.InnerException.Message}\n{exception.InnerException.StackTrace}"

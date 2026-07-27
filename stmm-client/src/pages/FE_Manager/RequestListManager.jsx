@@ -1,7 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import './RequestListManager.css';
 
 const API_BASE = "http://localhost:5056/api/manager/requests";
+const getAuthHeaders = () => ({
+  Authorization: `Bearer ${localStorage.getItem('accessToken')}`
+});
 
 const TYPE_META = {
   FacilityIssue:   { label: 'Sự cố hạ tầng',      color: 'type-facility' },
@@ -10,6 +13,7 @@ const TYPE_META = {
 };
 
 const STATUS_META = {
+  PendingManagerReview: { label: 'Báo giá chờ quyết định', cls: 'status-review' },
   Pending:   { label: 'Chờ xử lý',       cls: 'status-pending'   },
   Quoted:    { label: 'Báo giá',          cls: 'status-quoted'    },
   Approved:  { label: 'Đã duyệt',        cls: 'status-approved'  },
@@ -50,7 +54,7 @@ const IconFilter = () => (
   </svg>
 );
 
-export default function RequestListManager({ navigate, addToast }) {
+export default function RequestListManager({ baseUrl, navigate, addToast }) {
   const [requests, setRequests] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -61,17 +65,16 @@ export default function RequestListManager({ navigate, addToast }) {
   const pageSize = 8;
   const searchRef = useRef(null);
 
-  useEffect(() => { setPage(1); }, [searchQuery, statusFilter, typeFilter]);
-  useEffect(() => { fetchRequests(); }, [searchQuery, statusFilter, typeFilter, page]);
+  const apiBase = `${baseUrl || "http://localhost:5056"}/api/manager/requests`;
 
-  const fetchRequests = async () => {
+  const fetchRequests = useCallback(async () => {
     setLoading(true);
     try {
-      let url = `${API_BASE}?pageNumber=${page}&pageSize=${pageSize}`;
+      let url = `${apiBase}?pageNumber=${page}&pageSize=${pageSize}`;
       if (statusFilter) url += `&status=${encodeURIComponent(statusFilter)}`;
       if (typeFilter)   url += `&requestType=${encodeURIComponent(typeFilter)}`;
       if (searchQuery)  url += `&searchTerm=${encodeURIComponent(searchQuery)}`;
-      const res = await fetch(url);
+      const res = await fetch(url, { headers: getAuthHeaders() });
       if (!res.ok) throw new Error();
       const data = await res.json();
       setRequests(data.items || []);
@@ -81,7 +84,10 @@ export default function RequestListManager({ navigate, addToast }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [apiBase, page, searchQuery, statusFilter, typeFilter, addToast]);
+
+  useEffect(() => { setPage(1); }, [searchQuery, statusFilter, typeFilter]);
+  useEffect(() => { fetchRequests(); }, [fetchRequests]);
 
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
@@ -176,7 +182,11 @@ export default function RequestListManager({ navigate, addToast }) {
                   const tm = TYPE_META[item.requestType] || { label: item.requestType, color: 'type-other' };
                   const sm = STATUS_META[item.status]    || { label: item.status,       cls: 'status-pending' };
                   return (
-                    <tr key={item.requestId} className="rl-row" onClick={() => navigate('request-detail', item.requestId)}>
+                    <tr
+                      key={item.requestId}
+                      className={`rl-row ${item.status === 'PendingManagerReview' ? 'rl-row-needs-review' : ''}`}
+                      onClick={() => navigate('request-detail', item.requestId)}
+                    >
                       <td>
                         <span className="rl-id-badge">REQ-{item.requestId}</span>
                       </td>

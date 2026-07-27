@@ -191,6 +191,8 @@
 .rd-status-badge.status-completed::before { background: #6d28d9; }
 .rd-status-badge.status-rejected  { background: #fef2f2; color: #dc2626; border-color: #fecaca; }
 .rd-status-badge.status-rejected::before  { background: #dc2626; }
+.rd-status-badge.status-review { background: #fff7ed; color: #9a3412; border-color: #fdba74; }
+.rd-status-badge.status-review::before { background: #ea580c; }
 
 /* ── Main Grid ── */
 .rd-grid {
@@ -428,4 +430,114 @@
   background: #fffbeb;
   border-left: 3px solid #f59e0b;
   border-radius: 0 8px 8px 0;
+}
+.rd-decision-summary {
+  margin-top: 16px;
+  padding: 14px;
+  border: 1px solid #dbe3ec;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #334155;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.rd-decision-summary p {
+  margin: 0;
+}
+
+.rd-decision-summary p + p {
+  margin-top: 8px;
+}
+
+.rd-decision-card {
+  border-left: 4px solid #f97316;
+  background: #fffaf5;
+}
+
+.rd-decision-card-header {
+  color: #9a3412;
+}
+
+.rd-vendor-reject-reason {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 14px;
+  padding: 12px 14px;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  background: #fff7f7;
+  color: #991b1b;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.rd-decision-form {
+  display: grid;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.rd-decision-field {
+  display: grid;
+  gap: 7px;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.rd-decision-field select,
+.rd-decision-field textarea {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 7px;
+  background: #ffffff;
+  color: #0f172a;
+  font: inherit;
+  font-weight: 500;
+  padding: 10px 12px;
+}
+
+.rd-decision-field textarea {
+  resize: vertical;
+  min-height: 96px;
+}
+
+.rd-decision-field select:focus,
+.rd-decision-field textarea:focus {
+  outline: 2px solid #fed7aa;
+  border-color: #f97316;
+}
+
+.rd-decision-submit {
+  min-height: 42px;
+  border: 0;
+  border-radius: 7px;
+  background: #c2410c;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.rd-decision-submit:hover:not(:disabled) {
+  background: #9a3412;
+}
+
+.rd-decision-submit:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.rd-vendor-waiting-card {
+  border-left: 4px solid #d97706;
+  background: #fffbeb;
+  color: #92400e;
+}
+
+@media (max-width: 640px) {
+  .rd-decision-submit {
+    width: 100%;
+  }
 }

@@ -33,13 +33,13 @@ export default function ForgotPasswordForm({ onBack, onGoToLogin }) {
 
     try {
       await authService.forgotPassword(email);
-      setSuccess("Mã xác thực OTP đã được gửi tới email của bạn.");
+      setSuccess("OTP verification code has been sent to your email.");
       setStep(2);
       setOtpCode("");
       setNewPassword("");
       setConfirmPassword("");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Yêu cầu khôi phục mật khẩu thất bại");
+      setError(err instanceof Error ? err.message : "Password recovery request failed");
     } finally {
       setLoading(false);
     }
@@ -53,13 +53,13 @@ export default function ForgotPasswordForm({ onBack, onGoToLogin }) {
 
     try {
       await authService.verifyResetOtp(email, otpCode);
-      setSuccess("Xác thực mã OTP thành công!");
+      setSuccess("OTP code verified successfully!");
       setTimeout(() => {
         setSuccess("");
         setStep(3);
       }, 1000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Xác thực mã OTP thất bại");
+      setError(err instanceof Error ? err.message : "OTP code verification failed");
     } finally {
       setLoading(false);
     }
@@ -71,7 +71,7 @@ export default function ForgotPasswordForm({ onBack, onGoToLogin }) {
     setSuccess("");
 
     if (newPassword !== confirmPassword) {
-      setError("Mật khẩu xác nhận không khớp!");
+      setError("Confirm password does not match!");
       return;
     }
 
@@ -79,12 +79,12 @@ export default function ForgotPasswordForm({ onBack, onGoToLogin }) {
 
     try {
       await authService.resetPassword(email, otpCode, newPassword);
-      setSuccess("Đặt lại mật khẩu thành công! Quay lại đăng nhập sau vài giây...");
+      setSuccess("Reset password successful! Returning to login in a few seconds...");
       setTimeout(() => {
         onGoToLogin();
       }, 2000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Đặt lại mật khẩu thất bại");
+      setError(err instanceof Error ? err.message : "Reset password failed");
     } finally {
       setLoading(false);
     }
@@ -97,10 +97,10 @@ export default function ForgotPasswordForm({ onBack, onGoToLogin }) {
 
     try {
       await authService.forgotPassword(email);
-      setSuccess("Mã xác thực OTP mới đã được gửi!");
+      setSuccess("New OTP verification code has been sent!");
       setResendCooldown(60);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Không thể gửi lại mã");
+      setError(err instanceof Error ? err.message : "Unable to resend code");
     } finally {
       setResendLoading(false);
     }
@@ -119,28 +119,28 @@ export default function ForgotPasswordForm({ onBack, onGoToLogin }) {
             <span className="forgot-badge">PASSWORD RECOVERY</span>
 
             <h1>
-              Khôi phục <br />
-              Mật khẩu
+              Recover <br />
+              Password
             </h1>
 
             <p>
-              Đặt lại mật khẩu của bạn thông qua xác thực email. Hệ thống sẽ gửi một mã OTP gồm 6 chữ số để xác minh chủ tài khoản.
+              Reset your password via email verification. The system will send a 6-digit OTP to verify the account owner.
             </p>
 
             <div className="forgot-mini-list">
               <div style={step === 1 ? { borderColor: "#f6f0d7" } : {}}>
                 <strong style={step === 1 ? { background: "rgba(246, 240, 215, 0.4)" } : {}}>01</strong>
-                <span style={step === 1 ? { color: "#f6f0d7" } : {}}>Nhập Email nhận mã</span>
+                <span style={step === 1 ? { color: "#f6f0d7" } : {}}>Enter Email to receive code</span>
               </div>
 
               <div style={step === 2 ? { borderColor: "#f6f0d7" } : {}}>
                 <strong style={step === 2 ? { background: "rgba(246, 240, 215, 0.4)" } : {}}>02</strong>
-                <span style={step === 2 ? { color: "#f6f0d7" } : {}}>Xác thực mã OTP</span>
+                <span style={step === 2 ? { color: "#f6f0d7" } : {}}>Verify OTP code</span>
               </div>
 
               <div style={step === 3 ? { borderColor: "#f6f0d7" } : {}}>
                 <strong style={step === 3 ? { background: "rgba(246, 240, 215, 0.4)" } : {}}>03</strong>
-                <span style={step === 3 ? { color: "#f6f0d7" } : {}}>Đặt lại mật khẩu mới</span>
+                <span style={step === 3 ? { color: "#f6f0d7" } : {}}>Reset new password</span>
               </div>
             </div>
           </div>
@@ -153,23 +153,23 @@ export default function ForgotPasswordForm({ onBack, onGoToLogin }) {
               className="forgot-back-btn"
               onClick={
                 step === 3
-                  ? () => setStep(2)
-                  : step === 2
-                    ? () => setStep(1)
-                    : onBack
+                   ? () => setStep(2)
+                   : step === 2
+                     ? () => setStep(1)
+                     : onBack
               }
             >
-              ← Quay lại
+              ← Back
             </button>
 
             <div>
-              <h2>Quên mật khẩu</h2>
+              <h2>Forgot Password</h2>
               <p>
                 {step === 1
-                  ? "Nhập email đã đăng ký để nhận mã OTP khôi phục"
+                  ? "Enter registered email to receive recovery OTP code"
                   : step === 2
-                    ? "Nhập mã OTP gồm 6 chữ số đã được gửi tới email"
-                    : "Thiết lập mật khẩu mới cho tài khoản của bạn"}
+                     ? "Enter the 6-digit OTP code sent to your email"
+                     : "Set up a new password for your account"}
               </p>
             </div>
           </div>
@@ -200,7 +200,7 @@ export default function ForgotPasswordForm({ onBack, onGoToLogin }) {
                 className="forgot-submit-btn"
                 disabled={loading}
               >
-                {loading ? "Đang gửi mã..." : "Gửi mã xác thực OTP"}
+                {loading ? "Sending code..." : "Send OTP verification code"}
                 <span>→</span>
               </button>
             </form>
@@ -209,7 +209,7 @@ export default function ForgotPasswordForm({ onBack, onGoToLogin }) {
           {step === 2 && (
             <form className="forgot-modern-form" onSubmit={handleVerifyOtp}>
               <div className="forgot-input-group">
-                <label>Mã OTP (6 chữ số)</label>
+                <label>OTP Code (6 digits)</label>
                 <div className="otp-input-container">
                   <input
                     value={otpCode}
@@ -233,7 +233,7 @@ export default function ForgotPasswordForm({ onBack, onGoToLogin }) {
                 className="forgot-submit-btn"
                 disabled={loading}
               >
-                {loading ? "Đang xác thực..." : "Xác thực mã OTP"}
+                {loading ? "Verifying..." : "Verify OTP code"}
                 <span>→</span>
               </button>
             </form>
@@ -242,28 +242,28 @@ export default function ForgotPasswordForm({ onBack, onGoToLogin }) {
           {step === 3 && (
             <form className="forgot-modern-form" onSubmit={handleResetPassword}>
               <div className="forgot-input-group">
-                <label>Mật khẩu mới</label>
+                <label>New password</label>
                 <div className="forgot-input">
                   <span>🔒</span>
                   <input
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     type={showPassword ? "text" : "password"}
-                    placeholder="Nhập mật khẩu mới"
+                    placeholder="Enter new password"
                     required
                   />
                 </div>
               </div>
 
               <div className="forgot-input-group">
-                <label>Xác nhận mật khẩu</label>
+                <label>Confirm password</label>
                 <div className="forgot-input">
                   <span>🔒</span>
                   <input
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     type={showPassword ? "text" : "password"}
-                    placeholder="Xác nhận mật khẩu mới"
+                    placeholder="Confirm new password"
                     required
                   />
                   <button
@@ -286,7 +286,7 @@ export default function ForgotPasswordForm({ onBack, onGoToLogin }) {
                 className="forgot-submit-btn"
                 disabled={loading}
               >
-                {loading ? "Đang đặt lại..." : "Đặt lại mật khẩu mới"}
+                {loading ? "Resetting..." : "Reset new password"}
                 <span>→</span>
               </button>
             </form>
@@ -294,7 +294,7 @@ export default function ForgotPasswordForm({ onBack, onGoToLogin }) {
 
           {step === 2 && (
             <div className="otp-resend-container">
-              <p>Không nhận được mã xác thực?</p>
+              <p>Didn't receive the verification code?</p>
               <button
                 type="button"
                 className="otp-resend-btn"
@@ -302,18 +302,18 @@ export default function ForgotPasswordForm({ onBack, onGoToLogin }) {
                 onClick={handleResendCode}
               >
                 {resendLoading
-                  ? "Đang gửi..."
+                  ? "Sending..."
                   : resendCooldown > 0
-                    ? `Gửi lại sau (${resendCooldown}s)`
-                    : "Gửi lại mã OTP mới"}
+                     ? `Resend in (${resendCooldown}s)`
+                     : "Resend new OTP code"}
               </button>
             </div>
           )}
 
           <p className="forgot-switch-text">
-            Quay lại trang{" "}
+            Go back to{" "}
             <button type="button" onClick={onGoToLogin}>
-              Đăng nhập
+              Login
             </button>
           </p>
         </div>

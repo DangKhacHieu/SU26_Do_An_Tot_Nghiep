@@ -1,46 +1,33 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import CreateViolationModal from './CreateViolationModal';
+import readProblemDetail from '../../utils/readProblemDetail';
 import './StallList.css';
 
-export default function StallList({ baseUrl, userId, onShowNotification, onViewMeterHistory, onViewInvoices }) {
+export default function StallList({ baseUrl, onShowNotification, onViewMeterHistory, onViewInvoices }) {
   const [stalls, setStalls] = useState([]);
-  const [totalCount, setTotalCount] = useState(0);
-  const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Filters & Pagination
   const [pageNumber, setPageNumber] = useState(1);
-  const [pageSize] = useState(6); // 6 cards per page looks great on a grid
-  const [filterType, setFilterType] = useState('All'); // 'All' | 'HasTask' | 'HasUnpaidInvoice'
+  const [pageSize] = useState(6);
+  const [filterType, setFilterType] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [appliedSearch, setAppliedSearch] = useState('');
 
-  // Modal State (Only CreateViolationModal remains)
-  const [activeModal, setActiveModal] = useState(null); // null | 'violation'
+  const [activeModal, setActiveModal] = useState(null);
   const [activeStallId, setActiveStallId] = useState(null);
   const [activeStallCode, setActiveStallCode] = useState('');
 
-  const fetchStalls = async () => {
+  const fetchStalls = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      let url = `${baseUrl}/api/staff/stall-tasks?userId=${userId}&pageNumber=${pageNumber}&pageSize=${pageSize}`;
-      if (filterType !== 'All') {
-        url += `&filter=${filterType}`;
-      }
-      if (appliedSearch.trim() !== '') {
-        url += `&search=${encodeURIComponent(appliedSearch.trim())}`;
-      }
-
-      const response = await fetch(url);
+      const response = await fetch(`${baseUrl}/api/staff/stall-tasks`);
       if (!response.ok) {
-        throw new Error(`Failed to load stalls: ${response.statusText}`);
+        throw new Error(await readProblemDetail(response, 'Unable to load stalls.'));
       }
       const data = await response.json();
-      setStalls(data.items || []);
-      setTotalCount(data.totalCount || 0);
-      setTotalPages(data.totalPages || 1);
+      setStalls(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error("Error fetching stalls checklist:", err);
       setError(err.message);
@@ -48,11 +35,37 @@ export default function StallList({ baseUrl, userId, onShowNotification, onViewM
     } finally {
       setLoading(false);
     }
-  };
+  }, [baseUrl]);
 
   useEffect(() => {
     fetchStalls();
-  }, [userId, pageNumber, filterType, appliedSearch]);
+  }, [fetchStalls]);
+
+  const filteredStalls = useMemo(() => {
+    const normalizedSearch = appliedSearch.trim().toLowerCase();
+
+    return stalls.filter((stall) => {
+      const matchesSearch = !normalizedSearch
+        || String(stall.stallCode || '').toLowerCase().includes(normalizedSearch);
+      const matchesFilter = filterType === 'All'
+        || (filterType === 'HasTask' && Number(stall.pendingTaskCount || 0) > 0)
+        || (filterType === 'HasUnpaidInvoice' && Boolean(stall.hasUnpaidInvoice));
+
+      return matchesSearch && matchesFilter;
+    });
+  }, [appliedSearch, filterType, stalls]);
+
+  const totalCount = filteredStalls.length;
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const safePageNumber = Math.min(pageNumber, totalPages);
+  const visibleStalls = useMemo(() => {
+    const startIndex = (safePageNumber - 1) * pageSize;
+    return filteredStalls.slice(startIndex, startIndex + pageSize);
+  }, [filteredStalls, pageSize, safePageNumber]);
+
+  useEffect(() => {
+    if (pageNumber !== safePageNumber) setPageNumber(safePageNumber);
+  }, [pageNumber, safePageNumber]);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
@@ -82,14 +95,12 @@ export default function StallList({ baseUrl, userId, onShowNotification, onViewM
   const handleModalSuccess = (message) => {
     closeModal();
     onShowNotification(message, 'success');
-    fetchStalls(); // Reload list to update status badges
+    fetchStalls();
   };
 
-  // Render a clean badge/tag based on task types
   const getTaskIcon = (type) => {
     switch (type) {
-      case 'MeterReading': return '⚡';
-      case 'CashCollection': return '💰';
+      case 'UtilityReading': return 'Meter';
       case 'Repair': return '🔧';
       case 'Maintenance': return '🧹';
       default: return '📋';
@@ -98,8 +109,7 @@ export default function StallList({ baseUrl, userId, onShowNotification, onViewM
 
   const getTaskLabel = (type) => {
     switch (type) {
-      case 'MeterReading': return 'Meter Reading';
-      case 'CashCollection': return 'Cash Collection';
+      case 'UtilityReading': return 'Utility Reading';
       case 'Repair': return 'Repair';
       case 'Maintenance': return 'Maintenance';
       default: return type;
@@ -110,7 +120,6 @@ export default function StallList({ baseUrl, userId, onShowNotification, onViewM
     <div className="stall-list-page">
 
 
-      {/* Toolbar: Search + Filters */}
       <div className="toolbar">
         <div className="toolbar-left">
           <form onSubmit={handleSearchSubmit} className="search-wrap">
@@ -140,13 +149,13 @@ export default function StallList({ baseUrl, userId, onShowNotification, onViewM
               className={`tab-btn ${filterType === 'HasTask' ? 'active' : ''}`}
               onClick={() => { setFilterType('HasTask'); setPageNumber(1); }}
             >
-              📋 Has Tasks
+              Assigned Tasks
             </button>
             <button 
               className={`tab-btn ${filterType === 'HasUnpaidInvoice' ? 'active' : ''}`}
               onClick={() => { setFilterType('HasUnpaidInvoice'); setPageNumber(1); }}
             >
-              💰 Unpaid Debt
+              Unpaid Invoices
             </button>
           </div>
 
@@ -158,7 +167,6 @@ export default function StallList({ baseUrl, userId, onShowNotification, onViewM
         </div>
       </div>
 
-      {/* Content Grid */}
       {loading ? (
         <div className="loading-state">Loading stalls...</div>
       ) : error ? (
@@ -166,14 +174,14 @@ export default function StallList({ baseUrl, userId, onShowNotification, onViewM
           <p className="error-message">Error: {error}</p>
           <button className="btn-secondary" onClick={fetchStalls}>Retry</button>
         </div>
-      ) : stalls.length === 0 ? (
+      ) : visibleStalls.length === 0 ? (
         <div className="empty-state">
           <p>No stalls match the selected filters.</p>
         </div>
       ) : (
         <>
           <div className="stalls-grid">
-            {stalls.map((stall) => (
+            {visibleStalls.map((stall) => (
               <div key={stall.stallId} className="stall-card">
                 <div className="stall-card-header">
                   <div className="stall-code-container">
@@ -203,15 +211,14 @@ export default function StallList({ baseUrl, userId, onShowNotification, onViewM
 
                   <hr className="card-divider" />
 
-                  {/* Task Tags */}
                   <div className="task-tags-container">
                     <span className="tags-title">Checklist Tasks:</span>
-                    {stall.taskTypes.length === 0 ? (
+                    {(stall.taskTypes || []).length === 0 ? (
                       <span className="no-tasks-tag">✅ Completed</span>
                     ) : (
                       <div className="tags-list">
-                        {stall.taskTypes.map((type, idx) => (
-                          <span key={idx} className={`task-type-tag ${type.toLowerCase()}`}>
+                        {(stall.taskTypes || []).map((type) => (
+                          <span key={type} className={`task-type-tag ${type.toLowerCase()}`}>
                             {getTaskIcon(type)} {getTaskLabel(type)}
                           </span>
                         ))}
@@ -219,7 +226,6 @@ export default function StallList({ baseUrl, userId, onShowNotification, onViewM
                     )}
                   </div>
 
-                  {/* Debt Summary */}
                   {stall.hasUnpaidInvoice && (
                     <div className="debt-summary-box">
                       <span>Unpaid invoice(s): <strong>{stall.unpaidInvoiceCount} month(s)</strong></span>
@@ -261,16 +267,15 @@ export default function StallList({ baseUrl, userId, onShowNotification, onViewM
             ))}
           </div>
 
-          {/* Pagination Controls */}
           <div className="pagination-wrapper">
             <span className="pagination-info">
-              Showing {stalls.length} of {totalCount} stalls
+              Showing {visibleStalls.length} of {totalCount} stalls
             </span>
             <div className="pagination-buttons">
               <button 
                 className="btn-page" 
                 onClick={() => setPageNumber(p => Math.max(p - 1, 1))}
-                disabled={pageNumber === 1}
+                disabled={safePageNumber === 1}
               >
                 Prev
               </button>
@@ -278,7 +283,7 @@ export default function StallList({ baseUrl, userId, onShowNotification, onViewM
               {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
                 <button
                   key={p}
-                  className={`btn-page ${pageNumber === p ? 'active' : ''}`}
+                  className={`btn-page ${safePageNumber === p ? 'active' : ''}`}
                   onClick={() => setPageNumber(p)}
                 >
                   {p}
@@ -288,7 +293,7 @@ export default function StallList({ baseUrl, userId, onShowNotification, onViewM
               <button 
                 className="btn-page" 
                 onClick={() => setPageNumber(p => Math.min(p + 1, totalPages))}
-                disabled={pageNumber === totalPages}
+                disabled={safePageNumber === totalPages}
               >
                 Next
               </button>
@@ -297,10 +302,8 @@ export default function StallList({ baseUrl, userId, onShowNotification, onViewM
         </>
       )}
 
-      {/* Modals Rendering */}
       {activeModal === 'violation' && (
         <CreateViolationModal
-          userId={userId}
           baseUrl={baseUrl}
           prefilledStallId={activeStallId}
           onClose={closeModal}

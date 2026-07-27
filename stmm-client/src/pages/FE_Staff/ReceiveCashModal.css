@@ -60,6 +60,15 @@
   background: #eef2ff;
 }
 
+.invoice-item-card.locked {
+  cursor: default;
+}
+
+.invoice-item-card.locked:hover {
+  border-color: var(--primary-color);
+  background: #eef2ff;
+}
+
 .invoice-radio {
   margin-top: 4px;
   cursor: pointer;
@@ -149,4 +158,20 @@
   line-height: 1.4;
   color: #1e3a8a;
   margin-top: 4px;
+}
+
+.cash-confirmation {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 6px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--text-main);
+  cursor: pointer;
+}
+
+.cash-confirmation input {
+  margin-top: 2px;
+  accent-color: var(--primary-color);
 }

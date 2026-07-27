@@ -68,7 +68,7 @@ export default function ChangePasswordForm({
     setSuccess("");
 
     if (newPassword !== confirmPassword) {
-      setError("Mật khẩu mới và xác nhận mật khẩu không khớp");
+      setError("New password and confirm password do not match");
       return;
     }
 
@@ -76,7 +76,7 @@ export default function ChangePasswordForm({
 
     try {
       await authService.changePassword(currentPassword, newPassword);
-      setSuccess("Đổi mật khẩu thành công!");
+      setSuccess("Password changed successfully!");
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
@@ -90,7 +90,7 @@ export default function ChangePasswordForm({
         }, 1500);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Đổi mật khẩu thất bại");
+      setError(err instanceof Error ? err.message : "Failed to change password");
     } finally {
       setLoading(false);
     }
@@ -124,7 +124,7 @@ export default function ChangePasswordForm({
                   type={showCurrentPassword ? "text" : "password"}
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
-                  placeholder="Mật khẩu hiện tại"
+                  placeholder="Current password"
                   required
                   disabled={loading}
                 />
@@ -146,7 +146,7 @@ export default function ChangePasswordForm({
                   type={showNewPassword ? "text" : "password"}
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Mật khẩu mới"
+                  placeholder="New password"
                   required
                   disabled={loading}
                 />
@@ -168,7 +168,7 @@ export default function ChangePasswordForm({
                   type={showConfirmPassword ? "text" : "password"}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Xác nhận mật khẩu mới"
+                  placeholder="Confirm new password"
                   required
                   disabled={loading}
                 />

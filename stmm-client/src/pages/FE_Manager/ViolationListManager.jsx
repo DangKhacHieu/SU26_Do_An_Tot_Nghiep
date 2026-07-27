@@ -1,7 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { getAuthHeaders } from '../../utils/authHeaders';
 import './ViolationListManager.css';
-
-const API_BASE = "http://localhost:5056/api/manager/violations";
 
 const STATUS_META = {
   Pending:   { label: 'Chờ duyệt',    cls: 'status-pending'   },
@@ -24,7 +23,7 @@ const IconReset = () => (
   </svg>
 );
 
-export default function ViolationListManager({ navigate, addToast }) {
+export default function ViolationListManager({ baseUrl, navigate, addToast }) {
   const [violations, setViolations] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -37,14 +36,12 @@ export default function ViolationListManager({ navigate, addToast }) {
   const [searchInput, setSearchInput] = useState('');
   const [sortDescending, setSortDescending] = useState(true);
 
-  useEffect(() => {
-    fetchViolations();
-  }, [pageNumber, statusFilter, searchTerm, sortDescending]);
+  const apiBase = `${baseUrl || "http://localhost:5056"}/api/manager/violations`;
 
-  const fetchViolations = async () => {
+  const fetchViolations = useCallback(async () => {
     setLoading(true);
     try {
-      let url = `${API_BASE}?pageNumber=${pageNumber}&pageSize=${pageSize}&sortDescending=${sortDescending}`;
+      let url = `${apiBase}?pageNumber=${pageNumber}&pageSize=${pageSize}&sortDescending=${sortDescending}`;
       if (statusFilter) {
         url += `&status=${statusFilter}`;
       }
@@ -52,7 +49,7 @@ export default function ViolationListManager({ navigate, addToast }) {
         url += `&searchTerm=${encodeURIComponent(searchTerm)}`;
       }
 
-      const res = await fetch(url);
+      const res = await fetch(url, { headers: getAuthHeaders() });
       if (!res.ok) throw new Error();
       const data = await res.json();
       
@@ -63,7 +60,11 @@ export default function ViolationListManager({ navigate, addToast }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [apiBase, pageNumber, pageSize, sortDescending, statusFilter, searchTerm, addToast]);
+
+  useEffect(() => {
+    fetchViolations();
+  }, [fetchViolations]);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();

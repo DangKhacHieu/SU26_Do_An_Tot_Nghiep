@@ -18,6 +18,28 @@ namespace STMM.API.Controllers
             _configuration = configuration;
         }
 
+        [HttpGet("my-claims")]
+        [Microsoft.AspNetCore.Authorization.Authorize]
+        public async Task<IActionResult> MyClaims(CancellationToken ct)
+        {
+            var claims = User.Claims.Select(c => new { c.Type, c.Value }).ToList();
+            var nameIdentifier = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            var userIdStr = User.FindFirst("userId")?.Value;
+            var sub = User.FindFirst("sub")?.Value;
+            
+            var rawIdStr = nameIdentifier ?? userIdStr ?? sub ?? "0";
+            if (!int.TryParse(rawIdStr, out var id)) id = 0;
+            
+            var dbUser = await _context.Users.FirstOrDefaultAsync(u => u.UserId == id, ct);
+            return Ok(new
+            {
+                Claims = claims,
+                ParsedId = id,
+                DatabaseMarketId = dbUser?.MarketId,
+                Role = dbUser?.RoleId
+            });
+        }
+
         [HttpGet("ping")]
         public IActionResult Ping()
         {

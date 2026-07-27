@@ -34,6 +34,16 @@ namespace STMM.Business.Validators
                 .NotEmpty()
                 .WithMessage("Area is required for utility reading tasks.")
                 .When(x => x.TaskType == "UtilityReading");
+
+            RuleFor(x => x.RequestId)
+                .Empty()
+                .WithMessage("Utility reading tasks cannot be linked to a Request.")
+                .When(x => x.TaskType == "UtilityReading");
+
+            RuleFor(x => x.IssueId)
+                .Empty()
+                .WithMessage("Utility reading tasks cannot be linked to an Issue.")
+                .When(x => x.TaskType == "UtilityReading");
         }
     }
 }

@@ -97,5 +97,44 @@ namespace STMM.Business.Services
 
             return _mapper.Map<ReviewDto>(createdReview);
         }
+
+        public async Task<ReviewDto?> UpdateReviewAsync(int reviewId, UpdateReviewRequest request)
+        {
+            if (request == null) return null;
+
+            var review = await _reviewRepository.Query()
+                .Include(r => r.User)
+                .FirstOrDefaultAsync(r => r.ReviewId == reviewId);
+
+            if (review == null)
+            {
+                throw new ArgumentException("Không tìm thấy đánh giá.");
+            }
+
+            if (review.UserId != request.UserId)
+            {
+                throw new ArgumentException("Bạn không có quyền chỉnh sửa đánh giá này.");
+            }
+
+            review.Rating = request.Rating;
+            review.Comment = request.Comment;
+
+            _reviewRepository.Update(review);
+            await _reviewRepository.SaveChangesAsync();
+
+            return _mapper.Map<ReviewDto>(review);
+        }
+
+        public async Task<List<ReviewDto>> GetRecentReviewsAsync(int limit)
+        {
+            var reviews = await _reviewRepository.Query()
+                .Include(r => r.User)
+                .Include(r => r.Stall)
+                .OrderByDescending(r => r.CreatedAt)
+                .Take(limit)
+                .ToListAsync();
+
+            return _mapper.Map<List<ReviewDto>>(reviews);
+        }
     }
 }

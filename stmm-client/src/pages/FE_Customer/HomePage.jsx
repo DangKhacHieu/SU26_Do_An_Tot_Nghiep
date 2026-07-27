@@ -5,28 +5,10 @@ import "./HomePage.css";
 import Header from "./Layout/Header";
 import Footer from "./Layout/Footer";
 
-const newsList = [
-  {
-    image: "/images/news-price.jpg",
-    type: "PRICE TRENDS",
-    title: "Pork prices stabilized last week at STMM",
-    desc: "Reports from management show supply from VietGAP farms remains steady and consumer demand is stable.",
-    time: "12 mins ago",
-  },
-  {
-    image: "/images/news-event.jpg",
-    type: "EVENT",
-    title: "December Fresh Produce Festival at STMM",
-    desc: "Join us for tasting sessions and receive shopping vouchers up to 500K for local customers.",
-    time: "2 hours ago",
-  },
-  {
-    image: "/images/news-qr.jpg",
-    type: "ANNOUNCEMENT",
-    title: "QR Code Traceability System Deployment",
-    desc: "All fresh products at the market can now be quickly traced via the STMM app.",
-    time: "Yesterday",
-  },
+const slideImages = [
+  "/images/poster1.jpg",
+  "/images/poster2.jpg",
+  "/images/poster3.jpg"
 ];
 
 export default function HomePage({
@@ -44,6 +26,14 @@ export default function HomePage({
   const [loadingMarkets, setLoadingMarkets] = useState(true);
   const [featuredStall, setFeaturedStall] = useState(null);
   const [loadingStall, setLoadingStall] = useState(true);
+  const [currentSlide, setCurrentSlide] = useState(0);
+
+  useEffect(() => {
+    const slideTimer = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % slideImages.length);
+    }, 3000);
+    return () => clearInterval(slideTimer);
+  }, []);
 
   useEffect(() => {
     const fetchMarkets = async () => {
@@ -82,6 +72,13 @@ export default function HomePage({
   const totalAreasCount = markets.reduce((sum, m) => sum + (m.areasCount || 0), 0);
   const totalStallsCount = markets.reduce((sum, m) => sum + (m.stallsCount || 0), 0);
 
+  const handleScrollToMarkets = () => {
+    const el = document.getElementById("markets-directory");
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
   return (
     <main className="homepage">
       <Header
@@ -92,6 +89,28 @@ export default function HomePage({
         onGoToStallsMap={onGoToStallsMap}
         onLogout={onLogout}
       />
+
+      {/* Poster Slideshow Section */}
+      <section className="poster-slideshow">
+        <div className="slideshow-container">
+          {slideImages.map((img, idx) => (
+            <div
+              key={idx}
+              className={`slide-item ${idx === currentSlide ? "active" : ""}`}
+              style={{ backgroundImage: `url(${img})` }}
+            />
+          ))}
+          <div className="slideshow-dots">
+            {slideImages.map((_, idx) => (
+              <span
+                key={idx}
+                className={`dot ${idx === currentSlide ? "active" : ""}`}
+                onClick={() => setCurrentSlide(idx)}
+              />
+            ))}
+          </div>
+        </div>
+      </section>
 
       <section className="hero-section">
         <div className="hero-copy">
@@ -112,14 +131,14 @@ export default function HomePage({
             <button 
               type="button" 
               className="primary-btn" 
-              onClick={() => onGoToStallsMap && onGoToStallsMap(markets[0]?.marketId || 1)}
+              onClick={handleScrollToMarkets}
             >
               Find a stall →
             </button>
             <button
               type="button"
               className="secondary-btn"
-              onClick={() => onGoToStallsMap && onGoToStallsMap(markets[0]?.marketId || 1)}
+              onClick={handleScrollToMarkets}
             >
               View Stall Map
             </button>
@@ -130,15 +149,15 @@ export default function HomePage({
               <div className="stat-icon">📶</div>
               <div>
                 <strong>System Status</strong>
-                <span>Active ({totalMarketsCount} Markets Online)</span>
+                <span>Active ({totalMarketsCount} Markets)</span>
               </div>
             </div>
 
             <div className="stat-card">
-              <div className="stat-icon">🌡️</div>
+              <div className="stat-icon">🏪</div>
               <div>
-                <strong>Unified Portal</strong>
-                <span>Secure & Certified</span>
+                <strong>Registered Stalls</strong>
+                <span>{totalStallsCount} Managed Stalls</span>
               </div>
             </div>
           </div>
@@ -149,15 +168,15 @@ export default function HomePage({
             <div className="feature-top">
               <span className="feature-chip">FEATURED STALL</span>
             </div>
-            <h3 style={{ opacity: 0.5 }}>Đang tải thông tin...</h3>
+            <h3 style={{ opacity: 0.5 }}>Loading...</h3>
             <div className="feature-details-container">
               <div className="feature-details-row">
-                <span className="feature-key">Vị trí:</span>
-                <span>Đang tải...</span>
+                <span className="feature-key">Location:</span>
+                <span>Loading...</span>
               </div>
               <div className="feature-details-row">
-                <span className="feature-key">Ngành hàng:</span>
-                <span>Đang tải...</span>
+                <span className="feature-key">Category:</span>
+                <span>Loading...</span>
               </div>
             </div>
           </div>
@@ -171,27 +190,27 @@ export default function HomePage({
               <span className="feature-rating">★ {featuredStall.averageRating}</span>
             </div>
 
-            <h3>Sạp {featuredStall.code}</h3>
+            <h3>Stall {featuredStall.code}</h3>
 
             <div className="feature-details-container">
               <div className="feature-details-row">
-                <span className="feature-key">Vị trí:</span>
-                <span>Khu vực {featuredStall.areaName}</span>
+                <span className="feature-key">Location:</span>
+                <span>Area {featuredStall.areaName}</span>
               </div>
 
               <div className="feature-details-row">
-                <span className="feature-key">Ngành hàng:</span>
+                <span className="feature-key">Category:</span>
                 <span>{featuredStall.categoryName}</span>
               </div>
 
               <div className="feature-details-row">
-                <span className="feature-key">Kích thước:</span>
+                <span className="feature-key">Size:</span>
                 <span>{featuredStall.size} m²</span>
               </div>
             </div>
 
             <div className="feature-action">
-              Xem chi tiết gian hàng →
+              View stall details →
             </div>
           </div>
         ) : (
@@ -199,7 +218,7 @@ export default function HomePage({
             <div className="feature-top">
               <span className="feature-chip">FEATURED STALL</span>
             </div>
-            <h3>Không tìm thấy sạp nào</h3>
+            <h3>Stall not found</h3>
           </div>
         )}
       </section>
@@ -207,43 +226,43 @@ export default function HomePage({
       <section className="stats-strip">
         <div className="strip-item">
           <strong>{totalMarketsCount || 4}</strong>
-          <span>Chợ Thành Viên</span>
+          <span>Member Markets</span>
         </div>
         <div className="strip-item">
           <strong>{totalAreasCount || 16}</strong>
-          <span>Phân Khu Hàng Hóa</span>
+          <span>Market Sections</span>
         </div>
         <div className="strip-item">
           <strong>{totalStallsCount || 120}+</strong>
-          <span>Gian Hàng Hoạt Động</span>
+          <span>Active Stalls</span>
         </div>
         <div className="strip-item">
           <strong>98%</strong>
-          <span>Hài Lòng Từ Tiểu Thương</span>
+          <span>Merchant Satisfaction</span>
         </div>
       </section>
 
       {/* Markets Directory Section */}
-      <section className="markets-directory-section">
+      <section id="markets-directory" className="markets-directory-section">
         <div className="section-heading center">
-          <h2>Hệ thống Chợ Nhà Lồng</h2>
-          <p>Danh sách các chợ nhà lồng thông minh trong hệ thống. Chọn một chợ để truy cập sơ đồ chi tiết.</p>
+          <h2>Our Market Halls</h2>
+          <p>Explore our network of smart traditional market halls. Click on a market to view its interactive stall map.</p>
         </div>
 
         {loadingMarkets ? (
           <div className="markets-loading-container">
             <div className="loading-spinner"></div>
-            <p>Đang tải danh sách chợ...</p>
+            <p>Loading markets list...</p>
           </div>
         ) : markets.length === 0 ? (
           <div className="markets-empty-container">
-            <p>Không tìm thấy chợ nào trong hệ thống.</p>
+            <p>No markets found in the system.</p>
           </div>
         ) : (
           <div className="markets-grid">
             {markets.map((market) => (
               <div key={market.marketId} className="market-card">
-                <div className="market-card-badge">Hoạt động</div>
+                <div className="market-card-badge">Active</div>
                 <div className="market-card-header">
                   <div className="market-card-icon-wrapper">
                     <svg
@@ -280,15 +299,15 @@ export default function HomePage({
                       <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
                       <circle cx="12" cy="10" r="3" />
                     </svg>
-                    {market.address || "Địa chỉ đang cập nhật..."}
+                    {market.address || "Address being updated..."}
                   </p>
 
                   <div className="market-card-stats-row">
                     <div className="stat-pill">
-                      <strong>{market.areasCount || 0}</strong> Khu Vực
+                      <strong>{market.areasCount || 0}</strong> Sections
                     </div>
                     <div className="stat-pill">
-                      <strong>{market.stallsCount || 0}</strong> Gian Hàng
+                      <strong>{market.stallsCount || 0}</strong> Stalls
                     </div>
                   </div>
                 </div>
@@ -299,7 +318,7 @@ export default function HomePage({
                     className="market-action-btn"
                     onClick={() => onGoToStallsMap && onGoToStallsMap(market.marketId)}
                   >
-                    Truy cập bản đồ sạp →
+                    View stall map →
                   </button>
                 </div>
               </div>
@@ -311,36 +330,36 @@ export default function HomePage({
       {/* Platform Portal Benefits */}
       <section className="portal-benefits-section">
         <div className="section-heading center">
-          <h2>Giải Pháp Chợ Số Thông Minh</h2>
-          <p>Hỗ trợ đắc lực cho cả hoạt động mua sắm hàng ngày và quản lý kinh doanh của tiểu thương.</p>
+          <h2>Smart Market Solutions</h2>
+          <p>Powering daily shopping for customers and business operations for merchants.</p>
         </div>
 
         <div className="benefits-grid">
           <div className="benefit-panel shopper-panel">
             <div className="panel-badge shopper">FOR CUSTOMERS</div>
-            <h3>Khách Mua Hàng</h3>
-            <p className="panel-desc">Trải nghiệm mua sắm hiện đại, minh bạch và tiện lợi.</p>
+            <h3>Market Shoppers</h3>
+            <p className="panel-desc">Modern, transparent, and convenient shopping experience.</p>
             
             <ul className="benefit-list">
               <li>
                 <div className="benefit-icon">🗺️</div>
                 <div>
-                  <strong>Bản đồ sạp tương tác</strong>
-                  <span>Tra cứu vị trí sạp, tìm kiếm nhanh theo ngành hàng/sản phẩm trực quan trên sơ đồ 2D.</span>
+                  <strong>Interactive Stall Map</strong>
+                  <span>Easily locate stalls and search directly by product category on the 2D layout.</span>
                 </div>
               </li>
               <li>
                 <div className="benefit-icon">⭐</div>
                 <div>
-                  <strong>Đánh giá chất lượng sạp</strong>
-                  <span>Để lại đánh giá về dịch vụ, mức độ hài lòng giúp cải thiện chất lượng phục vụ của chợ.</span>
+                  <strong>Stall Ratings & Reviews</strong>
+                  <span>Leave feedback about service quality and satisfaction to help improve the market.</span>
                 </div>
               </li>
               <li>
                 <div className="benefit-icon">🔔</div>
                 <div>
-                  <strong>Cập nhật thông báo thực tế</strong>
-                  <span>Nhận giá cả thị trường hàng ngày, thông tin an toàn thực phẩm từ Ban quản lý.</span>
+                  <strong>Real-time Market Updates</strong>
+                  <span>Receive daily price trends and food safety alerts from market management.</span>
                 </div>
               </li>
             </ul>
@@ -348,29 +367,29 @@ export default function HomePage({
 
           <div className="benefit-panel merchant-panel">
             <div className="panel-badge merchant">FOR MERCHANTS</div>
-            <h3>Tiểu Thương Kinh Doanh</h3>
-            <p className="panel-desc">Đơn giản hóa công tác vận hành gian hàng và quản lý tài chính.</p>
+            <h3>Market Merchants</h3>
+            <p className="panel-desc">Simplifying stall operations and financial management.</p>
 
             <ul className="benefit-list">
               <li>
                 <div className="benefit-icon">⚡</div>
                 <div>
-                  <strong>Theo dõi Điện & Nước</strong>
-                  <span>Xem lịch sử số đo công tơ điện nước định kỳ và nhận báo cáo minh bạch từng tháng.</span>
+                  <strong>Utility Tracking (Electricity/Water)</strong>
+                  <span>View meter readings history and receive detailed monthly utility consumption reports.</span>
                 </div>
               </li>
               <li>
                 <div className="benefit-icon">🧾</div>
                 <div>
-                  <strong>Quản lý Hóa Đơn & Hợp Đồng</strong>
-                  <span>Theo dõi thời hạn hợp đồng thuê mặt bằng sạp và lịch sử thanh toán các hóa đơn dịch vụ.</span>
+                  <strong>Invoices & Contracts</strong>
+                  <span>Track stall rental contract duration and service payment invoices securely.</span>
                 </div>
               </li>
               <li>
                 <div className="benefit-icon">⚠️</div>
                 <div>
-                  <strong>Gửi Phản Ánh & Nhận Vi Phạm</strong>
-                  <span>Báo cáo sự cố cơ sở vật chất trực tiếp lên hệ thống và theo dõi kết quả xử lý từ BQL.</span>
+                  <strong>Requests & Violations</strong>
+                  <span>Report facility issues directly to management and track resolution progress.</span>
                 </div>
               </li>
             </ul>
@@ -378,88 +397,46 @@ export default function HomePage({
         </div>
       </section>
 
-      <section className="news-section">
-        <div className="section-heading">
-          <div>
-            <h2>Market News</h2>
-            <p>Latest price trends and announcements from market management.</p>
-          </div>
-
-          <div className="news-controls">
-            <button type="button" aria-label="Previous">
-              ←
-            </button>
-            <button type="button" aria-label="Next">
-              →
-            </button>
-          </div>
-        </div>
-
-        <div className="news-grid">
-          {newsList.map((news, index) => (
-            <article className="news-card" key={index}>
-              <div className="news-image-wrapper">
-                <img className="news-image" src={news.image} alt={news.title} />
-              </div>
-
-              <div className="news-content">
-                <span className="news-type">{news.type}</span>
-                <h3>{news.title}</h3>
-                <p>{news.desc}</p>
-
-                <div className="news-meta">
-                  <span>{news.time}</span>
-                  <button type="button">Read more →</button>
-                </div>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
-
       <section className="testimonials-section">
         <div className="section-heading center">
-          <h2>What Community Says</h2>
-          <p>Thousands of customers trust and choose Smart Market every day.</p>
+          <h2>How It Works</h2>
+          <p>Discover your shopping and market exploration process in 3 simple steps.</p>
         </div>
 
         <div className="testimonials-grid">
           <article className="testimonial-card">
-            <div className="testimonial-avatar">TH</div>
+            <div className="testimonial-avatar">1</div>
             <div className="testimonial-header">
-              <strong>Tran Hoang</strong>
-              <span>Loyal Customer</span>
+              <strong>Choose a Market</strong>
+              <span>Step 01</span>
             </div>
-            <div className="star-row">★★★★★</div>
+            <div className="star-row">📍 Market Hall Directory</div>
             <p>
-              The market is very clean and modern. I love how I can check prices
-              and stall locations on the app before arriving.
+              Select your local smart market hall from our verified member directory list on the homepage.
             </p>
           </article>
 
           <article className="testimonial-card">
-            <div className="testimonial-avatar">ML</div>
+            <div className="testimonial-avatar">2</div>
             <div className="testimonial-header">
-              <strong>Mai Lan</strong>
-              <span>Homemaker</span>
+              <strong>Locate Stalls</strong>
+              <span>Step 02</span>
             </div>
-            <div className="star-row">★★★★★</div>
+            <div className="star-row">🗺️ Interactive 2D Map</div>
             <p>
-              Products here are fresh and clearly sourced. The management staff
-              is very helpful when I need to find specialty stalls.
+              Browse the live interactive 2D blueprint map to search for merchant stalls by product categories, names, or codes.
             </p>
           </article>
 
           <article className="testimonial-card">
-            <div className="testimonial-avatar">VQ</div>
+            <div className="testimonial-avatar">3</div>
             <div className="testimonial-header">
-              <strong>Van Quan</strong>
-              <span>Stall Owner</span>
+              <strong>Connect & Rate</strong>
+              <span>Step 03</span>
             </div>
-            <div className="star-row">★★★★★</div>
+            <div className="star-row">⭐ Customer Reviews</div>
             <p>
-              As a merchant, I find STMM’s management system very professional,
-              helping me reach customers more easily.
+              Visit stalls in person, view their verified profiles, and rate your experience to help our community thrive.
             </p>
           </article>
         </div>

@@ -36,10 +36,9 @@ namespace STMM.API.Controllers
         [HttpGet]
         public async Task<IActionResult> GetQuotation(
             int taskId,
-            [FromQuery] int userId,
             CancellationToken ct)
         {
-            userId = GetUserId();
+            var userId = GetUserId();
             var result = await _quotationService.GetQuotationAsync(taskId, userId, ct);
             return Ok(result);
         }
@@ -50,11 +49,10 @@ namespace STMM.API.Controllers
         [HttpPost]
         public async Task<IActionResult> AddMaterial(
             int taskId,
-            [FromQuery] int userId,
             [FromBody] AddMaterialRequest request,
             CancellationToken ct)
         {
-            userId = GetUserId();
+            var userId = GetUserId();
             var result = await _quotationService.AddMaterialAsync(taskId, userId, request, ct);
             return Ok(result);
         }
@@ -66,27 +64,24 @@ namespace STMM.API.Controllers
         public async Task<IActionResult> RemoveMaterial(
             int taskId,
             int materialId,
-            [FromQuery] int userId,
             CancellationToken ct)
         {
-            userId = GetUserId();
+            var userId = GetUserId();
             var result = await _quotationService.RemoveMaterialAsync(taskId, materialId, userId, ct);
             return Ok(result);
         }
 
         /// <summary>
         /// UC-Submit-Quotation: Staff xác nhận gửi báo giá — task chuyển sang PendingApproval.
-        /// Staff phải chọn bên chịu phí (paidBy = "Market" hoặc "Vendor").
+        /// Manager quyết định bên chịu phí đối với báo giá liên kết Request.
         /// </summary>
         [HttpPatch("~/api/staff/tasks/{taskId}/submit-quotation")]
         public async Task<IActionResult> SubmitQuotation(
             int taskId,
-            [FromQuery] int userId,
-            [FromQuery] string paidBy,
             CancellationToken ct)
         {
-            userId = GetUserId();
-            var result = await _quotationService.SubmitQuotationAsync(taskId, userId, paidBy, ct);
+            var userId = GetUserId();
+            var result = await _quotationService.SubmitQuotationAsync(taskId, userId, ct);
             return Ok(result);
         }
     }

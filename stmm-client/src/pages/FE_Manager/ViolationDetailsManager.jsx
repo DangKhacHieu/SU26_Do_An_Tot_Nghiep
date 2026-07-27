@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react';
+import { getAuthHeaders } from '../../utils/authHeaders';
 import './ViolationDetailsManager.css';
-
-const API_VIOLATION = "http://localhost:5056/api/manager/violations";
-const API_APPEAL = "http://localhost:5056/api/manager/requests";
 
 const STATUS_META = {
   Pending:   { label: 'Chờ duyệt',    cls: 'status-pending'   },
@@ -36,10 +34,13 @@ const IconX = () => (
   </svg>
 );
 
-export default function ViolationDetailsManager({ violationId, navigate, addToast }) {
+export default function ViolationDetailsManager({ violationId, baseUrl, navigate, addToast }) {
   const [violation, setViolation] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+
+  const apiViolation = `${baseUrl || "http://localhost:5056"}/api/manager/violations`;
+  const apiAppeal = `${baseUrl || "http://localhost:5056"}/api/manager/requests`;
 
   useEffect(() => {
     if (violationId) {
@@ -50,7 +51,7 @@ export default function ViolationDetailsManager({ violationId, navigate, addToas
   const fetchViolationDetails = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_VIOLATION}/${violationId}`);
+      const res = await fetch(`${apiViolation}/${violationId}`, { headers: getAuthHeaders() });
       if (!res.ok) throw new Error();
       const data = await res.json();
       setViolation(data);
@@ -64,8 +65,9 @@ export default function ViolationDetailsManager({ violationId, navigate, addToas
   const handleResolveAppeal = async (requestId, approve) => {
     setSubmitting(true);
     try {
-      const res = await fetch(`${API_APPEAL}/${requestId}/resolve-appeal?approve=${approve}`, {
+      const res = await fetch(`${apiAppeal}/${requestId}/resolve-appeal?approve=${approve}`, {
         method: 'POST',
+        headers: getAuthHeaders(),
       });
       if (!res.ok) throw new Error();
       
@@ -81,8 +83,9 @@ export default function ViolationDetailsManager({ violationId, navigate, addToas
   const handleSimulateAppeal = async () => {
     setSubmitting(true);
     try {
-      const res = await fetch(`${API_VIOLATION}/${violationId}/simulate-appeal`, {
+      const res = await fetch(`${apiViolation}/${violationId}/simulate-appeal`, {
         method: 'POST',
+        headers: getAuthHeaders(),
       });
       if (!res.ok) throw new Error();
       addToast('Giả lập gửi kháng nghị thành công!', 'success');

@@ -417,6 +417,10 @@
 
 .btn-icon.edit:hover { background-color: var(--primary); }
 .btn-icon.delete:hover { background-color: var(--danger); }
+.btn-icon:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
 
 /* Empty State */
 .state-empty {

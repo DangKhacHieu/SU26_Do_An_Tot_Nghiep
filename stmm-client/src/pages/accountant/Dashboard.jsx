@@ -60,6 +60,82 @@ export default function Dashboard() {
     fetchDashboardData();
   }, []);
 
+  const handleExportExcel = () => {
+    if (!data) return;
+    const todayStr = new Date().toLocaleDateString('vi-VN');
+    
+    const htmlTemplate = `
+      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+      <head>
+        <meta charset="utf-8" />
+        <style>
+          table { border-collapse: collapse; width: 100%; font-family: Arial, sans-serif; }
+          th, td { border: 1px solid #cbd5e1; padding: 8px 12px; }
+          .title { font-size: 16pt; font-weight: bold; color: #1e1b4b; text-align: center; border: none; }
+          .header { background-color: #312e81; color: #ffffff; font-weight: bold; text-align: center; }
+          .number { text-align: right; }
+        </style>
+      </head>
+      <body>
+        <table>
+          <tr><td colspan="5" class="title">BÁO CÁO TÀI CHÍNH TỔNG HỢP</td></tr>
+          <tr><td colspan="5" style="border: none; text-align: center; color: #64748b;">Ngày xuất: ${todayStr}</td></tr>
+          <tr><td colspan="5" style="border: none;"></td></tr>
+          
+          <tr>
+            <td colspan="2" class="header">Chỉ số tài chính</td>
+            <td colspan="3" class="header">Giá trị</td>
+          </tr>
+          <tr>
+            <td colspan="2">Doanh thu tháng này</td>
+            <td colspan="3" class="number">${data.revenueThisMonth.toLocaleString('vi-VN')} đ</td>
+          </tr>
+          <tr>
+            <td colspan="2">Hóa đơn định kỳ</td>
+            <td colspan="3" class="number">${data.invoicesPaidCount} / ${data.invoicesTotalCount} (Đã thu / Tổng số)</td>
+          </tr>
+          <tr>
+            <td colspan="2">Chi phí sự cố & sửa chữa</td>
+            <td colspan="3" class="number">${data.repairCostThisMonth.toLocaleString('vi-VN')} đ</td>
+          </tr>
+          <tr>
+            <td colspan="2">Tiền phạt vi phạm</td>
+            <td colspan="3" class="number">${data.violationFinesThisMonth.toLocaleString('vi-VN')} đ</td>
+          </tr>
+          <tr><td colspan="5" style="border: none;"></td></tr>
+          
+          <tr><td colspan="5" class="header">GIAO DỊCH GẦN ĐÂY</td></tr>
+          <tr>
+            <td class="header">Mã Giao Dịch</td>
+            <td class="header">Gian Hàng</td>
+            <td class="header">Loại Phí</td>
+            <td class="header">Số Tiền (VND)</td>
+            <td class="header">Trạng Thái</td>
+          </tr>
+          ${data.recentTransactions.map(tx => `
+            <tr>
+              <td>${tx.transactionId}</td>
+              <td>${tx.stallCode} (${tx.tenantName})</td>
+              <td>${tx.type}</td>
+              <td class="number">${tx.amount.toLocaleString('vi-VN')}</td>
+              <td>${tx.status === 'Paid' ? 'Đã thanh toán' : (tx.status === 'Pending' ? 'Chờ xử lý' : 'Thất bại')}</td>
+            </tr>
+          `).join('')}
+        </table>
+      </body>
+      </html>
+    `;
+
+    const blob = new Blob([htmlTemplate], { type: "application/vnd.ms-excel;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `Bao_Cao_Tai_Chinh_${new Date().toISOString().slice(0, 10)}.xls`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const getMockData = () => ({
     revenueThisMonth: 458230000,
     revenueChangePercent: '+12.5%',
@@ -170,7 +246,7 @@ export default function Dashboard() {
           </p>
         </div>
         <div className="page-actions">
-          <button className="btn btn-primary">
+          <button className="btn btn-primary" onClick={handleExportExcel}>
             <span>Xuất Báo Cáo</span>
             <ArrowUpRight size={15} />
           </button>

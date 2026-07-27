@@ -30,13 +30,35 @@ export default function PeriodicInvoices() {
 
   const [activeModal, setActiveModal] = useState(null);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
+  const [availableStalls, setAvailableStalls] = useState([]);
+  const [availableFeeTypes, setAvailableFeeTypes] = useState([]);
 
-  const [adjustForm, setAdjustForm] = useState({ stallId: '', stallCode: '', meterType: 'Electricity', oldValue: 0, newValue: 0 });
+  const [adjustForm, setAdjustForm] = useState({ meterType: 'Electricity', newValue: '' });
+  const [cancelReason, setCancelReason] = useState('');
   const [adhocForm, setAdhocForm] = useState({
-    stallId: 1, feeTypeId: 4, amount: 1000000, description: '',
+    stallId: 0, stallSearch: '', feeTypeId: '', amount: 1000000, description: '',
     dueDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     month: new Date().getMonth() + 1, year: new Date().getFullYear()
   });
+
+  const [modalError, setModalError] = useState(null);
+
+  useEffect(() => {
+    setModalError(null);
+    if (activeModal === 'adhoc') {
+      const headers = { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` };
+      if (availableStalls.length === 0) {
+        fetch('http://localhost:5056/api/stalls', { headers }).then(r => r.json()).then(data => {
+            if (Array.isArray(data)) setAvailableStalls(data);
+        }).catch(() => {});
+      }
+      if (availableFeeTypes.length === 0) {
+        fetch('http://localhost:5056/api/accountant/config/fee-types', { headers }).then(r => r.json()).then(data => {
+            if (Array.isArray(data)) setAvailableFeeTypes(data);
+        }).catch(() => {});
+      }
+    }
+  }, [activeModal]);
 
   const showNotification = (type, message) => {
     setNotification({ type, message });
@@ -87,10 +109,18 @@ export default function PeriodicInvoices() {
       .catch(() => { setSelectedInvoice(invoice); setActiveModal('details'); });
   };
 
-  const openAdjustModal = (invoice) => {
-    setSelectedInvoice(invoice);
-    setAdjustForm({ stallId: invoice.stallId || 1, stallCode: invoice.stallCode, meterType: 'Electricity', oldValue: 1000, newValue: 1200 });
+  const openAdjustModal = (inv) => {
+    setSelectedInvoice(inv);
+    setAdjustForm({ meterType: 'Electricity', newValue: '' });
+    setModalError(null);
     setActiveModal('adjust');
+  };
+
+  const openCancelModal = (inv) => {
+    setSelectedInvoice(inv);
+    setCancelReason('');
+    setModalError(null);
+    setActiveModal('cancel');
   };
 
   const handleAdjustSubmit = (e) => {
@@ -115,21 +145,41 @@ export default function PeriodicInvoices() {
       fetch(`http://localhost:5056/api/accountant/billing/meter-readings/adjust?userId=1`, {
         method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` },
         body: JSON.stringify({ stallId: adjustForm.stallId, meterType: adjustForm.meterType, month: selectedInvoice.month, year: selectedInvoice.year, oldValue: adjustForm.oldValue, newValue: adjustForm.newValue })
-      }).then(r => { if (!r.ok) throw new Error(); showNotification('success', 'Cập nhật thành công!'); setActiveModal(null); fetchInvoices(); })
-        .catch(() => showNotification('danger', 'Có lỗi khi cập nhật chỉ số.'));
+      }).then(async r => { 
+        if (!r.ok) {
+          const errData = await r.json().catch(() => ({}));
+          throw new Error(errData.detail || errData.title || 'Có lỗi khi cập nhật chỉ số.');
+        }
+        showNotification('success', 'Cập nhật thành công!'); 
+        setActiveModal(null); 
+        fetchInvoices(); 
+      })
+      .catch(e => setModalError(e.message));
     }
   };
 
   const handleAdhocSubmit = (e) => {
     e.preventDefault();
+    if (!adhocForm.stallId) {
+      setModalError('Vui lòng chọn một gian hàng hợp lệ từ danh sách.');
+      return;
+    }
     if (isMock) {
       setInvoices([{ invoiceId: Math.floor(Math.random() * 900) + 200, stallCode: `Stall-${adhocForm.stallId}`, vendorName: 'Tiểu thương', totalAmount: adhocForm.amount, month: adhocForm.month, year: adhocForm.year, dueDate: adhocForm.dueDate, status: 'Unpaid', details: [{ feeTypeName: 'Phí phát sinh', description: adhocForm.description, quantity: 1, unitPrice: adhocForm.amount, amount: adhocForm.amount }] }, ...invoices]);
       showNotification('success', 'Tạo hóa đơn đột xuất thành công!');
       setActiveModal(null);
     } else {
       fetch('http://localhost:5056/api/accountant/billing/invoices/ad-hoc', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` }, body: JSON.stringify(adhocForm) })
-        .then(r => { if (!r.ok) throw new Error(); showNotification('success', 'Phát hành hóa đơn đột xuất thành công!'); setActiveModal(null); fetchInvoices(); })
-        .catch(() => showNotification('danger', 'Lỗi khi tạo hóa đơn.'));
+        .then(async r => { 
+          if (!r.ok) {
+            const errData = await r.json().catch(() => ({}));
+            throw new Error(errData.detail || errData.title || 'Lỗi khi tạo hóa đơn.');
+          }
+          showNotification('success', 'Phát hành hóa đơn đột xuất thành công!'); 
+          setActiveModal(null); 
+          fetchInvoices(); 
+        })
+        .catch(e => setModalError(e.message));
     }
   };
 
@@ -140,8 +190,40 @@ export default function PeriodicInvoices() {
       showNotification('success', `Đã phát hành ${selectedIds.length} hóa đơn thành công!`);
     } else {
       fetch('http://localhost:5056/api/accountant/billing/invoices/bulk-approve', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` }, body: JSON.stringify({ invoiceIds: selectedIds }) })
-        .then(r => { if (!r.ok) throw new Error(); showNotification('success', `Phê duyệt ${selectedIds.length} hóa đơn thành công!`); setSelectedIds([]); setActiveModal(null); fetchInvoices(); })
-        .catch(() => showNotification('danger', 'Lỗi khi phê duyệt hàng loạt.'));
+        .then(async r => { 
+          if (!r.ok) {
+            const errData = await r.json().catch(() => ({}));
+            throw new Error(errData.detail || errData.title || 'Lỗi khi phê duyệt hàng loạt.');
+          }
+          showNotification('success', `Phê duyệt ${selectedIds.length} hóa đơn thành công!`); 
+          setSelectedIds([]); 
+          setActiveModal(null); 
+          fetchInvoices(); 
+        })
+        .catch(e => setModalError(e.message));
+    }
+  };
+
+  const handleCancelInvoice = (e) => {
+    e.preventDefault();
+    if (isMock) {
+      setInvoices(invoices.map(i => i.invoiceId === selectedInvoice.invoiceId ? { ...i, status: 'Canceled' } : i));
+      showNotification('success', 'Hủy hóa đơn thành công (Mock)!');
+      setActiveModal(null);
+    } else {
+      fetch(`http://localhost:5056/api/accountant/billing/invoices/${selectedInvoice.invoiceId}/cancel`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` },
+        body: JSON.stringify({ reason: cancelReason })
+      })
+      .then(async r => {
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok || !d.success) throw new Error(d.message || d.title || 'Lỗi khi hủy hóa đơn.');
+        showNotification('success', d.message || 'Hủy hóa đơn thành công!');
+        setActiveModal(null);
+        fetchInvoices();
+      })
+      .catch(err => setModalError(err.message));
     }
   };
 
@@ -259,9 +341,14 @@ export default function PeriodicInvoices() {
                           <Eye size={13} /> Chi tiết
                         </button>
                         {(inv.status === 'Draft' || inv.status === 'Unpaid') && (
-                          <button className="btn btn-sm" style={{ background: 'var(--primary-light)', color: 'var(--primary)', border: '1px solid var(--primary-border)' }} onClick={() => openAdjustModal(inv)}>
-                            Ghi số liệu
-                          </button>
+                          <>
+                            <button className="btn btn-sm" style={{ background: 'var(--primary-light)', color: 'var(--primary)', border: '1px solid var(--primary-border)' }} onClick={() => openAdjustModal(inv)}>
+                              Ghi số liệu
+                            </button>
+                            <button className="btn btn-sm" style={{ background: 'var(--danger-light)', color: 'var(--danger)', border: '1px solid var(--danger)' }} onClick={() => openCancelModal(inv)}>
+                              Hủy
+                            </button>
+                          </>
                         )}
                       </div>
                     </td>
@@ -323,7 +410,13 @@ export default function PeriodicInvoices() {
               <span className="modal-title">Chi Tiết Hóa Đơn — INV-{selectedInvoice.invoiceId}</span>
               <button className="modal-close-btn" onClick={() => setActiveModal(null)}><X size={16} /></button>
             </div>
-            <div className="modal-body">
+            <div className="modal-body" style={{ maxHeight: '60vh', overflowY: 'auto' }}>
+              {modalError && (
+                <div className="alert alert-danger" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', whiteSpace: 'pre-line' }}>
+                  <AlertTriangle size={16} className="alert-icon" />
+                  <span>{modalError}</span>
+                </div>
+              )}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, padding: '14px', background: 'var(--bg-base)', borderRadius: 'var(--radius-md)', fontSize: 13.5 }}>
                 <div><span style={{ color: 'var(--text-muted)' }}>Kiosk: </span><strong>{selectedInvoice.stallCode}</strong></div>
                 <div><span style={{ color: 'var(--text-muted)' }}>Tiểu thương: </span><strong>{selectedInvoice.vendorName}</strong></div>
@@ -364,6 +457,47 @@ export default function PeriodicInvoices() {
         </div>
       )}
 
+      {/* Modal: Cancel Invoice */}
+      {activeModal === 'cancel' && selectedInvoice && (
+        <div className="modal-overlay" onClick={() => setActiveModal(null)}>
+          <div className="modal-container" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <span className="modal-title">Hủy Hóa Đơn — INV-{selectedInvoice.invoiceId}</span>
+              <button className="modal-close-btn" onClick={() => setActiveModal(null)}><X size={16} /></button>
+            </div>
+            <form onSubmit={handleCancelInvoice}>
+              <div className="modal-body">
+                {modalError && (
+                  <div className="alert alert-danger" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', whiteSpace: 'pre-line' }}>
+                    <AlertTriangle size={16} className="alert-icon" />
+                    <span>{modalError}</span>
+                  </div>
+                )}
+                <div className="alert alert-warning" style={{ marginBottom: 14 }}>
+                  <AlertTriangle size={15} className="alert-icon" />
+                  <span>Hành động này sẽ hủy hóa đơn và thông báo cho tiểu thương. Bạn chắc chắn muốn hủy?</span>
+                </div>
+                <div>
+                  <label className="form-label">Lý do hủy (sẽ gửi cho tiểu thương)</label>
+                  <textarea 
+                    className="form-input" 
+                    rows={3} 
+                    style={{ width: '100%', resize: 'vertical' }}
+                    placeholder="VD: Sai chỉ số điện, sai đơn giá, v.v."
+                    value={cancelReason} 
+                    onChange={e => setCancelReason(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setActiveModal(null)}>Đóng</button>
+                <button type="submit" className="btn" style={{ background: 'var(--danger)', color: '#fff', border: 'none' }}>Xác nhận Hủy</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Modal: Meter Adjust */}
       {activeModal === 'adjust' && selectedInvoice && (
         <div className="modal-overlay" onClick={() => setActiveModal(null)}>
@@ -374,6 +508,12 @@ export default function PeriodicInvoices() {
             </div>
             <form onSubmit={handleAdjustSubmit}>
               <div className="modal-body">
+              {modalError && (
+                <div className="alert alert-danger" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', whiteSpace: 'pre-line' }}>
+                  <AlertTriangle size={16} className="alert-icon" />
+                  <span>{modalError}</span>
+                </div>
+              )}
                 <div className="alert alert-info">
                   <AlertTriangle size={15} className="alert-icon" />
                   <span>Sửa sai chỉ số Điện/Nước. Hóa đơn tháng {selectedInvoice.month}/{selectedInvoice.year} sẽ tự động tính lại.</span>
@@ -388,12 +528,12 @@ export default function PeriodicInvoices() {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                   <div>
                     <label className="form-label">Chỉ số cũ (Đầu kỳ)</label>
-                    <input type="number" className="form-input" required value={adjustForm.oldValue}
+                    <input type="number" className="form-input" required min={0} value={adjustForm.oldValue}
                       onChange={e => setAdjustForm({ ...adjustForm, oldValue: parseFloat(e.target.value) || 0 })} />
                   </div>
                   <div>
-                    <label className="form-label">Chỉ số mới (Cuối kỳ)</label>
-                    <input type="number" className="form-input" required value={adjustForm.newValue}
+                    <label className="form-label">Chỉ số Mới</label>
+                    <input type="number" className="form-input" required min={0} value={adjustForm.newValue}
                       onChange={e => setAdjustForm({ ...adjustForm, newValue: parseFloat(e.target.value) || 0 })} />
                   </div>
                 </div>
@@ -422,26 +562,42 @@ export default function PeriodicInvoices() {
             </div>
             <form onSubmit={handleAdhocSubmit}>
               <div className="modal-body">
+              {modalError && (
+                <div className="alert alert-danger" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', whiteSpace: 'pre-line' }}>
+                  <AlertTriangle size={16} className="alert-icon" />
+                  <span>{modalError}</span>
+                </div>
+              )}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                   <div>
-                    <label className="form-label">ID Gian Hàng (Stall ID)</label>
-                    <input type="number" className="form-input" required value={adhocForm.stallId}
-                      onChange={e => setAdhocForm({ ...adhocForm, stallId: parseInt(e.target.value) || 0 })} />
+                    <label className="form-label">Mã/Tên Gian Hàng</label>
+                    <input type="text" list="stall-list" className="form-input" required placeholder="Nhập để tìm kiếm gian hàng..."
+                      value={adhocForm.stallSearch || ''}
+                      onChange={e => {
+                        const val = e.target.value;
+                        const stall = availableStalls.find(s => `${s.code} ${s.tenantName ? `(${s.tenantName})` : ''}` === val);
+                        setAdhocForm({ ...adhocForm, stallSearch: val, stallId: stall ? stall.stallId : 0 });
+                      }}
+                    />
+                    <datalist id="stall-list">
+                      {availableStalls.map(s => <option key={s.stallId} value={`${s.code} ${s.tenantName ? `(${s.tenantName})` : ''}`} />)}
+                    </datalist>
+                    {adhocForm.stallSearch && !adhocForm.stallId && <small style={{ color: 'var(--text-danger)', marginTop: '4px', display: 'block' }}>Vui lòng chọn một gian hàng hợp lệ.</small>}
                   </div>
                   <div>
                     <label className="form-label">Loại phí phát sinh</label>
-                    <select className="form-select" value={adhocForm.feeTypeId} onChange={e => setAdhocForm({ ...adhocForm, feeTypeId: parseInt(e.target.value) })}>
-                      <option value={4}>Phạt vi phạm hợp đồng</option>
-                      <option value={5}>Chi phí đền bù tài sản</option>
-                      <option value={6}>Phí thanh lý hợp đồng</option>
-                      <option value={7}>Phí dịch vụ kỹ thuật</option>
+                    <select className="form-select" required value={adhocForm.feeTypeId} onChange={e => setAdhocForm({ ...adhocForm, feeTypeId: parseInt(e.target.value) })}>
+                      <option value="">-- Chọn loại phí --</option>
+                      {availableFeeTypes.map(f => (
+                        <option key={f.feeTypeId} value={f.feeTypeId}>{f.name}</option>
+                      ))}
                     </select>
                   </div>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                   <div>
                     <label className="form-label">Số tiền (VNĐ)</label>
-                    <input type="number" className="form-input" required value={adhocForm.amount}
+                    <input type="number" className="form-input" required min={1} value={adhocForm.amount}
                       onChange={e => setAdhocForm({ ...adhocForm, amount: parseFloat(e.target.value) || 0 })} />
                   </div>
                   <div>
@@ -452,7 +608,7 @@ export default function PeriodicInvoices() {
                 </div>
                 <div>
                   <label className="form-label">Mô tả lý do phát hành</label>
-                  <textarea className="form-textarea" required rows={3}
+                  <textarea className="form-textarea" required rows={3} maxLength={500}
                     placeholder="Mô tả cụ thể sự cố, số biên bản vi phạm..."
                     value={adhocForm.description}
                     onChange={e => setAdhocForm({ ...adhocForm, description: e.target.value })} />
@@ -476,6 +632,12 @@ export default function PeriodicInvoices() {
               <button className="modal-close-btn" onClick={() => setActiveModal(null)}><X size={16} /></button>
             </div>
             <div className="modal-body">
+              {modalError && (
+                <div className="alert alert-danger" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', whiteSpace: 'pre-line' }}>
+                  <AlertTriangle size={16} className="alert-icon" />
+                  <span>{modalError}</span>
+                </div>
+              )}
               <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
                 <CheckCircle size={20} style={{ color: 'var(--success)', flexShrink: 0, marginTop: 2 }} />
                 <p style={{ fontSize: 14.5, lineHeight: 1.6 }}>

@@ -8,13 +8,16 @@ namespace STMM.Business.Validators
         public ChangePasswordValidator()
         {
             RuleFor(x => x.CurrentPassword)
-                .NotEmpty().WithMessage("Mật khẩu cũ không được để trống");
+                .NotEmpty().WithMessage("Current password is required.");
 
             RuleFor(x => x.NewPassword)
                 .Cascade(CascadeMode.Stop)
-                .NotEmpty().WithMessage("Mật khẩu mới không được để trống")
+                .NotEmpty().WithMessage("New password is required.")
                 .Matches(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9]).{8,12}$")
                 .WithMessage("Mật khẩu mới phải từ 8-12 ký tự, bao gồm chữ hoa, chữ thường, số và ký tự đặc biệt");
+
+            RuleFor(x => x.ConfirmPassword)
+                .Equal(x => x.NewPassword).WithMessage("Mật khẩu mới và mật khẩu xác nhận không khớp.");
         }
     }
 }

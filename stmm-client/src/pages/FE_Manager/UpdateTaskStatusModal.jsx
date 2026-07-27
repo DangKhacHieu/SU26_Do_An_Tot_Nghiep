@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { getAuthHeaders } from '../../utils/authHeaders';
 import './UpdateTaskStatusModal.css';
 
 export default function UpdateTaskStatusModal({ taskId, currentStatus, mode = 'status', baseUrl, onClose, onSuccess, addToast }) {
@@ -37,7 +38,10 @@ export default function UpdateTaskStatusModal({ taskId, currentStatus, mode = 's
     try {
       const res = await fetch(`${baseUrl}/api/manager/tasks/${taskId}/status`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          ...getAuthHeaders(),
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({ newStatus: newStatus })
       });
 

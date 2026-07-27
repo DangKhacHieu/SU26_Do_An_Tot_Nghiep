@@ -229,9 +229,9 @@ namespace STMM.Business.Mappers
                 .ForMember(dest => dest.CategoryName, opt => opt.MapFrom(src => src.Category != null ? src.Category.Name : null))
                 .ForMember(dest => dest.BusinessName, opt => opt.MapFrom(src => src.Contracts.Where(c => c.Status == "Active" && c.IsDeleted != true).Select(c => c.Vendor.BusinessName).FirstOrDefault()));
 
-            // Review mappings
             CreateMap<Review, ReviewDto>()
-                .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => src.User != null ? src.User.Name : string.Empty));
+                .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => src.User != null ? src.User.Name : string.Empty))
+                .ForMember(dest => dest.StallCode, opt => opt.MapFrom(src => src.Stall != null ? src.Stall.Code : string.Empty));
 
             CreateMap<CreateReviewRequest, Review>()
                 .ForMember(dest => dest.ReviewId, opt => opt.Ignore())

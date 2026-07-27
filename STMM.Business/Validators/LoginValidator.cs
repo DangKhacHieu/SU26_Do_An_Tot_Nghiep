@@ -8,12 +8,12 @@ namespace STMM.Business.Validators
         public LoginValidator()
         {
             RuleFor(x => x.Email)
-                .NotEmpty().WithMessage("Email không được để trống")
-                .EmailAddress().WithMessage("Email không hợp lệ");
+                .NotEmpty().WithMessage("Email is required.")
+                .EmailAddress().WithMessage("Invalid email address.");
 
             RuleFor(x => x.Password)
-                .NotEmpty().WithMessage("Mật khẩu không được để trống")
-                .MinimumLength(6).WithMessage("Mật khẩu phải ít nhất 6 ký tự");
+                .NotEmpty().WithMessage("Password is required.")
+                .MinimumLength(6).WithMessage("Password must be at least 6 characters.");
         }
     }
 }

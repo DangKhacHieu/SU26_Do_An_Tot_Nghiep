@@ -21,6 +21,9 @@ namespace STMM.Business.DTOs.Request
         public decimal? QuotationAmount { get; set; }
         public bool? IsQuoteApproved { get; set; }
         public string? PaidBy { get; set; }
+        public string? VendorRejectReason { get; set; }
+        public string? PayerDecisionNote { get; set; }
+        public string? PayerContractClause { get; set; }
         public int? RepairRating { get; set; }
         public string? RepairComment { get; set; }
         public DateTime? CreatedAt { get; set; }

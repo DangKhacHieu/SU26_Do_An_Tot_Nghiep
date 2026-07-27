@@ -1,11 +1,9 @@
 import axios, { AxiosInstance } from 'axios';
 import {
   MeterDto,
-  MeterQueryParameters,
   CreateMeterRequest,
   UpdateMeterRequest
 } from '../types/meter.types';
-import { PagedResult } from '../types/common.types';
 
 const _rawUrl = (import.meta.env.VITE_API_URL || 'http://localhost:5056/api').replace(/\/$/, '');
 const API_BASE_URL = _rawUrl.endsWith('/api') ? _rawUrl : `${_rawUrl}/api`;
@@ -50,9 +48,9 @@ class MeterService {
   /**
    * Lấy danh sách công tơ phân trang và lọc (dành cho Manager)
    */
-  async getMeters(params: MeterQueryParameters): Promise<PagedResult<MeterDto>> {
+  async getMeters(): Promise<MeterDto[]> {
     try {
-      const response = await this.api.get<PagedResult<MeterDto>>('/meters', { params });
+      const response = await this.api.get<MeterDto[]>('/meters');
       return response.data;
     } catch (error: any) {
       throw new Error(getApiErrorMessage(error, 'Lấy danh sách công tơ thất bại'));
@@ -94,20 +92,6 @@ class MeterService {
       throw new Error(getApiErrorMessage(error, `Cập nhật công tơ #${id} thất bại`));
     }
   }
-
-  /**
-   * Xóa công tơ (dành cho Manager)
-   */
-  async deleteMeter(id: number): Promise<boolean> {
-    try {
-      const response = await this.api.delete<boolean>(`/meters/${id}`);
-      return response.data;
-    } catch (error: any) {
-      throw new Error(getApiErrorMessage(error, `Xóa công tơ #${id} thất bại`));
-    }
-  }
-
-
 
   /**
    * Lấy danh sách công tơ chưa gán cho sạp (để gán sạp hoặc thay thế)

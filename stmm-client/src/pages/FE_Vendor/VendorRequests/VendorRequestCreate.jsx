@@ -2,18 +2,18 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { showSuccess, showError, showWarning } from '../../../utils/alert';
 
-const VendorRequestCreate = ({ onBack, onSuccess, prefillViolationId, prefillStallId }) => {
+const VendorRequestCreate = ({ onBack, onSuccess, prefillViolationId, prefillInvoiceId, prefillStallId }) => {
     const [stalls, setStalls] = useState([]);
     const [loadingStalls, setLoadingStalls] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
     
     // Form state
     const [stallId, setStallId] = useState(prefillStallId || '');
-    const [requestType, setRequestType] = useState(prefillViolationId ? 'ViolationAppeal' : 'FacilityIssue');
+    const [requestType, setRequestType] = useState(prefillViolationId ? 'ViolationAppeal' : (prefillInvoiceId ? 'InvoiceDispute' : 'FacilityIssue'));
     const [title, setTitle] = useState(prefillViolationId ? `Kháng nghị vi phạm #${prefillViolationId}` : '');
     const [description, setDescription] = useState('');
     const [violationId, setViolationId] = useState(prefillViolationId || '');
-    const [invoiceId, setInvoiceId] = useState('');
+    const [invoiceId, setInvoiceId] = useState(prefillInvoiceId || '');
     
     // Data state
     const [violations, setViolations] = useState([]);
@@ -65,12 +65,11 @@ const VendorRequestCreate = ({ onBack, onSuccess, prefillViolationId, prefillSta
                 }
 
                 // Fetch invoices
-                const invoicesRes = await axios.get('http://localhost:5056/api/vendor/invoices', config);
-                if (Array.isArray(invoicesRes.data)) {
-                    setInvoices(invoicesRes.data);
-                    if (invoicesRes.data.length > 0) {
-                        setInvoiceId(invoicesRes.data[0].invoiceId);
-                    }
+                const invoicesRes = await axios.get('http://localhost:5056/api/vendor/invoices?pageSize=100', config);
+                const invoicesData = invoicesRes.data?.items || (Array.isArray(invoicesRes.data) ? invoicesRes.data : []);
+                setInvoices(invoicesData);
+                if (invoicesData.length > 0) {
+                    setInvoiceId(invoicesData[0].invoiceId);
                 }
 
             } catch (err) {
@@ -159,8 +158,8 @@ const VendorRequestCreate = ({ onBack, onSuccess, prefillViolationId, prefillSta
                         value={requestType} 
                         onChange={(e) => setRequestType(e.target.value)}
                         required
-                        disabled={!!prefillViolationId}
-                        style={{ width: '100%', padding: '12px', border: '1px solid #e5e7eb', borderRadius: '6px', outline: 'none', background: prefillViolationId ? '#f9fafb' : 'white', cursor: prefillViolationId ? 'not-allowed' : 'auto' }}>
+                        disabled={!!prefillViolationId || !!prefillInvoiceId}
+                        style={{ width: '100%', padding: '12px', border: '1px solid #e5e7eb', borderRadius: '6px', outline: 'none', background: (prefillViolationId || prefillInvoiceId) ? '#f9fafb' : 'white', cursor: (prefillViolationId || prefillInvoiceId) ? 'not-allowed' : 'auto' }}>
                         
                         <option value="FacilityIssue">Sự cố hạ tầng chung (Facility Issue)</option>
                         <option value="ViolationAppeal">Kháng nghị vi phạm (Violation Appeal)</option>
@@ -199,7 +198,7 @@ const VendorRequestCreate = ({ onBack, onSuccess, prefillViolationId, prefillSta
                     </div>
                 )}
 
-                {requestType === 'InvoiceDispute' && (
+                {requestType === 'InvoiceDispute' && !prefillInvoiceId && (
                     <div>
                         <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', marginBottom: '8px' }}>Chọn Hóa Đơn</label>
                         {invoices.length === 0 ? (
@@ -212,15 +211,20 @@ const VendorRequestCreate = ({ onBack, onSuccess, prefillViolationId, prefillSta
                                 style={{ width: '100%', padding: '12px', border: '1px solid #e5e7eb', borderRadius: '6px', outline: 'none' }}>
                                 <option value="" disabled>-- Hãy chọn hóa đơn cần khiếu nại --</option>
                                 {invoices.map(inv => {
-                                    const isDisabled = inv.status === 'Paid';
                                     return (
-                                        <option key={inv.invoiceId} value={inv.invoiceId} disabled={isDisabled}>
+                                        <option key={inv.invoiceId} value={inv.invoiceId}>
                                             [{getInvoiceStatusText(inv.status)}] Hóa đơn Tháng {inv.month}/{inv.year} (Sạp {inv.stallCode}) - {inv.totalAmount?.toLocaleString()}đ
                                         </option>
                                     );
                                 })}
                             </select>
                         )}
+                    </div>
+                )}
+
+                {requestType === 'InvoiceDispute' && prefillInvoiceId && (
+                    <div style={{ display: 'none' }}>
+                        <input type="hidden" value={invoiceId} />
                     </div>
                 )}
 
