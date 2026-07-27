@@ -158,6 +158,8 @@ namespace STMM.API.Controllers
                 await _context.Database.ExecuteSqlRawAsync(@"
                     ALTER TABLE service_registrations ADD COLUMN IF NOT EXISTS end_date timestamp with time zone;
                     ALTER TABLE service_registrations ADD COLUMN IF NOT EXISTS is_auto_renew boolean NOT NULL DEFAULT true;
+                    ALTER TABLE reviews ALTER COLUMN stall_id DROP NOT NULL;
+                    ALTER TABLE reviews ADD COLUMN IF NOT EXISTS market_id integer REFERENCES markets(market_id) ON DELETE SET NULL;
                 ");
 
                 // Seed the services
@@ -168,6 +170,24 @@ namespace STMM.API.Controllers
             catch (Exception ex)
             {
                 return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpPost("migrate-reviews-db")]
+        public async Task<IActionResult> MigrateReviewsDb()
+        {
+            try
+            {
+                await _context.Database.ExecuteSqlRawAsync(@"
+                    ALTER TABLE reviews ALTER COLUMN stall_id DROP NOT NULL;
+                    ALTER TABLE reviews ADD COLUMN IF NOT EXISTS market_id integer REFERENCES markets(market_id) ON DELETE SET NULL;
+                ");
+
+                return Ok(new { message = "Successfully updated 'reviews' table schema in PostgreSQL database!" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
             }
         }
     }

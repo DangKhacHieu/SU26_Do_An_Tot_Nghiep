@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace STMM.DataAccess.Entities;
@@ -14,9 +14,14 @@ public partial class Review
     public int ReviewId { get; set; }
 
     /// <summary>
-    /// Đánh giá sạp nào
+    /// Đánh giá sạp nào (Nullable nếu là đánh giá chợ)
     /// </summary>
-    public int StallId { get; set; }
+    public int? StallId { get; set; }
+
+    /// <summary>
+    /// Đánh giá chợ nào (Nullable nếu là đánh giá sạp)
+    /// </summary>
+    public int? MarketId { get; set; }
 
     /// <summary>
     /// Customer đánh giá
@@ -35,7 +40,9 @@ public partial class Review
 
     public DateTime? CreatedAt { get; set; }
 
-    public virtual Stall Stall { get; set; } = null!;
+    public virtual Stall? Stall { get; set; }
+
+    public virtual Market? Market { get; set; }
 
     public virtual User User { get; set; } = null!;
 }

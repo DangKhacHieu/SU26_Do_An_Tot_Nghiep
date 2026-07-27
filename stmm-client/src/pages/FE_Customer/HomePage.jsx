@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { getAllMarkets } from "../../services/marketApi";
+import { getRecentReviews } from "../../services/reviewApi";
 import "./HomePage.css";
 import Header from "./Layout/Header";
 import Footer from "./Layout/Footer";
@@ -26,6 +27,8 @@ export default function HomePage({
   const [loadingMarkets, setLoadingMarkets] = useState(true);
   const [featuredStall, setFeaturedStall] = useState(null);
   const [loadingStall, setLoadingStall] = useState(true);
+  const [recentReviews, setRecentReviews] = useState([]);
+  const [loadingReviews, setLoadingReviews] = useState(true);
   const [currentSlide, setCurrentSlide] = useState(0);
 
   useEffect(() => {
@@ -66,8 +69,26 @@ export default function HomePage({
       }
     };
 
+    const fetchRecentReviews = async () => {
+      try {
+        const data = await getRecentReviews(20);
+        // Filter for market reviews only and sort by newest createdAt, take top 3
+        const marketReviewsOnly = (data || [])
+          .filter((r) => r.marketId && r.marketId > 0)
+          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+          .slice(0, 3);
+
+        setRecentReviews(marketReviewsOnly);
+      } catch (error) {
+        console.error("Error fetching recent market reviews on home page:", error);
+      } finally {
+        setLoadingReviews(false);
+      }
+    };
+
     fetchMarkets();
     fetchFeaturedStall();
+    fetchRecentReviews();
   }, []);
 
   // Compute stats dynamically
@@ -398,6 +419,73 @@ export default function HomePage({
             </ul>
           </div>
         </div>
+      </section>
+
+      {/* Community Market Feedback & Reviews Section */}
+      <section className="home-reviews-section">
+        <div className="section-heading center">
+          <h2>💬 Latest Market Reviews & Feedback</h2>
+          <p>Read the 3 newest feedback reviews from customers across our smart market halls.</p>
+        </div>
+
+        {loadingReviews ? (
+          <div className="markets-loading-container">
+            <div className="loading-spinner"></div>
+            <p>Loading community reviews...</p>
+          </div>
+        ) : recentReviews.length === 0 ? (
+          <div className="markets-empty-container">
+            <p>No community reviews yet.</p>
+          </div>
+        ) : (
+          <div className="home-reviews-grid">
+            {recentReviews.map((rev) => (
+              <div
+                key={rev.reviewId}
+                className="home-review-card"
+                onClick={() => {
+                  if (rev.marketId && onGoToStallsMap) {
+                    onGoToStallsMap(rev.marketId);
+                  } else if (rev.stallId && onGoToStallDetail) {
+                    onGoToStallDetail(rev.stallId);
+                  }
+                }}
+              >
+                <div className="review-card-header">
+                  <div className="review-user-info">
+                    <div className="review-avatar">
+                      {(rev.userName || "C").charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <strong>{rev.userName || "Customer"}</strong>
+                      <span className="review-date">
+                        {rev.createdAt
+                          ? new Date(rev.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+                          : "Recently"}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="review-stars-badge">
+                    {"★".repeat(rev.rating)}
+                    {"☆".repeat(5 - rev.rating)}
+                  </div>
+                </div>
+
+                <p className="review-comment-text">"{rev.comment || "No comment provided."}"</p>
+
+                <div className="review-target-tag">
+                  {rev.marketId ? (
+                    <span className="tag-market">🏪 Market: {rev.marketName || "Smart Market"}</span>
+                  ) : rev.stallCode ? (
+                    <span className="tag-stall">🏬 Stall: {rev.stallCode}</span>
+                  ) : (
+                    <span className="tag-general">⭐ Customer Feedback</span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
 
       <section className="testimonials-section">

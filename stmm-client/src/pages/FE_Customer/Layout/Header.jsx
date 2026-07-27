@@ -191,47 +191,21 @@ export default function Header({
             >
               Overview
             </button>
-            <div className="market-dropdown-container" ref={marketDropdownRef}>
-              <button
-                type="button"
-                className={`nav-link dropdown-toggle ${
-                  window.location.pathname === "/stalls-map" ? "active" : ""
-                }`}
-                onClick={() => setIsMarketDropdownOpen(!isMarketDropdownOpen)}
-              >
-                Market Map
-                <svg
-                  width="10"
-                  height="10"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="3"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className={`dropdown-arrow-svg ${isMarketDropdownOpen ? "open" : ""}`}
-                >
-                  <polyline points="6 9 12 15 18 9" />
-                </svg>
-              </button>
-              {isMarketDropdownOpen && (
-                <ul className="market-dropdown-menu">
-                  {activeMarkets.length === 0 ? (
-                    <li className="market-item-empty">No markets available</li>
-                  ) : (
-                    activeMarkets.map((market) => (
-                      <li
-                        key={market.marketId}
-                        className="market-item"
-                        onClick={() => handleMarketClick(market.marketId)}
-                      >
-                        {market.marketName}
-                      </li>
-                    ))
-                  )}
-                </ul>
-              )}
-            </div>
+            <button
+              type="button"
+              className={`nav-link ${
+                window.location.pathname.startsWith("/stalls-map") ? "active" : ""
+              }`}
+              onClick={() => {
+                if (onGoToStallsMap) {
+                  onGoToStallsMap(null);
+                } else {
+                  window.history.pushState({}, "", "/stalls-map");
+                }
+              }}
+            >
+              Market Map
+            </button>
           </nav>
 
           <div className="header-actions">
