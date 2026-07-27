@@ -231,12 +231,14 @@ namespace STMM.Business.Mappers
 
             CreateMap<Review, ReviewDto>()
                 .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => src.User != null ? src.User.Name : string.Empty))
-                .ForMember(dest => dest.StallCode, opt => opt.MapFrom(src => src.Stall != null ? src.Stall.Code : string.Empty));
+                .ForMember(dest => dest.StallCode, opt => opt.MapFrom(src => src.Stall != null ? src.Stall.Code : string.Empty))
+                .ForMember(dest => dest.MarketName, opt => opt.MapFrom(src => src.Market != null ? src.Market.MarketName : string.Empty));
 
             CreateMap<CreateReviewRequest, Review>()
                 .ForMember(dest => dest.ReviewId, opt => opt.Ignore())
                 .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
                 .ForMember(dest => dest.Stall, opt => opt.Ignore())
+                .ForMember(dest => dest.Market, opt => opt.Ignore())
                 .ForMember(dest => dest.User, opt => opt.Ignore());
 
             // Stall highest-rated mapping

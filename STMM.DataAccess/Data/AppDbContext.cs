@@ -886,6 +886,8 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => e.StallId, "idx_reviews_stall_id");
 
+            entity.HasIndex(e => e.MarketId, "idx_reviews_market_id");
+
             entity.HasIndex(e => e.UserId, "idx_reviews_user_id");
 
             entity.Property(e => e.ReviewId)
@@ -902,8 +904,13 @@ public partial class AppDbContext : DbContext
                 .HasComment("Điểm (1-5 sao)")
                 .HasColumnName("rating");
             entity.Property(e => e.StallId)
-                .HasComment("Đánh giá sạp nào")
-                .HasColumnName("stall_id");
+                .HasComment("Đánh giá sạp nào (Nullable nếu đánh giá chợ)")
+                .HasColumnName("stall_id")
+                .IsRequired(false);
+            entity.Property(e => e.MarketId)
+                .HasComment("Đánh giá chợ nào (Nullable nếu đánh giá sạp)")
+                .HasColumnName("market_id")
+                .IsRequired(false);
             entity.Property(e => e.UserId)
                 .HasComment("Customer đánh giá")
                 .HasColumnName("user_id");
@@ -912,6 +919,11 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.StallId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("fk_reviews_stalls");
+
+            entity.HasOne(d => d.Market).WithMany()
+                .HasForeignKey(d => d.MarketId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fk_reviews_markets");
 
             entity.HasOne(d => d.User).WithMany(p => p.Reviews)
                 .HasForeignKey(d => d.UserId)

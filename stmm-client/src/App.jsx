@@ -324,7 +324,8 @@ function StallDetailWrapper({ user, onLogout, navigatePath }) {
 
 function MarketMapWrapper({ user, onLogout, navigatePath }) {
   const [searchParams] = useSearchParams();
-  const marketId = parseInt(searchParams.get("marketId")) || 1;
+  const marketIdParam = searchParams.get("marketId");
+  const marketId = marketIdParam ? parseInt(marketIdParam) : null;
   return (
     <MarketMapPage
       user={user}
