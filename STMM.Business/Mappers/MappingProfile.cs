@@ -15,6 +15,7 @@ using STMM.Business.DTOs.Request;
 using STMM.Business.DTOs.Market;
 using STMM.Business.DTOs.Review;
 using STMM.Business.DTOs.AuditLog;
+using STMM.Business.DTOs.Feedback;
 
 namespace STMM.Business.Mappers
 {
@@ -232,7 +233,18 @@ namespace STMM.Business.Mappers
             CreateMap<Review, ReviewDto>()
                 .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => src.User != null ? src.User.Name : string.Empty))
                 .ForMember(dest => dest.StallCode, opt => opt.MapFrom(src => src.Stall != null ? src.Stall.Code : string.Empty))
-                .ForMember(dest => dest.MarketName, opt => opt.MapFrom(src => src.Market != null ? src.Market.MarketName : string.Empty));
+                .ForMember(dest => dest.MarketName, opt => opt.MapFrom(src => src.Market != null ? src.Market.MarketName : string.Empty))
+                .ForMember(dest => dest.Response, opt => opt.MapFrom(src => src.Response))
+                .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status))
+                .ForMember(dest => dest.RespondedAt, opt => opt.MapFrom(src => src.RespondedAt));
+
+            // Feedback (Vendor respond to review) mappings
+            CreateMap<Review, FeedbackDto>()
+                .ForMember(dest => dest.FeedbackId, opt => opt.MapFrom(src => src.ReviewId))
+                .ForMember(dest => dest.Content, opt => opt.MapFrom(src => src.Comment))
+                .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => src.User != null ? src.User.Name : string.Empty))
+                .ForMember(dest => dest.StallCode, opt => opt.MapFrom(src => src.Stall != null ? src.Stall.Code : string.Empty))
+                .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => src.CreatedAt.HasValue ? src.CreatedAt.Value : DateTime.MinValue));
 
             CreateMap<CreateReviewRequest, Review>()
                 .ForMember(dest => dest.ReviewId, opt => opt.Ignore())

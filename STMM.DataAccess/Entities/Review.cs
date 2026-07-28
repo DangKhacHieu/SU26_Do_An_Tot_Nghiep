@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace STMM.DataAccess.Entities;
 
@@ -40,6 +41,14 @@ public partial class Review
 
     public DateTime? CreatedAt { get; set; }
 
+    [Column("response")]
+    public string? Response { get; set; }
+
+    [Column("status")]
+    public string Status { get; set; } = "Pending";
+
+    [Column("responded_at")]
+    public DateTime? RespondedAt { get; set; }
     public virtual Stall? Stall { get; set; }
 
     public virtual Market? Market { get; set; }

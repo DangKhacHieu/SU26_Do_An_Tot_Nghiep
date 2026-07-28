@@ -462,3 +462,253 @@
     from { opacity: 0; }
     to { opacity: 1; }
 }
+
+/* ── VENDOR RESPONSE BOX ──────────────────────────────────────────────── */
+.vendor-response-box {
+    margin: 12px 0 8px 0;
+    padding: 12px 16px;
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    border-left: 4px solid #2563eb;
+    border-radius: 0 10px 10px 0;
+}
+
+.vendor-response-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.vendor-badge {
+    font-size: 12px;
+    font-weight: 700;
+    color: #1d4ed8;
+    background: #dbeafe;
+    padding: 2px 10px;
+    border-radius: 20px;
+}
+
+.responded-at {
+    font-size: 11px;
+    color: #64748b;
+}
+
+.vendor-response-text {
+    font-size: 14px;
+    color: #1e3a8a;
+    margin: 0;
+    line-height: 1.6;
+}
+
+/* ── ĐÃ PHẢN HỒI BADGE ────────────────────────────────────────────────── */
+.btn-replied {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #16a34a;
+    background: #dcfce7;
+    padding: 6px 16px;
+    border-radius: 20px;
+    cursor: default;
+}
+
+/* ── MODAL OVERLAY ────────────────────────────────────────────────────── */
+.reply-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: fadeIn 0.2s ease;
+}
+
+.reply-modal {
+    background: #fff;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 520px;
+    margin: 16px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+    animation: slideUpFade 0.25s ease;
+    overflow: hidden;
+}
+
+/* ── MODAL HEADER ─────────────────────────────────────────────────────── */
+.reply-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.reply-modal-header h3 {
+    font-size: 18px;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0;
+}
+
+.modal-close-btn {
+    background: none;
+    border: none;
+    font-size: 18px;
+    color: #64748b;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: background 0.2s;
+}
+
+.modal-close-btn:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+}
+
+/* ── PREVIEW REVIEW GỐC ───────────────────────────────────────────────── */
+.original-review-preview {
+    margin: 16px 24px;
+    padding: 14px;
+    background: #f8fafc;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+}
+
+.preview-user {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.customer-avatar.small {
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+    font-size: 14px;
+}
+
+.preview-stars {
+    margin-top: 2px;
+}
+
+.preview-comment {
+    font-size: 13px;
+    color: #475569;
+    font-style: italic;
+    margin: 0;
+    line-height: 1.5;
+}
+
+/* ── REPLY FORM ───────────────────────────────────────────────────────── */
+.reply-form {
+    padding: 0 24px 16px;
+}
+
+.reply-form label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 8px;
+}
+
+.reply-textarea {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1.5px solid #d1d5db;
+    border-radius: 10px;
+    font-size: 14px;
+    font-family: 'Inter', sans-serif;
+    color: #0f172a;
+    resize: vertical;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    box-sizing: border-box;
+}
+
+.reply-textarea:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.reply-textarea:disabled {
+    background: #f1f5f9;
+    cursor: not-allowed;
+}
+
+.reply-char-count {
+    text-align: right;
+    font-size: 11px;
+    color: #94a3b8;
+    margin-top: 4px;
+}
+
+/* ── MODAL FOOTER ─────────────────────────────────────────────────────── */
+.reply-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 16px 24px 20px;
+    border-top: 1px solid #e2e8f0;
+}
+
+.btn-cancel-reply {
+    padding: 9px 20px;
+    background: #f1f5f9;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #475569;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-cancel-reply:hover:not(:disabled) {
+    background: #e2e8f0;
+}
+
+.btn-submit-reply {
+    padding: 9px 22px;
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: opacity 0.2s, transform 0.15s;
+}
+
+.btn-submit-reply:hover:not(:disabled) {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+.btn-submit-reply:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ── SPINNER NHỎ ──────────────────────────────────────────────────────── */
+.spinner-sm {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+}
+

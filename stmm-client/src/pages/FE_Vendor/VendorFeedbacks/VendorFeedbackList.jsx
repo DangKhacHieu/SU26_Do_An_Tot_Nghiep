@@ -1,16 +1,21 @@
 import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect } from 'react';
 import { vendorFeedbackApi } from '../../../services/vendorFeedbackApi';
-import { showError, showWarning } from '../../../utils/alert';
+import { showError, showSuccess } from '../../../utils/alert';
 import './VendorFeedbackList.css';
 
 export default function VendorFeedbackList({ stallId, rentedStalls }) {
-  const { t } = useTranslation();
+    const { t } = useTranslation();
 
     const [summary, setSummary] = useState({ reviews: [], totalReviews: 0, averageRating: 0 });
     const [loading, setLoading] = useState(false);
     const [filterRating, setFilterRating] = useState('ALL');
     const [searchTerm, setSearchTerm] = useState('');
+
+    // ── State cho modal trả lời ──────────────────────────────────────────────
+    const [replyModal, setReplyModal] = useState({ open: false, review: null });
+    const [replyText, setReplyText] = useState('');
+    const [replyLoading, setReplyLoading] = useState(false);
 
     useEffect(() => {
         fetchFeedbacks();
@@ -18,7 +23,7 @@ export default function VendorFeedbackList({ stallId, rentedStalls }) {
 
     const fetchFeedbacks = async () => {
         if (!rentedStalls || rentedStalls.length === 0) return;
-        
+
         setLoading(true);
         try {
             if (stallId === 'ALL') {
@@ -41,6 +46,38 @@ export default function VendorFeedbackList({ stallId, rentedStalls }) {
         setSearchTerm(e.target.value);
     };
 
+    // ── Mở modal trả lời ────────────────────────────────────────────────────
+    const openReplyModal = (review) => {
+        setReplyModal({ open: true, review });
+        setReplyText('');
+    };
+
+    const closeReplyModal = () => {
+        setReplyModal({ open: false, review: null });
+        setReplyText('');
+    };
+
+    // ── Gửi câu trả lời lên API ─────────────────────────────────────────────
+    const handleSubmitReply = async () => {
+        if (!replyText.trim()) {
+            showError('Lỗi', 'Nội dung phản hồi không được để trống.');
+            return;
+        }
+
+        setReplyLoading(true);
+        try {
+            await vendorFeedbackApi.respondToFeedback(replyModal.review.reviewId, replyText.trim());
+            showSuccess('Thành công', 'Phản hồi của bạn đã được gửi thành công!');
+            closeReplyModal();
+            await fetchFeedbacks();
+        } catch (error) {
+            const msg = error?.response?.data?.message || 'Không thể gửi phản hồi. Vui lòng thử lại.';
+            showError('Thất bại', msg);
+        } finally {
+            setReplyLoading(false);
+        }
+    };
+
     const renderStars = (rating) => {
         const stars = [];
         for (let i = 1; i <= 5; i++) {
@@ -54,8 +91,9 @@ export default function VendorFeedbackList({ stallId, rentedStalls }) {
     const filteredReviews = (summary.reviews || []).filter(rev => {
         const matchRating = filterRating === 'ALL' || rev.rating === parseInt(filterRating);
         const term = searchTerm.toLowerCase();
-        const matchSearch = (rev.userName && rev.userName.toLowerCase().includes(term)) || 
-                            (rev.comment && rev.comment.toLowerCase().includes(term));
+        const matchSearch =
+            (rev.userName && rev.userName.toLowerCase().includes(term)) ||
+            (rev.comment && rev.comment.toLowerCase().includes(term));
         return matchRating && matchSearch;
     });
 
@@ -103,9 +141,9 @@ export default function VendorFeedbackList({ stallId, rentedStalls }) {
                 <header className="fb-actions">
                     <div className="search-wrapper">
                         <span className="search-icon">🔍</span>
-                        <input 
-                            type="text" 
-                            placeholder={t('vendorfeedbacklist.search_by_name_or')} 
+                        <input
+                            type="text"
+                            placeholder={t('vendorfeedbacklist.search_by_name_or')}
                             className="fb-search"
                             value={searchTerm}
                             onChange={handleSearch}
@@ -114,7 +152,7 @@ export default function VendorFeedbackList({ stallId, rentedStalls }) {
                     </div>
                     <div className="filter-wrapper">
                         <span className="filter-icon">⭐</span>
-                        <select 
+                        <select
                             className="fb-filter"
                             value={filterRating}
                             onChange={(e) => setFilterRating(e.target.value)}
@@ -147,14 +185,14 @@ export default function VendorFeedbackList({ stallId, rentedStalls }) {
                     ) : (
                         <div className="reviews-grid">
                             {filteredReviews.map((rev, index) => (
-                                <article 
-                                    key={rev.reviewId || index} 
+                                <article
+                                    key={rev.reviewId || index}
                                     className="fb-review-card"
                                     style={{ animationDelay: `${index * 0.05}s` }}
                                 >
                                     <header className="review-header">
                                         <div className="customer-profile">
-                                            <div 
+                                            <div
                                                 className="customer-avatar"
                                                 style={{ backgroundColor: getAvatarColor(rev.userName) }}
                                             >
@@ -163,9 +201,9 @@ export default function VendorFeedbackList({ stallId, rentedStalls }) {
                                             <div className="customer-meta">
                                                 <h2 className="customer-name">{rev.userName || t('vendorfeedbacklist.anonymous_customer')}</h2>
                                                 <time className="review-date" dateTime={rev.createdAt}>
-                                                    {new Date(rev.createdAt).toLocaleDateString('vi-VN', { 
-                                                        year: 'numeric', 
-                                                        month: 'long', 
+                                                    {new Date(rev.createdAt).toLocaleDateString('vi-VN', {
+                                                        year: 'numeric',
+                                                        month: 'long',
                                                         day: 'numeric',
                                                         hour: '2-digit',
                                                         minute: '2-digit'
@@ -177,16 +215,45 @@ export default function VendorFeedbackList({ stallId, rentedStalls }) {
                                             {renderStars(rev.rating)}
                                         </div>
                                     </header>
+
                                     <div className="review-body">
                                         <p className="review-comment">"{rev.comment || t('vendorfeedbacklist.customers_do_not_leave')}"</p>
                                     </div>
+
+                                    {/* ── Hiển thị câu trả lời của Vendor nếu đã có ── */}
+                                    {rev.response && (
+                                        <div className="vendor-response-box">
+                                            <div className="vendor-response-header">
+                                                <span className="vendor-badge">🏪 Phản hồi của chủ sạp</span>
+                                                {rev.respondedAt && (
+                                                    <time className="responded-at">
+                                                        {new Date(rev.respondedAt).toLocaleDateString('vi-VN', {
+                                                            year: 'numeric', month: 'long', day: 'numeric'
+                                                        })}
+                                                    </time>
+                                                )}
+                                            </div>
+                                            <p className="vendor-response-text">{rev.response}</p>
+                                        </div>
+                                    )}
+
                                     <footer className="review-footer">
                                         <span className="verified-badge">
                                             {t('vendorfeedbacklist.purchased')}
                                         </span>
-                                        <button className="btn-reply" onClick={() => showWarning(t('vendorfeedbacklist.features'), t('vendorfeedbacklist.feedback_functionality_is_under'))}>
-                                            <span className="reply-icon">💬</span> {t('vendorfeedbacklist.feedback')}
-                                        </button>
+                                        {/* ── Nút Feedback: disabled nếu đã trả lời ── */}
+                                        {rev.status === 'Responded' || rev.response ? (
+                                            <span className="btn-replied">
+                                                <span className="reply-icon">✅</span> Đã phản hồi
+                                            </span>
+                                        ) : (
+                                            <button
+                                                className="btn-reply"
+                                                onClick={() => openReplyModal(rev)}
+                                            >
+                                                <span className="reply-icon">💬</span> {t('vendorfeedbacklist.feedback')}
+                                            </button>
+                                        )}
                                     </footer>
                                 </article>
                             ))}
@@ -194,6 +261,68 @@ export default function VendorFeedbackList({ stallId, rentedStalls }) {
                     )}
                 </div>
             </section>
+
+            {/* ── Modal nhập câu trả lời ─────────────────────────────────────── */}
+            {replyModal.open && (
+                <div className="reply-modal-overlay" onClick={closeReplyModal}>
+                    <div className="reply-modal" onClick={(e) => e.stopPropagation()}>
+                        <div className="reply-modal-header">
+                            <h3>💬 Phản hồi đánh giá</h3>
+                            <button className="modal-close-btn" onClick={closeReplyModal}>✕</button>
+                        </div>
+
+                        {/* Hiển thị nội dung review gốc */}
+                        <div className="original-review-preview">
+                            <div className="preview-user">
+                                <div
+                                    className="customer-avatar small"
+                                    style={{ backgroundColor: getAvatarColor(replyModal.review?.userName) }}
+                                >
+                                    {(replyModal.review?.userName || 'K').charAt(0).toUpperCase()}
+                                </div>
+                                <div>
+                                    <strong>{replyModal.review?.userName || 'Khách hàng'}</strong>
+                                    <div className="preview-stars">{renderStars(replyModal.review?.rating || 0)}</div>
+                                </div>
+                            </div>
+                            <p className="preview-comment">"{replyModal.review?.comment || 'Không có nhận xét'}"</p>
+                        </div>
+
+                        {/* Form nhập câu trả lời */}
+                        <div className="reply-form">
+                            <label htmlFor="reply-textarea">Nội dung phản hồi của bạn:</label>
+                            <textarea
+                                id="reply-textarea"
+                                className="reply-textarea"
+                                placeholder="Nhập câu trả lời cho khách hàng..."
+                                value={replyText}
+                                onChange={(e) => setReplyText(e.target.value)}
+                                rows={4}
+                                maxLength={1000}
+                                disabled={replyLoading}
+                            />
+                            <div className="reply-char-count">{replyText.length}/1000 ký tự</div>
+                        </div>
+
+                        <div className="reply-modal-footer">
+                            <button className="btn-cancel-reply" onClick={closeReplyModal} disabled={replyLoading}>
+                                Hủy
+                            </button>
+                            <button
+                                className="btn-submit-reply"
+                                onClick={handleSubmitReply}
+                                disabled={replyLoading || !replyText.trim()}
+                            >
+                                {replyLoading ? (
+                                    <><span className="spinner-sm"></span> Đang gửi...</>
+                                ) : (
+                                    '📤 Gửi phản hồi'
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </main>
     );
 }

@@ -14,5 +14,10 @@ namespace STMM.Business.DTOs.Review
         public int Rating { get; set; }
         public string? Comment { get; set; }
         public DateTime CreatedAt { get; set; }
+
+        // Thông tin phản hồi của Vendor
+        public string? Response { get; set; }
+        public string? Status { get; set; }
+        public DateTime? RespondedAt { get; set; }
     }
 }

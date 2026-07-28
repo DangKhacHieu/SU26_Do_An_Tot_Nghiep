@@ -518,9 +518,41 @@ export default function StallDetailPage({
                               </div>
                             </div>
                           ) : (
-                            <p className="review-comment">{review.comment}</p>
+                            <>
+                              <p className="review-comment">{review.comment}</p>
+                              {/* Hiển thị phản hồi của chủ sạp nếu có */}
+                              {review.response && (
+                                <div style={{
+                                  margin: '10px 0 4px 0',
+                                  padding: '10px 14px',
+                                  background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)',
+                                  borderLeft: '4px solid #2563eb',
+                                  borderRadius: '0 8px 8px 0',
+                                }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '5px', flexWrap: 'wrap' }}>
+                                    <span style={{
+                                      fontSize: '11px', fontWeight: '700', color: '#1d4ed8',
+                                      background: '#dbeafe', padding: '2px 8px', borderRadius: '20px'
+                                    }}>
+                                      🏪 Phản hồi của chủ sạp
+                                    </span>
+                                    {review.respondedAt && (
+                                      <span style={{ fontSize: '11px', color: '#94a3b8' }}>
+                                        {new Date(review.respondedAt).toLocaleDateString('vi-VN', {
+                                          year: 'numeric', month: 'long', day: 'numeric'
+                                        })}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p style={{ margin: 0, fontSize: '13px', color: '#1e3a8a', lineHeight: '1.6' }}>
+                                    {review.response}
+                                  </p>
+                                </div>
+                              )}
+                            </>
                           )}
                         </div>
+
                       ))
                     )}
                   </div>

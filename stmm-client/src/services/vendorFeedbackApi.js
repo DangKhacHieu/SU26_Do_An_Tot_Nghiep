@@ -56,5 +56,16 @@ export const vendorFeedbackApi = {
             console.error('Error fetching all reviews:', error);
             return { reviews: [], totalReviews: 0, averageRating: 0 };
         }
+    },
+
+    // Vendor trả lời một đánh giá (chỉ được trả lời 1 lần)
+    respondToFeedback: async (reviewId, responseText) => {
+        const response = await axios.post(
+            `${BASE_URL}/vendor/feedbacks/${reviewId}/respond`,
+            { response: responseText },
+            getAuthHeaders()
+        );
+        return response.data;
     }
 };
+

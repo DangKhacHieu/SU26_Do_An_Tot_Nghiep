@@ -100,6 +100,7 @@ builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
 builder.Services.AddScoped<IRepairPriceRepository, RepairPriceRepository>();
 builder.Services.AddScoped<IRequestRepository, RequestRepository>();
 builder.Services.AddScoped<IReviewRepository, ReviewRepository>();
+builder.Services.AddScoped<IFeedbackRepository, FeedbackRepository>();
 builder.Services.AddScoped<IRoleRepository, RoleRepository>();
 builder.Services.AddScoped<IServiceRepository, ServiceRepository>();
 builder.Services.AddScoped<IServiceRegistrationRepository, ServiceRegistrationRepository>();
@@ -158,6 +159,7 @@ builder.Services.AddScoped<IVendorViolationService, VendorViolationService>();
 builder.Services.AddScoped<IVendorInvoiceService, VendorInvoiceService>();
 builder.Services.AddScoped<IMarketService, MarketService>();
 builder.Services.AddScoped<IReviewService, ReviewService>();
+builder.Services.AddScoped<IFeedbackService, FeedbackService>();
 
 // Register MoMo Payment Service
 builder.Services.Configure<STMM.Business.DTOs.Payment.MomoConfig>(builder.Configuration.GetSection("MomoConfig"));
