@@ -176,6 +176,18 @@ public class VendorServiceManagement : IVendorServiceManagement
             throw new BadRequestException("Dịch vụ này hiện không còn khả dụng. Vui lòng chọn dịch vụ khác.");
         }
 
+        // Verify service belongs to the same market as the stall (or is global)
+        if (service.MarketId.HasValue)
+        {
+            var stall = await _stallRepository.Query()
+                .Include(s => s.Area)
+                .FirstOrDefaultAsync(s => s.StallId == request.StallId, ct);
+            if (stall != null && stall.Area.MarketId != service.MarketId.Value)
+            {
+                throw new BadRequestException("Dịch vụ này không được cung cấp tại chợ của sạp bạn đang thuê.");
+            }
+        }
+
         // A.4.2 Duplicate Service Check
         var existingRegistration = (await _serviceRegistrationRepository.FindAsync(
             r => r.VendorId == vendorId && r.StallId == request.StallId && r.ServiceId == request.ServiceId && (r.Status == "Active" || r.Status == "Pending"),
