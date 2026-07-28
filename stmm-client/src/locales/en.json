@@ -3290,6 +3290,8 @@
     "for_example_the_light": "For example: The light bulb in area A102 burned out...",
     "describe_specifically_the_problem": "Describe specifically the problem you are experiencing...",
     "violation_appeal_prefillviolationid": "Violation appeal #${prefillViolationId}",
+    "violation_appeal_title": "Violation appeal #{{id}}",
+    "invoice_dispute_title": "Invoice dispute #{{id}}",
     "waiting_for_approval": "Waiting for approval",
     "no_complaints_yet_notified": "No complaints yet (Notified)",
     "appealing": "Appealing",

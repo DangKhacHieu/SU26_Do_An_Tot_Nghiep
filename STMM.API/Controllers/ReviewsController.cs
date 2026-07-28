@@ -41,7 +41,30 @@ namespace STMM.API.Controllers
         }
 
         /// <summary>
-        /// Post a new review for a stall.
+        /// Get reviews and rating summary for a specific market.
+        /// Both guests and logged-in customers can view this.
+        /// </summary>
+        [HttpGet("market/{marketId}")]
+        public async Task<IActionResult> GetReviewsByMarket(int marketId)
+        {
+            try
+            {
+                var summary = await _reviewService.GetReviewsByMarketAsync(marketId);
+                if (summary == null)
+                {
+                    return NotFound("Không tìm thấy thông tin chợ.");
+                }
+
+                return Ok(summary);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Post a new review for a stall or market.
         /// Required for logged-in customers.
         /// </summary>
         [HttpPost]
@@ -65,7 +88,7 @@ namespace STMM.API.Controllers
                     return BadRequest("Không thể gửi đánh giá.");
                 }
 
-                return CreatedAtAction(nameof(GetReviewsByStall), new { stallId = result.StallId }, result);
+                return Ok(result);
             }
             catch (ArgumentException ex)
             {

@@ -6,6 +6,7 @@ namespace STMM.Business.Interfaces
     public interface IReviewService
     {
         Task<ReviewSummaryDto?> GetReviewsByStallAsync(int stallId);
+        Task<ReviewSummaryDto?> GetReviewsByMarketAsync(int marketId);
         Task<ReviewDto?> CreateReviewAsync(CreateReviewRequest request);
         Task<ReviewDto?> UpdateReviewAsync(int reviewId, UpdateReviewRequest request);
         Task<System.Collections.Generic.List<ReviewDto>> GetRecentReviewsAsync(int limit);

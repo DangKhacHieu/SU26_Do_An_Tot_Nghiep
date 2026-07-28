@@ -15,17 +15,20 @@ namespace STMM.Business.Services
     {
         private readonly IReviewRepository _reviewRepository;
         private readonly IStallRepository _stallRepository;
+        private readonly IMarketRepository _marketRepository;
         private readonly IUserRepository _userRepository;
         private readonly IMapper _mapper;
 
         public ReviewService(
             IReviewRepository reviewRepository,
             IStallRepository stallRepository,
+            IMarketRepository marketRepository,
             IUserRepository userRepository,
             IMapper mapper)
         {
             _reviewRepository = reviewRepository;
             _stallRepository = stallRepository;
+            _marketRepository = marketRepository;
             _userRepository = userRepository;
             _mapper = mapper;
         }
@@ -65,16 +68,68 @@ namespace STMM.Business.Services
             };
         }
 
+        public async Task<ReviewSummaryDto?> GetReviewsByMarketAsync(int marketId)
+        {
+            if (marketId <= 0)
+            {
+                throw new ArgumentException("ID chợ không hợp lệ.");
+            }
+
+            var marketExists = await _marketRepository.Query()
+                .AnyAsync(m => m.MarketId == marketId && m.IsDeleted != true);
+
+            if (!marketExists) return null;
+
+            var reviews = await _reviewRepository.Query()
+                .Include(r => r.User)
+                .Where(r => r.MarketId == marketId && r.StallId == null)
+                .OrderByDescending(r => r.CreatedAt)
+                .ToListAsync();
+
+            double averageRating = 0;
+            if (reviews.Any())
+            {
+                averageRating = Math.Round(reviews.Average(r => r.Rating), 1);
+            }
+
+            var reviewDtos = _mapper.Map<List<ReviewDto>>(reviews);
+
+            return new ReviewSummaryDto
+            {
+                MarketId = marketId,
+                AverageRating = averageRating,
+                TotalReviews = reviews.Count,
+                Reviews = reviewDtos
+            };
+        }
+
         public async Task<ReviewDto?> CreateReviewAsync(CreateReviewRequest request)
         {
             if (request == null) return null;
 
-            // Business logic checks (stall and user existence)
-            var stallExists = await _stallRepository.Query()
-                .AnyAsync(s => s.StallId == request.StallId && s.IsDeleted != true);
-            if (!stallExists)
+            if ((!request.StallId.HasValue || request.StallId.Value <= 0) && (!request.MarketId.HasValue || request.MarketId.Value <= 0))
             {
-                throw new ArgumentException("Không tìm thấy sạp hàng cần đánh giá.");
+                throw new ArgumentException("Vui lòng cung cấp ID sạp hàng hoặc ID chợ cần đánh giá.");
+            }
+
+            if (request.StallId.HasValue && request.StallId.Value > 0)
+            {
+                var stallExists = await _stallRepository.Query()
+                    .AnyAsync(s => s.StallId == request.StallId.Value && s.IsDeleted != true);
+                if (!stallExists)
+                {
+                    throw new ArgumentException("Không tìm thấy sạp hàng cần đánh giá.");
+                }
+            }
+
+            if (request.MarketId.HasValue && request.MarketId.Value > 0)
+            {
+                var marketExists = await _marketRepository.Query()
+                    .AnyAsync(m => m.MarketId == request.MarketId.Value && m.IsDeleted != true);
+                if (!marketExists)
+                {
+                    throw new ArgumentException("Không tìm thấy chợ cần đánh giá.");
+                }
             }
 
             var userExists = await _userRepository.Query()
@@ -85,14 +140,18 @@ namespace STMM.Business.Services
             }
 
             var review = _mapper.Map<Review>(request);
+            if (request.StallId.HasValue && request.StallId.Value <= 0) review.StallId = null;
+            if (request.MarketId.HasValue && request.MarketId.Value <= 0) review.MarketId = null;
             review.CreatedAt = DateTime.UtcNow;
 
             await _reviewRepository.AddAsync(review);
             await _reviewRepository.SaveChangesAsync();
 
-            // Fetch newly created review details with user name
+            // Fetch newly created review details with user name and stall/market
             var createdReview = await _reviewRepository.Query()
                 .Include(r => r.User)
+                .Include(r => r.Stall)
+                .Include(r => r.Market)
                 .FirstOrDefaultAsync(r => r.ReviewId == review.ReviewId);
 
             return _mapper.Map<ReviewDto>(createdReview);
@@ -130,6 +189,7 @@ namespace STMM.Business.Services
             var reviews = await _reviewRepository.Query()
                 .Include(r => r.User)
                 .Include(r => r.Stall)
+                .Include(r => r.Market)
                 .OrderByDescending(r => r.CreatedAt)
                 .Take(limit)
                 .ToListAsync();

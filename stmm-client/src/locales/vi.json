@@ -3290,6 +3290,8 @@
     "for_example_the_light": "VD: Bóng đèn khu A102 bị cháy...",
     "describe_specifically_the_problem": "Mô tả cụ thể vấn đề bạn đang gặp phải...",
     "violation_appeal_prefillviolationid": "Kháng nghị vi phạm #${prefillViolationId}",
+    "violation_appeal_title": "Kháng nghị vi phạm #{{id}}",
+    "invoice_dispute_title": "Khiếu nại hóa đơn #{{id}}",
     "waiting_for_approval": "Chờ duyệt",
     "no_complaints_yet_notified": "Chưa khiếu nại (Đã thông báo)",
     "appealing": "Đang kháng nghị",

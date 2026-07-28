@@ -68,19 +68,25 @@ namespace STMM.Business.Services
 
         public async Task<MarketMapDto?> GetMarketMapAsync(int marketId)
         {
-            var market = await _marketRepository.Query()
-                .Include(m => m.Areas.Where(a => a.IsDeleted != true))
-                    .ThenInclude(a => a.Category)
-                .Include(m => m.Areas.Where(a => a.IsDeleted != true))
-                    .ThenInclude(a => a.Stalls.Where(s => s.IsDeleted != true))
-                        .ThenInclude(s => s.Category)
-                .Include(m => m.Areas.Where(a => a.IsDeleted != true))
-                    .ThenInclude(a => a.Stalls.Where(s => s.IsDeleted != true))
-                        .ThenInclude(s => s.Contracts.Where(c => c.Status == "Active" && c.IsDeleted != true))
-                            .ThenInclude(c => c.Vendor)
+            var market = await _context.Markets
+                .AsNoTracking()
                 .FirstOrDefaultAsync(m => m.MarketId == marketId && m.IsDeleted != true);
 
             if (market == null) return null;
+
+            var areas = await _context.Areas
+                .AsNoTracking()
+                .Include(a => a.Category)
+                .Include(a => a.Stalls.Where(s => s.IsDeleted != true))
+                    .ThenInclude(s => s.Category)
+                .Include(a => a.Stalls.Where(s => s.IsDeleted != true))
+                    .ThenInclude(s => s.Contracts.Where(c => c.Status == "Active" && c.IsDeleted != true))
+                        .ThenInclude(c => c.Vendor)
+                .Where(a => a.MarketId == marketId && a.IsDeleted != true)
+                .OrderBy(a => a.AreaId)
+                .ToListAsync();
+
+            market.Areas = areas;
 
             var marketMapDto = _mapper.Map<MarketMapDto>(market);
 
@@ -91,9 +97,12 @@ namespace STMM.Business.Services
 
             foreach (var area in marketMapDto.Areas)
             {
-                area.Stalls = area.Stalls
-                    .OrderBy(s => s.Code)
-                    .ToList();
+                if (area.Stalls != null)
+                {
+                    area.Stalls = area.Stalls
+                        .OrderBy(s => s.Code)
+                        .ToList();
+                }
             }
 
             return marketMapDto;

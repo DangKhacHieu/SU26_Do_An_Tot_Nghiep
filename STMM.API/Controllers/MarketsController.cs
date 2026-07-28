@@ -47,6 +47,7 @@ namespace STMM.API.Controllers
         }
 
         [HttpGet("{marketId}/map")]
+        [AllowAnonymous]
         public async Task<ActionResult<MarketMapDto>> GetMarketMap(int marketId)
         {
             var marketMap = await _marketService.GetMarketMapAsync(marketId);

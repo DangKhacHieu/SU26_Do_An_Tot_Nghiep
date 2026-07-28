@@ -198,7 +198,7 @@ export default function Header({
               <button
                 type="button"
                 className={`nav-link dropdown-toggle ${
-                  window.location.pathname === "/stalls-map" ? "active" : ""
+                  window.location.pathname.startsWith("/stalls-map") ? "active" : ""
                 }`}
                 onClick={() => setIsMarketDropdownOpen(!isMarketDropdownOpen)}
               >

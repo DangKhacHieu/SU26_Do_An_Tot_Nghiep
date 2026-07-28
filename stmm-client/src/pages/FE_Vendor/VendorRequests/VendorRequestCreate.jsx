@@ -3,20 +3,23 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { showSuccess, showError, showWarning } from '../../../utils/alert';
 
-export default function VendorRequestCreate({ onBack, onSuccess, prefillViolationId, prefillStallId }) {
+export default function VendorRequestCreate({ onBack, onSuccess, prefillViolationId, prefillInvoiceId, prefillStallId }) {
   const { t } = useTranslation();
-
     const [stalls, setStalls] = useState([]);
     const [loadingStalls, setLoadingStalls] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
     
     // Form state
     const [stallId, setStallId] = useState(prefillStallId || '');
-    const [requestType, setRequestType] = useState(prefillViolationId ? 'ViolationAppeal' : 'FacilityIssue');
-    const [title, setTitle] = useState(prefillViolationId ? t('vendorrequestcreate.violation_appeal_prefillviolationid') : '');
+    const [requestType, setRequestType] = useState(prefillViolationId ? 'ViolationAppeal' : (prefillInvoiceId ? 'InvoiceDispute' : 'FacilityIssue'));
+    const [title, setTitle] = useState(
+      prefillViolationId 
+        ? t('vendorrequestcreate.violation_appeal_title', { id: prefillViolationId }) 
+        : (prefillInvoiceId ? t('vendorrequestcreate.invoice_dispute_title', { id: prefillInvoiceId }) : '')
+    );
     const [description, setDescription] = useState('');
     const [violationId, setViolationId] = useState(prefillViolationId || '');
-    const [invoiceId, setInvoiceId] = useState('');
+    const [invoiceId, setInvoiceId] = useState(prefillInvoiceId || '');
     
     // Data state
     const [violations, setViolations] = useState([]);
@@ -68,12 +71,11 @@ export default function VendorRequestCreate({ onBack, onSuccess, prefillViolatio
                 }
 
                 // Fetch invoices
-                const invoicesRes = await axios.get('http://localhost:5056/api/vendor/invoices', config);
-                if (Array.isArray(invoicesRes.data)) {
-                    setInvoices(invoicesRes.data);
-                    if (invoicesRes.data.length > 0) {
-                        setInvoiceId(invoicesRes.data[0].invoiceId);
-                    }
+                const invoicesRes = await axios.get('http://localhost:5056/api/vendor/invoices?pageSize=100', config);
+                const invoicesData = invoicesRes.data?.items || (Array.isArray(invoicesRes.data) ? invoicesRes.data : []);
+                setInvoices(invoicesData);
+                if (invoicesData.length > 0) {
+                    setInvoiceId(invoicesData[0].invoiceId);
                 }
 
             } catch (err) {
@@ -162,8 +164,8 @@ export default function VendorRequestCreate({ onBack, onSuccess, prefillViolatio
                         value={requestType} 
                         onChange={(e) => setRequestType(e.target.value)}
                         required
-                        disabled={!!prefillViolationId}
-                        style={{ width: '100%', padding: '12px', border: '1px solid #e5e7eb', borderRadius: '6px', outline: 'none', background: prefillViolationId ? '#f9fafb' : 'white', cursor: prefillViolationId ? 'not-allowed' : 'auto' }}>
+                        disabled={!!prefillViolationId || !!prefillInvoiceId}
+                        style={{ width: '100%', padding: '12px', border: '1px solid #e5e7eb', borderRadius: '6px', outline: 'none', background: (prefillViolationId || prefillInvoiceId) ? '#f9fafb' : 'white', cursor: (prefillViolationId || prefillInvoiceId) ? 'not-allowed' : 'auto' }}>
                         
                         <option value="FacilityIssue">{t('vendorrequestcreate.general_infrastructure_issue_facility')}</option>
                         <option value="ViolationAppeal">{t('vendorrequestcreate.violation_appeal')}</option>
@@ -202,7 +204,7 @@ export default function VendorRequestCreate({ onBack, onSuccess, prefillViolatio
                     </div>
                 )}
 
-                {requestType === 'InvoiceDispute' && (
+                {requestType === 'InvoiceDispute' && !prefillInvoiceId && (
                     <div>
                         <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', marginBottom: '8px' }}>{t('vendorrequestcreate.select_invoice')}</label>
                         {invoices.length === 0 ? (
@@ -215,15 +217,20 @@ export default function VendorRequestCreate({ onBack, onSuccess, prefillViolatio
                                 style={{ width: '100%', padding: '12px', border: '1px solid #e5e7eb', borderRadius: '6px', outline: 'none' }}>
                                 <option value="" disabled>{t('vendorrequestcreate.please_select_the_invoice')}</option>
                                 {invoices.map(inv => {
-                                    const isDisabled = inv.status === 'Paid';
                                     return (
-                                        <option key={inv.invoiceId} value={inv.invoiceId} disabled={isDisabled}>
+                                        <option key={inv.invoiceId} value={inv.invoiceId}>
                                             [{getInvoiceStatusText(inv.status)}] Hóa đơn Tháng {inv.month}/{inv.year} (Sạp {inv.stallCode}) - {inv.totalAmount?.toLocaleString()}đ
                                         </option>
                                     );
                                 })}
                             </select>
                         )}
+                    </div>
+                )}
+
+                {requestType === 'InvoiceDispute' && prefillInvoiceId && (
+                    <div style={{ display: 'none' }}>
+                        <input type="hidden" value={invoiceId} />
                     </div>
                 )}
 
