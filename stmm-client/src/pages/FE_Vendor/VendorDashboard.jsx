@@ -207,9 +207,6 @@ export default function VendorDashboard({ user, onBack, onLogout }) {
           ))}
         </nav>
 
-        <div style={{ padding: '8px 16px' }}>
-          <LanguageSwitcher />
-        </div>
 
         <div className="vendor-sidebar-footer">
           <button className="vendor-logout-btn" onClick={onLogout}>

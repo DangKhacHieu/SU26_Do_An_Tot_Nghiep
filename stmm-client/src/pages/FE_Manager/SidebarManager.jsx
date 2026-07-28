@@ -1,5 +1,4 @@
 import { useTranslation } from 'react-i18next';
-import LanguageSwitcher from '../../components/layout/LanguageSwitcher';
 import './SidebarManager.css';
 
 /**
@@ -213,11 +212,6 @@ export default function SidebarManager({ currentPage, navigate, user, onLogout }
           </nav>
         </div>
       ))}
-
-      {/* Language Switcher */}
-      <div style={{ padding: '8px 12px' }}>
-        <LanguageSwitcher />
-      </div>
 
       {/* Footer: current user info */}
       <div className="sidebar-footer">

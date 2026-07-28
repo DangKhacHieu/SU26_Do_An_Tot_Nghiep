@@ -831,6 +831,9 @@ function AppContent() {
               <h1>{pageInfo.title}</h1>
               <p>{pageInfo.sub}</p>
             </div>
+            <div className="header-actions-section" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <LanguageSwitcher />
+            </div>
           </header>
 
           <div className="dashboard-content">{renderPage()}</div>
