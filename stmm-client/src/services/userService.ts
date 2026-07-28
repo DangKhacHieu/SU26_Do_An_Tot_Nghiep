@@ -7,8 +7,10 @@ const API_BASE_URL = _rawUrl.endsWith('/api') ? _rawUrl : `${_rawUrl}/api`;
 const getApiErrorMessage = (error: any, fallback: string): string => {
   const data = error.response?.data;
 
+  if (typeof data === 'string' && data.trim()) return data;
   if (data?.message) return data.message;
   if (data?.detail) return data.detail;
+  if (data?.title) return data.title;
 
   if (data?.errors && typeof data.errors === 'object') {
     return Object.values(data.errors).flat().join(', ');
@@ -47,10 +49,23 @@ class UserService {
    */
   async updateProfile(userId: number, name: string, phone: string): Promise<UserDto> {
     try {
-      const response = await this.api.put<UserDto>(`/users/profile?userId=${userId}`, {
-        name,
-        phone,
-      });
+      let endpoint = (userId && Number(userId) > 0) ? `/users/profile?userId=${userId}` : `/users/profile/me`;
+      let response;
+      try {
+        response = await this.api.put<UserDto>(endpoint, {
+          name,
+          phone,
+        });
+      } catch (err: any) {
+        if (endpoint !== `/users/profile/me`) {
+          response = await this.api.put<UserDto>(`/users/profile/me`, {
+            name,
+            phone,
+          });
+        } else {
+          throw err;
+        }
+      }
 
       // Cập nhật thông tin user trong localStorage
       const userStr = localStorage.getItem('user');
@@ -58,8 +73,9 @@ class UserService {
         const currentUser = JSON.parse(userStr);
         const updatedUser = {
           ...currentUser,
-          name: response.data.name,
-          phone: response.data.phone,
+          ...response.data,
+          name: response.data?.name || name,
+          phone: response.data?.phone || phone,
         };
         localStorage.setItem('user', JSON.stringify(updatedUser));
         return updatedUser;

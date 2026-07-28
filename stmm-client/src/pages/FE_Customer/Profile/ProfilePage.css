@@ -111,16 +111,18 @@
 
 .profile-page-grid {
   display: grid;
-  grid-template-columns: 1.3fr 0.9fr;
-  gap: 24px;
+  grid-template-columns: 420px 1fr;
+  gap: 28px;
+  align-items: start;
 }
 
 .profile-detail-card,
 .profile-activity-card {
-  background: white;
-  border-radius: 28px;
-  padding: 28px;
-  box-shadow: 0 30px 70px rgba(23, 36, 17, 0.08);
+  background: #ffffff;
+  border-radius: 24px;
+  padding: 32px;
+  border: 1px solid #e2e8dc;
+  box-shadow: 0 16px 40px rgba(23, 36, 17, 0.05);
 }
 
 .profile-detail-head {
@@ -128,45 +130,88 @@
   align-items: center;
   gap: 20px;
   margin-bottom: 28px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid #f0f4ec;
 }
 
 .profile-avatar-large {
-  width: 86px;
-  height: 86px;
-  border-radius: 24px;
+  width: 76px;
+  height: 76px;
+  border-radius: 20px;
   display: grid;
   place-items: center;
-  background: #1d2818;
+  background: linear-gradient(135deg, #1d2818 0%, #34482c 100%);
   color: white;
-  font-size: 1.8rem;
+  font-size: 1.7rem;
   font-weight: 800;
+  box-shadow: 0 10px 24px rgba(29, 40, 24, 0.2);
+  flex-shrink: 0;
+}
+
+.profile-head-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.profile-badges-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
 }
 
 .profile-role-badge {
   display: inline-flex;
-  margin-bottom: 10px;
-  padding: 8px 14px;
+  padding: 4px 12px;
   border-radius: 999px;
   background: #eef2ec;
   color: #4f5f45;
-  font-size: 0.8rem;
-  letter-spacing: 0.02em;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
-.profile-detail-head h2 {
-  margin: 0 0 8px;
-  font-size: 1.9rem;
+.profile-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #e8f5e9;
+  color: #2e7d32;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
 }
 
-.profile-detail-head p {
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #2e7d32;
+  display: inline-block;
+}
+
+.profile-detail-head h2 {
+  margin: 0 0 4px;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #1d2818;
+}
+
+.profile-email-text {
   margin: 0;
   color: #6b755d;
+  font-size: 0.9rem;
+  word-break: break-all;
 }
 
 .profile-detail-list {
   display: grid;
-  gap: 14px;
+  gap: 12px;
 }
 
 .profile-detail-item {
@@ -174,52 +219,72 @@
   justify-content: space-between;
   align-items: center;
   gap: 12px;
-  padding: 18px 20px;
-  border-radius: 18px;
-  background: #f5f7f1;
+  padding: 16px 20px;
+  border-radius: 16px;
+  background: #f8faf6;
+  border: 1px solid #ebf0e6;
 }
 
-.profile-detail-item span {
-  color: #6b755d;
-  font-size: 0.94rem;
+.item-label-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #5c6b52;
+  font-size: 0.92rem;
+  font-weight: 500;
+}
+
+.item-icon {
+  font-size: 1.1rem;
 }
 
 .profile-detail-item strong {
   color: #1d2818;
+  font-size: 0.95rem;
+  font-weight: 700;
 }
 
 .profile-detail-actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
-  margin-top: 24px;
+  margin-top: 28px;
 }
 
 .profile-action-btn {
   border: none;
-  border-radius: 16px;
-  padding: 14px 20px;
+  border-radius: 14px;
+  padding: 14px 16px;
   cursor: pointer;
   font-weight: 700;
-  transition: transform 0.2s, opacity 0.2s;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s ease;
 }
 
 .profile-action-primary {
   background: #1d2818;
   color: white;
+  box-shadow: 0 4px 14px rgba(29, 40, 24, 0.15);
 }
 
 .profile-action-primary:hover {
+  background: #2a3b23;
   transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(29, 40, 24, 0.25);
 }
 
 .profile-action-secondary {
-  background: #eef2ec;
+  background: #f4f7f2;
   color: #1d2818;
-  border: 1px solid #d0d8ca;
+  border: 1px solid #d4decb;
 }
 
 .profile-action-secondary:hover {
+  background: #eaf0e6;
   transform: translateY(-2px);
 }
 

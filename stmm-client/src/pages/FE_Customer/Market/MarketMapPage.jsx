@@ -172,11 +172,11 @@ export default function MarketMapPage({
   const handleSubmitFeedback = async (e) => {
     e.preventDefault();
     if (!user) {
-      setFbError("Please log in to submit a review for this market.");
+      setFbError(t("marketmappage.login_required_review"));
       return;
     }
     if (!fbContent.trim()) {
-      setFbError("Please enter your review comment.");
+      setFbError(t("marketmappage.comment_required"));
       return;
     }
 
@@ -187,19 +187,19 @@ export default function MarketMapPage({
     try {
       const userId = user.userId || user.id || user.UserId;
       if (!userId) {
-        setFbError("Invalid user session. Please log in again.");
+        setFbError(t("marketmappage.session_invalid"));
         return;
       }
       await submitMarketReview(marketId, userId, fbRating, fbContent.trim());
       setFbContent("");
       setFbRating(5);
-      setFbSuccess("Market review submitted successfully! Thank you for your feedback.");
+      setFbSuccess(t("marketmappage.review_submitted_success"));
       loadMarketFeedbacks(marketId);
     } catch (err) {
       console.error("Error submitting market review:", err);
       const errMsg = typeof err.response?.data === 'string'
         ? err.response.data
-        : err.response?.data?.message || err.message || "Unable to submit review. Please try again.";
+        : err.response?.data?.message || err.message || t("marketmappage.unable_to_submit");
       setFbError(errMsg);
     } finally {
       setFbSubmitting(false);
@@ -347,16 +347,16 @@ export default function MarketMapPage({
         {!marketId ? (
           <div className="markets-directory-container">
             <div className="directory-header-banner">
-              <h1>🏪 Smart Market Directory</h1>
+              <h1>🏪 {t("marketmappage.directory_title")}</h1>
               <p>
-                Select a market below to view interactive 2D floor plans, stall details, and customer reviews.
+                {t("marketmappage.directory_subtitle")}
               </p>
 
               <div className="directory-search-wrapper">
                 <span className="search-icon">🔍</span>
                 <input
                   type="text"
-                  placeholder="Search markets by name or address..."
+                  placeholder={t("marketmappage.search_markets_placeholder")}
                   value={marketSearchQuery}
                   onChange={(e) => setMarketSearchQuery(e.target.value)}
                 />
@@ -375,13 +375,13 @@ export default function MarketMapPage({
             {loadingMarkets ? (
               <div className="map-loading-box">
                 <div className="spinner"></div>
-                <p>Loading markets list...</p>
+                <p>{t("marketmappage.loading_markets_list")}</p>
               </div>
             ) : filteredMarketList.length === 0 ? (
               <div className="directory-empty-card">
                 <div className="empty-icon">🏪</div>
-                <h3>No matching markets found</h3>
-                <p>Try searching with a different keyword or return to home page.</p>
+                <h3>{t("marketmappage.no_matching_markets")}</h3>
+                <p>{t("marketmappage.try_different_keyword")}</p>
               </div>
             ) : (
               <div className="markets-cards-grid">
@@ -396,20 +396,20 @@ export default function MarketMapPage({
                       <div className="market-icon-box">🏬</div>
                       <h3>{m.marketName || m.name}</h3>
                     </div>
-                    <p className="market-card-address">📍 {m.address || "Address not updated"}</p>
+                    <p className="market-card-address">📍 {m.address || "..."}</p>
 
                     <div className="market-card-stats">
                       <div className="stat-item">
-                        <span className="stat-label">📐 Size</span>
+                        <span className="stat-label">📐 {t("marketmappage.stat_size")}</span>
                         <strong className="stat-val">{m.size || 0} m²</strong>
                       </div>
                       <div className="stat-item">
-                        <span className="stat-label">🗺 Areas</span>
-                        <strong className="stat-val">{m.areasCount || m.areas?.length || 0} areas</strong>
+                        <span className="stat-label">🗺 {t("marketmappage.stat_areas")}</span>
+                        <strong className="stat-val">{m.areasCount || m.areas?.length || 0}</strong>
                       </div>
                       <div className="stat-item">
-                        <span className="stat-label">🏪 Stalls</span>
-                        <strong className="stat-val">{m.stallsCount || 0} kiosks</strong>
+                        <span className="stat-label">🏪 {t("marketmappage.stat_stalls")}</span>
+                        <strong className="stat-val">{m.stallsCount || 0}</strong>
                       </div>
                     </div>
 
@@ -421,7 +421,7 @@ export default function MarketMapPage({
                         onGoToStallsMap(m.marketId);
                       }}
                     >
-                      View Market Map →
+                      {t("marketmappage.view_market_map")} →
                     </button>
                   </div>
                 ))}
@@ -432,18 +432,18 @@ export default function MarketMapPage({
           /* CASE 2: marketId is selected -> Loading Map state */
           <div className="map-loading-box">
             <div className="spinner"></div>
-            <p>Loading market layout and stalls...</p>
+            <p>{t("marketmappage.loading_layout")}</p>
           </div>
         ) : error ? (
           <div className="map-error-card">
-            <h2>Error Loading Market Map</h2>
+            <h2>{t("marketmappage.error_loading")}</h2>
             <p>{error}</p>
             <button
               type="button"
               className="btn-action-primary"
               onClick={() => onGoToStallsMap(null)}
             >
-              ← Back to Markets List
+              ← {t("marketmappage.back_to_list")}
             </button>
           </div>
         ) : (
@@ -456,7 +456,7 @@ export default function MarketMapPage({
                 className="btn-back-link"
                 onClick={() => onGoToStallsMap(null)}
               >
-                ← All Markets
+                ← {t("marketmappage.all_markets")}
               </button>
               <span className="nav-breadcrumb">/ {marketMap.marketName}</span>
             </div>
@@ -476,7 +476,7 @@ export default function MarketMapPage({
                     <span className="search-icon">🔍</span>
                     <input
                       type="text"
-                      placeholder="Search stalls (e.g. A-01, Vegetables, Fresh Food...)"
+                      placeholder={t("marketmappage.search_stalls_placeholder")}
                       value={searchQuery}
                       onChange={(e) => {
                         setSearchQuery(e.target.value);
@@ -508,10 +508,10 @@ export default function MarketMapPage({
                           <div className="suggestion-info">
                             <strong>
                               {stall.businessName
-                                ? `${stall.businessName} (Stall ${stall.code})`
-                                : `Stall ${stall.code}`}
+                                ? `${stall.businessName} (${stall.code})`
+                                : stall.code}
                             </strong>
-                            <span>{stall.categoryName || "Uncategorized"}</span>
+                            <span>{stall.categoryName || "..."}</span>
                           </div>
                           <span className="suggestion-area">{stall.areaName}</span>
                         </li>
@@ -710,15 +710,15 @@ export default function MarketMapPage({
                 <div className="map-legend-bar">
                   <div className="legend-item">
                     <span className="legend-color occupied"></span>
-                    <span>Đã thuê (Occupied)</span>
+                    <span>{t("marketmappage.status_occupied")}</span>
                   </div>
                   <div className="legend-item">
                     <span className="legend-color available"></span>
-                    <span>Còn trống (Available)</span>
+                    <span>{t("marketmappage.status_available")}</span>
                   </div>
                   <div className="legend-item">
                     <span className="legend-color maintenance"></span>
-                    <span>Đang bảo trì (Maintenance)</span>
+                    <span>{t("marketmappage.status_maintenance")}</span>
                   </div>
                 </div>
               </div>
@@ -728,7 +728,7 @@ export default function MarketMapPage({
                 {selectedStall ? (
                   <div className="stall-details-card">
                     <div className="details-card-header">
-                      <span className="stall-badge-code">Stall {selectedStall.code}</span>
+                      <span className="stall-badge-code">{selectedStall.code}</span>
                       <span
                         className={`status-pill ${
                           selectedStall.status === "Occupied"
@@ -739,33 +739,33 @@ export default function MarketMapPage({
                         }`}
                       >
                         {selectedStall.status === "Occupied"
-                          ? "Đã thuê (Occupied)"
+                          ? t("marketmappage.status_occupied")
                           : selectedStall.status === "Available"
-                          ? "Còn trống (Available)"
-                          : "Đang bảo trì (Maintenance)"}
+                          ? t("marketmappage.status_available")
+                          : t("marketmappage.status_maintenance")}
                       </span>
                     </div>
 
-                    <h3>{selectedStall.businessName || `Kiosk Stall ${selectedStall.code}`}</h3>
-                    <p className="area-location">📍 Area: {selectedStall.areaName}</p>
+                    <h3>{selectedStall.businessName || `${selectedStall.code}`}</h3>
+                    <p className="area-location">📍 {selectedStall.areaName}</p>
 
                     <div className="stall-spec-grid">
                       <div className="spec-row">
-                        <span className="spec-label">Category:</span>
+                        <span className="spec-label">{t("marketmappage.category")}</span>
                         <strong className="spec-val">
-                          {selectedStall.categoryName || "Updating..."}
+                          {selectedStall.categoryName || "..."}
                         </strong>
                       </div>
                       <div className="spec-row">
-                        <span className="spec-label">Listed Price:</span>
+                        <span className="spec-label">{t("marketmappage.listed_price")}</span>
                         <strong className="spec-val price">
                           {selectedStall.price
-                            ? `${selectedStall.price.toLocaleString("vi-VN")} VND/month`
-                            : "Contact Management"}
+                            ? `${selectedStall.price.toLocaleString("vi-VN")} VND`
+                            : t("marketmappage.contact_management")}
                         </strong>
                       </div>
                       <div className="spec-row">
-                        <span className="spec-label">Dimensions:</span>
+                        <span className="spec-label">{t("marketmappage.dimensions")}</span>
                         <strong className="spec-val">
                           {selectedStall.width && selectedStall.height
                             ? `${Math.round(selectedStall.width / 10)}m x ${Math.round(
@@ -775,11 +775,11 @@ export default function MarketMapPage({
                         </strong>
                       </div>
                       <div className="spec-row">
-                        <span className="spec-label">Stall Rating:</span>
+                        <span className="spec-label">{t("marketmappage.stall_rating")}</span>
                         <strong className="spec-val rating">
                           {ratingSummary && ratingSummary.totalReviews > 0
-                            ? `★ ${ratingSummary.averageRating} (${ratingSummary.totalReviews} reviews)`
-                            : "No reviews yet"}
+                            ? `★ ${ratingSummary.averageRating} (${ratingSummary.totalReviews})`
+                            : t("marketmappage.no_reviews_yet")}
                         </strong>
                       </div>
                     </div>
@@ -790,7 +790,7 @@ export default function MarketMapPage({
                         className="btn-drawer-primary"
                         onClick={() => onGoToStallDetail(selectedStall.stallId)}
                       >
-                        View Stall Details →
+                        {t("marketmappage.view_stall_details")} →
                       </button>
                       <button
                         type="button"
@@ -800,16 +800,16 @@ export default function MarketMapPage({
                           setRatingSummary(null);
                         }}
                       >
-                        Close Details
+                        {t("marketmappage.close_details")}
                       </button>
                     </div>
                   </div>
                 ) : (
                   <div className="details-placeholder-card">
                     <div className="placeholder-illustration">🏪</div>
-                    <h3>Stall Information</h3>
+                    <h3>{t("marketmappage.stall_info_title")}</h3>
                     <p>
-                      Click on any stall on the interactive market map or use search to view detailed information.
+                      {t("marketmappage.stall_info_hint")}
                     </p>
                   </div>
                 )}
@@ -820,24 +820,24 @@ export default function MarketMapPage({
             <section className="market-feedback-section">
               <div className="feedback-section-header">
                 <div>
-                  <h2>💬 Market Reviews & Feedback for {marketMap.marketName}</h2>
-                  <p>Community reviews and feedback help improve market service quality.</p>
+                  <h2>💬 {t("marketmappage.market_reviews_title")} {marketMap.marketName}</h2>
+                  <p>{t("marketmappage.community_reviews_subtitle")}</p>
                 </div>
                 <div className="feedback-summary-badge">
                   <span className="score">★ {avgMarketRating}</span>
-                  <span className="count">({feedbacks.length} reviews)</span>
+                  <span className="count">({feedbacks.length})</span>
                 </div>
               </div>
 
               {/* Form submit feedback */}
               <div className="feedback-form-card">
-                <h3>✍️ Submit Market Review</h3>
+                <h3>✍️ {t("marketmappage.submit_review_title")}</h3>
                 {fbError && <div className="fb-alert error">{fbError}</div>}
                 {fbSuccess && <div className="fb-alert success">{fbSuccess}</div>}
 
                 <form onSubmit={handleSubmitFeedback}>
                   <div className="form-field">
-                    <label>Overall Rating (Stars):</label>
+                    <label>{t("marketmappage.overall_rating")}</label>
                     <div className="star-picker">
                       {[1, 2, 3, 4, 5].map((star) => (
                         <span
@@ -848,15 +848,15 @@ export default function MarketMapPage({
                           ★
                         </span>
                       ))}
-                      <span className="star-text">({fbRating} / 5 stars)</span>
+                      <span className="star-text">({fbRating} / 5)</span>
                     </div>
                   </div>
 
                   <div className="form-field">
-                    <label>Your Review:</label>
+                    <label>{t("marketmappage.your_review")}</label>
                     <textarea
                       rows={3}
-                      placeholder="Share your review about shopping experience or market services..."
+                      placeholder={t("marketmappage.review_placeholder")}
                       value={fbContent}
                       onChange={(e) => setFbContent(e.target.value)}
                     ></textarea>
@@ -868,11 +868,11 @@ export default function MarketMapPage({
                       className="btn-submit-fb"
                       disabled={fbSubmitting}
                     >
-                      {fbSubmitting ? "Submitting..." : "Submit Review"}
+                      {fbSubmitting ? t("marketmappage.submitting") : t("marketmappage.submit_review_btn")}
                     </button>
                     {!user && (
                       <span className="guest-note">
-                        💡 Please <button type="button" className="inline-login-btn" onClick={onGoToLogin}>Login</button> to submit a review with your account.
+                        💡 {t("marketmappage.login_to_submit")}
                       </span>
                     )}
                   </div>
@@ -881,11 +881,11 @@ export default function MarketMapPage({
 
               {/* Feedbacks List */}
               <div className="feedbacks-list-container">
-                <h3>📋 Customer Reviews ({feedbacks.length})</h3>
+                <h3>📋 {t("marketmappage.customer_reviews_title")} ({feedbacks.length})</h3>
 
                 {feedbacks.length === 0 ? (
                   <div className="no-feedbacks-card">
-                    <p>No reviews for this market yet. Be the first to leave a review!</p>
+                    <p>{t("marketmappage.no_reviews_market")}</p>
                   </div>
                 ) : (
                   <div className="feedbacks-grid">
@@ -897,11 +897,11 @@ export default function MarketMapPage({
                               {(fb.userName || "C").charAt(0).toUpperCase()}
                             </div>
                             <div>
-                              <strong>{fb.userName || "Customer"}</strong>
+                              <strong>{fb.userName || t("homepage_reviews.customer")}</strong>
                               <span className="fb-date" style={{ display: "block", fontSize: 12, color: "#888" }}>
                                 {fb.createdAt
-                                  ? new Date(fb.createdAt).toLocaleDateString("en-US")
-                                  : "Recently"}
+                                  ? new Date(fb.createdAt).toLocaleDateString()
+                                  : ""}
                               </span>
                             </div>
                           </div>

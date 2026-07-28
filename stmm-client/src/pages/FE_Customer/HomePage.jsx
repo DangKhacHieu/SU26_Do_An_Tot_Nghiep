@@ -45,9 +45,9 @@ export default function HomePage({
       try {
         const data = await getAllMarkets();
         const activeOnly = (data || []).filter(
-          (m) => (m.status || m.Status || "").toLowerCase() === "active"
+          (m) => !m.status || (m.status || m.Status || "").toLowerCase() === "active"
         );
-        setMarkets(activeOnly);
+        setMarkets(activeOnly.length > 0 ? activeOnly : (data || []));
       } catch (error) {
         console.error("Error fetching markets on home page:", error);
       } finally {
@@ -73,12 +73,11 @@ export default function HomePage({
 
     const fetchRecentReviews = async () => {
       try {
-        const data = await getRecentReviews(20);
+        const data = await getRecentReviews(50);
         // Filter for market reviews only and sort by newest createdAt, take top 3
         const marketReviewsOnly = (data || [])
           .filter((r) => r.marketId && r.marketId > 0)
-          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-          .slice(0, 3);
+          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
         setRecentReviews(marketReviewsOnly);
       } catch (error) {
@@ -93,10 +92,15 @@ export default function HomePage({
     fetchRecentReviews();
   }, []);
 
-  // Compute stats dynamically
+  // Compute stats dynamically from real database data
   const totalMarketsCount = markets.length;
   const totalAreasCount = markets.reduce((sum, m) => sum + (m.areasCount || 0), 0);
   const totalStallsCount = markets.reduce((sum, m) => sum + (m.stallsCount || 0), 0);
+
+  const averageRating = recentReviews.length > 0
+    ? recentReviews.reduce((sum, r) => sum + (r.rating || 5), 0) / recentReviews.length
+    : 4.9;
+  const satisfactionRate = Math.round((averageRating / 5) * 100);
 
   const handleScrollToMarkets = () => {
     const el = document.getElementById("markets-directory");
@@ -249,19 +253,19 @@ export default function HomePage({
 
       <section className="stats-strip">
         <div className="strip-item">
-          <strong>{totalMarketsCount || 4}</strong>
+          <strong>{loadingMarkets ? "..." : totalMarketsCount}</strong>
           <span>{t("homepage.member_markets")}</span>
         </div>
         <div className="strip-item">
-          <strong>{totalAreasCount || 16}</strong>
+          <strong>{loadingMarkets ? "..." : totalAreasCount}</strong>
           <span>{t("homepage.market_sections")}</span>
         </div>
         <div className="strip-item">
-          <strong>{totalStallsCount || 120}+</strong>
+          <strong>{loadingMarkets ? "..." : (totalStallsCount > 0 ? `${totalStallsCount}+` : 0)}</strong>
           <span>{t("homepage.active_stalls_stat")}</span>
         </div>
         <div className="strip-item">
-          <strong>98%</strong>
+          <strong>{loadingReviews ? "..." : `${satisfactionRate}%`}</strong>
           <span>{t("homepage.merchant_satisfaction")}</span>
         </div>
       </section>
@@ -424,18 +428,18 @@ export default function HomePage({
       {/* Community Market Feedback & Reviews Section */}
       <section className="home-reviews-section">
         <div className="section-heading center">
-          <h2>💬 Latest Market Reviews & Feedback</h2>
-          <p>Read the 3 newest feedback reviews from customers across our smart market halls.</p>
+          <h2>{t("homepage_reviews.title")}</h2>
+          <p>{t("homepage_reviews.desc")}</p>
         </div>
 
         {loadingReviews ? (
           <div className="markets-loading-container">
             <div className="loading-spinner"></div>
-            <p>Loading community reviews...</p>
+            <p>{t("homepage_reviews.loading")}</p>
           </div>
         ) : recentReviews.length === 0 ? (
           <div className="markets-empty-container">
-            <p>No community reviews yet.</p>
+            <p>{t("homepage_reviews.empty")}</p>
           </div>
         ) : (
           <div className="home-reviews-grid">
@@ -457,7 +461,7 @@ export default function HomePage({
                       {(rev.userName || "C").charAt(0).toUpperCase()}
                     </div>
                     <div>
-                      <strong>{rev.userName || "Customer"}</strong>
+                      <strong>{rev.userName || t("homepage_reviews.customer")}</strong>
                       <span className="review-date">
                         {rev.createdAt
                           ? new Date(rev.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
@@ -471,15 +475,15 @@ export default function HomePage({
                   </div>
                 </div>
 
-                <p className="review-comment-text">"{rev.comment || "No comment provided."}"</p>
+                <p className="review-comment-text">"{rev.comment || "..."}"</p>
 
                 <div className="review-target-tag">
                   {rev.marketId ? (
-                    <span className="tag-market">🏪 Market: {rev.marketName || "Smart Market"}</span>
+                    <span className="tag-market">🏪 {t("homepage_reviews.market")} {rev.marketName || "Smart Market"}</span>
                   ) : rev.stallCode ? (
-                    <span className="tag-stall">🏬 Stall: {rev.stallCode}</span>
+                    <span className="tag-stall">🏬 {t("homepage_reviews.stall")} {rev.stallCode}</span>
                   ) : (
-                    <span className="tag-general">⭐ Customer Feedback</span>
+                    <span className="tag-general">⭐ {t("homepage_reviews.customer_feedback")}</span>
                   )}
                 </div>
               </div>

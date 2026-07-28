@@ -165,7 +165,7 @@ export default function LoginForm({ onBack, onGoToRegister, onGoToForgotPassword
               <button type="button" onClick={onGoToForgotPassword}>{t('loginform.forgot_password')}</button>
             </div>
 
-            {error && <div className="modern-message error">{error}</div>}
+            {error && <div className="modern-message error">{t(error)}</div>}
 
             <button
               type="submit"

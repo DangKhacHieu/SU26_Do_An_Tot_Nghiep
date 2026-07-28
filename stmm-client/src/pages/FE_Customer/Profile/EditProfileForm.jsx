@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import Header from "../Layout/Header";
 import Footer from "../Layout/Footer";
 import userService from "../../../services/userService";
@@ -14,6 +15,7 @@ export default function EditProfileForm({
   onLogout,
   onProfileUpdated,
 }) {
+  const { t } = useTranslation();
   const [formData, setFormData] = useState({
     name: user?.name || "",
     email: user?.email || "",
@@ -33,24 +35,41 @@ export default function EditProfileForm({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
     setError("");
     setMessage("");
 
+    const phoneTrimmed = (formData.phone || "").trim();
+    if (!phoneTrimmed) {
+      setError("editprofile.phone_required");
+      return;
+    }
+    if (!/^\d+$/.test(phoneTrimmed)) {
+      setError("editprofile.phone_only_digits");
+      return;
+    }
+    if (!/^\d{9,11}$/.test(phoneTrimmed) || (phoneTrimmed.length === 10 && !/^0/.test(phoneTrimmed))) {
+      setError("editprofile.invalid_phone_format");
+      return;
+    }
+
+    setLoading(true);
+
     try {
+      const targetUserId = user?.userId || user?.id || user?.UserId;
       const updatedUser = await userService.updateProfile(
-        user.userId,
+        targetUserId,
         formData.name,
-        formData.phone
+        phoneTrimmed
       );
-      setMessage("Profile updated successfully!");
+      setMessage("editprofile.update_success");
       setTimeout(() => {
         if (onProfileUpdated) {
           onProfileUpdated(updatedUser);
         }
       }, 1500);
     } catch (err) {
-      setError(err.message || "Failed to update profile");
+      console.error("Update profile error:", err);
+      setError(err.message || "editprofile.update_failed");
     } finally {
       setLoading(false);
     }
@@ -69,28 +88,28 @@ export default function EditProfileForm({
       <main className="edit-profile-page">
         <div className="edit-profile-container">
           <div className="edit-profile-header">
-            <h1>Edit Profile</h1>
-            <p>Update your personal information</p>
+            <h1>{t("editprofile.title")}</h1>
+            <p>{t("editprofile.subtitle")}</p>
           </div>
 
           <form onSubmit={handleSubmit} className="edit-profile-form">
-            {error && <div className="form-error">{error}</div>}
-            {message && <div className="form-success">{message}</div>}
+            {error && <div className="form-error">{t(error)}</div>}
+            {message && <div className="form-success">{t(message)}</div>}
 
             <div className="form-group">
-              <label>Full Name</label>
+              <label>{t("editprofile.full_name")}</label>
               <input
                 type="text"
                 name="name"
                 value={formData.name}
                 onChange={handleChange}
-                placeholder="Your full name"
+                placeholder={t("editprofile.placeholder_name")}
                 required
               />
             </div>
 
             <div className="form-group">
-              <label>Email</label>
+              <label>{t("editprofile.email")}</label>
               <input
                 type="email"
                 name="email"
@@ -99,23 +118,23 @@ export default function EditProfileForm({
                 placeholder="your@email.com"
                 disabled
               />
-              <small>Email cannot be changed</small>
+              <small>{t("editprofile.email_note")}</small>
             </div>
 
             <div className="form-group">
-              <label>Phone Number</label>
+              <label>{t("editprofile.phone_number")}</label>
               <input
                 type="tel"
                 name="phone"
                 value={formData.phone}
                 onChange={handleChange}
-                placeholder="+84 xxx xxx xxx"
+                placeholder={t("editprofile.placeholder_phone")}
               />
             </div>
 
             <div className="form-actions">
               <button type="submit" className="btn-primary" disabled={loading}>
-                {loading ? "Updating..." : "Save Changes"}
+                {loading ? t("editprofile.updating") : t("editprofile.save_changes")}
               </button>
               <button
                 type="button"
@@ -123,7 +142,7 @@ export default function EditProfileForm({
                 onClick={onBack}
                 disabled={loading}
               >
-                Cancel
+                {t("common.cancel")}
               </button>
             </div>
           </form>

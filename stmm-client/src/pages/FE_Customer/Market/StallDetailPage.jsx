@@ -100,11 +100,11 @@ export default function StallDetailPage({
         if (data) {
           setStall(data);
         } else {
-          setError("Stall information not found.");
+          setError(t("stalldetailpage.not_found"));
         }
       } catch (err) {
         console.error("Error loading stall detail:", err);
-        setError("Could not load stall details from server.");
+        setError(t("stalldetailpage.server_error"));
       } finally {
         setLoading(false);
       }
@@ -125,7 +125,7 @@ export default function StallDetailPage({
     e.preventDefault();
     if (!user) return;
     if (newRating < 1 || newRating > 5) {
-      setSubmitError("Rating score must be between 1 and 5 stars.");
+      setSubmitError(t("stalldetailpage.invalid_rating"));
       return;
     }
 
@@ -140,7 +140,7 @@ export default function StallDetailPage({
     } catch (err) {
       console.error(t('stalldetailpage.error_when_submitting_review'), err);
       setSubmitError(
-        err.response?.data || "Could not submit review to the server. Please try again."
+        err.response?.data || t("stalldetailpage.submit_failed")
       );
     } finally {
       setSubmitting(false);
@@ -203,14 +203,14 @@ export default function StallDetailPage({
           {loading ? (
             <div className="detail-loading-box">
               <div className="spinner"></div>
-              <p>Loading stall details...</p>
+              <p>{t("stalldetailpage.loading_stall")}</p>
             </div>
           ) : error ? (
             <div className="detail-error-card">
-              <h2>Error loading data</h2>
+              <h2>{t("stalldetailpage.error_loading_data")}</h2>
               <p>{error}</p>
               <button type="button" className="btn-action-primary" onClick={onBack}>
-                Back
+                {t("common.back")}
               </button>
             </div>
           ) : stall ? (
@@ -227,7 +227,6 @@ export default function StallDetailPage({
 
               <div className="stall-card-content">
                 <div className="content-meta">
-                  <span className="meta-tag">UC-18 Stall Profile</span>
                   <span
                     className="status-badge"
                     style={{ backgroundColor: getStatusColor(stall.status) }}
@@ -236,31 +235,31 @@ export default function StallDetailPage({
                   </span>
                 </div>
 
-                <h1>Detailed Information of Stall {stall.code}</h1>
+                <h1>{t("stalldetailpage.detailed_info_title", { code: stall.code })}</h1>
                 <p className="stall-intro">
-                  View full specifications, registration status, and fire insurance policies of the stall.
+                  {t("stalldetailpage.detailed_info_intro")}
                 </p>
 
                 <div className="info-grid">
                   <div className="info-item">
-                    <span className="info-label">Section area:</span>
+                    <span className="info-label">{t("stalldetailpage.section_area")}</span>
                     <strong className="info-val">{stall.areaName || "N/A"}</strong>
                   </div>
 
                   <div className="info-item">
-                    <span className="info-label">Business category:</span>
+                    <span className="info-label">{t("stalldetailpage.business_category")}</span>
                     <strong className="info-val">{stall.categoryName || "None"}</strong>
                   </div>
 
                   <div className="info-item">
-                    <span className="info-label">Floor area:</span>
+                    <span className="info-label">{t("stalldetailpage.floor_area")}</span>
                     <strong className="info-val">
                       {stall.size ? `${stall.size} m²` : "N/A"}
                     </strong>
                   </div>
 
                   <div className="info-item">
-                    <span className="info-label">Display size:</span>
+                    <span className="info-label">{t("stalldetailpage.display_size")}</span>
                     <strong className="info-val">
                       {stall.width && stall.height
                         ? `${Math.round(stall.width / 10)}m x ${Math.round(stall.height / 10)}m`
@@ -269,24 +268,24 @@ export default function StallDetailPage({
                   </div>
 
                   <div className="info-item">
-                    <span className="info-label">Display rotation angle:</span>
+                    <span className="info-label">{t("stalldetailpage.rotation_angle")}</span>
                     <strong className="info-val">{stall.rotation || 0}°</strong>
                   </div>
 
                   <div className="info-item">
-                    <span className="info-label">Stall creation date:</span>
+                    <span className="info-label">{t("stalldetailpage.creation_date")}</span>
                     <strong className="info-val">
                       {stall.createdAt
-                        ? new Date(stall.createdAt).toLocaleDateString("en-US")
+                        ? new Date(stall.createdAt).toLocaleDateString()
                         : "N/A"}
                     </strong>
                   </div>
 
                   {stall.fireInsuranceExpiry && (
                     <div className="info-item insurance-alert">
-                      <span className="info-label">Fire insurance expiry:</span>
+                      <span className="info-label">{t("stalldetailpage.fire_insurance_expiry")}</span>
                       <strong className="info-val">
-                        {new Date(stall.fireInsuranceExpiry).toLocaleDateString("en-US")}
+                        {new Date(stall.fireInsuranceExpiry).toLocaleDateString()}
                       </strong>
                     </div>
                   )}
@@ -298,33 +297,33 @@ export default function StallDetailPage({
                     className="btn-action-primary"
                     onClick={() =>
                       alert(
-                        `Contact the Market Management via hotline: 1900-STMM or email support@stmm.com to register for renting Stall ${stall.code}.`
+                        t("stalldetailpage.contact_manager_alert", { code: stall.code })
                       )
                     }
                   >
-                    Register to rent stall
+                    {t("stalldetailpage.register_rent")}
                   </button>
                   <button
                     type="button"
                     className="btn-action-secondary"
                     onClick={onBack}
                   >
-                    Back to blueprint layout
+                    {t("stalldetailpage.back_to_blueprint")}
                   </button>
                 </div>
               </div>
             </div>
 
             <div className="reviews-card">
-              <h2>Reviews & Ratings</h2>
+              <h2>{t("stalldetailpage.reviews_ratings_title")}</h2>
               <p style={{ color: "#617157", fontSize: "14px", marginBottom: "20px" }}>
-                Customer and community feedback on Stall {stall.code}.
+                {t("stalldetailpage.reviews_subtitle", { code: stall.code })}
               </p>
 
               {reviewsLoading && reviewsData.reviews.length === 0 ? (
                 <div style={{ textAlign: "center", padding: "20px" }}>
                   <div className="spinner" style={{ margin: "0 auto 10px", width: "32px", height: "32px" }}></div>
-                  <p style={{ color: "#617157", fontSize: "13px" }}>Loading reviews...</p>
+                  <p style={{ color: "#617157", fontSize: "13px" }}>{t("stalldetailpage.loading_reviews")}</p>
                 </div>
               ) : (
                 <>
@@ -398,10 +397,10 @@ export default function StallDetailPage({
                       </div>
 
                       <div className="comment-input-row">
-                        <span className="comment-label">Your comment:</span>
+                        <span className="comment-label">{t("stalldetailpage.your_comment")}</span>
                         <textarea
                           rows="3"
-                          placeholder="Share your experience about this stall..."
+                          placeholder={t("stalldetailpage.comment_placeholder")}
                           value={newComment}
                           onChange={(e) => {
                             setNewComment(e.target.value);
@@ -417,14 +416,14 @@ export default function StallDetailPage({
                         style={{ padding: "10px 24px" }}
                         disabled={submitting}
                       >
-                        {submitting ? "Sending..." : "Submit review"}
+                        {submitting ? t("stalldetailpage.sending") : t("stalldetailpage.submit_review")}
                       </button>
                     </form>
                   ) : (
                     <div className="guest-prompt-box">
-                      <p>You need to login to submit reviews & ratings for this stall.</p>
+                      <p>{t("stalldetailpage.need_login_review")}</p>
                       <button type="button" onClick={onGoToLogin}>
-                        Login now
+                        {t("stalldetailpage.login_now")}
                       </button>
                     </div>
                   )}
@@ -432,12 +431,12 @@ export default function StallDetailPage({
                   {/* Reviews List */}
                   <div className="reviews-list">
                     <h3 style={{ fontSize: "1.2rem", fontWeight: "800", color: "#1d2818", borderBottom: "1.5px solid #eee", paddingBottom: "12px", marginTop: "12px" }}>
-                      Reviews List
+                      {t("stalldetailpage.reviews_list_title")}
                     </h3>
                     
                     {reviewsData.reviews.length === 0 ? (
                       <p style={{ textAlign: "center", color: "#8fa085", fontSize: "13.5px", padding: "24px 0" }}>
-                        No reviews yet for this stall. Be the first to write a review!
+                        {t("stalldetailpage.no_reviews_stall")}
                       </p>
                     ) : (
                       reviewsData.reviews.map((review) => (
@@ -450,19 +449,13 @@ export default function StallDetailPage({
                                   : "U"}
                               </div>
                               <div>
-                                <span className="reviewer-name">{review.userName || "User"}</span>
+                                <span className="reviewer-name">{review.userName || t("stalldetailpage.user")}</span>
                                 <div className="review-stars">{renderStars(review.rating)}</div>
                               </div>
                             </div>
                             <span className="review-date" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                               {review.createdAt
-                                ? new Date(review.createdAt).toLocaleDateString("en-US", {
-                                    day: "2-digit",
-                                    month: "2-digit",
-                                    year: "numeric",
-                                    hour: "2-digit",
-                                    minute: "2-digit"
-                                  })
+                                ? new Date(review.createdAt).toLocaleDateString()
                                 : ""}
                               {review.userId === user?.userId && editingReviewId !== review.reviewId && (
                                 <button
@@ -470,7 +463,7 @@ export default function StallDetailPage({
                                   className="review-edit-btn"
                                   onClick={() => handleStartEdit(review)}
                                 >
-                                  Edit
+                                  {t("stalldetailpage.edit")}
                                 </button>
                               )}
                             </span>
@@ -478,7 +471,7 @@ export default function StallDetailPage({
                           {editingReviewId === review.reviewId ? (
                             <div className="review-edit-form">
                               <div className="rating-select-row">
-                                <span className="rating-label">New rating:</span>
+                                <span className="rating-label">{t("stalldetailpage.new_rating")}</span>
                                 <div style={{ display: "flex", gap: "6px" }}>
                                   {[1, 2, 3, 4, 5].map((star) => (
                                     <button
@@ -511,7 +504,7 @@ export default function StallDetailPage({
                                   onClick={() => handleSaveEdit(review.reviewId)}
                                   disabled={editSubmitting}
                                 >
-                                  {editSubmitting ? "Saving..." : "Save changes"}
+                                  {editSubmitting ? t("stalldetailpage.saving") : t("stalldetailpage.save_changes")}
                                 </button>
                                 <button 
                                   type="button" 
@@ -520,7 +513,7 @@ export default function StallDetailPage({
                                   onClick={handleCancelEdit}
                                   disabled={editSubmitting}
                                 >
-                                  Cancel
+                                  {t("stalldetailpage.cancel")}
                                 </button>
                               </div>
                             </div>

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import Header from "../Layout/Header";
 import Footer from "../Layout/Footer";
 import authService from "../../../services/authService";
@@ -52,6 +53,7 @@ export default function ChangePasswordForm({
   onLogout,
   onPasswordChanged,
 }) {
+  const { t } = useTranslation();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -68,7 +70,7 @@ export default function ChangePasswordForm({
     setSuccess("");
 
     if (newPassword !== confirmPassword) {
-      setError("New password and confirm password do not match");
+      setError(t("changepassword.mismatch_error"));
       return;
     }
 
@@ -76,7 +78,7 @@ export default function ChangePasswordForm({
 
     try {
       await authService.changePassword(currentPassword, newPassword);
-      setSuccess("Password changed successfully!");
+      setSuccess(t("changepassword.change_success"));
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
@@ -90,7 +92,7 @@ export default function ChangePasswordForm({
         }, 1500);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to change password");
+      setError(err instanceof Error ? err.message : t("changepassword.change_failed"));
     } finally {
       setLoading(false);
     }
@@ -109,22 +111,22 @@ export default function ChangePasswordForm({
       <main className="change-password-page">
         <div className="change-password-container">
           <div className="change-password-header">
-            <h1>Change Password</h1>
-            <p>Enter your current password and your new password to update</p>
+            <h1>{t("changepassword.title")}</h1>
+            <p>{t("changepassword.subtitle")}</p>
           </div>
 
           <form onSubmit={handleSubmit} className="change-password-form">
-            {error && <div className="form-error">{error}</div>}
-            {success && <div className="form-success">{success}</div>}
+            {error && <div className="form-error">{t(error)}</div>}
+            {success && <div className="form-success">{t(success)}</div>}
 
             <div className="form-group">
-              <label>Current Password</label>
+              <label>{t("changepassword.current_password")}</label>
               <div className="password-input-wrapper">
                 <input
                   type={showCurrentPassword ? "text" : "password"}
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
-                  placeholder="Current password"
+                  placeholder={t("changepassword.placeholder_current")}
                   required
                   disabled={loading}
                 />
@@ -132,7 +134,6 @@ export default function ChangePasswordForm({
                   type="button"
                   className="password-toggle-btn"
                   onClick={() => setShowCurrentPassword((prev) => !prev)}
-                  title={showCurrentPassword ? "Hide password" : "Show password"}
                 >
                   {showCurrentPassword ? <EyeOffIcon /> : <EyeIcon />}
                 </button>
@@ -140,13 +141,13 @@ export default function ChangePasswordForm({
             </div>
 
             <div className="form-group">
-              <label>New Password</label>
+              <label>{t("changepassword.new_password")}</label>
               <div className="password-input-wrapper">
                 <input
                   type={showNewPassword ? "text" : "password"}
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="New password"
+                  placeholder={t("changepassword.placeholder_new")}
                   required
                   disabled={loading}
                 />
@@ -154,7 +155,6 @@ export default function ChangePasswordForm({
                   type="button"
                   className="password-toggle-btn"
                   onClick={() => setShowNewPassword((prev) => !prev)}
-                  title={showNewPassword ? "Hide password" : "Show password"}
                 >
                   {showNewPassword ? <EyeOffIcon /> : <EyeIcon />}
                 </button>
@@ -162,13 +162,13 @@ export default function ChangePasswordForm({
             </div>
 
             <div className="form-group">
-              <label>Confirm New Password</label>
+              <label>{t("changepassword.confirm_password")}</label>
               <div className="password-input-wrapper">
                 <input
                   type={showConfirmPassword ? "text" : "password"}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Confirm new password"
+                  placeholder={t("changepassword.placeholder_confirm")}
                   required
                   disabled={loading}
                 />
@@ -176,7 +176,6 @@ export default function ChangePasswordForm({
                   type="button"
                   className="password-toggle-btn"
                   onClick={() => setShowConfirmPassword((prev) => !prev)}
-                  title={showConfirmPassword ? "Hide password" : "Show password"}
                 >
                   {showConfirmPassword ? <EyeOffIcon /> : <EyeIcon />}
                 </button>
@@ -185,7 +184,7 @@ export default function ChangePasswordForm({
 
             <div className="form-actions">
               <button type="submit" className="btn-primary" disabled={loading}>
-                {loading ? "Updating..." : "Change Password"}
+                {loading ? t("changepassword.updating") : t("changepassword.submit_btn")}
               </button>
               <button
                 type="button"
@@ -193,7 +192,7 @@ export default function ChangePasswordForm({
                 onClick={onBack}
                 disabled={loading}
               >
-                Cancel
+                {t("common.cancel")}
               </button>
             </div>
           </form>
