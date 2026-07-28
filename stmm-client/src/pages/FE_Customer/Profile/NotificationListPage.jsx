@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useEffect, useState } from "react";
 import Header from "../Layout/Header";
 import Footer from "../Layout/Footer";
@@ -5,6 +6,8 @@ import notificationService from "../../../services/notificationService";
 import "./NotificationListPage.css";
 
 function TrashIcon() {
+  const { t } = useTranslation();
+
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -52,7 +55,7 @@ export default function NotificationListPage({
           setLoading(false);
         })
         .catch((err) => {
-          console.error("Lỗi khi lấy thông báo:", err);
+          console.error(t('notificationlistpage.error_while_getting_notification'), err);
           setLoading(false);
         });
     }
@@ -71,7 +74,7 @@ export default function NotificationListPage({
           prev.map((n) => (n.notiId === item.notiId ? { ...n, isRead: true } : n))
         );
       } catch (err) {
-        console.error("Lỗi khi đánh dấu đã đọc:", err);
+        console.error(t('notificationlistpage.error_when_marking_read'), err);
       }
     }
   };
@@ -86,7 +89,7 @@ export default function NotificationListPage({
           setSelectedNoti(null);
         }
       } catch (err) {
-        console.error("Lỗi khi xóa thông báo:", err);
+        console.error(t('notificationlistpage.error_when_deleting_notification'), err);
         alert(err instanceof Error ? err.message : "Failed to delete notification");
       }
     }
@@ -98,7 +101,7 @@ export default function NotificationListPage({
       await notificationService.markAllAsRead(user.userId, user.roleName);
       setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
     } catch (err) {
-      console.error("Lỗi khi đánh dấu tất cả đã đọc:", err);
+      console.error(t('notificationlistpage.error_marking_all_read'), err);
       alert(err instanceof Error ? err.message : "Failed to mark all as read");
     }
   };

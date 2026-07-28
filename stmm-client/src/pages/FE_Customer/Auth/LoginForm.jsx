@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import authService from "../../../services/authService";
 import "./LoginForm.css";
 
 export default function LoginForm({ onBack, onGoToRegister, onGoToForgotPassword, onLoginSuccess }) {
+  const { t } = useTranslation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -40,7 +42,7 @@ export default function LoginForm({ onBack, onGoToRegister, onGoToForgotPassword
       const res = await authService.loginWithGoogle(response.credential);
       onLoginSuccess(res);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Google login failed");
+      setError(err instanceof Error ? err.message : t('loginform.google_failed'));
     } finally {
       setLoading(false);
     }
@@ -57,7 +59,7 @@ export default function LoginForm({ onBack, onGoToRegister, onGoToForgotPassword
       // Gửi nguyên response lên App.jsx để App.jsx lấy user + redirectUrl
       onLoginSuccess(res);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed");
+      setError(err instanceof Error ? err.message : t('loginform.login_failed'));
     } finally {
       setLoading(false);
     }
@@ -73,32 +75,31 @@ export default function LoginForm({ onBack, onGoToRegister, onGoToForgotPassword
           </button>
 
           <div className="auth-left-content">
-            <span className="auth-badge">WELCOME BACK</span>
+            <span className="auth-badge">{t('loginform.welcome_back')}</span>
 
             <h1>
-              Login to your <br />
-              Smart Market
+              {t('loginform.login_to_your')} <br />
+              {t('loginform.smart_market')}
             </h1>
 
             <p>
-              Log in to manage your account, view your profile and continue using
-              the functions in the STMM system.
+              {t('loginform.login_desc')}
             </p>
 
             <div className="auth-mini-list">
               <div>
                 <strong>01</strong>
-                <span>Secure account login</span>
+                <span>{t('loginform.secure_login')}</span>
               </div>
 
               <div>
                 <strong>02</strong>
-                <span>Fast profile management</span>
+                <span>{t('loginform.fast_profile')}</span>
               </div>
 
               <div>
                 <strong>03</strong>
-                <span>Modern market experience</span>
+                <span>{t('loginform.modern_experience')}</span>
               </div>
             </div>
           </div>
@@ -107,18 +108,18 @@ export default function LoginForm({ onBack, onGoToRegister, onGoToForgotPassword
         <div className="auth-modern-right">
           <div className="auth-form-header">
             <button type="button" className="auth-back-btn" onClick={onBack}>
-              ← Back home
+              ← {t('loginform.back_home')}
             </button>
 
             <div>
-              <h2>Login</h2>
-              <p>Enter email and password to continue</p>
+              <h2>{t('loginform.login')}</h2>
+              <p>{t('loginform.enter_credentials')}</p>
             </div>
           </div>
 
           <form className="auth-modern-form" onSubmit={handleSubmit}>
             <div className="modern-input-group">
-              <label>Email address</label>
+              <label>{t('loginform.email_address')}</label>
 
               <div className="modern-input">
                 <span>✉</span>
@@ -133,7 +134,7 @@ export default function LoginForm({ onBack, onGoToRegister, onGoToForgotPassword
             </div>
 
             <div className="modern-input-group">
-              <label>Password</label>
+              <label>{t('loginform.password')}</label>
 
               <div className="modern-input">
                 <span>🔒</span>
@@ -141,7 +142,7 @@ export default function LoginForm({ onBack, onGoToRegister, onGoToForgotPassword
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   type={showPassword ? "text" : "password"}
-                  placeholder="Enter password"
+                  placeholder={t('loginform.enter_password')}
                   required
                 />
 
@@ -150,7 +151,7 @@ export default function LoginForm({ onBack, onGoToRegister, onGoToForgotPassword
                   className="show-password-btn"
                   onClick={() => setShowPassword(!showPassword)}
                 >
-                  {showPassword ? "Hide" : "Show"}
+                  {showPassword ? t('loginform.hide') : t('loginform.show')}
                 </button>
               </div>
             </div>
@@ -158,10 +159,10 @@ export default function LoginForm({ onBack, onGoToRegister, onGoToForgotPassword
             <div className="auth-form-options">
               <label>
                 <input type="checkbox" />
-                <span>Remember me</span>
+                <span>{t('loginform.remember_me')}</span>
               </label>
 
-              <button type="button" onClick={onGoToForgotPassword}>Forgot password?</button>
+              <button type="button" onClick={onGoToForgotPassword}>{t('loginform.forgot_password')}</button>
             </div>
 
             {error && <div className="modern-message error">{error}</div>}
@@ -171,21 +172,21 @@ export default function LoginForm({ onBack, onGoToRegister, onGoToForgotPassword
               className="auth-submit-btn"
               disabled={loading}
             >
-              {loading ? "Logging in..." : "Login"}
+              {loading ? t('loginform.logging_in') : t('loginform.login')}
               <span>→</span>
             </button>
           </form>
 
           <div className="auth-divider">
-            <span>Or</span>
+            <span>{t('loginform.or')}</span>
           </div>
 
           <div id="google-login-btn" className="google-btn-container"></div>
 
           <p className="auth-switch-text">
-            Don't have an account?{" "}
+            {t('loginform.no_account')}{" "}
             <button type="button" onClick={onGoToRegister}>
-              Register now
+              {t('loginform.register_now')}
             </button>
           </p>
         </div>

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { showSuccess, showError } from '../../utils/alert';
@@ -10,6 +11,8 @@ const IconShield = () => (
 );
 
 export default function VendorProfile() {
+  const { t } = useTranslation();
+
     const [profile, setProfile] = useState(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -51,7 +54,7 @@ export default function VendorProfile() {
                 }
             } catch (err) {
                 console.error("Error fetching profile:", err);
-                showError('Thất bại', 'Không thể tải thông tin tài khoản.');
+                showError(t('vendorprofile.failure'), t('vendorprofile.unable_to_load_account'));
             } finally {
                 setLoading(false);
             }
@@ -71,11 +74,11 @@ export default function VendorProfile() {
             }, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            await showSuccess('Thành công', 'Cập nhật thông tin thành công!');
+            await showSuccess(t('vendorprofile.success'), t('vendorprofile.updated_information_successfully'));
         } catch (err) {
             console.error("Error updating profile:", err);
             const msg = err.response?.data?.message || err.response?.data || "Có lỗi xảy ra khi cập nhật.";
-            showError('Thất bại', msg);
+            showError(t('vendorprofile.failure'), msg);
         } finally {
             setSaving(false);
         }
@@ -86,12 +89,12 @@ export default function VendorProfile() {
         setPasswordSuccess('');
         
         if (newPassword !== confirmPassword) {
-            setPasswordError("Mật khẩu xác nhận không khớp.");
+            setPasswordError(t('vendorprofile.confirmation_password_does_not'));
             return;
         }
 
         if (newPassword.length < 6) {
-            setPasswordError("Mật khẩu mới phải có ít nhất 6 ký tự.");
+            setPasswordError(t('vendorprofile.the_new_password_must'));
             return;
         }
 
@@ -105,7 +108,7 @@ export default function VendorProfile() {
                 headers: { Authorization: `Bearer ${token}` }
             });
             
-            setPasswordSuccess(res.data.message || "Đổi mật khẩu thành công!");
+            setPasswordSuccess(res.data.message || t('vendorprofile.password_changed_successfully'));
             setCurrentPassword('');
             setNewPassword('');
             setConfirmPassword('');
@@ -115,12 +118,12 @@ export default function VendorProfile() {
             }, 2000);
         } catch (err) {
             console.error("Error changing password:", err);
-            const msg = err.response?.data?.message || err.response?.data || "Có lỗi xảy ra khi đổi mật khẩu.";
+            const msg = err.response?.data?.message || err.response?.data || t('vendorprofile.an_error_occurred_while');
             setPasswordError(msg);
         }
     };
 
-    if (loading) return <div className="vendor-profile-loading">Đang tải thông tin...</div>;
+    if (loading) return <div className="vendor-profile-loading">{t('vendorprofile.loading_information')}</div>;
 
     return (
         <div className="vendor-profile-container">
@@ -136,16 +139,16 @@ export default function VendorProfile() {
                 </div>
                 <div className="vp-header-info">
                     <h2>{fullName || 'Vendor'}</h2>
-                    <p>Enterprise Account Manager</p>
+                    <p>{t('vendorprofile.enterprise_account_manager')}</p>
                 </div>
                 <div className="vp-header-action">
-                    <button className="vp-btn-outline">UPLOAD PHOTO</button>
+                    <button className="vp-btn-outline">{t('vendorprofile.upload_photo')}</button>
                 </div>
             </div>
 
             {/* Nav Tabs */}
             <div className="vp-nav-tabs">
-                <div className="vp-tab active">PERSONAL INFORMATION</div>
+                <div className="vp-tab active">{t('vendorprofile.personal_information_tab')}</div>
             </div>
 
             {/* Main Content Grid */}
@@ -155,36 +158,24 @@ export default function VendorProfile() {
                 <div className="vp-col-left">
                     {/* Personal Information Box */}
                     <div className="vp-box">
-                        <h3 className="vp-box-title">Personal Information</h3>
+                        <h3 className="vp-box-title">{t('vendorprofile.personal_information_header')}</h3>
                         <div className="vp-form-grid">
                             <div className="vp-form-group">
-                                <label>Full Name</label>
+                                <label>{t('vendorprofile.full_name')}</label>
                                 <input type="text" value={fullName} onChange={e => setFullName(e.target.value)} />
                             </div>
                             <div className="vp-form-group">
-                                <label>Email Address</label>
+                                <label>{t('vendorprofile.email_address')}</label>
                                 <input type="email" value={email} disabled style={{ backgroundColor: '#f9fafb', color: '#6b7280' }} />
                             </div>
                             <div className="vp-form-group">
-                                <label>Phone Number</label>
+                                <label>{t('vendorprofile.phone_number')}</label>
                                 <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} />
                             </div>
                             <div className="vp-form-group">
-                                <label>Business Name</label>
+                                <label>{t('vendorprofile.business_name')}</label>
                                 <input type="text" value={businessName} onChange={e => setBusinessName(e.target.value)} autoComplete="off" />
                             </div>
-                        </div>
-                    </div>
-
-                    {/* Preferences Box */}
-                    <div className="vp-box">
-                        <h3 className="vp-box-title">Preferences</h3>
-                        <div className="vp-form-group" style={{ maxWidth: '300px' }}>
-                            <label>Language</label>
-                            <select value={language} onChange={e => setLanguage(e.target.value)}>
-                                <option value="English">English</option>
-                                <option value="Vietnamese">Vietnamese</option>
-                            </select>
                         </div>
                     </div>
                 </div>
@@ -194,22 +185,22 @@ export default function VendorProfile() {
                     {/* Security Box */}
                     <div className="vp-box vp-security-box">
                         <div className="vp-security-header">
-                            <h3 className="vp-box-title">Security</h3>
+                            <h3 className="vp-box-title">{t('vendorprofile.security')}</h3>
                             <IconShield />
                         </div>
                         <div className="vp-security-content">
-                            <label>Password</label>
-                            <p className="vp-text-muted">Last changed 3 months ago</p>
+                            <label>{t('vendorprofile.password')}</label>
+                            <p className="vp-text-muted">{t('vendorprofile.last_changed_3_months_ago')}</p>
                             
                             {!showPasswordChange ? (
                                 <button className="vp-btn-outline vp-btn-full" onClick={() => setShowPasswordChange(true)}>
-                                    CHANGE PASSWORD
+                                    {t('vendorprofile.change_password')}
                                 </button>
                             ) : (
                                 <div className="vp-password-form">
                                     <input 
                                         type="password" 
-                                        placeholder="Current Password" 
+                                        placeholder={t('vendorprofile.current_password_placeholder')} 
                                         value={currentPassword} 
                                         onChange={e => setCurrentPassword(e.target.value)} 
                                         className="vp-input-sm"
@@ -217,7 +208,7 @@ export default function VendorProfile() {
                                     />
                                     <input 
                                         type="password" 
-                                        placeholder="New Password" 
+                                        placeholder={t('vendorprofile.new_password_placeholder')} 
                                         value={newPassword} 
                                         onChange={e => setNewPassword(e.target.value)} 
                                         className="vp-input-sm"
@@ -225,7 +216,7 @@ export default function VendorProfile() {
                                     />
                                     <input 
                                         type="password" 
-                                        placeholder="Confirm New Password" 
+                                        placeholder={t('vendorprofile.confirm_new_password_placeholder')} 
                                         value={confirmPassword} 
                                         onChange={e => setConfirmPassword(e.target.value)} 
                                         className="vp-input-sm"
@@ -236,8 +227,8 @@ export default function VendorProfile() {
                                     {passwordSuccess && <p className="vp-text-success">{passwordSuccess}</p>}
 
                                     <div className="vp-password-actions">
-                                        <button className="vp-btn-text" onClick={() => setShowPasswordChange(false)}>Cancel</button>
-                                        <button className="vp-btn-solid-sm" onClick={handleChangePassword}>Save</button>
+                                        <button className="vp-btn-text" onClick={() => setShowPasswordChange(false)}>{t('vendorprofile.cancel')}</button>
+                                        <button className="vp-btn-solid-sm" onClick={handleChangePassword}>{t('vendorprofile.save')}</button>
                                     </div>
                                 </div>
                             )}
@@ -250,7 +241,7 @@ export default function VendorProfile() {
             {/* Footer Action */}
             <div className="vp-footer-actions">
                 <button className="vp-btn-solid" onClick={handleSaveChanges} disabled={saving}>
-                    {saving ? 'SAVING...' : 'SAVE CHANGES'}
+                    {saving ? t('vendorprofile.saving') : t('vendorprofile.save_changes')}
                 </button>
             </div>
         </div>

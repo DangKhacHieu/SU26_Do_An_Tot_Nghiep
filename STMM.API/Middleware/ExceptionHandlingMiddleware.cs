@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Localization;
 using STMM.Business.Exceptions;
 
 namespace STMM.API.Middleware
@@ -14,15 +15,18 @@ namespace STMM.API.Middleware
         private readonly RequestDelegate _next;
         private readonly ILogger<ExceptionHandlingMiddleware> _logger;
         private readonly IHostEnvironment _env;
+        private readonly IStringLocalizer<SharedResource> _localizer;
 
         public ExceptionHandlingMiddleware(
             RequestDelegate next,
             ILogger<ExceptionHandlingMiddleware> logger,
-            IHostEnvironment env)
+            IHostEnvironment env,
+            IStringLocalizer<SharedResource> localizer)
         {
             _next = next;
             _logger = logger;
             _env = env;
+            _localizer = localizer;
         }
 
         public async Task InvokeAsync(HttpContext context)
@@ -53,21 +57,21 @@ namespace STMM.API.Middleware
                     context.Response.StatusCode = StatusCodes.Status404NotFound;
                     problemDetails.Status = StatusCodes.Status404NotFound;
                     problemDetails.Title = "Resource Not Found";
-                    problemDetails.Detail = notFoundEx.Message;
+                    problemDetails.Detail = _localizer[notFoundEx.Message];
                     break;
 
                 case BadRequestException badRequestEx:
                     context.Response.StatusCode = StatusCodes.Status400BadRequest;
                     problemDetails.Status = StatusCodes.Status400BadRequest;
                     problemDetails.Title = "Bad Request";
-                    problemDetails.Detail = badRequestEx.Message;
+                    problemDetails.Detail = _localizer[badRequestEx.Message];
                     break;
 
                 case ForbiddenException forbiddenEx:
                     context.Response.StatusCode = StatusCodes.Status403Forbidden;
                     problemDetails.Status = StatusCodes.Status403Forbidden;
                     problemDetails.Title = "Forbidden";
-                    problemDetails.Detail = forbiddenEx.Message;
+                    problemDetails.Detail = _localizer[forbiddenEx.Message];
                     break;
 
                 default:

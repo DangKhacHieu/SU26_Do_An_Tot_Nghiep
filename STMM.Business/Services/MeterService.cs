@@ -44,10 +44,10 @@ namespace STMM.Business.Services
             int userId,
             CancellationToken ct = default)
         {
-            var user = await _userRepo.Query().Include(u => u.Role).FirstOrDefaultAsync(u => u.UserId == userId, ct);
-            if (user != null && string.Equals(user.Role?.Name, "Manager", StringComparison.OrdinalIgnoreCase) && !user.MarketId.HasValue)
+            var user = await _userRepo.GetUserByIdWithRoleAsync(userId, ct);
+            if (user != null && !user.MarketId.HasValue && (user.Role == null || string.Equals(user.Role.Name, "Manager", StringComparison.OrdinalIgnoreCase)))
             {
-                return new List<MeterDto>();
+                throw new ForbiddenException("The account is not assigned to a market.");
             }
 
             var marketId = user?.MarketId;
@@ -66,10 +66,11 @@ namespace STMM.Business.Services
 
         public async Task<MeterDto?> GetMeterByIdAsync(int id, int? currentUserId = null, CancellationToken ct = default)
         {
+            User? currentUser = null;
             if (currentUserId.HasValue)
             {
-                var user = await _userRepo.Query().Include(u => u.Role).FirstOrDefaultAsync(u => u.UserId == currentUserId.Value, ct);
-                if (user != null && string.Equals(user.Role?.Name, "Manager", StringComparison.OrdinalIgnoreCase) && !user.MarketId.HasValue)
+                currentUser = await _userRepo.GetUserByIdWithRoleAsync(currentUserId.Value, ct);
+                if (currentUser != null && string.Equals(currentUser.Role?.Name, "Manager", StringComparison.OrdinalIgnoreCase) && !currentUser.MarketId.HasValue)
                 {
                     throw new NotFoundException($"Meter with ID {id} not found.");
                 }
@@ -79,15 +80,11 @@ namespace STMM.Business.Services
             if (meter == null)
                 throw new NotFoundException($"Meter with ID {id} not found.");
 
-            if (currentUserId.HasValue)
+            if (currentUser != null && string.Equals(currentUser.Role?.Name, "Manager", StringComparison.OrdinalIgnoreCase))
             {
-                var user = await _userRepo.Query().Include(u => u.Role).FirstOrDefaultAsync(u => u.UserId == currentUserId.Value, ct);
-                if (user != null && string.Equals(user.Role?.Name, "Manager", StringComparison.OrdinalIgnoreCase))
+                if (meter.MarketId != currentUser.MarketId)
                 {
-                    if (meter.MarketId != user.MarketId)
-                    {
-                        throw new NotFoundException($"Meter with ID {id} not found.");
-                    }
+                    throw new NotFoundException($"Meter with ID {id} not found.");
                 }
             }
 
@@ -162,7 +159,7 @@ namespace STMM.Business.Services
 
             if (currentUserId.HasValue)
             {
-                var user = await _userRepo.Query().Include(u => u.Role).FirstOrDefaultAsync(u => u.UserId == currentUserId.Value, ct);
+                var user = await _userRepo.GetUserByIdWithRoleAsync(currentUserId.Value, ct);
                 if (user != null && string.Equals(user.Role?.Name, "Manager", StringComparison.OrdinalIgnoreCase))
                 {
                     if (!user.MarketId.HasValue || meter.MarketId != user.MarketId.Value)
@@ -207,7 +204,7 @@ namespace STMM.Business.Services
 
             if (currentUserId.HasValue)
             {
-                var user = await _userRepo.Query().Include(u => u.Role).FirstOrDefaultAsync(u => u.UserId == currentUserId.Value, ct);
+                var user = await _userRepo.GetUserByIdWithRoleAsync(currentUserId.Value, ct);
                 if (user != null && string.Equals(user.Role?.Name, "Manager", StringComparison.OrdinalIgnoreCase))
                 {
                     if (!user.MarketId.HasValue || meter.MarketId != user.MarketId.Value)
@@ -234,7 +231,7 @@ namespace STMM.Business.Services
 
         public async Task<IEnumerable<MeterDto>> GetUnassignedMetersAsync(string? type, int userId, CancellationToken ct = default)
         {
-            var user = await _userRepo.Query().Include(u => u.Role).FirstOrDefaultAsync(u => u.UserId == userId, ct);
+            var user = await _userRepo.GetUserByIdWithRoleAsync(userId, ct);
             if (user != null && string.Equals(user.Role?.Name, "Manager", StringComparison.OrdinalIgnoreCase) && !user.MarketId.HasValue)
             {
                 return new List<MeterDto>();

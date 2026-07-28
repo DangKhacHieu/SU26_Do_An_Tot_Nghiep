@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import './ContentDetailManager.css';
 
@@ -20,6 +21,8 @@ const TARGET_ROLE_COLORS = {
 };
 
 export default function ContentDetailManager({ contentId, navigate, addToast }) {
+  const { t } = useTranslation();
+
   const [content, setContent] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -65,7 +68,7 @@ export default function ContentDetailManager({ contentId, navigate, addToast }) 
     return (
       <div className="state-empty" style={{ minHeight: '300px' }}>
         <div className="spinner" />
-        <span>Đang tải thông tin chi tiết...</span>
+        <span>{t('contentdetailmanager.loading_details')}</span>
       </div>
     );
   }
@@ -81,11 +84,9 @@ export default function ContentDetailManager({ contentId, navigate, addToast }) 
         {/* Back Button and Edit */}
         <div className="detail-header-actions">
           <button className="btn-secondary" onClick={() => navigate('content')}>
-            &larr; Quay lại danh sách
-          </button>
+            {t('contentdetailmanager.back_to_list')}</button>
           <button className="btn-primary" onClick={() => navigate('content-form', content.notiId)}>
-            Chỉnh sửa nội dung
-          </button>
+            {t('contentdetailmanager.edit_content')}</button>
         </div>
 
         {/* Metadata Header */}
@@ -96,13 +97,13 @@ export default function ContentDetailManager({ contentId, navigate, addToast }) 
             </span>
             <span className="badge-role-target" style={{ borderColor: roleColor, color: roleColor, backgroundColor: `${roleColor}0a` }}>
               {content.targetUserName 
-                ? `Đến cá nhân: ${content.targetUserName} (${TARGET_ROLE_LABELS[content.targetRole] || content.targetRole})`
-                : `Đến: ${TARGET_ROLE_LABELS[content.targetRole] || content.targetRole || 'Mọi đối tượng'}`}
+                ? t('contentdetailmanager.to_individual_contenttargetusername_targetrolelabelscontenttargetrole')
+                : `Đến: ${TARGET_ROLE_LABELS[content.targetRole] || content.targetRole || t('contentdetailmanager.every_object')}`}
             </span>
           </div>
           <h1>{content.title}</h1>
           <div className="meta-author-time">
-            <span>Được đăng lúc: <strong>{formatDate(content.createdAt)}</strong></span>
+            <span>{t('contentdetailmanager.posted_at')}<strong>{formatDate(content.createdAt)}</strong></span>
             <span className="bullet-dot" />
             <span>Mã bản ghi: {content.notiId}</span>
           </div>
@@ -115,7 +116,7 @@ export default function ContentDetailManager({ contentId, navigate, addToast }) 
               <p key={i} className="detail-paragraph">{para}</p>
             ))
           ) : (
-            <p className="detail-paragraph text-secondary italic">Bài viết này không có nội dung.</p>
+            <p className="detail-paragraph text-secondary italic">{t('contentdetailmanager.this_article_has_no')}</p>
           )}
         </div>
       </div>

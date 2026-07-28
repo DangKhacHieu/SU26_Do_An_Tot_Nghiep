@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { createStall, updateStall, updateStallStatus, updateStallLocation, getUnassignedMeters } from '../api/stallApi';
@@ -5,6 +6,8 @@ import { getAllCategories } from '../api/categoryApi';
 import styles from './MarketAreaForm.module.css';
 
 const StallForm = ({ initialData, drawnData, areaId, areaWidth, areaHeight, areaSize, getValidPosition, onSave, onCancel }) => {
+  const { t } = useTranslation();
+
     const [formData, setFormData] = useState({
         code: '',
         categoryName: '',
@@ -161,7 +164,7 @@ const StallForm = ({ initialData, drawnData, areaId, areaWidth, areaHeight, area
             console.error('Error saving stall:', err);
             let errorMessage = 'Failed to save stall. Please check the inputs.';
             if (!err.response) {
-                errorMessage = `Lỗi kết nối tới Server: ${err.message}. Vui lòng kiểm tra lại Backend đã chạy chưa.`;
+                errorMessage = 'Lỗi kết nối tới Server: ${err.message}. Vui lòng kiểm tra lại Backend đã chạy chưa.';
             } else if (err.response?.data?.errors) {
                 // Validation error from ASP.NET
                 const errors = err.response.data.errors;
@@ -169,7 +172,7 @@ const StallForm = ({ initialData, drawnData, areaId, areaWidth, areaHeight, area
             } else if (err.response?.data?.message) {
                 errorMessage = err.response.data.message;
             } else if (err.response?.data?.title) {
-                errorMessage = `Lỗi Server (500): ${err.response.data.title}`;
+                errorMessage = 'Lỗi Server (500): ${err.response.data.title}';
             } else if (typeof err.response?.data === 'string') {
                 errorMessage = err.response.data;
             }
@@ -193,19 +196,19 @@ const StallForm = ({ initialData, drawnData, areaId, areaWidth, areaHeight, area
                 <form onSubmit={handleSubmit}>
                     {!initialData ? (
                         <div className={styles.formGroup}>
-                            <label htmlFor="code">Mã sạp (Stall Code)</label>
+                            <label htmlFor="code">{'Mã sạp (Stall Code)'}</label>
                             <input
                                 className={styles.input}
                                 type="text"
                                 id="code"
-                                value="Sẽ được tự động tạo"
+                                value={'Sẽ được tự động tạo'}
                                 disabled
                                 style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed', fontStyle: 'italic', color: '#888' }}
                             />
                         </div>
                     ) : (
                         <div className={styles.formGroup}>
-                            <label htmlFor="code">Mã sạp (Stall Code)</label>
+                            <label htmlFor="code">{'Mã sạp (Stall Code)'}</label>
                             <input
                                 className={styles.input}
                                 type="text"
@@ -213,14 +216,14 @@ const StallForm = ({ initialData, drawnData, areaId, areaWidth, areaHeight, area
                                 name="code"
                                 value={formData.code}
                                 disabled
-                                title="Không được phép sửa Mã sạp"
+                                title={'Không được phép sửa Mã sạp'}
                                 style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed' }}
                             />
                         </div>
                     )}
                     
                     <div className={styles.formGroup}>
-                        <label htmlFor="categoryName">Tên sạp / Ngành hàng (Category) <span style={{color: '#ff4d4f'}}>*</span></label>
+                        <label htmlFor="categoryName">{'Tên sạp / Ngành hàng (Category)'}<span style={{color: '#ff4d4f'}}>*</span></label>
                         <select
                             className={styles.input}
                             id="categoryName"
@@ -229,7 +232,7 @@ const StallForm = ({ initialData, drawnData, areaId, areaWidth, areaHeight, area
                             onChange={handleChange}
                             required
                         >
-                            <option value="">-- Chọn ngành hàng --</option>
+                            <option value="">{'-- Chọn ngành hàng --'}</option>
                             {categories.map(c => (
                                 <option key={c.categoryId} value={c.name}>{c.name}</option>
                             ))}
@@ -237,7 +240,7 @@ const StallForm = ({ initialData, drawnData, areaId, areaWidth, areaHeight, area
                     </div>
 
                     <div className={styles.formGroup}>
-                        <label htmlFor="size">Diện tích vật lý (m²) <span style={{color: '#ff4d4f'}}>*</span></label>
+                        <label htmlFor="size">{'Diện tích vật lý (m²)'}<span style={{color: '#ff4d4f'}}>*</span></label>
                         <input
                             className={styles.input}
                             type="number"
@@ -253,7 +256,7 @@ const StallForm = ({ initialData, drawnData, areaId, areaWidth, areaHeight, area
                     </div>
 
                     <div className={styles.formGroup}>
-                        <label htmlFor="description">Người đang thuê (Tenant Name)</label>
+                        <label htmlFor="description">{'Người đang thuê (Tenant Name)'}</label>
                         <input
                             className={styles.input}
                             type="text"
@@ -263,13 +266,13 @@ const StallForm = ({ initialData, drawnData, areaId, areaWidth, areaHeight, area
                             readOnly
                             disabled
                             style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed' }}
-                            placeholder="Chưa có người thuê..."
-                            title="Tên người thuê được tự động cập nhật từ hệ thống Hợp đồng"
+                            placeholder={'Chưa có người thuê...'}
+                            title={'Tên người thuê được tự động cập nhật từ hệ thống Hợp đồng'}
                         />
                     </div>
                     
                     <div className={styles.formGroup}>
-                        <label htmlFor="status">Tình trạng (Status) {initialData?.tenantName && <span style={{color: '#ff4d4f', fontSize: 10}}>(Đã khóa bởi Hợp đồng)</span>}</label>
+                        <label htmlFor="status">Tình trạng (Status) {initialData?.tenantName && <span style={{color: '#ff4d4f', fontSize: 10}}>{'(Đã khóa bởi Hợp đồng)'}</span>}</label>
                         <select
                             className={styles.select}
                             id="status"
@@ -288,7 +291,7 @@ const StallForm = ({ initialData, drawnData, areaId, areaWidth, areaHeight, area
                     {!formData.svgPath && (
                         <div className={styles.formGroup} style={{display: 'flex', gap: 12}}>
                             <div style={{flex: 1}}>
-                                <label htmlFor="width">Chiều dài hiển thị (px)</label>
+                                <label htmlFor="width">{'Chiều dài hiển thị (px)'}</label>
                                 <input
                                     className={styles.input}
                                     type="number"
@@ -297,12 +300,12 @@ const StallForm = ({ initialData, drawnData, areaId, areaWidth, areaHeight, area
                                     value={formData.width}
                                     onChange={handleChange}
                                     max={areaWidth || undefined}
-                                    title={areaWidth ? `Tối đa ${areaWidth}px (bằng với Khu vực)` : ""}
+                                    title={areaWidth ? 'Tối đa ${areaWidth}px (bằng với Khu vực)' : ""}
                                     required
                                 />
                             </div>
                             <div style={{flex: 1}}>
-                                <label htmlFor="height">Chiều rộng hiển thị (px)</label>
+                                <label htmlFor="height">{'Chiều rộng hiển thị (px)'}</label>
                                 <input
                                     className={styles.input}
                                     type="number"
@@ -311,7 +314,7 @@ const StallForm = ({ initialData, drawnData, areaId, areaWidth, areaHeight, area
                                     value={formData.height}
                                     onChange={handleChange}
                                     max={areaHeight || undefined}
-                                    title={areaHeight ? `Tối đa ${areaHeight}px (bằng với Khu vực)` : ""}
+                                    title={areaHeight ? 'Tối đa ${areaHeight}px (bằng với Khu vực)' : ""}
                                     required
                                 />
                             </div>
@@ -322,7 +325,7 @@ const StallForm = ({ initialData, drawnData, areaId, areaWidth, areaHeight, area
                     {!initialData && (
                         <div className={styles.formGroup} style={{display: 'flex', gap: 12}}>
                             <div style={{flex: 1}}>
-                                <label htmlFor="electricityMeterId">Đồng hồ điện (Tùy chọn)</label>
+                                <label htmlFor="electricityMeterId">{t('stallform.electricity_meter_optional')}</label>
                                 <select
                                     className={styles.select}
                                     id="electricityMeterId"
@@ -330,14 +333,14 @@ const StallForm = ({ initialData, drawnData, areaId, areaWidth, areaHeight, area
                                     value={formData.electricityMeterId}
                                     onChange={handleChange}
                                 >
-                                    <option value="">-- Tạo mới tự động --</option>
+                                    <option value="">{t('stallform.create_new_automatically')}</option>
                                     {unassignedElectricityMeters.map(m => (
                                         <option key={m.meterId} value={m.meterId}>{m.serialNumber}</option>
                                     ))}
                                 </select>
                             </div>
                             <div style={{flex: 1}}>
-                                <label htmlFor="waterMeterId">Đồng hồ nước (Tùy chọn)</label>
+                                <label htmlFor="waterMeterId">{t('stallform.water_meter_optional')}</label>
                                 <select
                                     className={styles.select}
                                     id="waterMeterId"
@@ -345,7 +348,7 @@ const StallForm = ({ initialData, drawnData, areaId, areaWidth, areaHeight, area
                                     value={formData.waterMeterId}
                                     onChange={handleChange}
                                 >
-                                    <option value="">-- Tạo mới tự động --</option>
+                                    <option value="">{t('stallform.create_new_automatically')}</option>
                                     {unassignedWaterMeters.map(m => (
                                         <option key={m.meterId} value={m.meterId}>{m.serialNumber}</option>
                                     ))}
@@ -360,8 +363,7 @@ const StallForm = ({ initialData, drawnData, areaId, areaWidth, areaHeight, area
                             {loading ? 'Đang lưu...' : 'Lưu Sạp'}
                         </button>
                         <button type="button" onClick={onCancel} className={styles.btnSecondary} disabled={loading}>
-                            Hủy bỏ
-                        </button>
+                            {'Hủy bỏ'}</button>
                     </div>
                 </form>
                 </div>

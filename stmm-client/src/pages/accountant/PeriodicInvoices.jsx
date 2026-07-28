@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect } from 'react';
 import {
   Search, Plus, Send, Eye, CheckCircle, AlertCircle, XCircle,
@@ -15,6 +16,8 @@ const getStatusBadge = (status) => {
 };
 
 export default function PeriodicInvoices() {
+  const { t } = useTranslation();
+
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isMock, setIsMock] = useState(false);
@@ -88,11 +91,11 @@ export default function PeriodicInvoices() {
   useEffect(() => { setCurrentPage(1); }, [month, year, status, search]);
 
   const getMockInvoices = () => [
-    { invoiceId: 101, stallCode: 'Kiosk A-12', vendorName: 'Nguyễn Văn A', totalAmount: 12500000, month: 6, year: 2026, dueDate: '2026-06-20', status: 'Unpaid', details: [{ feeTypeName: 'Thuê mặt bằng', description: 'Tiền thuê diện tích Kiosk A-12', quantity: 1, unitPrice: 12000000, amount: 12000000 }, { feeTypeName: 'Phí dịch vụ', description: 'Phí quản lý vận hành chung', quantity: 1, unitPrice: 500000, amount: 500000 }] },
-    { invoiceId: 102, stallCode: 'Kiosk B-05', vendorName: 'Trần Thị B', totalAmount: 3240000, month: 6, year: 2026, dueDate: '2026-06-20', status: 'Draft', details: [{ feeTypeName: 'Tiền điện', description: 'Tiêu thụ điện tháng 06 (1200 -> 1800)', quantity: 600, unitPrice: 3500, amount: 2100000 }, { feeTypeName: 'Tiền nước', description: 'Tiêu thụ nước tháng 06 (140 -> 200)', quantity: 60, unitPrice: 18000, amount: 1080000 }] },
-    { invoiceId: 103, stallCode: 'Kiosk C-02', vendorName: 'Phạm Văn C', totalAmount: 850000, month: 5, year: 2026, dueDate: '2026-06-05', status: 'Paid', details: [{ feeTypeName: 'Sửa chữa', description: 'Chi phí sửa vòi nước rò rỉ', quantity: 1, unitPrice: 850000, amount: 850000 }] },
-    { invoiceId: 104, stallCode: 'Kiosk A-10', vendorName: 'Lê Hoàng D', totalAmount: 14500000, month: 5, year: 2026, dueDate: '2026-05-30', status: 'Overdue', details: [{ feeTypeName: 'Thuê mặt bằng', description: 'Tiền thuê diện tích Kiosk A-10', quantity: 1, unitPrice: 12500000, amount: 12500000 }, { feeTypeName: 'Tiền phạt', description: 'Phạt lấn chiếm hành lang', quantity: 1, unitPrice: 2000000, amount: 2000000 }] },
-    { invoiceId: 105, stallCode: 'Kiosk E-01', vendorName: 'Hoàng Thị E', totalAmount: 15000000, month: 6, year: 2026, dueDate: '2026-06-20', status: 'Draft', details: [{ feeTypeName: 'Thuê mặt bằng', description: 'Tiền thuê diện tích Kiosk E-01', quantity: 1, unitPrice: 15000000, amount: 15000000 }] },
+    { invoiceId: 101, stallCode: 'Kiosk A-12', vendorName: t('periodicinvoices.nguyen_van_a'), totalAmount: 12500000, month: 6, year: 2026, dueDate: '2026-06-20', status: 'Unpaid', details: [{ feeTypeName: t('periodicinvoices.rent_premises'), description: t('periodicinvoices.rent_for_kiosk_a12'), quantity: 1, unitPrice: 12000000, amount: 12000000 }, { feeTypeName: t('periodicinvoices.service_fee'), description: t('periodicinvoices.general_operating_management_fee'), quantity: 1, unitPrice: 500000, amount: 500000 }] },
+    { invoiceId: 102, stallCode: 'Kiosk B-05', vendorName: t('periodicinvoices.tran_thi_b'), totalAmount: 3240000, month: 6, year: 2026, dueDate: '2026-06-20', status: 'Draft', details: [{ feeTypeName: t('periodicinvoices.electricity_bill'), description: t('periodicinvoices.electricity_consumption_in_june'), quantity: 600, unitPrice: 3500, amount: 2100000 }, { feeTypeName: t('periodicinvoices.water_fee'), description: t('periodicinvoices.water_consumption_in_june'), quantity: 60, unitPrice: 18000, amount: 1080000 }] },
+    { invoiceId: 103, stallCode: 'Kiosk C-02', vendorName: t('periodicinvoices.pham_van_c'), totalAmount: 850000, month: 5, year: 2026, dueDate: '2026-06-05', status: 'Paid', details: [{ feeTypeName: t('periodicinvoices.repair'), description: t('periodicinvoices.cost_of_repairing_leaky'), quantity: 1, unitPrice: 850000, amount: 850000 }] },
+    { invoiceId: 104, stallCode: 'Kiosk A-10', vendorName: t('periodicinvoices.le_hoang_d'), totalAmount: 14500000, month: 5, year: 2026, dueDate: '2026-05-30', status: 'Overdue', details: [{ feeTypeName: t('periodicinvoices.rent_premises'), description: t('periodicinvoices.rent_for_kiosk_a10'), quantity: 1, unitPrice: 12500000, amount: 12500000 }, { feeTypeName: t('periodicinvoices.fine'), description: t('periodicinvoices.penalty_for_encroaching_on'), quantity: 1, unitPrice: 2000000, amount: 2000000 }] },
+    { invoiceId: 105, stallCode: 'Kiosk E-01', vendorName: t('periodicinvoices.hoang_thi_e'), totalAmount: 15000000, month: 6, year: 2026, dueDate: '2026-06-20', status: 'Draft', details: [{ feeTypeName: t('periodicinvoices.rent_premises'), description: t('periodicinvoices.rent_for_kiosk_area'), quantity: 1, unitPrice: 15000000, amount: 15000000 }] },
   ];
 
   const handleSelectRow = (id) => setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
@@ -131,15 +134,15 @@ export default function PeriodicInvoices() {
         const consumption = adjustForm.newValue - adjustForm.oldValue;
         const unitPrice = adjustForm.meterType === 'Electricity' ? 3500 : 18000;
         const newAmount = consumption * unitPrice;
-        const feeTypeName = adjustForm.meterType === 'Electricity' ? 'Tiền điện' : 'Tiền nước';
+        const feeTypeName = adjustForm.meterType === 'Electricity' ? t('periodicinvoices.electricity_bill') : t('periodicinvoices.water_fee');
         let details = [...(inv.details || [])];
         const idx = details.findIndex(d => d.feeTypeName.includes(feeTypeName));
-        const nd = { feeTypeName, description: `Tiêu thụ (${adjustForm.oldValue} -> ${adjustForm.newValue})`, quantity: consumption, unitPrice, amount: newAmount };
+        const nd = { feeTypeName, description: t('periodicinvoices.consume_adjustformoldvalue_adjustformnewvalue'), quantity: consumption, unitPrice, amount: newAmount };
         if (idx >= 0) details[idx] = nd; else details.push(nd);
         return { ...inv, details, totalAmount: details.reduce((s, d) => s + d.amount, 0) };
       });
       setInvoices(updated);
-      showNotification('success', 'Cập nhật chỉ số và tính lại hóa đơn thành công!');
+      showNotification('success', t('periodicinvoices.updated_indexes_and_recalculated'));
       setActiveModal(null);
     } else {
       fetch(`http://localhost:5056/api/accountant/billing/meter-readings/adjust?userId=1`, {
@@ -148,9 +151,9 @@ export default function PeriodicInvoices() {
       }).then(async r => { 
         if (!r.ok) {
           const errData = await r.json().catch(() => ({}));
-          throw new Error(errData.detail || errData.title || 'Có lỗi khi cập nhật chỉ số.');
+          throw new Error(errData.detail || errData.title || t('periodicinvoices.there_was_an_error'));
         }
-        showNotification('success', 'Cập nhật thành công!'); 
+        showNotification('success', t('periodicinvoices.updated_successfully')); 
         setActiveModal(null); 
         fetchInvoices(); 
       })
@@ -161,21 +164,21 @@ export default function PeriodicInvoices() {
   const handleAdhocSubmit = (e) => {
     e.preventDefault();
     if (!adhocForm.stallId) {
-      setModalError('Vui lòng chọn một gian hàng hợp lệ từ danh sách.');
+      setModalError(t('periodicinvoices.please_select_a_valid'));
       return;
     }
     if (isMock) {
-      setInvoices([{ invoiceId: Math.floor(Math.random() * 900) + 200, stallCode: `Stall-${adhocForm.stallId}`, vendorName: 'Tiểu thương', totalAmount: adhocForm.amount, month: adhocForm.month, year: adhocForm.year, dueDate: adhocForm.dueDate, status: 'Unpaid', details: [{ feeTypeName: 'Phí phát sinh', description: adhocForm.description, quantity: 1, unitPrice: adhocForm.amount, amount: adhocForm.amount }] }, ...invoices]);
-      showNotification('success', 'Tạo hóa đơn đột xuất thành công!');
+      setInvoices([{ invoiceId: Math.floor(Math.random() * 900) + 200, stallCode: `Stall-${adhocForm.stallId}`, vendorName: t('periodicinvoices.small_business'), totalAmount: adhocForm.amount, month: adhocForm.month, year: adhocForm.year, dueDate: adhocForm.dueDate, status: 'Unpaid', details: [{ feeTypeName: t('periodicinvoices.fees_incurred'), description: adhocForm.description, quantity: 1, unitPrice: adhocForm.amount, amount: adhocForm.amount }] }, ...invoices]);
+      showNotification('success', t('periodicinvoices.successfully_created_unexpected_invoices'));
       setActiveModal(null);
     } else {
       fetch('http://localhost:5056/api/accountant/billing/invoices/ad-hoc', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` }, body: JSON.stringify(adhocForm) })
         .then(async r => { 
           if (!r.ok) {
             const errData = await r.json().catch(() => ({}));
-            throw new Error(errData.detail || errData.title || 'Lỗi khi tạo hóa đơn.');
+            throw new Error(errData.detail || errData.title || t('periodicinvoices.error_when_creating_invoice'));
           }
-          showNotification('success', 'Phát hành hóa đơn đột xuất thành công!'); 
+          showNotification('success', t('periodicinvoices.successfully_issued_unexpected_invoices')); 
           setActiveModal(null); 
           fetchInvoices(); 
         })
@@ -187,15 +190,15 @@ export default function PeriodicInvoices() {
     if (isMock) {
       setInvoices(invoices.map(inv => selectedIds.includes(inv.invoiceId) ? { ...inv, status: 'Unpaid' } : inv));
       setSelectedIds([]); setActiveModal(null);
-      showNotification('success', `Đã phát hành ${selectedIds.length} hóa đơn thành công!`);
+      showNotification('success', t('periodicinvoices.selectedidslength_invoice_issued_successfully'));
     } else {
       fetch('http://localhost:5056/api/accountant/billing/invoices/bulk-approve', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` }, body: JSON.stringify({ invoiceIds: selectedIds }) })
         .then(async r => { 
           if (!r.ok) {
             const errData = await r.json().catch(() => ({}));
-            throw new Error(errData.detail || errData.title || 'Lỗi khi phê duyệt hàng loạt.');
+            throw new Error(errData.detail || errData.title || t('periodicinvoices.error_when_mass_approving'));
           }
-          showNotification('success', `Phê duyệt ${selectedIds.length} hóa đơn thành công!`); 
+          showNotification('success', t('periodicinvoices.approval_of_selectedidslength_invoice')); 
           setSelectedIds([]); 
           setActiveModal(null); 
           fetchInvoices(); 
@@ -208,7 +211,7 @@ export default function PeriodicInvoices() {
     e.preventDefault();
     if (isMock) {
       setInvoices(invoices.map(i => i.invoiceId === selectedInvoice.invoiceId ? { ...i, status: 'Canceled' } : i));
-      showNotification('success', 'Hủy hóa đơn thành công (Mock)!');
+      showNotification('success', t('periodicinvoices.invoice_canceled_successfully_mock'));
       setActiveModal(null);
     } else {
       fetch(`http://localhost:5056/api/accountant/billing/invoices/${selectedInvoice.invoiceId}/cancel`, {
@@ -218,8 +221,8 @@ export default function PeriodicInvoices() {
       })
       .then(async r => {
         const d = await r.json().catch(() => ({}));
-        if (!r.ok || !d.success) throw new Error(d.message || d.title || 'Lỗi khi hủy hóa đơn.');
-        showNotification('success', d.message || 'Hủy hóa đơn thành công!');
+        if (!r.ok || !d.success) throw new Error(d.message || d.title || t('periodicinvoices.error_canceling_invoice'));
+        showNotification('success', d.message || t('periodicinvoices.invoice_canceled_successfully'));
         setActiveModal(null);
         fetchInvoices();
       })
@@ -232,8 +235,8 @@ export default function PeriodicInvoices() {
       {/* Header */}
       <div className="page-header">
         <div>
-          <h1 className="page-title">Hóa Đơn Định Kỳ</h1>
-          <p className="page-subtitle">Quản lý, chốt sổ phát hành và điều chỉnh chỉ số dịch vụ hàng tháng.</p>
+          <h1 className="page-title">{t('periodicinvoices.ha_n_nh_k')}</h1>
+          <p className="page-subtitle">{t('periodicinvoices.manage_close_issuance_books')}</p>
         </div>
         <div className="page-actions">
           {selectedIds.length > 0 && (
@@ -244,7 +247,7 @@ export default function PeriodicInvoices() {
           )}
           <button className="btn btn-primary" onClick={() => setActiveModal('adhoc')}>
             <Plus size={15} />
-            <span>Hóa Đơn Đột Xuất</span>
+            <span>{t('periodicinvoices.unexpected_bills')}</span>
           </button>
         </div>
       </div>
@@ -262,7 +265,7 @@ export default function PeriodicInvoices() {
       {isMock && (
         <div className="alert alert-warning">
           <AlertTriangle size={16} className="alert-icon" />
-          <span><strong>Chế độ mô phỏng:</strong> Không thể kết nối Backend. Dữ liệu đang được hiển thị từ bộ nhớ tạm.</span>
+          <span><strong>{t('periodicinvoices.simulation_mode')}</strong> {t('periodicinvoices.unable_to_connect_backend')}</span>
         </div>
       )}
 
@@ -273,7 +276,7 @@ export default function PeriodicInvoices() {
           <div className="search-wrapper" style={{ flex: '1 1 220px' }}>
             <Search size={14} className="search-icon-inner" />
             <input type="text" className="search-input" style={{ width: '100%' }}
-              placeholder="Tìm Kiosk, tên khách thuê, mã HĐ..."
+              placeholder={t('periodicinvoices.find_kiosk_tenant_name')}
               value={search} onChange={e => setSearch(e.target.value)} />
           </div>
           <select className="filter-select" value={month} onChange={e => setMonth(parseInt(e.target.value))}>
@@ -283,13 +286,13 @@ export default function PeriodicInvoices() {
             {[2025, 2026, 2027].map(yr => <option key={yr} value={yr}>Năm {yr}</option>)}
           </select>
           <select className="filter-select" value={status} onChange={e => setStatus(e.target.value)}>
-            <option value="all">Mọi trạng thái</option>
-            <option value="Draft">Nháp (Draft)</option>
-            <option value="Unpaid">Chờ thu (Unpaid)</option>
-            <option value="Paid">Đã thu (Paid)</option>
-            <option value="Overdue">Quá hạn (Overdue)</option>
+            <option value="all">{t('periodicinvoices.every_state')}</option>
+            <option value="Draft">{t('periodicinvoices.draft')}</option>
+            <option value="Unpaid">{t('periodicinvoices.waiting_for_collection_unpaid')}</option>
+            <option value="Paid">{t('periodicinvoices.paid')}</option>
+            <option value="Overdue">{t('periodicinvoices.qu_hn_overdue')}</option>
           </select>
-          <button type="submit" className="btn btn-primary btn-sm">Lọc</button>
+          <button type="submit" className="btn btn-primary btn-sm">{t('periodicinvoices.filter')}</button>
         </form>
       </div>
 
@@ -297,7 +300,7 @@ export default function PeriodicInvoices() {
       {loading ? (
         <div className="loading-container">
           <div className="loading-spinner" />
-          <p className="loading-text">Đang tải danh sách hóa đơn...</p>
+          <p className="loading-text">{t('periodicinvoices.loading_invoice_list')}</p>
         </div>
       ) : (
         <div className="card" style={{ overflow: 'hidden' }}>
@@ -308,14 +311,14 @@ export default function PeriodicInvoices() {
                   <input type="checkbox" onChange={handleSelectAll}
                     checked={invoices.length > 0 && invoices.filter(i => i.status === 'Draft').every(i => selectedIds.includes(i.invoiceId))} />
                 </th>
-                <th>Mã HĐ</th>
+                <th>{t('periodicinvoices.hd_code')}</th>
                 <th>Kiosk</th>
-                <th>Khách Thuê</th>
-                <th>Kỳ</th>
-                <th className="text-right">Tổng Tiền</th>
-                <th>Hạn Thanh Toán</th>
-                <th>Trạng Thái</th>
-                <th className="text-right">Thao Tác</th>
+                <th>{t('periodicinvoices.tenants')}</th>
+                <th>{t('periodicinvoices.ky')}</th>
+                <th className="text-right">{t('periodicinvoices.total_money')}</th>
+                <th>{t('periodicinvoices.payment_term')}</th>
+                <th>{t('periodicinvoices.status')}</th>
+                <th className="text-right">{t('periodicinvoices.operation')}</th>
               </tr>
             </thead>
             <tbody>
@@ -338,16 +341,13 @@ export default function PeriodicInvoices() {
                     <td className="text-right">
                       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
                         <button className="btn btn-secondary btn-sm" onClick={() => openDetails(inv)}>
-                          <Eye size={13} /> Chi tiết
-                        </button>
+                          <Eye size={13} /> {t('periodicinvoices.detail')}</button>
                         {(inv.status === 'Draft' || inv.status === 'Unpaid') && (
                           <>
                             <button className="btn btn-sm" style={{ background: 'var(--primary-light)', color: 'var(--primary)', border: '1px solid var(--primary-border)' }} onClick={() => openAdjustModal(inv)}>
-                              Ghi số liệu
-                            </button>
+                              {t('periodicinvoices.record_data')}</button>
                             <button className="btn btn-sm" style={{ background: 'var(--danger-light)', color: 'var(--danger)', border: '1px solid var(--danger)' }} onClick={() => openCancelModal(inv)}>
-                              Hủy
-                            </button>
+                              {t('periodicinvoices.cancel')}</button>
                           </>
                         )}
                       </div>
@@ -359,8 +359,8 @@ export default function PeriodicInvoices() {
                   <td colSpan={9}>
                     <div className="empty-state">
                       <div className="empty-state-icon"><FileText size={24} /></div>
-                      <p className="empty-state-title">Không tìm thấy hóa đơn</p>
-                      <p className="empty-state-desc">Không có hóa đơn nào khớp với bộ lọc hiện tại.</p>
+                      <p className="empty-state-title">{t('periodicinvoices.invoice_not_found')}</p>
+                      <p className="empty-state-desc">{t('periodicinvoices.there_are_no_invoices')}</p>
                     </div>
                   </td>
                 </tr>
@@ -378,8 +378,7 @@ export default function PeriodicInvoices() {
                   onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} 
                   disabled={currentPage === 1}
                 >
-                  Trước
-                </button>
+                  {t('periodicinvoices.before')}</button>
                 {Array.from({ length: Math.ceil(invoices.length / itemsPerPage) }, (_, i) => i + 1).map(page => (
                   <button 
                     key={page} 
@@ -419,18 +418,18 @@ export default function PeriodicInvoices() {
               )}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, padding: '14px', background: 'var(--bg-base)', borderRadius: 'var(--radius-md)', fontSize: 13.5 }}>
                 <div><span style={{ color: 'var(--text-muted)' }}>Kiosk: </span><strong>{selectedInvoice.stallCode}</strong></div>
-                <div><span style={{ color: 'var(--text-muted)' }}>Tiểu thương: </span><strong>{selectedInvoice.vendorName}</strong></div>
-                <div><span style={{ color: 'var(--text-muted)' }}>Hạn nộp: </span>{selectedInvoice.dueDate || 'Chưa quy định'}</div>
-                <div><span style={{ color: 'var(--text-muted)' }}>Trạng thái: </span><span className={getStatusBadge(selectedInvoice.status).cls}>{getStatusBadge(selectedInvoice.status).label}</span></div>
+                <div><span style={{ color: 'var(--text-muted)' }}>{t('periodicinvoices.small_business')}</span><strong>{selectedInvoice.vendorName}</strong></div>
+                <div><span style={{ color: 'var(--text-muted)' }}>{t('periodicinvoices.submission_deadline')}</span>{selectedInvoice.dueDate || t('periodicinvoices.not_regulated')}</div>
+                <div><span style={{ color: 'var(--text-muted)' }}>{t('periodicinvoices.status')}</span><span className={getStatusBadge(selectedInvoice.status).cls}>{getStatusBadge(selectedInvoice.status).label}</span></div>
               </div>
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th>Khoản phí</th>
-                    <th>Mô tả / Chỉ số</th>
-                    <th className="text-right">Số lượng</th>
-                    <th className="text-right">Đơn giá</th>
-                    <th className="text-right">Thành tiền</th>
+                    <th>{t('periodicinvoices.fees')}</th>
+                    <th>{t('periodicinvoices.description_index')}</th>
+                    <th className="text-right">{t('periodicinvoices.quantity')}</th>
+                    <th className="text-right">{t('periodicinvoices.unit_price')}</th>
+                    <th className="text-right">{t('periodicinvoices.make_money')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -444,14 +443,14 @@ export default function PeriodicInvoices() {
                     </tr>
                   ))}
                   <tr style={{ background: 'var(--primary-light)', fontWeight: 800 }}>
-                    <td colSpan={4} className="text-right" style={{ color: 'var(--text-title)' }}>Tổng cộng:</td>
+                    <td colSpan={4} className="text-right" style={{ color: 'var(--text-title)' }}>{t('periodicinvoices.total')}</td>
                     <td className="text-right" style={{ color: 'var(--primary)', fontSize: 15 }}>{selectedInvoice.totalAmount.toLocaleString('vi-VN')} ₫</td>
                   </tr>
                 </tbody>
               </table>
             </div>
             <div className="modal-footer">
-              <button className="btn btn-secondary" onClick={() => setActiveModal(null)}>Đóng</button>
+              <button className="btn btn-secondary" onClick={() => setActiveModal(null)}>{t('periodicinvoices.close')}</button>
             </div>
           </div>
         </div>
@@ -475,23 +474,23 @@ export default function PeriodicInvoices() {
                 )}
                 <div className="alert alert-warning" style={{ marginBottom: 14 }}>
                   <AlertTriangle size={15} className="alert-icon" />
-                  <span>Hành động này sẽ hủy hóa đơn và thông báo cho tiểu thương. Bạn chắc chắn muốn hủy?</span>
+                  <span>{t('periodicinvoices.this_action_will_cancel')}</span>
                 </div>
                 <div>
-                  <label className="form-label">Lý do hủy (sẽ gửi cho tiểu thương)</label>
+                  <label className="form-label">{t('periodicinvoices.reason_for_cancellation_will')}</label>
                   <textarea 
                     className="form-input" 
                     rows={3} 
                     style={{ width: '100%', resize: 'vertical' }}
-                    placeholder="VD: Sai chỉ số điện, sai đơn giá, v.v."
+                    placeholder={t('periodicinvoices.for_example_wrong_electricity')}
                     value={cancelReason} 
                     onChange={e => setCancelReason(e.target.value)}
                   />
                 </div>
               </div>
               <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={() => setActiveModal(null)}>Đóng</button>
-                <button type="submit" className="btn" style={{ background: 'var(--danger)', color: '#fff', border: 'none' }}>Xác nhận Hủy</button>
+                <button type="button" className="btn btn-secondary" onClick={() => setActiveModal(null)}>{t('periodicinvoices.close')}</button>
+                <button type="submit" className="btn" style={{ background: 'var(--danger)', color: '#fff', border: 'none' }}>{t('periodicinvoices.confirm_cancel')}</button>
               </div>
             </form>
           </div>
@@ -519,33 +518,33 @@ export default function PeriodicInvoices() {
                   <span>Sửa sai chỉ số Điện/Nước. Hóa đơn tháng {selectedInvoice.month}/{selectedInvoice.year} sẽ tự động tính lại.</span>
                 </div>
                 <div>
-                  <label className="form-label">Loại công tơ</label>
+                  <label className="form-label">{t('periodicinvoices.meter_type')}</label>
                   <select className="form-select" value={adjustForm.meterType} onChange={e => setAdjustForm({ ...adjustForm, meterType: e.target.value })}>
-                    <option value="Electricity">Điện (kWh)</option>
-                    <option value="Water">Nước (m³)</option>
+                    <option value="Electricity">{t('periodicinvoices.electricity_kwh')}</option>
+                    <option value="Water">{t('periodicinvoices.water_m')}</option>
                   </select>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                   <div>
-                    <label className="form-label">Chỉ số cũ (Đầu kỳ)</label>
+                    <label className="form-label">{t('periodicinvoices.old_index_beginning_of')}</label>
                     <input type="number" className="form-input" required min={0} value={adjustForm.oldValue}
                       onChange={e => setAdjustForm({ ...adjustForm, oldValue: parseFloat(e.target.value) || 0 })} />
                   </div>
                   <div>
-                    <label className="form-label">Chỉ số Mới</label>
+                    <label className="form-label">{t('periodicinvoices.new_index')}</label>
                     <input type="number" className="form-input" required min={0} value={adjustForm.newValue}
                       onChange={e => setAdjustForm({ ...adjustForm, newValue: parseFloat(e.target.value) || 0 })} />
                   </div>
                 </div>
                 {adjustForm.newValue >= adjustForm.oldValue && (
                   <div style={{ fontSize: 13, color: 'var(--text-muted)', background: 'var(--bg-base)', padding: '10px 14px', borderRadius: 'var(--radius-md)' }}>
-                    Lượng tiêu thụ: <strong style={{ color: 'var(--primary)' }}>{(adjustForm.newValue - adjustForm.oldValue).toLocaleString()}</strong> {adjustForm.meterType === 'Electricity' ? 'kWh' : 'm³'}
+                    {t('periodicinvoices.consumption')}<strong style={{ color: 'var(--primary)' }}>{(adjustForm.newValue - adjustForm.oldValue).toLocaleString()}</strong> {adjustForm.meterType === 'Electricity' ? 'kWh' : 'm³'}
                   </div>
                 )}
               </div>
               <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={() => setActiveModal(null)}>Hủy</button>
-                <button type="submit" className="btn btn-primary">Cập nhật & Tính lại</button>
+                <button type="button" className="btn btn-secondary" onClick={() => setActiveModal(null)}>{t('periodicinvoices.cancel')}</button>
+                <button type="submit" className="btn btn-primary">{t('periodicinvoices.update_recalculate')}</button>
               </div>
             </form>
           </div>
@@ -557,7 +556,7 @@ export default function PeriodicInvoices() {
         <div className="modal-overlay" onClick={() => setActiveModal(null)}>
           <div className="modal-container" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <span className="modal-title">Phát Hành Hóa Đơn Đột Xuất</span>
+              <span className="modal-title">{t('periodicinvoices.issuing_unscheduled_invoices')}</span>
               <button className="modal-close-btn" onClick={() => setActiveModal(null)}><X size={16} /></button>
             </div>
             <form onSubmit={handleAdhocSubmit}>
@@ -570,8 +569,8 @@ export default function PeriodicInvoices() {
               )}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                   <div>
-                    <label className="form-label">Mã/Tên Gian Hàng</label>
-                    <input type="text" list="stall-list" className="form-input" required placeholder="Nhập để tìm kiếm gian hàng..."
+                    <label className="form-label">{t('periodicinvoices.store_codename')}</label>
+                    <input type="text" list="stall-list" className="form-input" required placeholder={t('periodicinvoices.enter_to_search_for')}
                       value={adhocForm.stallSearch || ''}
                       onChange={e => {
                         const val = e.target.value;
@@ -582,12 +581,12 @@ export default function PeriodicInvoices() {
                     <datalist id="stall-list">
                       {availableStalls.map(s => <option key={s.stallId} value={`${s.code} ${s.tenantName ? `(${s.tenantName})` : ''}`} />)}
                     </datalist>
-                    {adhocForm.stallSearch && !adhocForm.stallId && <small style={{ color: 'var(--text-danger)', marginTop: '4px', display: 'block' }}>Vui lòng chọn một gian hàng hợp lệ.</small>}
+                    {adhocForm.stallSearch && !adhocForm.stallId && <small style={{ color: 'var(--text-danger)', marginTop: '4px', display: 'block' }}>{t('periodicinvoices.please_select_a_valid')}</small>}
                   </div>
                   <div>
-                    <label className="form-label">Loại phí phát sinh</label>
+                    <label className="form-label">{t('periodicinvoices.type_of_fee_incurred')}</label>
                     <select className="form-select" required value={adhocForm.feeTypeId} onChange={e => setAdhocForm({ ...adhocForm, feeTypeId: parseInt(e.target.value) })}>
-                      <option value="">-- Chọn loại phí --</option>
+                      <option value="">{t('periodicinvoices.select_fee_type')}</option>
                       {availableFeeTypes.map(f => (
                         <option key={f.feeTypeId} value={f.feeTypeId}>{f.name}</option>
                       ))}
@@ -596,27 +595,27 @@ export default function PeriodicInvoices() {
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                   <div>
-                    <label className="form-label">Số tiền (VNĐ)</label>
+                    <label className="form-label">{t('periodicinvoices.amount_vnd')}</label>
                     <input type="number" className="form-input" required min={1} value={adhocForm.amount}
                       onChange={e => setAdhocForm({ ...adhocForm, amount: parseFloat(e.target.value) || 0 })} />
                   </div>
                   <div>
-                    <label className="form-label">Hạn thanh toán</label>
+                    <label className="form-label">{t('periodicinvoices.payment_deadline')}</label>
                     <input type="date" className="form-input" required value={adhocForm.dueDate}
                       onChange={e => setAdhocForm({ ...adhocForm, dueDate: e.target.value })} />
                   </div>
                 </div>
                 <div>
-                  <label className="form-label">Mô tả lý do phát hành</label>
+                  <label className="form-label">{t('periodicinvoices.describe_the_reason_for')}</label>
                   <textarea className="form-textarea" required rows={3} maxLength={500}
-                    placeholder="Mô tả cụ thể sự cố, số biên bản vi phạm..."
+                    placeholder={t('periodicinvoices.specific_description_of_the')}
                     value={adhocForm.description}
                     onChange={e => setAdhocForm({ ...adhocForm, description: e.target.value })} />
                 </div>
               </div>
               <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={() => setActiveModal(null)}>Hủy</button>
-                <button type="submit" className="btn btn-primary">Phát hành ngay</button>
+                <button type="button" className="btn btn-secondary" onClick={() => setActiveModal(null)}>{t('periodicinvoices.cancel')}</button>
+                <button type="submit" className="btn btn-primary">{t('periodicinvoices.release_immediately')}</button>
               </div>
             </form>
           </div>
@@ -628,7 +627,7 @@ export default function PeriodicInvoices() {
         <div className="modal-overlay" onClick={() => setActiveModal(null)}>
           <div className="modal-container modal-container-sm" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <span className="modal-title">Xác nhận Phát Hành Hàng Loạt</span>
+              <span className="modal-title">{t('periodicinvoices.mass_release_confirmed')}</span>
               <button className="modal-close-btn" onClick={() => setActiveModal(null)}><X size={16} /></button>
             </div>
             <div className="modal-body">
@@ -641,20 +640,19 @@ export default function PeriodicInvoices() {
               <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
                 <CheckCircle size={20} style={{ color: 'var(--success)', flexShrink: 0, marginTop: 2 }} />
                 <p style={{ fontSize: 14.5, lineHeight: 1.6 }}>
-                  Hệ thống sẽ chuyển <strong>{selectedIds.length}</strong> hóa đơn Nháp sang trạng thái <strong>Chờ thanh toán</strong>.
+                  {t('periodicinvoices.the_system_will_switch')}<strong>{selectedIds.length}</strong> {t('periodicinvoices.draft_invoice_to_status')}<strong>{t('periodicinvoices.wait_for_payment')}</strong>.
                 </p>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px', background: 'var(--bg-base)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
-                <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>Tổng số tiền phát hành:</span>
+                <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>{t('periodicinvoices.total_amount_issued')}</span>
                 <strong style={{ color: 'var(--primary)', fontSize: 16 }}>{getSelectedTotal().toLocaleString('vi-VN')} ₫</strong>
               </div>
               <p style={{ fontSize: 12.5, color: 'var(--text-muted)', lineHeight: 1.5 }}>
-                Sau khi phát hành, thông báo sẽ được gửi tự động đến tiểu thương tương ứng.
-              </p>
+                {t('periodicinvoices.once_published_notifications_will')}</p>
             </div>
             <div className="modal-footer">
-              <button className="btn btn-secondary" onClick={() => setActiveModal(null)}>Hủy</button>
-              <button className="btn btn-success" onClick={handleBulkApprove}>Xác nhận & Phát hành</button>
+              <button className="btn btn-secondary" onClick={() => setActiveModal(null)}>{t('periodicinvoices.cancel')}</button>
+              <button className="btn btn-success" onClick={handleBulkApprove}>{t('periodicinvoices.confirmation_release')}</button>
             </div>
           </div>
         </div>

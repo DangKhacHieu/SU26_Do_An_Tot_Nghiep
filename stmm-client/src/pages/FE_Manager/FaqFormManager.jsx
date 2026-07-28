@@ -1,9 +1,12 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import './FaqFormManager.css';
 
 const API_BASE = "http://localhost:5056/api/manager/faqs";
 
 export default function FaqFormManager({ faqId, navigate, addToast }) {
+  const { t } = useTranslation();
+
   const isEdit = !!faqId;
   const [loading, setLoading] = useState(isEdit);
   const [submitting, setSubmitting] = useState(false);
@@ -72,11 +75,11 @@ export default function FaqFormManager({ faqId, navigate, addToast }) {
       });
 
       if (res.ok) {
-        addToast(isEdit ? 'Cập nhật FAQ thành công!' : 'Tạo FAQ thành công!', 'success');
+        addToast(isEdit ? t('faqformmanager.updated_faq_successfully') : t('faqformmanager.create_faq_successfully'), 'success');
         navigate('faqs');
       } else {
         const err = await res.json().catch(() => ({}));
-        addToast(err.detail || 'Lỗi khi lưu thông tin FAQ.', 'error');
+        addToast(err.detail || t('faqformmanager.error_saving_faq_information'), 'error');
       }
     } catch {
       addToast('Lỗi kết nối. Vui lòng kiểm tra mạng.', 'error');
@@ -89,7 +92,7 @@ export default function FaqFormManager({ faqId, navigate, addToast }) {
     return (
       <div className="state-empty" style={{ minHeight: '300px' }}>
         <div className="spinner" />
-        <span>Đang tải thông tin FAQ...</span>
+        <span>{t('faqformmanager.loading_faq_information')}</span>
       </div>
     );
   }
@@ -98,17 +101,16 @@ export default function FaqFormManager({ faqId, navigate, addToast }) {
     <div className="faq-form-container">
       <div className="form-card">
         <div className="form-card-header">
-          <h2>{isEdit ? 'Chỉnh sửa Câu hỏi thường gặp' : 'Thêm Câu hỏi thường gặp mới'}</h2>
+          <h2>{isEdit ? t('faqformmanager.edit_faq') : t('faqformmanager.added_new_faq')}</h2>
           <p className="card-subtitle">
-            Cấu hình câu hỏi, câu trả lời và phân mục hiển thị cho khách hàng hoặc thành viên.
-          </p>
+            {t('faqformmanager.configure_questions_answers_and')}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="media-form">
           <div className="form-grid">
             {/* Category Select */}
             <div className="form-group">
-              <label className="form-label required">Danh mục câu hỏi</label>
+              <label className="form-label required">{t('faqformmanager.list_of_questions')}</label>
               <select
                 className="form-control"
                 value={category}
@@ -116,9 +118,9 @@ export default function FaqFormManager({ faqId, navigate, addToast }) {
                 required
               >
                 <option value="General">General (Chung)</option>
-                <option value="Contract">Contract (Hợp đồng thuê sạp)</option>
-                <option value="Payment">Payment (Thanh toán & Phí)</option>
-                <option value="Rules">Rules (Nội quy chợ)</option>
+                <option value="Contract">{t('faqformmanager.contract_stall_rental_contract')}</option>
+                <option value="Payment">{t('faqformmanager.payment')}</option>
+                <option value="Rules">{t('faqformmanager.rules_market_rules')}</option>
               </select>
             </div>
 
@@ -131,19 +133,19 @@ export default function FaqFormManager({ faqId, navigate, addToast }) {
                   onChange={(e) => setIsActive(e.target.checked)}
                 />
                 <span className="checkbox-label-text">
-                  <strong>Kích hoạt hiển thị</strong>
-                  <span className="checkbox-subtext">Cho phép hiển thị FAQ này lên cổng thông tin thành viên</span>
+                  <strong>{t('faqformmanager.activate_display')}</strong>
+                  <span className="checkbox-subtext">{t('faqformmanager.allows_this_faq_to')}</span>
                 </span>
               </label>
             </div>
 
             {/* Question Text */}
             <div className="form-group full-width">
-              <label className="form-label required">Nội dung câu hỏi thường gặp</label>
+              <label className="form-label required">{t('faqformmanager.content_of_frequently_asked')}</label>
               <input
                 type="text"
                 className="form-control"
-                placeholder="Nhập câu hỏi thường gặp (ví dụ: Làm thế nào để đóng tiền thuê sạp hàng tháng?)..."
+                placeholder={t('faqformmanager.enter_frequently_asked_questions')}
                 value={question}
                 onChange={(e) => setQuestion(e.target.value)}
                 maxLength={500}
@@ -153,10 +155,10 @@ export default function FaqFormManager({ faqId, navigate, addToast }) {
 
             {/* Answer Textarea */}
             <div className="form-group full-width">
-              <label className="form-label required">Nội dung câu trả lời chi tiết</label>
+              <label className="form-label required">{t('faqformmanager.content_of_detailed_answer')}</label>
               <textarea
                 className="form-control faq-textarea"
-                placeholder="Nhập câu trả lời chi tiết, hướng dẫn cụ thể ở đây..."
+                placeholder={t('faqformmanager.enter_detailed_answers_and')}
                 value={answer}
                 onChange={(e) => setAnswer(e.target.value)}
                 required
@@ -171,14 +173,13 @@ export default function FaqFormManager({ faqId, navigate, addToast }) {
               onClick={() => navigate('faqs')}
               disabled={submitting}
             >
-              Hủy bỏ
-            </button>
+              {t('faqformmanager.cancel')}</button>
             <button
               type="submit"
               className="btn-primary"
               disabled={submitting}
             >
-              {submitting ? 'Đang lưu...' : isEdit ? 'Cập nhật câu hỏi' : 'Thêm câu hỏi'}
+              {submitting ? t('faqformmanager.saving') : isEdit ? t('faqformmanager.updated_question') : t('faqformmanager.more_questions')}
             </button>
           </div>
         </form>

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -21,6 +22,8 @@ import {
 } from 'lucide-react';
 
 export default function FinancialConfig() {
+  const { t } = useTranslation();
+
   const [activeTab, setActiveTab] = useState('system'); // 'system' | 'fees' | 'services'
   
   // Data States
@@ -113,7 +116,7 @@ export default function FinancialConfig() {
       setLoading(false);
     })
     .catch(err => {
-      console.warn('Lỗi kết nối API Backend, chuyển đổi sang dữ liệu giả lập:', err);
+      console.warn(t('financialconfig.backend_api_connection_error'), err);
       // Fallback Mock data
       setTimeout(() => {
         setFeeTypes(getMockFees());
@@ -145,21 +148,21 @@ export default function FinancialConfig() {
 
   // Mock initializers
   const getMockFees = () => [
-    { feeTypeId: 1, name: 'Tiền thuê mặt bằng', unit: 'Tháng', description: 'Chi phí thuê sạp định kỳ' },
-    { feeTypeId: 2, name: 'Tiền điện', unit: 'kWh', description: 'Điện tiêu thụ' },
-    { feeTypeId: 3, name: 'Tiền nước', unit: 'm³', description: 'Nước sinh hoạt' },
-    { feeTypeId: 4, name: 'Phạt vi phạm', unit: 'Lần', description: 'Khoản thu do vi phạm hợp đồng' },
+    { feeTypeId: 1, name: t('financialconfig.premises_rent'), unit: t('financialconfig.month'), description: t('financialconfig.periodic_stall_rental_costs') },
+    { feeTypeId: 2, name: t('financialconfig.electricity_bill'), unit: 'kWh', description: t('financialconfig.electricity_consumption') },
+    { feeTypeId: 3, name: t('financialconfig.water_fee'), unit: 'm³', description: t('financialconfig.living_water') },
+    { feeTypeId: 4, name: t('financialconfig.penalties_for_violations'), unit: t('financialconfig.time'), description: t('financialconfig.revenue_due_to_breach') },
   ];
 
   const getMockServices = () => [
-    { serviceId: 1, name: 'Dịch vụ thu gom rác', price: 150000, billingCycle: 'Monthly', feeTypeId: 1, feeTypeName: 'Phí dịch vụ', description: 'Thu gom rác tại Kiosk 2 lần/ngày' },
-    { serviceId: 2, name: 'Cung cấp đường truyền Wifi', price: 200000, billingCycle: 'Monthly', feeTypeId: 1, feeTypeName: 'Phí dịch vụ', description: 'Gói cáp quang tốc độ cao 50Mbps' },
+    { serviceId: 1, name: t('financialconfig.garbage_collection_service'), price: 150000, billingCycle: 'Monthly', feeTypeId: 1, feeTypeName: t('financialconfig.service_fee'), description: t('financialconfig.garbage_collection_at_kiosk') },
+    { serviceId: 2, name: t('financialconfig.provide_wifi_connection'), price: 200000, billingCycle: 'Monthly', feeTypeId: 1, feeTypeName: t('financialconfig.service_fee'), description: t('financialconfig.50mbps_high_speed_fiber') },
   ];
 
   const getMockSys = () => [
-    { configId: 1, configKey: 'invoice_due_days', configValue: '15', description: 'Số ngày hạn thanh toán hóa đơn kể từ lúc phát hành' },
-    { configId: 2, configKey: 'vat_rate', configValue: '10', description: 'Thuế giá trị gia tăng (%)' },
-    { configId: 3, configKey: 'auto_invoice_day', configValue: '5', description: 'Ngày trong tháng tự động khởi tạo hóa đơn của các sạp (1-28)' },
+    { configId: 1, configKey: 'invoice_due_days', configValue: '15', description: t('financialconfig.the_number_of_days') },
+    { configId: 2, configKey: 'vat_rate', configValue: '10', description: t('financialconfig.value_added_tax') },
+    { configId: 3, configKey: 'auto_invoice_day', configValue: '5', description: t('financialconfig.day_of_the_month') },
   ];
 
   const getMockElectricTiers = () => [
@@ -177,10 +180,10 @@ export default function FinancialConfig() {
   const handleSaveAllConfigs = async (e) => {
     e.preventDefault();
     if (configForm.auto_invoice_day < 1 || configForm.auto_invoice_day > 28) {
-      return showToast('error', 'Ngày chốt sổ phải từ 1 đến 28.');
+      return showToast('error', t('financialconfig.closing_date_must_be'));
     }
     if (configForm.invoice_due_days < 1) {
-      return showToast('error', 'Hạn thanh toán phải lớn hơn 0.');
+      return showToast('error', t('financialconfig.payment_term_must_be'));
     }
     
     setLoading(true);
@@ -196,14 +199,14 @@ export default function FinancialConfig() {
           });
           if (!res.ok) {
             const errData = await res.json().catch(() => ({}));
-            throw new Error(errData.detail || errData.title || `Lỗi cập nhật ${key}`);
+            throw new Error(errData.detail || errData.title || t('financialconfig.error_updating_key'));
           }
         }
       }
-      showToast('success', 'Lưu cấu hình hệ thống thành công!');
+      showToast('success', t('financialconfig.saved_system_configuration_successfully'));
       loadAllConfigData();
     } catch(err) {
-      showToast('error', err.message || 'Lỗi khi lưu cấu hình');
+      showToast('error', err.message || t('financialconfig.error_saving_configuration'));
       setLoading(false);
     }
   };
@@ -221,10 +224,10 @@ export default function FinancialConfig() {
     if (isMock) {
       if (selectedItem) {
         setFeeTypes(feeTypes.map(f => f.feeTypeId === selectedItem.feeTypeId ? { ...f, ...payload } : f));
-        showToast('success', 'Đã cập nhật loại phí (Mock)!');
+        showToast('success', t('financialconfig.updated_fee_type_mock'));
       } else {
         setFeeTypes([...feeTypes, { feeTypeId: Math.floor(Math.random() * 100) + 10, ...payload }]);
-        showToast('success', 'Đã thêm loại phí (Mock)!');
+        showToast('success', t('financialconfig.added_fee_type_mock'));
       }
       closeModal();
     } else {
@@ -242,9 +245,9 @@ export default function FinancialConfig() {
       .then(async res => {
         if (!res.ok) {
           const errData = await res.json().catch(() => ({}));
-          throw new Error(errData.detail || errData.title || 'Thao tác thất bại');
+          throw new Error(errData.detail || errData.title || t('financialconfig.operation_failed'));
         }
-        showToast('success', 'Cập nhật loại phí thành công!');
+        showToast('success', t('financialconfig.fee_type_updated_successfully'));
         closeModal();
         loadAllConfigData();
       })
@@ -255,7 +258,7 @@ export default function FinancialConfig() {
   const deleteFeeType = () => {
     if (isMock) {
       setFeeTypes(feeTypes.filter(f => f.feeTypeId !== selectedItem.feeTypeId));
-      showToast('success', 'Đã xóa loại phí (Mock)!');
+      showToast('success', t('financialconfig.removed_fee_type_mock'));
       closeModal();
     } else {
       const token = localStorage.getItem('accessToken');
@@ -263,9 +266,9 @@ export default function FinancialConfig() {
         .then(async res => {
           if (!res.ok) {
             const errData = await res.json().catch(() => ({}));
-            throw new Error(errData.detail || errData.title || 'Không thể xóa loại phí này.');
+            throw new Error(errData.detail || errData.title || t('financialconfig.this_type_of_charge'));
           }
-        showToast('success', 'Xóa loại phí thành công!');
+        showToast('success', t('financialconfig.successfully_removed_fees'));
         closeModal();
         loadAllConfigData();
       })
@@ -293,13 +296,13 @@ export default function FinancialConfig() {
     const method = isEdit ? 'PUT' : 'POST';
 
     if (isMock) {
-      const mappedTypeName = feeTypes.find(f => f.feeTypeId === feeIdVal)?.name || 'Phí dịch vụ';
+      const mappedTypeName = feeTypes.find(f => f.feeTypeId === feeIdVal)?.name || t('financialconfig.service_fee');
       if (isEdit) {
         setServices(services.map(s => s.serviceId === selectedItem.serviceId ? { ...s, ...payload, feeTypeName: mappedTypeName } : s));
       } else {
         setServices([...services, { serviceId: Math.floor(Math.random() * 100) + 10, ...payload, feeTypeName: mappedTypeName, isActive: true }]);
       }
-      showToast('success', 'Đã cập nhật dịch vụ (Mock)!');
+      showToast('success', t('financialconfig.updated_service_mock'));
       closeModal();
     } else {
       const token = localStorage.getItem('accessToken');
@@ -311,9 +314,9 @@ export default function FinancialConfig() {
       .then(async res => {
         if (!res.ok) {
           const errData = await res.json().catch(() => ({}));
-          throw new Error(errData.detail || errData.title || 'Thao tác thất bại');
+          throw new Error(errData.detail || errData.title || t('financialconfig.operation_failed'));
         }
-        showToast('success', 'Cập nhật dịch vụ thành công!');
+        showToast('success', t('financialconfig.service_update_successful'));
         closeModal();
         loadAllConfigData();
       })
@@ -324,7 +327,7 @@ export default function FinancialConfig() {
   const deleteService = () => {
     if (isMock) {
       setServices(services.filter(s => s.serviceId !== selectedItem.serviceId));
-      showToast('success', 'Đã xóa dịch vụ (Mock)!');
+      showToast('success', t('financialconfig.service_mock_removed'));
       closeModal();
     } else {
       const token = localStorage.getItem('accessToken');
@@ -332,9 +335,9 @@ export default function FinancialConfig() {
         .then(async res => {
           if (!res.ok) {
             const errData = await res.json().catch(() => ({}));
-            throw new Error(errData.detail || errData.title || 'Không thể xóa dịch vụ này.');
+            throw new Error(errData.detail || errData.title || t('financialconfig.this_service_cannot_be'));
           }
-        showToast('success', 'Xóa dịch vụ thành công!');
+        showToast('success', t('financialconfig.service_deletion_successful'));
         closeModal();
         loadAllConfigData();
       })
@@ -347,13 +350,13 @@ export default function FinancialConfig() {
     e.preventDefault();
     const val = sysForm.configValue ? sysForm.configValue.trim() : '';
     if (!val) {
-      setModalError('Giá trị cấu hình không được để trống.');
+      setModalError(t('financialconfig.configuration_values_cannot_be'));
       return;
     }
 
     if (isMock) {
       setSystemConfigs(systemConfigs.map(c => c.configKey === sysForm.configKey ? { ...c, configValue: sysForm.configValue } : c));
-      showToast('success', 'Đã lưu cấu hình (Mock)!');
+      showToast('success', t('financialconfig.configuration_saved_mock'));
       closeModal();
     } else {
       const token = localStorage.getItem('accessToken');
@@ -369,9 +372,9 @@ export default function FinancialConfig() {
         .then(async res => {
           if (!res.ok) {
             const errData = await res.json().catch(() => ({}));
-            throw new Error(errData.detail || errData.title || 'Thao tác cập nhật cấu hình thất bại.');
+            throw new Error(errData.detail || errData.title || t('financialconfig.the_configuration_update_operation'));
           }
-        showToast('success', 'Cập nhật cấu hình thành công!');
+        showToast('success', t('financialconfig.configuration_update_successful'));
         closeModal();
         loadAllConfigData();
       })
@@ -386,7 +389,7 @@ export default function FinancialConfig() {
     const currentTiers = isElectric ? electricTiers : waterTiers;
     
     if (newTierPrice < 0) {
-      setModalError('Đơn giá bậc thang mới phải lớn hơn hoặc bằng 0.');
+      setModalError(t('financialconfig.the_new_step_unit'));
       return;
     }
 
@@ -404,13 +407,13 @@ export default function FinancialConfig() {
       const lastStep = currentTiers.find(t => t.step === maxStep);
       
       if (!newTierLimit || newTierLimit.trim() === '') {
-        setModalError('Vui lòng nhập giới hạn kết thúc mới cho bậc hiện tại.');
+        setModalError(t('financialconfig.please_enter_a_new'));
         return;
       }
 
       const limitVal = parseInt(newTierLimit);
       if (isNaN(limitVal) || limitVal <= lastStep.from) {
-        setModalError(`Giới hạn kết thúc mới (${limitVal}) phải là số nguyên và lớn hơn chỉ số bắt đầu của bậc cuối hiện tại (${lastStep.from}).`);
+        setModalError(t('financialconfig.the_new_ending_limit'));
         return;
       }
 
@@ -438,7 +441,7 @@ export default function FinancialConfig() {
     if (isMock) {
       if (key === 'electricity_tiers') setElectricTiers(stepsList);
       else setWaterTiers(stepsList);
-      showToast('success', 'Đã cập nhật biểu giá bậc thang (Mock)!');
+      showToast('success', t('financialconfig.updated_ladder_pricing_mock'));
       closeModal();
     } else {
       const token = localStorage.getItem('accessToken');
@@ -454,9 +457,9 @@ export default function FinancialConfig() {
         .then(async res => {
           if (!res.ok) {
             const errData = await res.json().catch(() => ({}));
-            throw new Error(errData.detail || errData.title || 'Không thể lưu bậc thang.');
+            throw new Error(errData.detail || errData.title || t('financialconfig.unable_to_save_stairs'));
           }
-        showToast('success', 'Cấu hình biểu giá bậc thang thành công!');
+        showToast('success', t('financialconfig.configure_ladder_tariff_successfully'));
         closeModal();
         loadAllConfigData();
       })
@@ -475,11 +478,11 @@ export default function FinancialConfig() {
     // We only allow deleting the LAST step to maintain contiguous indices
     const maxStep = Math.max(...currentTiers.map(t => t.step));
     if (stepNum !== maxStep) {
-      showToast('error', 'Bạn chỉ được phép xóa bậc thang cao nhất (bậc cuối cùng) để đảm bảo tính liên tục của chỉ số!');
+      showToast('error', t('financialconfig.you_are_only_allowed'));
       return;
     }
 
-    if (window.confirm(`Bạn có chắc chắn muốn xóa Bậc ${stepNum}?`)) {
+    if (window.confirm(t('financialconfig.are_you_sure_you'))) {
       let updatedTiers = currentTiers.filter(t => t.step !== stepNum);
       // Ensure the new last step's "to" value is open-ended (null)
       if (updatedTiers.length > 0) {
@@ -491,9 +494,9 @@ export default function FinancialConfig() {
 
   // Tabs configuration
   const tabs = [
-    { id: 'system', label: 'Cấu hình chung & Bậc thang', icon: Settings },
-    { id: 'fees', label: 'Danh mục Phí', icon: CreditCard },
-    { id: 'services', label: 'Dịch vụ Đăng ký', icon: FileText },
+    { id: 'system', label: t('financialconfig.general_configuration_ladder'), icon: Settings },
+    { id: 'fees', label: t('financialconfig.fee_list'), icon: CreditCard },
+    { id: 'services', label: t('financialconfig.registration_services'), icon: FileText },
   ];
 
   return (
@@ -502,10 +505,9 @@ export default function FinancialConfig() {
       {/* Page Header */}
       <div className="page-header">
         <div>
-          <h1 className="page-title">Cấu Hình Tài Chính</h1>
+          <h1 className="page-title">{t('financialconfig.financial_configuration')}</h1>
           <p className="page-subtitle">
-            Thiết lập hệ thống biểu phí dịch vụ, hóa đơn, và biểu giá điện nước hình bậc thang.
-          </p>
+            {t('financialconfig.set_up_a_system')}</p>
         </div>
         <div className="page-actions"></div>
       </div>
@@ -515,9 +517,7 @@ export default function FinancialConfig() {
         <div className="alert alert-warning">
           <AlertTriangle size={17} className="alert-icon" />
           <span>
-            <strong>Chế độ mô phỏng:</strong> Không thể kết nối tới Backend. Mọi thay đổi về cấu hình
-            giá, bậc thang hay dịch vụ sẽ chỉ được lưu tạm thời trên giao diện.
-          </span>
+            <strong>{t('financialconfig.simulation_mode')}</strong> {t('financialconfig.unable_to_connect_to')}</span>
         </div>
       )}
 
@@ -556,7 +556,7 @@ export default function FinancialConfig() {
       {loading ? (
         <div className="loading-container">
           <div className="loading-spinner" />
-          <span className="loading-text">Đang tải dữ liệu cấu hình tài chính...</span>
+          <span className="loading-text">{t('financialconfig.loading_financial_configuration_data')}</span>
         </div>
       ) : (
         <div style={{ width: '100%' }}>
@@ -577,11 +577,9 @@ export default function FinancialConfig() {
                   </div>
                   <div>
                     <h3 style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-title)', letterSpacing: '-0.02em' }}>
-                      Tham Số Cấu Hình Hệ Thống
-                    </h3>
+                      {t('financialconfig.system_configuration_parameters')}</h3>
                     <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', marginTop: '1px' }}>
-                      Các biến toàn cục điều khiển hành vi tài chính của hệ thống.
-                    </p>
+                      {t('financialconfig.global_variables_control_the')}</p>
                   </div>
                 </div>
 
@@ -590,14 +588,14 @@ export default function FinancialConfig() {
                     
                     {/* Nhóm Chu kỳ & Thanh toán */}
                     <div style={{ padding: '16px', background: 'var(--bg-base)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
-                      <h4 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--primary)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: 6 }}><Receipt size={16}/> Chu kỳ & Thanh toán</h4>
+                      <h4 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--primary)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: 6 }}><Receipt size={16}/> {t('financialconfig.cycles_billing')}</h4>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                         <div>
-                          <label className="form-label" style={{ fontSize: 13, marginBottom: 4 }}>Ngày chốt sổ sinh hóa đơn (từ mùng 1 đến 28)</label>
+                          <label className="form-label" style={{ fontSize: 13, marginBottom: 4 }}>{t('financialconfig.closing_date_for_invoice')}</label>
                           <input type="number" min="1" max="28" required className="form-input" style={{ width: '100%' }} value={configForm.auto_invoice_day} onChange={e => setConfigForm({...configForm, auto_invoice_day: e.target.value})} />
                         </div>
                         <div>
-                          <label className="form-label" style={{ fontSize: 13, marginBottom: 4 }}>Thời hạn thanh toán hóa đơn (số ngày)</label>
+                          <label className="form-label" style={{ fontSize: 13, marginBottom: 4 }}>{t('financialconfig.invoice_payment_term_number')}</label>
                           <input type="number" min="1" required className="form-input" style={{ width: '100%' }} value={configForm.invoice_due_days} onChange={e => setConfigForm({...configForm, invoice_due_days: e.target.value})} />
                         </div>
                       </div>
@@ -605,14 +603,14 @@ export default function FinancialConfig() {
 
                     {/* Nhóm Thông báo & Chế tài */}
                     <div style={{ padding: '16px', background: 'var(--bg-base)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
-                      <h4 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--danger)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: 6 }}><AlertTriangle size={16}/> Thông báo & Chế tài</h4>
+                      <h4 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--danger)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: 6 }}><AlertTriangle size={16}/> {t('financialconfig.notice_sanctions')}</h4>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                         <div>
-                          <label className="form-label" style={{ fontSize: 13, marginBottom: 4 }}>Nhắc nhở trước hạn chót (số ngày)</label>
+                          <label className="form-label" style={{ fontSize: 13, marginBottom: 4 }}>{t('financialconfig.reminder_before_deadline_number')}</label>
                           <input type="number" min="0" required className="form-input" style={{ width: '100%' }} value={configForm.reminder_days_before_due} onChange={e => setConfigForm({...configForm, reminder_days_before_due: e.target.value})} />
                         </div>
                         <div>
-                          <label className="form-label" style={{ fontSize: 13, marginBottom: 4 }}>Lãi suất phạt trễ hạn (% / ngày)</label>
+                          <label className="form-label" style={{ fontSize: 13, marginBottom: 4 }}>{t('financialconfig.late_penalty_interest_rate')}</label>
                           <input type="number" step="0.01" min="0" required className="form-input" style={{ width: '100%' }} value={configForm.late_penalty_rate_per_day} onChange={e => setConfigForm({...configForm, late_penalty_rate_per_day: e.target.value})} />
                         </div>
                       </div>
@@ -620,10 +618,10 @@ export default function FinancialConfig() {
 
                     {/* Nhóm Thuế & Phí chung */}
                     <div style={{ padding: '16px', background: 'var(--bg-base)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
-                      <h4 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--warning)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: 6 }}><CreditCard size={16}/> Thuế & Phí chung</h4>
+                      <h4 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--warning)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: 6 }}><CreditCard size={16}/> {t('financialconfig.general_taxes_fees')}</h4>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                         <div>
-                          <label className="form-label" style={{ fontSize: 13, marginBottom: 4 }}>Thuế giá trị gia tăng - VAT (%)</label>
+                          <label className="form-label" style={{ fontSize: 13, marginBottom: 4 }}>{t('financialconfig.value_added_tax_vat')}</label>
                           <input type="number" min="0" max="100" required className="form-input" style={{ width: '100%' }} value={configForm.vat_tax_rate} onChange={e => setConfigForm({...configForm, vat_tax_rate: e.target.value})} />
                         </div>
                       </div>
@@ -633,8 +631,7 @@ export default function FinancialConfig() {
                   
                   <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
                     <button type="submit" className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <Save size={16} /> Lưu Cấu Hình Hệ Thống
-                    </button>
+                      <Save size={16} /> {t('financialconfig.save_system_configuration')}</button>
                   </div>
                 </form>
               </div>
@@ -655,11 +652,9 @@ export default function FinancialConfig() {
                       </div>
                       <div>
                         <h3 style={{ fontSize: '14px', fontWeight: '700', color: 'var(--text-title)' }}>
-                          Biểu Giá Điện Bậc Thang
-                        </h3>
+                          {t('financialconfig.stepped_electricity_price_schedule')}</h3>
                         <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '1px' }}>
-                          Đơn vị: đ/kWh
-                        </p>
+                          {t('financialconfig.unit_vndkwh')}</p>
                       </div>
                     </div>
                     <button
@@ -672,18 +667,17 @@ export default function FinancialConfig() {
                       }}
                     >
                       <Plus size={13} />
-                      Thêm bậc
-                    </button>
+                      {t('financialconfig.add_steps')}</button>
                   </div>
 
                   <table className="data-table">
                     <thead>
                       <tr>
-                        <th>Bậc</th>
-                        <th>Từ (kWh)</th>
-                        <th>Đến (kWh)</th>
-                        <th className="text-right">Đơn giá</th>
-                        <th className="text-right">Xóa</th>
+                        <th>{t('financialconfig.tier')}</th>
+                        <th>{t('financialconfig.from_kwh')}</th>
+                        <th>{t('financialconfig.to_kwh')}</th>
+                        <th className="text-right">{t('financialconfig.unit_price')}</th>
+                        <th className="text-right">{t('financialconfig.erase')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -694,7 +688,7 @@ export default function FinancialConfig() {
                           </td>
                           <td style={{ fontWeight: '600', color: 'var(--text-title)' }}>{t.from}</td>
                           <td style={{ color: 'var(--text-muted)' }}>
-                            {t.to === null ? <span className="badge badge-neutral">Vô hạn</span> : t.to}
+                            {t.to === null ? <span className="badge badge-neutral">{t('financialconfig.infinite')}</span> : t.to}
                           </td>
                           <td className="text-right" style={{ fontWeight: '700', color: 'var(--warning)' }}>
                             {t.price.toLocaleString('vi-VN')} đ
@@ -729,11 +723,9 @@ export default function FinancialConfig() {
                       </div>
                       <div>
                         <h3 style={{ fontSize: '14px', fontWeight: '700', color: 'var(--text-title)' }}>
-                          Biểu Giá Nước Bậc Thang
-                        </h3>
+                          {t('financialconfig.stepped_water_tariff')}</h3>
                         <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '1px' }}>
-                          Đơn vị: đ/m³
-                        </p>
+                          {t('financialconfig.unit_vndm')}</p>
                       </div>
                     </div>
                     <button
@@ -746,18 +738,17 @@ export default function FinancialConfig() {
                       }}
                     >
                       <Plus size={13} />
-                      Thêm bậc
-                    </button>
+                      {t('financialconfig.add_steps')}</button>
                   </div>
 
                   <table className="data-table">
                     <thead>
                       <tr>
-                        <th>Bậc</th>
-                        <th>Từ (m³)</th>
-                        <th>Đến (m³)</th>
-                        <th className="text-right">Đơn giá</th>
-                        <th className="text-right">Xóa</th>
+                        <th>{t('financialconfig.tier')}</th>
+                        <th>{t('financialconfig.word_m')}</th>
+                        <th>{t('financialconfig.to_m')}</th>
+                        <th className="text-right">{t('financialconfig.unit_price')}</th>
+                        <th className="text-right">{t('financialconfig.erase')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -768,7 +759,7 @@ export default function FinancialConfig() {
                           </td>
                           <td style={{ fontWeight: '600', color: 'var(--text-title)' }}>{t.from}</td>
                           <td style={{ color: 'var(--text-muted)' }}>
-                            {t.to === null ? <span className="badge badge-neutral">Vô hạn</span> : t.to}
+                            {t.to === null ? <span className="badge badge-neutral">{t('financialconfig.infinite')}</span> : t.to}
                           </td>
                           <td className="text-right" style={{ fontWeight: '700', color: 'var(--info)' }}>
                             {t.price.toLocaleString('vi-VN')} đ
@@ -800,8 +791,7 @@ export default function FinancialConfig() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                 <div>
                   <h3 style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-title)', letterSpacing: '-0.02em' }}>
-                    Quản Lý Danh Mục Loại Phí
-                  </h3>
+                    {t('financialconfig.manage_fee_category')}</h3>
                   <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', marginTop: '2px' }}>
                     {feeTypes.length} loại phí đã được cấu hình trong hệ thống.
                   </p>
@@ -815,18 +805,17 @@ export default function FinancialConfig() {
                   }}
                 >
                   <Plus size={14} />
-                  Thêm loại phí
-                </button>
+                  {t('financialconfig.add_fees')}</button>
               </div>
 
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th>Mã Phí</th>
-                    <th>Tên Loại Phí</th>
-                    <th>Đơn vị tính</th>
-                    <th>Mô tả chi tiết</th>
-                    <th className="text-right">Thao tác</th>
+                    <th>{t('financialconfig.fee_code')}</th>
+                    <th>{t('financialconfig.fee_type_name')}</th>
+                    <th>{t('financialconfig.unit_of_calculation')}</th>
+                    <th>{t('financialconfig.detailed_description')}</th>
+                    <th className="text-right">{t('financialconfig.operation')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -853,7 +842,7 @@ export default function FinancialConfig() {
                               resetFeeForm({ name: f.name, unit: f.unit, description: f.description || '' });
                               setActiveModal('fee');
                             }}
-                            title="Chỉnh sửa"
+                            title={t('financialconfig.edit')}
                           >
                             <Edit3 size={14} />
                           </button>
@@ -864,7 +853,7 @@ export default function FinancialConfig() {
                               setSelectedItem(f);
                               setActiveModal('confirm_delete_fee');
                             }}
-                            title="Xóa"
+                            title={t('financialconfig.erase')}
                           >
                             <Trash2 size={14} />
                           </button>
@@ -885,8 +874,7 @@ export default function FinancialConfig() {
                       onClick={() => setFeeTypesPage(prev => Math.max(prev - 1, 1))} 
                       disabled={feeTypesPage === 1}
                     >
-                      Trước
-                    </button>
+                      {t('financialconfig.before')}</button>
                     {Array.from({ length: Math.ceil(feeTypes.length / itemsPerPage) }, (_, i) => i + 1).map(page => (
                       <button 
                         key={page} 
@@ -915,8 +903,7 @@ export default function FinancialConfig() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                 <div>
                   <h3 style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-title)', letterSpacing: '-0.02em' }}>
-                    Danh Mục Dịch Vụ Đăng Ký
-                  </h3>
+                    {t('financialconfig.list_of_subscription_services')}</h3>
                   <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', marginTop: '2px' }}>
                     {services.length} dịch vụ đang hoạt động trong hệ thống.
                   </p>
@@ -930,20 +917,19 @@ export default function FinancialConfig() {
                   }}
                 >
                   <Plus size={14} />
-                  Thêm dịch vụ
-                </button>
+                  {t('financialconfig.add_services')}</button>
               </div>
 
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th>Tên Dịch Vụ</th>
-                    <th>Loại phí xuất HĐ</th>
-                    <th>Chu kỳ</th>
-                    <th className="text-right">Đơn giá dịch vụ</th>
-                    <th>Mô tả</th>
-                    <th>Trạng thái</th>
-                    <th className="text-right">Thao tác</th>
+                    <th>{t('financialconfig.service_name')}</th>
+                    <th>{t('financialconfig.type_of_invoice_issuance')}</th>
+                    <th>{t('financialconfig.cycle')}</th>
+                    <th className="text-right">{t('financialconfig.service_unit_price')}</th>
+                    <th>{t('financialconfig.describe')}</th>
+                    <th>{t('financialconfig.status')}</th>
+                    <th className="text-right">{t('financialconfig.operation')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -955,7 +941,7 @@ export default function FinancialConfig() {
                       </td>
                       <td>
                         <span className="badge badge-neutral">
-                          {s.billingCycle === 'Monthly' ? 'Hàng tháng' : s.billingCycle === 'One-time' ? 'Một lần' : 'Hàng năm'}
+                          {s.billingCycle === 'Monthly' ? t('financialconfig.monthly') : s.billingCycle === 'One-time' ? t('financialconfig.once') : t('financialconfig.annual')}
                         </span>
                       </td>
                       <td className="text-right" style={{ fontWeight: '800', color: 'var(--primary)', letterSpacing: '-0.02em' }}>
@@ -964,9 +950,9 @@ export default function FinancialConfig() {
                       <td style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>{s.description}</td>
                       <td>
                         {s.isActive !== false ? (
-                          <span className="badge badge-success" style={{ backgroundColor: '#e6f4ea', color: '#137333' }}>Đang hoạt động</span>
+                          <span className="badge badge-success" style={{ backgroundColor: '#e6f4ea', color: '#137333' }}>{t('financialconfig.active')}</span>
                         ) : (
-                          <span className="badge badge-neutral" style={{ backgroundColor: '#f1f3f4', color: '#5f6368' }}>Ngừng hoạt động</span>
+                          <span className="badge badge-neutral" style={{ backgroundColor: '#f1f3f4', color: '#5f6368' }}>{t('financialconfig.stop_working')}</span>
                         )}
                       </td>
                       <td className="text-right">
@@ -978,7 +964,7 @@ export default function FinancialConfig() {
                               setServiceForm({ name: s.name, description: s.description || '', price: s.price, billingCycle: s.billingCycle, feeTypeId: s.feeTypeId, isActive: s.isActive ?? true });
                               setActiveModal('service');
                             }}
-                            title="Chỉnh sửa"
+                            title={t('financialconfig.edit')}
                           >
                             <Edit3 size={14} />
                           </button>
@@ -989,7 +975,7 @@ export default function FinancialConfig() {
                               setSelectedItem(s);
                               setActiveModal('confirm_delete_srv');
                             }}
-                            title="Ngừng hoạt động"
+                            title={t('financialconfig.stop_working')}
                           >
                             <Trash2 size={14} />
                           </button>
@@ -1010,8 +996,7 @@ export default function FinancialConfig() {
                       onClick={() => setServicesPage(prev => Math.max(prev - 1, 1))} 
                       disabled={servicesPage === 1}
                     >
-                      Trước
-                    </button>
+                      {t('financialconfig.before')}</button>
                     {Array.from({ length: Math.ceil(services.length / itemsPerPage) }, (_, i) => i + 1).map(page => (
                       <button 
                         key={page} 
@@ -1047,7 +1032,7 @@ export default function FinancialConfig() {
           <div className="modal-container">
             <div className="modal-header">
               <h2 className="modal-title">
-                {selectedItem ? 'Chỉnh sửa loại phí' : 'Thêm loại phí mới'}
+                {selectedItem ? t('financialconfig.edit_fee_type') : t('financialconfig.add_new_fee_type')}
               </h2>
               <button className="modal-close-btn" onClick={closeModal}>
                 <X size={17} />
@@ -1062,7 +1047,7 @@ export default function FinancialConfig() {
                   </div>
                 )}
                 <div className="mb-3">
-                  <label className="form-label">Tên khoản phí <span className="text-danger">*</span></label>
+                  <label className="form-label">{t('financialconfig.charge_name')}<span className="text-danger">*</span></label>
                   <input 
                     type="text" 
                     className={`form-input ${feeErrors.name ? 'is-invalid' : ''}`}
@@ -1071,7 +1056,7 @@ export default function FinancialConfig() {
                   {feeErrors.name && <div style={{ color: 'var(--danger)', fontSize: '0.85rem' }}>{feeErrors.name.message}</div>}
                 </div>
                 <div className="mb-3">
-                  <label className="form-label">Đơn vị tính (VD: kWh, m3, tháng) <span className="text-danger">*</span></label>
+                  <label className="form-label">{t('financialconfig.unit_eg_kwh_m3')}<span className="text-danger">*</span></label>
                   <input 
                     type="text" 
                     className={`form-input ${feeErrors.unit ? 'is-invalid' : ''}`}
@@ -1080,7 +1065,7 @@ export default function FinancialConfig() {
                   {feeErrors.unit && <div style={{ color: 'var(--danger)', fontSize: '0.85rem' }}>{feeErrors.unit.message}</div>}
                 </div>
                 <div className="mb-3">
-                  <label className="form-label">Mô tả</label>
+                  <label className="form-label">{t('financialconfig.describe')}</label>
                   <textarea 
                     className={`form-textarea ${feeErrors.description ? 'is-invalid' : ''}`}
                     rows="3" 
@@ -1091,12 +1076,10 @@ export default function FinancialConfig() {
               </div>
               <div className="modal-footer">
                 <button type="button" className="btn btn-secondary" onClick={closeModal}>
-                  Hủy
-                </button>
+                  {t('financialconfig.cancel')}</button>
                 <button type="submit" className="btn btn-primary">
                   <Save size={14} />
-                  Lưu thay đổi
-                </button>
+                  {t('financialconfig.save_changes')}</button>
               </div>
             </form>
           </div>
@@ -1108,7 +1091,7 @@ export default function FinancialConfig() {
         <div className="modal-overlay">
           <div className="modal-container modal-container-sm">
             <div className="modal-header">
-              <h2 className="modal-title">Xác nhận xóa loại phí</h2>
+              <h2 className="modal-title">{t('financialconfig.confirm_fee_deletion')}</h2>
               <button className="modal-close-btn" onClick={closeModal}>
                 <X size={17} />
               </button>
@@ -1123,17 +1106,14 @@ export default function FinancialConfig() {
               <div className="alert alert-danger" style={{ marginBottom: 0 }}>
                 <AlertTriangle size={17} className="alert-icon" />
                 <span>
-                  Bạn có chắc chắn muốn xóa loại phí <strong>"{selectedItem.name}"</strong>?
-                  Thao tác này có thể ảnh hưởng đến các hóa đơn lịch sử liên kết.
-                </span>
+                  {t('financialconfig.are_you_sure_you')}<strong>"{selectedItem.name}"</strong>{t('financialconfig.this_action_may_affect')}</span>
               </div>
             </div>
             <div className="modal-footer">
-              <button className="btn btn-secondary" onClick={closeModal}>Hủy</button>
+              <button className="btn btn-secondary" onClick={closeModal}>{t('financialconfig.cancel')}</button>
               <button className="btn btn-danger" onClick={deleteFeeType}>
                 <Trash2 size={14} />
-                Xác nhận xóa
-              </button>
+                {t('financialconfig.confirm_deletion')}</button>
             </div>
           </div>
         </div>
@@ -1145,7 +1125,7 @@ export default function FinancialConfig() {
           <div className="modal-container">
             <div className="modal-header">
               <h2 className="modal-title">
-                {selectedItem ? 'Chỉnh sửa dịch vụ' : 'Thêm dịch vụ mới'}
+                {selectedItem ? t('financialconfig.edit_service') : t('financialconfig.add_new_service')}
               </h2>
               <button className="modal-close-btn" onClick={closeModal}>
                 <X size={17} />
@@ -1160,7 +1140,7 @@ export default function FinancialConfig() {
                   </div>
                 )}
                 <div>
-                  <label className="form-label">Tên dịch vụ <span style={{ color: 'var(--danger)' }}>*</span></label>
+                  <label className="form-label">{t('financialconfig.service_name')}<span style={{ color: 'var(--danger)' }}>*</span></label>
                   <input
                     className="form-input"
                     type="text"
@@ -1168,13 +1148,13 @@ export default function FinancialConfig() {
                     maxLength={150}
                     value={serviceForm.name}
                     onChange={e => setServiceForm({ ...serviceForm, name: e.target.value })}
-                    placeholder="Tên dịch vụ..."
+                    placeholder={t('financialconfig.service_name')}
                   />
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                   <div>
-                    <label className="form-label">Đơn giá dịch vụ (VNĐ) <span style={{ color: 'var(--danger)' }}>*</span></label>
+                    <label className="form-label">{t('financialconfig.service_unit_price_vnd')}<span style={{ color: 'var(--danger)' }}>*</span></label>
                     <input
                       className="form-input"
                       type="number"
@@ -1185,21 +1165,21 @@ export default function FinancialConfig() {
                     />
                   </div>
                   <div>
-                    <label className="form-label">Chu kỳ tính phí</label>
+                    <label className="form-label">{t('financialconfig.charge_cycle')}</label>
                     <select
                       className="form-select"
                       value={serviceForm.billingCycle}
                       onChange={e => setServiceForm({ ...serviceForm, billingCycle: e.target.value })}
                     >
-                      <option value="Monthly">Hàng tháng (Monthly)</option>
-                      <option value="One-time">Một lần (One-time)</option>
-                      <option value="Yearly">Hàng năm (Yearly)</option>
+                      <option value="Monthly">{t('financialconfig.monthly')}</option>
+                      <option value="One-time">{t('financialconfig.onetime')}</option>
+                      <option value="Yearly">{t('financialconfig.yearly')}</option>
                     </select>
                   </div>
                 </div>
 
                 <div>
-                  <label className="form-label">Loại phí liên kết xuất hóa đơn</label>
+                  <label className="form-label">{t('financialconfig.invoicing_link_fee_type')}</label>
                   <select
                     className="form-select"
                     value={serviceForm.feeTypeId}
@@ -1213,36 +1193,35 @@ export default function FinancialConfig() {
 
                 {selectedItem && (
                   <div>
-                    <label className="form-label">Trạng thái hoạt động</label>
+                    <label className="form-label">{t('financialconfig.operating_status')}</label>
                     <select
                       className="form-select"
                       value={serviceForm.isActive ? "true" : "false"}
                       onChange={e => setServiceForm({ ...serviceForm, isActive: e.target.value === "true" })}
                     >
-                      <option value="true">Đang hoạt động</option>
-                      <option value="false">Ngừng hoạt động</option>
+                      <option value="true">{t('financialconfig.active')}</option>
+                      <option value="false">{t('financialconfig.stop_working')}</option>
                     </select>
                   </div>
                 )}
 
                 <div>
-                  <label className="form-label">Mô tả dịch vụ</label>
+                  <label className="form-label">{t('financialconfig.service_description')}</label>
                   <textarea
                     className="form-textarea"
                     value={serviceForm.description}
                     maxLength={500}
                     onChange={e => setServiceForm({ ...serviceForm, description: e.target.value })}
                     rows={3}
-                    placeholder="Mô tả chi tiết dịch vụ..."
+                    placeholder={t('financialconfig.detailed_description_of_services')}
                   />
                 </div>
               </div>
               <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={closeModal}>Hủy</button>
+                <button type="button" className="btn btn-secondary" onClick={closeModal}>{t('financialconfig.cancel')}</button>
                 <button type="submit" className="btn btn-primary">
                   <Save size={14} />
-                  Lưu dịch vụ
-                </button>
+                  {t('financialconfig.save_service')}</button>
               </div>
             </form>
           </div>
@@ -1254,7 +1233,7 @@ export default function FinancialConfig() {
         <div className="modal-overlay">
           <div className="modal-container modal-container-sm">
             <div className="modal-header">
-              <h2 className="modal-title">Xác nhận ngừng dịch vụ</h2>
+              <h2 className="modal-title">{t('financialconfig.confirm_service_discontinuation')}</h2>
               <button className="modal-close-btn" onClick={closeModal}>
                 <X size={17} />
               </button>
@@ -1269,19 +1248,17 @@ export default function FinancialConfig() {
               <div className="alert alert-warning" style={{ marginBottom: 0 }}>
                 <AlertTriangle size={17} className="alert-icon" />
                 <div>
-                  <p>Bạn có chắc chắn muốn ngừng hoạt động dịch vụ <strong>"{selectedItem.name}"</strong>?</p>
+                  <p>{t('financialconfig.are_you_sure_you')}<strong>"{selectedItem.name}"</strong>?</p>
                   <p style={{ marginTop: '6px', fontSize: '12.5px', opacity: 0.85 }}>
-                    Hệ thống sẽ đặt trạng thái ẩn dịch vụ này khỏi việc đăng ký mới.
-                  </p>
+                    {t('financialconfig.the_system_will_hide')}</p>
                 </div>
               </div>
             </div>
             <div className="modal-footer">
-              <button className="btn btn-secondary" onClick={closeModal}>Hủy</button>
+              <button className="btn btn-secondary" onClick={closeModal}>{t('financialconfig.cancel')}</button>
               <button className="btn btn-danger" onClick={deleteService}>
                 <Trash2 size={14} />
-                Ngừng hoạt động
-              </button>
+                {t('financialconfig.stop_working')}</button>
             </div>
           </div>
         </div>
@@ -1292,7 +1269,7 @@ export default function FinancialConfig() {
         <div className="modal-overlay">
           <div className="modal-container modal-container-sm">
             <div className="modal-header">
-              <h2 className="modal-title">Chỉnh sửa tham số hệ thống</h2>
+              <h2 className="modal-title">{t('financialconfig.edit_system_parameters')}</h2>
               <button className="modal-close-btn" onClick={closeModal}>
                 <X size={17} />
               </button>
@@ -1312,8 +1289,7 @@ export default function FinancialConfig() {
                   border: '1px solid var(--border)',
                 }}>
                   <span style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    Khóa cấu hình
-                  </span>
+                    {t('financialconfig.configuration_lock')}</span>
                   <p style={{
                     fontSize: '14px',
                     fontWeight: '700',
@@ -1329,7 +1305,7 @@ export default function FinancialConfig() {
                 </div>
 
                 <div>
-                  <label className="form-label">Giá trị thiết lập <span style={{ color: 'var(--danger)' }}>*</span></label>
+                  <label className="form-label">{t('financialconfig.setting_value')}<span style={{ color: 'var(--danger)' }}>*</span></label>
                   {sysForm.configKey === 'auto_invoice_day' ? (
                     <select
                       className="form-select"
@@ -1366,11 +1342,10 @@ export default function FinancialConfig() {
                 </div>
               </div>
               <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={closeModal}>Hủy</button>
+                <button type="button" className="btn btn-secondary" onClick={closeModal}>{t('financialconfig.cancel')}</button>
                 <button type="submit" className="btn btn-primary">
                   <Save size={14} />
-                  Lưu cấu hình
-                </button>
+                  {t('financialconfig.save_configuration')}</button>
               </div>
             </form>
           </div>
@@ -1383,7 +1358,7 @@ export default function FinancialConfig() {
           <div className="modal-container modal-container-sm">
             <div className="modal-header">
               <h2 className="modal-title">
-                Thêm bậc giá {selectedTierKey === 'electricity_tiers' ? 'Điện' : 'Nước'} mới
+                Thêm bậc giá {selectedTierKey === 'electricity_tiers' ? t('financialconfig.electricity') : t('financialconfig.water')} mới
               </h2>
               <button className="modal-close-btn" onClick={closeModal}>
                 <X size={17} />
@@ -1407,7 +1382,7 @@ export default function FinancialConfig() {
                       <div className="alert alert-info" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <Info size={16} className="alert-icon" />
-                          <span><strong>Cập nhật bậc thang:</strong></span>
+                          <span><strong>{t('financialconfig.update_ladder')}</strong></span>
                         </div>
                         <span style={{ fontSize: '12.5px' }}>
                           Bậc {lastStep.step} hiện tại (từ {lastStep.from} đến Vô cùng) sẽ được gán giới hạn kết thúc mới.
@@ -1417,7 +1392,7 @@ export default function FinancialConfig() {
                     ) : (
                       <div className="alert alert-info">
                         <Info size={16} className="alert-icon" />
-                        <span>Bậc đầu tiên (Bậc 1) sẽ tự động bắt đầu từ 0 đến Vô cùng.</span>
+                        <span>{t('financialconfig.the_first_tier_tier')}</span>
                       </div>
                     )}
 
@@ -1431,7 +1406,7 @@ export default function FinancialConfig() {
                           type="number"
                           required
                           min={lastStep.from + 1}
-                          placeholder={`Nhập số lớn hơn ${lastStep.from}`}
+                          placeholder={t('financialconfig.enter_a_number_greater')}
                           value={newTierLimit}
                           onChange={e => setNewTierLimit(e.target.value)}
                         />
@@ -1440,25 +1415,24 @@ export default function FinancialConfig() {
 
                     <div>
                       <label className="form-label">
-                        Đơn giá áp dụng cho {hasTiers ? `Bậc ${lastStep.step + 1} mới (từ ${newTierLimit ? parseInt(newTierLimit) + 1 : '...'} trở đi)` : 'Bậc 1 (từ 0 trở đi)'} (đ/{selectedTierKey === 'electricity_tiers' ? 'kWh' : 'm³'}) <span style={{ color: 'var(--danger)' }}>*</span>
+                        Đơn giá áp dụng cho {hasTiers ? `Bậc ${lastStep.step + 1} mới (từ ${newTierLimit ? parseInt(newTierLimit) + 1 : '...'} trở đi)` : t('financialconfig.level_1_from_0')} (đ/{selectedTierKey === 'electricity_tiers' ? 'kWh' : 'm³'}) <span style={{ color: 'var(--danger)' }}>*</span>
                       </label>
                       <input
                         className="form-input"
                         type="number"
                         required
                         min="0"
-                        placeholder="Nhập đơn giá..."
+                        placeholder={t('financialconfig.enter_unit_price')}
                         value={newTierPrice}
                         onChange={e => setNewTierPrice(parseFloat(e.target.value) || 0)}
                       />
                     </div>
                   </div>
                   <div className="modal-footer">
-                    <button type="button" className="btn btn-secondary" onClick={closeModal}>Hủy</button>
+                    <button type="button" className="btn btn-secondary" onClick={closeModal}>{t('financialconfig.cancel')}</button>
                     <button type="submit" className="btn btn-primary">
                       <Plus size={14} />
-                      Xác nhận thêm bậc
-                    </button>
+                      {t('financialconfig.confirm_additional_steps')}</button>
                   </div>
                 </form>
               );

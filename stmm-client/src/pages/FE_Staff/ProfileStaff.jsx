@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import './ProfileStaff.css';
@@ -65,6 +66,8 @@ const IconKey = () => (
 );
 
 export default function ProfileStaff({ userId, baseUrl, onShowNotification }) {
+  const { t, i18n } = useTranslation();
+
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -81,7 +84,7 @@ export default function ProfileStaff({ userId, baseUrl, onShowNotification }) {
   const [showNew, setShowNew] = useState(false);
   const [showCfm, setShowCfm] = useState(false);
 
-  const API_URL = (baseUrl || 'http://localhost:5056').replace(/\/api\/?$/, '') + '/api';
+  const API_URL = (baseUrl || 'http://localhost:5056/api').replace(/\/api\/?$/, '') + '/api';
 
   const addToast = useCallback((message, type = 'info') => {
     onShowNotification(message, type === 'error' ? 'danger' : type);
@@ -98,11 +101,11 @@ export default function ProfileStaff({ userId, baseUrl, onShowNotification }) {
       setName(res.data.name || '');
       setPhone(res.data.phone || '');
     } catch (err) {
-      addToast(err.response?.data?.detail || err.response?.data?.title || 'Unable to load profile.', 'error');
+      addToast(err.response?.data?.detail || err.response?.data?.title || t('profilestaff.unable_to_load_profile'), 'error');
     } finally {
       setLoading(false);
     }
-  }, [API_URL, addToast]);
+  }, [API_URL, addToast, t]);
 
   useEffect(() => {
     fetchProfile();
@@ -129,7 +132,7 @@ export default function ProfileStaff({ userId, baseUrl, onShowNotification }) {
       setProfile(res.data);
       addToast('Profile updated successfully.', 'success');
     } catch (err) {
-      addToast(err.response?.data?.detail || err.response?.data?.title || 'Unable to update profile.', 'error');
+      addToast(err.response?.data?.detail || err.response?.data?.title || t('profilestaff.unable_to_update_profile'), 'error');
     } finally {
       setSaving(false);
     }
@@ -151,7 +154,7 @@ export default function ProfileStaff({ userId, baseUrl, onShowNotification }) {
       addToast('Password changed successfully.', 'success');
       setCurrentPassword(''); setNewPassword(''); setConfirmPassword('');
     } catch (err) {
-      addToast(err.response?.data?.detail || err.response?.data?.title || 'Unable to change password.', 'error');
+      addToast(err.response?.data?.detail || err.response?.data?.title || t('profilestaff.unable_to_change_password'), 'error');
     } finally {
       setPasswordSaving(false);
     }
@@ -161,7 +164,7 @@ export default function ProfileStaff({ userId, baseUrl, onShowNotification }) {
     return (
       <div className="sp2-loading">
         <div className="sp2-spinner" />
-        <p>Loading profile...</p>
+        <p>{t('profilestaff.loading_profile')}</p>
       </div>
     );
   }
@@ -170,7 +173,14 @@ export default function ProfileStaff({ userId, baseUrl, onShowNotification }) {
     ? name.trim().split(/\s+/).map(n => n[0]).slice(-2).join('').toUpperCase()
     : 'S';
 
-  const fmtDate = (d) => d ? new Date(d).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }) : '-';
+  const fmtDate = (d) => {
+    if (!d) return '-';
+    try {
+      return new Date(d).toLocaleString(i18n.language, { dateStyle: 'medium', timeStyle: 'short' });
+    } catch {
+      return new Date(d).toLocaleString();
+    }
+  };
 
   return (
     <div className="sp2-page">
@@ -184,10 +194,9 @@ export default function ProfileStaff({ userId, baseUrl, onShowNotification }) {
             <div className="sp2-hero-info">
               <h1 className="sp2-hero-name">{profile?.name}</h1>
               <p className="sp2-hero-meta">
-                <span className="sp2-badge sp2-badge-role">{profile?.roleName || 'Staff'}</span>
+                <span className="sp2-badge sp2-badge-role">{profile?.roleName || t('profilestaff.staff')}</span>
                 <span className="sp2-badge sp2-badge-active">
-                  <span className="sp2-pulse" />Active
-                </span>
+                  <span className="sp2-pulse" />{t('profilestaff.active')}</span>
               </p>
             </div>
           </div>
@@ -214,20 +223,17 @@ export default function ProfileStaff({ userId, baseUrl, onShowNotification }) {
           className={`sp2-tab ${activeTab === 'info' ? 'sp2-tab-active' : ''}`}
           onClick={() => setActiveTab('info')}
         >
-          <IconUser /> Personal Information
-        </button>
+          <IconUser /> {t('profilestaff.personal_information')}</button>
         <button
           className={`sp2-tab ${activeTab === 'security' ? 'sp2-tab-active' : ''}`}
           onClick={() => setActiveTab('security')}
         >
-          <IconShield /> Security & Password
-        </button>
+          <IconShield /> {t('profilestaff.security_password')}</button>
         <button
           className={`sp2-tab ${activeTab === 'activity' ? 'sp2-tab-active' : ''}`}
           onClick={() => setActiveTab('activity')}
         >
-          <IconClock /> Account Activity
-        </button>
+          <IconClock /> {t('profilestaff.account_activity')}</button>
       </div>
 
       <div className="sp2-panel" key={activeTab}>
@@ -235,36 +241,35 @@ export default function ProfileStaff({ userId, baseUrl, onShowNotification }) {
         {activeTab === 'info' && (
           <form onSubmit={handleSaveChanges} className="sp2-form">
             <div className="sp2-section-title">
-              <IconUser /> Edit Information
-            </div>
+              <IconUser /> {t('profilestaff.edit_information')}</div>
             <div className="sp2-field-grid">
               <div className="sp2-field">
-                <label className="sp2-label">Full Name</label>
+                <label className="sp2-label">{t('profilestaff.full_name')}</label>
                 <input
                   type="text"
                   className="sp2-input"
                   value={name}
                   onChange={e => setName(e.target.value)}
-                  placeholder="Enter your full name"
+                  placeholder={t('profilestaff.enter_your_full_name')}
                   required
                 />
               </div>
               <div className="sp2-field">
-                <label className="sp2-label">Phone Number</label>
+                <label className="sp2-label">{t('profilestaff.phone_number')}</label>
                 <div className="sp2-input-icon-wrap">
                   <span className="sp2-input-icon"><IconPhone /></span>
                   <input
-                    type="tel"
-                    className="sp2-input sp2-input-iconed"
-                    value={phone}
-                    onChange={e => setPhone(e.target.value)}
-                    placeholder="0xxxxxxxxx"
-                    required
+                     type="tel"
+                     className="sp2-input sp2-input-iconed"
+                     value={phone}
+                     onChange={e => setPhone(e.target.value)}
+                     placeholder={t('profilestaff.0xxxxxxxxx')}
+                     required
                   />
                 </div>
               </div>
               <div className="sp2-field">
-                <label className="sp2-label">Email Address <span className="sp2-lock-tag">Read only</span></label>
+                <label className="sp2-label">{t('profilestaff.email_address')}<span className="sp2-lock-tag">{t('profilestaff.read_only')}</span></label>
                 <div className="sp2-input-icon-wrap">
                   <span className="sp2-input-icon"><IconMail /></span>
                   <input
@@ -276,7 +281,7 @@ export default function ProfileStaff({ userId, baseUrl, onShowNotification }) {
                 </div>
               </div>
               <div className="sp2-field">
-                <label className="sp2-label">Identity Number <span className="sp2-lock-tag">Read only</span></label>
+                <label className="sp2-label">{t('profilestaff.identity_number')}<span className="sp2-lock-tag">{t('profilestaff.read_only')}</span></label>
                 <div className="sp2-input-icon-wrap">
                   <span className="sp2-input-icon"><IconCard /></span>
                   <input
@@ -291,9 +296,9 @@ export default function ProfileStaff({ userId, baseUrl, onShowNotification }) {
             <div className="sp2-form-footer">
               <button type="submit" className="sp2-btn-save" disabled={saving}>
                 {saving ? (
-                  <><span className="sp2-btn-spinner" /> Saving...</>
+                  <><span className="sp2-btn-spinner" /> {t('profilestaff.saving')}</>
                 ) : (
-                  <><IconCheck /> Save Changes</>
+                  <><IconCheck /> {t('profilestaff.save_changes')}</>
                 )}
               </button>
             </div>
@@ -303,17 +308,16 @@ export default function ProfileStaff({ userId, baseUrl, onShowNotification }) {
         {activeTab === 'security' && (
           <form onSubmit={handleChangePassword} className="sp2-form">
             <div className="sp2-section-title">
-              <IconKey /> Change Password
-            </div>
+              <IconKey /> {t('profilestaff.change_password')}</div>
             <div className="sp2-security-note">
               <IconShield />
-              <p>Use a unique password and update it when you suspect unauthorized access.</p>
+              <p>{t('profilestaff.use_a_unique_password')}</p>
             </div>
             <div className="sp2-field-grid mp2-field-grid-1">
               {[
-                { label: 'Current Password', val: currentPassword, set: setCurrentPassword, show: showCur, toggle: setShowCur, ac: 'current-password' },
-                { label: 'New Password', val: newPassword, set: setNewPassword, show: showNew, toggle: setShowNew, ac: 'new-password' },
-                { label: 'Confirm New Password', val: confirmPassword, set: setConfirmPassword, show: showCfm, toggle: setShowCfm, ac: 'new-password' },
+                { label: t('profilestaff.current_password'), val: currentPassword, set: setCurrentPassword, show: showCur, toggle: setShowCur, ac: 'current-password' },
+                { label: t('profilestaff.new_password'), val: newPassword, set: setNewPassword, show: showNew, toggle: setShowNew, ac: 'new-password' },
+                { label: t('profilestaff.confirm_new_password'), val: confirmPassword, set: setConfirmPassword, show: showCfm, toggle: setShowCfm, ac: 'new-password' },
               ].map(({ label, val, set, show, toggle, ac }) => (
                 <div className="sp2-field" key={label}>
                   <label className="sp2-label">{label}</label>
@@ -341,9 +345,9 @@ export default function ProfileStaff({ userId, baseUrl, onShowNotification }) {
             <div className="sp2-form-footer">
               <button type="submit" className="sp2-btn-save sp2-btn-danger" disabled={passwordSaving}>
                 {passwordSaving ? (
-                  <><span className="sp2-btn-spinner" /> Updating...</>
+                  <><span className="sp2-btn-spinner" /> {t('profilestaff.updating')}</>
                 ) : (
-                  <><IconKey /> Update Password</>
+                  <><IconKey /> {t('profilestaff.update_password')}</>
                 )}
               </button>
             </div>
@@ -352,38 +356,38 @@ export default function ProfileStaff({ userId, baseUrl, onShowNotification }) {
 
         {activeTab === 'activity' && (
           <div className="sp2-activity">
-            <div className="sp2-section-title"><IconClock /> Account Activity</div>
+            <div className="sp2-section-title"><IconClock /> {t('profilestaff.account_activity')}</div>
             <div className="sp2-timeline">
               <div className="sp2-tl-item">
                 <div className="sp2-tl-dot sp2-tl-dot-green" />
                 <div className="sp2-tl-content">
-                  <span className="sp2-tl-label">Last Login</span>
+                  <span className="sp2-tl-label">{t('profilestaff.last_login')}</span>
                   <span className="sp2-tl-value">
-                    {profile?.lastLogin ? fmtDate(profile.lastLogin) : 'Current session'}
+                    {profile?.lastLogin ? fmtDate(profile.lastLogin) : t('profilestaff.current_session')}
                   </span>
                 </div>
               </div>
               <div className="sp2-tl-item">
                 <div className="sp2-tl-dot sp2-tl-dot-blue" />
                 <div className="sp2-tl-content">
-                  <span className="sp2-tl-label">Account Created</span>
+                  <span className="sp2-tl-label">{t('profilestaff.account_created')}</span>
                   <span className="sp2-tl-value">{fmtDate(profile?.createdAt)}</span>
                 </div>
               </div>
               <div className="sp2-tl-item">
                 <div className="sp2-tl-dot sp2-tl-dot-purple" />
                 <div className="sp2-tl-content">
-                  <span className="sp2-tl-label">Account Status</span>
+                  <span className="sp2-tl-label">{t('profilestaff.account_status')}</span>
                   <span className="sp2-tl-value sp2-tl-value-active">
-                    <span className="sp2-pulse" /> {profile?.status || 'Active'}
+                    <span className="sp2-pulse" /> {profile?.status || t('profilestaff.active')}
                   </span>
                 </div>
               </div>
               <div className="sp2-tl-item">
                 <div className="sp2-tl-dot sp2-tl-dot-gray" />
                 <div className="sp2-tl-content">
-                  <span className="sp2-tl-label">System Role</span>
-                  <span className="sp2-tl-value">{profile?.roleName || 'Staff'}</span>
+                  <span className="sp2-tl-label">{t('profilestaff.system_role')}</span>
+                  <span className="sp2-tl-value">{profile?.roleName || t('profilestaff.staff')}</span>
                 </div>
               </div>
             </div>

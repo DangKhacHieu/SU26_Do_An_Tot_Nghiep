@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useRef } from 'react';
 import './DashboardAdminSystem.css';
 
@@ -65,7 +66,7 @@ const IcoClock = () => (
 /* ── Stat cards config ── */
 const STAT_CARDS = [
   {
-    key: 'total', label: 'Tổng Tài Khoản', badge: 'ALL ROLES',
+    key: 'total', label: "Tổng số tài khoản", badge: 'ALL ROLES',
     gradient: 'linear-gradient(90deg,#7c3aed,#a855f7)',
     iconBg: '#f3e8ff', color: '#7c3aed',
     badgeBg: '#f3e8ff',
@@ -86,14 +87,14 @@ const STAT_CARDS = [
     Icon: IcoUser,
   },
   {
-    key: 'staff', label: 'Nhân Viên', badge: 'STAFF',
+    key: 'staff', label: "Nhân viên", badge: 'STAFF',
     gradient: 'linear-gradient(90deg,#1d4ed8,#3b82f6)',
     iconBg: '#dbeafe', color: '#1d4ed8',
     badgeBg: '#dbeafe',
     Icon: IcoBriefcase,
   },
   {
-    key: 'accountant', label: 'Kế Toán', badge: 'ACCOUNTANT',
+    key: 'accountant', label: "Kế toán", badge: 'ACCOUNTANT',
     gradient: 'linear-gradient(90deg,#0f766e,#14b8a6)',
     iconBg: '#ccfbf1', color: '#0f766e',
     badgeBg: '#ccfbf1',
@@ -103,20 +104,20 @@ const STAT_CARDS = [
 
 /* ── Quick actions config ── */
 const QUICK_ACTIONS = [
-  { label: 'Phê duyệt Chợ',      desc: 'Duyệt sơ đồ chợ từ Manager', emoji: '🏢', cls: 'market',   route: 'admin-market-approval' },
-  { label: 'Đăng ký Tài khoản',  desc: 'Tạo mới thành viên hệ thống', emoji: '👤', cls: 'user',     route: 'admin-user-form'       },
-  { label: 'Nhật ký hoạt động',  desc: 'Kiểm tra lịch sử thao tác',   emoji: '📋', cls: 'logs',     route: 'admin-audit-logs'      },
-  { label: 'Danh sách Tài khoản',desc: 'Quản lý và cập nhật quyền',   emoji: '⚙️', cls: 'accounts', route: 'admin-users'           },
+  { label: "Phê duyệt Chợ",      desc: "Duyệt bản đồ sơ đồ mặt bằng sạp từ Manager", emoji: '🏢', cls: 'market',   route: 'admin-market-approval' },
+  { label: "Đăng ký tài khoản",  desc: "Tạo tài khoản quản trị viên mới", emoji: '👤', cls: 'user',     route: 'admin-user-form'       },
+  { label: "Nhật ký hoạt động",  desc: "Xem lịch sử tác vụ toàn hệ thống",   emoji: '📋', cls: 'logs',     route: 'admin-audit-logs'      },
+  { label: "Danh sách tài khoản",desc: "Quản lý và cấp quyền thành viên",   emoji: '⚙️', cls: 'accounts', route: 'admin-users'           },
 ];
 
 /* ── Activity type classifier ── */
-const getActivityType = (action = '') => {
+const getActivityType = (action = '', t) => {
   const a = action.toLowerCase();
-  if (a.includes('đăng nhập') || a.includes('login'))        return 'type-login';
-  if (a.includes('phê duyệt') || a.includes('duyệt'))       return 'type-approve';
-  if (a.includes('khóa') || a.includes('lock'))              return 'type-lock';
-  if (a.includes('tạo') || a.includes('khởi tạo') || a.includes('create')) return 'type-create';
-  if (a.includes('cập nhật') || a.includes('update'))        return 'type-update';
+  if (a.includes('đăng nhập'.toLowerCase()) || a.includes('login'))        return 'type-login';
+  if (a.includes('phê duyệt'.toLowerCase()) || a.includes('duyệt'.toLowerCase()))       return 'type-approve';
+  if (a.includes('khóa'.toLowerCase()) || a.includes('lock'))              return 'type-lock';
+  if (a.includes('tạo'.toLowerCase()) || a.includes('khởi tạo'.toLowerCase()) || a.includes('create')) return 'type-create';
+  if (a.includes('cập nhật'.toLowerCase()) || a.includes('update'))        return 'type-update';
   return 'type-default';
 };
 
@@ -165,6 +166,8 @@ function RingGauge({ value, maxValue, color, label, unit, displayVal }) {
 
 /* ── Main component ── */
 export default function DashboardAdminSystem({ addToast, navigate }) {
+  const { t } = useTranslation();
+
   const [stats, setStats]       = useState({ total: 0, admin: 0, manager: 0, staff: 0, accountant: 0 });
   const [loading, setLoading]   = useState(true);
   const [recentLogs, setRecentLogs] = useState([]);
@@ -233,12 +236,12 @@ export default function DashboardAdminSystem({ addToast, navigate }) {
       } else throw new Error();
     } catch {
       setRecentLogs([
-        { logId: 101, action: "Đăng nhập hệ thống thành công",        userName: "System Admin", createdAt: new Date().toISOString() },
-        { logId: 102, action: "Phê duyệt sơ đồ chợ Bến Thành",        userName: "System Admin", createdAt: new Date(Date.now() - 3600000).toISOString() },
-        { logId: 103, action: "Khởi tạo tài khoản Manager Nguyễn",   userName: "System Admin", createdAt: new Date(Date.now() - 7200000).toISOString() },
-        { logId: 104, action: "Khóa tài khoản Staff Trần vi phạm",    userName: "System Admin", createdAt: new Date(Date.now() - 10800000).toISOString() },
-        { logId: 105, action: "Cập nhật quyền Kế Toán Lê Thị B",     userName: "System Admin", createdAt: new Date(Date.now() - 14400000).toISOString() },
-        { logId: 106, action: "Tạo tài khoản Staff mới cho Chi nhánh Quận 1", userName: "System Admin", createdAt: new Date(Date.now() - 18000000).toISOString() },
+        { logId: 101, action: t('dashboardadminsystem.login_to_the_system'),        userName: "System Admin", createdAt: new Date().toISOString() },
+        { logId: 102, action: t('dashboardadminsystem.approve_the_diagram_of'),        userName: "System Admin", createdAt: new Date(Date.now() - 3600000).toISOString() },
+        { logId: 103, action: t('dashboardadminsystem.create_a_manager_nguyen'),   userName: "System Admin", createdAt: new Date(Date.now() - 7200000).toISOString() },
+        { logId: 104, action: t('dashboardadminsystem.lock_staff_trans_account'),    userName: "System Admin", createdAt: new Date(Date.now() - 10800000).toISOString() },
+        { logId: 105, action: t('dashboardadminsystem.update_the_rights_of'),     userName: "System Admin", createdAt: new Date(Date.now() - 14400000).toISOString() },
+        { logId: 106, action: t('dashboardadminsystem.create_a_new_staff'), userName: "System Admin", createdAt: new Date(Date.now() - 18000000).toISOString() },
       ]);
     }
   };
@@ -247,9 +250,9 @@ export default function DashboardAdminSystem({ addToast, navigate }) {
     if (!dateStr) return '';
     const d = new Date(dateStr);
     const diff = Math.floor((Date.now() - d.getTime()) / 60000);
-    if (diff < 1)  return 'Vừa xong';
-    if (diff < 60) return `${diff} phút trước`;
-    if (diff < 1440) return `${Math.floor(diff / 60)} giờ trước`;
+    if (diff < 1)  return t('dashboardadminsystem.just_finished');
+    if (diff < 60) return t('dashboardadminsystem.diff_minutes_ago');
+    if (diff < 1440) return t('dashboardadminsystem.mathfloordiff_60_hours_ago');
     return d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
   };
 
@@ -266,12 +269,11 @@ export default function DashboardAdminSystem({ addToast, navigate }) {
           <div className="ads-hero-avatar">A</div>
           <div>
             <h2 className="ads-hero-title">Admin System Console</h2>
-            <p className="ads-hero-subtitle">Trung tâm quản trị hệ thống chợ thương mại điện tử STMM</p>
+            <p className="ads-hero-subtitle">{t('dashboardadminsystem.stmm_ecommerce_market_system')}</p>
             <div className="ads-hero-chips">
               <span className="ads-hero-chip green">
                 <span className="ads-hero-chip-dot" />
-                Hệ thống trực tuyến
-              </span>
+                {t('dashboardadminsystem.online_system')}</span>
               <span className="ads-hero-chip purple">
                 <span className="ads-hero-chip-dot" />
                 Superadmin
@@ -291,48 +293,71 @@ export default function DashboardAdminSystem({ addToast, navigate }) {
 
       {/* ── Stat Summary Cards ── */}
       <div>
-        <div className="ads-section-label">Tổng quan tài khoản</div>
+        <div className="ads-section-label">{t('dashboardadminsystem.account_overview')}</div>
         <div className="ads-stats-grid">
-          {STAT_CARDS.map(c => (
-            <div
-              key={c.key}
-              className="ads-stat-card"
-              style={{ '--sc-gradient': c.gradient, '--sc-icon-bg': c.iconBg, '--sc-color': c.color, '--sc-badge-bg': c.badgeBg }}
-            >
-              {/* large watermark */}
-              <div className="ads-stat-card-bg-icon">
-                <c.Icon />
-              </div>
-
-              <div className="ads-stat-top">
-                <div className="ads-stat-icon" style={{ background: c.iconBg, color: c.color }}>
+          {STAT_CARDS.map(c => {
+            let label = c.label;
+            if (c.key === 'total') label = t('dashboardadminsystem.total_account');
+            else if (c.key === 'staff') label = t('dashboardadminsystem.staff');
+            else if (c.key === 'accountant') label = t('dashboardadminsystem.accountant');
+            return (
+              <div
+                key={c.key}
+                className="ads-stat-card"
+                style={{ '--sc-gradient': c.gradient, '--sc-icon-bg': c.iconBg, '--sc-color': c.color, '--sc-badge-bg': c.badgeBg }}
+              >
+                {/* large watermark */}
+                <div className="ads-stat-card-bg-icon">
                   <c.Icon />
                 </div>
-                <span className="ads-stat-badge" style={{ background: c.badgeBg, color: c.color }}>{c.badge}</span>
-              </div>
 
-              <div className={`ads-stat-value${loading ? ' loading-shimmer' : ''}`}>
-                {loading ? '' : stats[c.key]}
+                <div className="ads-stat-top">
+                  <div className="ads-stat-icon" style={{ background: c.iconBg, color: c.color }}>
+                    <c.Icon />
+                  </div>
+                  <span className="ads-stat-badge" style={{ background: c.badgeBg, color: c.color }}>{c.badge}</span>
+                </div>
+
+                <div className={`ads-stat-value${loading ? ' loading-shimmer' : ''}`}>
+                  {loading ? '' : stats[c.key]}
+                </div>
+                <div className="ads-stat-label">{label}</div>
               </div>
-              <div className="ads-stat-label">{c.label}</div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
       {/* ── Quick Actions ── */}
       <div>
-        <div className="ads-section-label">Lối tắt quản trị nhanh</div>
+        <div className="ads-section-label">{t('dashboardadminsystem.quick_admin_shortcuts')}</div>
         <div className="ads-quick-grid">
-          {QUICK_ACTIONS.map(q => (
-            <div key={q.route} className={`ads-quick-card ${q.cls}`} onClick={() => navigate(q.route)}>
-              <div className="ads-quick-icon">{q.emoji}</div>
-              <div className="ads-quick-text-wrap">
-                <span className="ads-quick-title">{q.label}</span>
-                <span className="ads-quick-desc">{q.desc}</span>
+          {QUICK_ACTIONS.map(q => {
+            let label = q.label;
+            let desc = q.desc;
+            if (q.route === 'admin-market-approval') {
+              label = t('dashboardadminsystem.market_approval');
+              desc = t('dashboardadminsystem.browse_the_market_map');
+            } else if (q.route === 'admin-user-form') {
+              label = t('dashboardadminsystem.register_an_account');
+              desc = t('dashboardadminsystem.create_a_new_system');
+            } else if (q.route === 'admin-audit-logs') {
+              label = t('dashboardadminsystem.activity_log');
+              desc = t('dashboardadminsystem.check_operation_history');
+            } else if (q.route === 'admin-users') {
+              label = t('dashboardadminsystem.list_of_accounts');
+              desc = t('dashboardadminsystem.manage_and_update_permissions');
+            }
+            return (
+              <div key={q.route} className={`ads-quick-card ${q.cls}`} onClick={() => navigate(q.route)}>
+                <div className="ads-quick-icon">{q.emoji}</div>
+                <div className="ads-quick-text-wrap">
+                  <span className="ads-quick-title">{label}</span>
+                  <span className="ads-quick-desc">{desc}</span>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
@@ -344,8 +369,7 @@ export default function DashboardAdminSystem({ addToast, navigate }) {
           <div className="ads-card-header">
             <h3 className="ads-card-title">
               <div className="ads-card-title-icon"><IcoActivity /></div>
-              Live Monitor Máy Chủ
-            </h3>
+              {t('dashboardadminsystem.live_monitor_server')}</h3>
             <div className="ads-live-badge">
               <span className="ads-live-dot" />
               LIVE
@@ -378,17 +402,16 @@ export default function DashboardAdminSystem({ addToast, navigate }) {
           <div className="ads-card-header">
             <h3 className="ads-card-title">
               <div className="ads-card-title-icon"><IcoServer /></div>
-              Trạng Thái Hệ Thống
-            </h3>
+              {t('dashboardadminsystem.system_status')}</h3>
           </div>
           <div className="ads-status-list">
             {[
-              { key: 'Cơ sở dữ liệu',  val: 'PostgreSQL (Aiven)', cls: 'active dot-icon' },
+              { key: t('dashboardadminsystem.database'),  val: 'PostgreSQL (Aiven)', cls: 'active dot-icon' },
               { key: 'Backend API',     val: 'ASP.NET Core 9 — Active', cls: 'active dot-icon' },
-              { key: 'Phân hệ API',     val: '/api/admin/*', cls: 'info' },
-              { key: 'Vai trò Admin',   val: 'Superadmin (Toàn quyền)', cls: 'info' },
-              { key: 'Nguồn dữ liệu',  val: 'Thời gian thực', cls: 'active dot-icon' },
-              { key: 'Phiên bản App',   val: 'STMM v1.0.0', cls: 'neutral' },
+              { key: t('dashboardadminsystem.api_subsystem'),     val: '/api/admin/*', cls: 'info' },
+              { key: t('dashboardadminsystem.admin_role'),   val: t('dashboardadminsystem.superadmin_full_authority'), cls: 'info' },
+              { key: t('dashboardadminsystem.data_source'),  val: t('dashboardadminsystem.real_time'), cls: 'active dot-icon' },
+              { key: t('dashboardadminsystem.app_version'),   val: 'STMM v1.0.0', cls: 'neutral' },
             ].map(r => (
               <div className="ads-status-row" key={r.key}>
                 <span className="ads-status-key">{r.key}</span>
@@ -403,12 +426,11 @@ export default function DashboardAdminSystem({ addToast, navigate }) {
           <div className="ads-card-header">
             <h3 className="ads-card-title">
               <div className="ads-card-title-icon"><IcoClock /></div>
-              Hoạt động gần đây
-            </h3>
+              {t('dashboardadminsystem.recent_activity')}</h3>
           </div>
           <div className="ads-activity-list">
             {recentLogs.map((log, idx) => {
-              const aType = getActivityType(log.action);
+              const aType = getActivityType(log.action, t);
               return (
                 <div className="ads-activity-item" key={log.logId || idx}>
                   <div className={`ads-activity-dot ${aType}`}>
@@ -431,16 +453,15 @@ export default function DashboardAdminSystem({ addToast, navigate }) {
           <div className="ads-card-header">
             <h3 className="ads-card-title">
               <div className="ads-card-title-icon"><IcoCheck /></div>
-              Nhiệm vụ Admin System
-            </h3>
+              {t('dashboardadminsystem.admin_system_tasks')}</h3>
           </div>
           <div className="ads-tasks-list">
             {[
-              'Quản trị và khởi tạo tài khoản tất cả vai trò trong hệ thống (Admin, Manager, Staff, Kế Toán, v.v.)',
-              'Khóa / Mở khóa và quản trị trạng thái hoạt động của mọi tài khoản',
-              'Hỗ trợ đặt lại mật khẩu trực tiếp cho thành viên khi cần thiết',
-              'Phê duyệt sơ đồ mặt bằng chợ từ Manager trước khi kích hoạt',
-              'Xem nhật ký kiểm toán hệ thống và giám sát bất thường',
+              t('dashboardadminsystem.manage_and_create_accounts'),
+              t('dashboardadminsystem.lockunlock_and_manage_the'),
+              t('dashboardadminsystem.support_resetting_passwords_directly'),
+              t('dashboardadminsystem.approve_the_market_floor'),
+              t('dashboardadminsystem.view_system_audit_logs'),
             ].map((text, i) => (
               <div className="ads-task-item" key={i}>
                 <span className="ads-task-text">{text}</span>

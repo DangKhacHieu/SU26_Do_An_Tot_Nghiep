@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { getAuthHeaders } from '../../utils/authHeaders';
 import './IssueDetailManager.css';
@@ -38,6 +39,8 @@ const IconTool = () => (
 );
 
 export default function IssueDetailManager({ issueId, userId, baseUrl, navigate, addToast }) {
+  const { t } = useTranslation();
+
   const [issue, setIssue] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showCreateTask, setShowCreateTask] = useState(false);
@@ -78,7 +81,7 @@ export default function IssueDetailManager({ issueId, userId, baseUrl, navigate,
     return (
       <div className="id-loading">
         <div className="id-spinner" />
-        <span>Đang tải thông tin chi tiết sự cố...</span>
+        <span>{t('issuedetailmanager.loading_incident_details')}</span>
       </div>
     );
   }
@@ -86,11 +89,10 @@ export default function IssueDetailManager({ issueId, userId, baseUrl, navigate,
   if (!issue) {
     return (
       <div className="id-not-found">
-        <h3>Không tìm thấy sự cố</h3>
-        <p>Sự cố không tồn tại hoặc đã bị xóa.</p>
+        <h3>{t('issuedetailmanager.no_problem_found')}</h3>
+        <p>{t('issuedetailmanager.the_issue_does_not')}</p>
         <button className="id-back-btn" onClick={() => navigate('issues')}>
-          <IconArrowLeft /> Quay lại danh sách
-        </button>
+          <IconArrowLeft /> {t('issuedetailmanager.back_to_the_list')}</button>
       </div>
     );
   }
@@ -106,8 +108,7 @@ export default function IssueDetailManager({ issueId, userId, baseUrl, navigate,
 
         <div className="id-header-top">
           <button className="id-back-btn" onClick={() => navigate('issues')}>
-            <IconArrowLeft /> Danh sách sự cố
-          </button>
+            <IconArrowLeft /> {t('issuedetailmanager.incident_list')}</button>
 
           <div className="id-header-badges">
             <span className={`id-status-badge ${sm.cls}`}>{sm.label}</span>
@@ -127,7 +128,7 @@ export default function IssueDetailManager({ issueId, userId, baseUrl, navigate,
             </div>
             <div className="id-meta-item">
               <IconMapPin />
-              <span>Vị trí: <strong>{issue.stallCode || `Sạp ID: ${issue.stallId}`}</strong></span>
+              <span>{t('issuedetailmanager.location')}<strong>{issue.stallCode || t('issuedetailmanager.stall_id_issuestallid')}</strong></span>
             </div>
             <div className="id-meta-item">
               <IconUser />
@@ -142,10 +143,9 @@ export default function IssueDetailManager({ issueId, userId, baseUrl, navigate,
         {/* Cột trái: Mô tả chi tiết */}
         <div className="id-main-card">
           <div className="id-section-title">
-            <IconUser /> Chi tiết mô tả sự cố
-          </div>
+            <IconUser /> {t('issuedetailmanager.detailed_description_of_the')}</div>
           <div className="id-desc-body">
-            <p>{issue.description || 'Không có mô tả chi tiết cho sự cố này.'}</p>
+            <p>{issue.description || t('issuedetailmanager.there_is_no_detailed')}</p>
           </div>
 
           <div className="id-section-title" style={{ marginTop: '24px' }}>
@@ -157,10 +157,10 @@ export default function IssueDetailManager({ issueId, userId, baseUrl, navigate,
                 <div key={i} className="id-image-wrapper">
                   <img
                     src={url}
-                    alt={`Minh chứng ${i + 1}`}
+                    alt={t('issuedetailmanager.proof_i_1')}
                     onError={(e) => {
                       e.target.onerror = null;
-                      e.target.src = 'https://placehold.co/400x300?text=Hình+ảnh+không+tải+được';
+                      e.target.src = t('issuedetailmanager.httpsplaceholdco400x300textimagecannotload');
                     }}
                   />
                 </div>
@@ -168,16 +168,14 @@ export default function IssueDetailManager({ issueId, userId, baseUrl, navigate,
             </div>
           ) : (
             <div className="id-no-images">
-              Không có hình ảnh đính kèm.
-            </div>
+              {t('issuedetailmanager.there_are_no_images')}</div>
           )}
         </div>
 
         {/* Cột phải: Thông tin xử lý sự cố / Phân công task */}
         <div className="id-sidebar-card">
           <div className="id-section-title">
-            <IconTool /> Trạng thái xử lý sự cố
-          </div>
+            <IconTool /> {t('issuedetailmanager.troubleshooting_status')}</div>
 
           {issue.assignedTaskId ? (
             <div className="id-task-assigned-box">
@@ -185,24 +183,22 @@ export default function IssueDetailManager({ issueId, userId, baseUrl, navigate,
               <div className="id-task-info-block" onClick={() => navigate('task-details', issue.assignedTaskId)}>
                 <span className="id-task-id-text">Task ID: #{issue.assignedTaskId}</span>
                 <div className="id-task-status-row">
-                  <span>Trạng thái tác vụ:</span>
+                  <span>{t('issuedetailmanager.task_status')}</span>
                   <span className={`status-badge ${issue.assignedTaskStatus?.toLowerCase() || 'pending'}`} style={{ display: 'inline-block' }}>
                     {issue.assignedTaskStatus || 'Pending'}
                   </span>
                 </div>
                 <div className="id-task-tip">
-                  * Click để xem tiến trình xử lý tác vụ sửa chữa này.
-                </div>
+                  {t('issuedetailmanager.click_to_view_the')}</div>
               </div>
             </div>
           ) : (
             <div className="id-task-unassigned-box">
-              <p>Chưa có tác vụ sửa chữa nào được phân công cho sự cố này.</p>
+              <p>{t('issuedetailmanager.there_are_no_repair')}</p>
               
               {issue.status !== 'Closed' && (
                 <button className="id-assign-btn" onClick={() => setShowCreateTask(true)}>
-                  Phân công sửa chữa ngay
-                </button>
+                  {t('issuedetailmanager.assign_repairs_immediately')}</button>
               )}
             </div>
           )}
@@ -218,8 +214,8 @@ export default function IssueDetailManager({ issueId, userId, baseUrl, navigate,
           onSuccess={handleCreateTaskSuccess}
           addToast={addToast}
           preFilledIssueId={issue.issueId}
-          preFilledTitle={`Sửa chữa: ${issue.title}`}
-          preFilledDescription={`Sửa chữa sự cố hạ tầng tại vị trí sạp ${issue.stallCode || `ID: ${issue.stallId}`}.\n\nMô tả chi tiết sự cố:\n${issue.description}`}
+          preFilledTitle={`${t('issuedetailmanager.fix_issue')}: ${issue.title}`}
+          preFilledDescription={`${t('issuedetailmanager.fix_infrastructure_problem_at_stall_id')}: ${issue.stallId}\n\n${t('issuedetailmanager.detailed_issue_description')}:\n${issue.description}`}
         />
       )}
     </div>

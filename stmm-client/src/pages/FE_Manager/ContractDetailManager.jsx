@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useRef } from "react";
 import ContractPrintPreview from "./ContractPrintPreview";
 import "./ContractDetailManager.css";
@@ -7,6 +8,8 @@ const API_UPLOAD = "http://localhost:5056/api/files/upload";
 
 
 export default function ContractDetailManager({ contractId, navigate, addToast }) {
+  const { t } = useTranslation();
+
   const [contract, setContract] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showPrintPreview, setShowPrintPreview] = useState(false);
@@ -72,7 +75,7 @@ export default function ContractDetailManager({ contractId, navigate, addToast }
   };
 
   const handleTerminate = async () => {
-    if (!window.confirm("Bạn có chắc chắn muốn CHẤM DỨT hợp đồng này trước thời hạn? Sạp hàng sẽ được trả về trạng thái TRỐNG (Available).")) {
+    if (!window.confirm(t('contractdetailmanager.are_you_sure_you'))) {
       return;
     }
 
@@ -87,7 +90,7 @@ export default function ContractDetailManager({ contractId, navigate, addToast }
         fetchContractDetails();
       } else {
         const error = await res.json();
-        addToast(error.message || "Lỗi khi chấm dứt hợp đồng.", "error");
+        addToast(error.message || t('contractdetailmanager.error_when_terminating_the'), "error");
       }
     } catch {
       addToast("Lỗi kết nối máy chủ.", "error");
@@ -98,18 +101,18 @@ export default function ContractDetailManager({ contractId, navigate, addToast }
 
   const validateRenew = () => {
     const errs = {};
-    if (!renewData.startDate) errs.startDate = "Vui lòng chọn ngày bắt đầu.";
-    if (!renewData.endDate) errs.endDate = "Vui lòng chọn ngày kết thúc.";
+    if (!renewData.startDate) errs.startDate = t('contractdetailmanager.please_select_a_start');
+    if (!renewData.endDate) errs.endDate = t('contractdetailmanager.please_select_an_end');
     if (renewData.startDate && renewData.endDate) {
       if (new Date(renewData.startDate) >= new Date(renewData.endDate)) {
-        errs.endDate = "Ngày kết thúc phải sau ngày bắt đầu.";
+        errs.endDate = t('contractdetailmanager.the_end_date_must');
       }
     }
     if (!renewData.rentFee || parseFloat(renewData.rentFee) < 0) {
-      errs.rentFee = "Giá thuê không hợp lệ.";
+      errs.rentFee = t('contractdetailmanager.invalid_rental_price');
     }
     if (!renewData.deposit || parseFloat(renewData.deposit) < 0) {
-      errs.deposit = "Tiền đặt cọc không hợp lệ.";
+      errs.deposit = t('contractdetailmanager.invalid_deposit');
     }
     setRenewErrors(errs);
     return Object.keys(errs).length === 0;
@@ -144,7 +147,7 @@ export default function ContractDetailManager({ contractId, navigate, addToast }
         // Navigate to the newly created renewed contract
         navigate("contract-detail", data.contractId);
       } else {
-        addToast(data.message || "Lỗi gia hạn hợp đồng.", "error");
+        addToast(data.message || t('contractdetailmanager.contract_renewal_error'), "error");
       }
     } catch {
       addToast("Lỗi kết nối máy chủ.", "error");
@@ -178,7 +181,7 @@ export default function ContractDetailManager({ contractId, navigate, addToast }
       });
 
       if (!uploadRes.ok) {
-        throw new Error("Upload thất bại.");
+        throw new Error(t('contractdetailmanager.upload_failed'));
       }
 
       const uploadResult = await uploadRes.json();
@@ -197,10 +200,10 @@ export default function ContractDetailManager({ contractId, navigate, addToast }
         addToast("Tải bản quét đã ký lên thành công!", "success");
         fetchContractDetails();
       } else {
-        throw new Error("Lỗi lưu liên kết bản quét.");
+        throw new Error(t('contractdetailmanager.error_saving_scan_link'));
       }
     } catch (err) {
-      addToast(err.message || "Lỗi tải ảnh lên máy chủ.", "error");
+      addToast(err.message || t('contractdetailmanager.error_uploading_photos_to'), "error");
     } finally {
       setUploadingFile(false);
     }
@@ -209,11 +212,11 @@ export default function ContractDetailManager({ contractId, navigate, addToast }
   const renderStatusBadge = (status) => {
     switch (status) {
       case "Active":
-        return <span className="status-badge status-active">Đang hoạt động</span>;
+        return <span className="status-badge status-active">{t('contractdetailmanager.active')}</span>;
       case "Expired":
-        return <span className="status-badge status-expired">Đã hết hạn</span>;
+        return <span className="status-badge status-expired">{t('contractdetailmanager.expired')}</span>;
       case "Terminated":
-        return <span className="status-badge status-terminated">Đã chấm dứt</span>;
+        return <span className="status-badge status-terminated">{t('contractdetailmanager.terminated')}</span>;
       default:
         return <span className="status-badge">{status}</span>;
     }
@@ -223,7 +226,7 @@ export default function ContractDetailManager({ contractId, navigate, addToast }
     return (
       <div className="detail-loading-container animate-fade-in">
         <div className="loading-spinner"></div>
-        <span>Đang tải thông tin chi tiết hợp đồng...</span>
+        <span>{t('contractdetailmanager.loading_contract_details')}</span>
       </div>
     );
   }
@@ -232,9 +235,9 @@ export default function ContractDetailManager({ contractId, navigate, addToast }
     return (
       <div className="detail-error-container animate-fade-in">
         <div className="error-icon">⚠️</div>
-        <h3>Không tìm thấy hợp đồng</h3>
-        <p>Hợp đồng yêu cầu không tồn tại hoặc đã bị xóa mềm.</p>
-        <button onClick={() => navigate("contracts")} className="btn-back">Quay lại danh sách</button>
+        <h3>{t('contractdetailmanager.no_contract_found')}</h3>
+        <p>{t('contractdetailmanager.the_required_contract_does')}</p>
+        <button onClick={() => navigate("contracts")} className="btn-back">{t('contractdetailmanager.back_to_the_list')}</button>
       </div>
     );
   }
@@ -245,8 +248,7 @@ export default function ContractDetailManager({ contractId, navigate, addToast }
       {/* Top action header */}
       <div className="detail-header-actions no-print">
         <button className="btn-back-link" onClick={() => navigate("contracts")}>
-          ← Quay lại danh sách
-        </button>
+          {t('contractdetailmanager.back_to_list')}</button>
 
         <div className="actions-group">
           {contract.status === "Active" && (
@@ -256,20 +258,17 @@ export default function ContractDetailManager({ contractId, navigate, addToast }
                 onClick={handleTerminate}
                 disabled={actionLoading}
               >
-                🚫 Chấm Dứt Trước Hạn
-              </button>
+                {t('contractdetailmanager.chm_dt_trc_hn')}</button>
               <button 
                 className="btn-action-renew" 
                 onClick={() => setShowRenewModal(true)}
                 disabled={actionLoading}
               >
-                🔄 Gia Hạn Hợp Đồng
-              </button>
+                {t('contractdetailmanager.contract_renewal')}</button>
             </>
           )}
           <button className="btn-action-print" onClick={() => setShowPrintPreview(true)}>
-            📄 Xuất file PDF (A4)
-          </button>
+            {t('contractdetailmanager.export_pdf_file_a4')}</button>
 
         </div>
       </div>
@@ -288,23 +287,23 @@ export default function ContractDetailManager({ contractId, navigate, addToast }
             </div>
             <div className="card-content">
               <div className="detail-row">
-                <span className="detail-label">Ngày bắt đầu</span>
+                <span className="detail-label">{t('contractdetailmanager.start_date')}</span>
                 <span className="detail-value">{contract.startDate}</span>
               </div>
               <div className="detail-row">
-                <span className="detail-label">Ngày kết thúc</span>
+                <span className="detail-label">{t('contractdetailmanager.end_date')}</span>
                 <span className="detail-value">{contract.endDate}</span>
               </div>
               <div className="detail-row">
-                <span className="detail-label">Giá thuê mỗi tháng</span>
+                <span className="detail-label">{t('contractdetailmanager.rental_price_per_month')}</span>
                 <span className="detail-value highlight-price">{formatCurrency(contract.rentFee)}</span>
               </div>
               <div className="detail-row">
-                <span className="detail-label">Tiền đặt cọc</span>
+                <span className="detail-label">{t('contractdetailmanager.deposit')}</span>
                 <span className="detail-value">{formatCurrency(contract.deposit)}</span>
               </div>
               <div className="detail-row">
-                <span className="detail-label">Ngày khởi tạo</span>
+                <span className="detail-label">{t('contractdetailmanager.initialization_date')}</span>
                 <span className="detail-value">
                   {contract.createdAt ? new Date(contract.createdAt).toLocaleString("vi-VN") : "N/A"}
                 </span>
@@ -315,23 +314,23 @@ export default function ContractDetailManager({ contractId, navigate, addToast }
           {/* Card 2: Stall & Location Info */}
           <div className="detail-card">
             <div className="card-header">
-              <h3>Thông tin Mặt Bằng (Ki-ốt)</h3>
+              <h3>{t('contractdetailmanager.floor_information_kiosk')}</h3>
             </div>
             <div className="card-content">
               <div className="detail-row">
-                <span className="detail-label">Mã số quầy sạp</span>
+                <span className="detail-label">{t('contractdetailmanager.stall_code')}</span>
                 <span className="detail-value font-monospace-pill">{contract.stallCode}</span>
               </div>
               <div className="detail-row">
-                <span className="detail-label">Diện tích</span>
+                <span className="detail-label">{t('contractdetailmanager.acreage')}</span>
                 <span className="detail-value">{contract.stallSize ? `${contract.stallSize} m²` : "N/A"}</span>
               </div>
               <div className="detail-row">
-                <span className="detail-label">Phân khu (Area)</span>
+                <span className="detail-label">{t('contractdetailmanager.area')}</span>
                 <span className="detail-value">{contract.areaName}</span>
               </div>
               <div className="detail-row">
-                <span className="detail-label">Khu chợ</span>
+                <span className="detail-label">{t('contractdetailmanager.market_area')}</span>
                 <span className="detail-value">{contract.marketName}</span>
               </div>
             </div>
@@ -340,44 +339,44 @@ export default function ContractDetailManager({ contractId, navigate, addToast }
           {/* Card 3: Lessee Info */}
           <div className="detail-card">
             <div className="card-header">
-              <h3>Thông tin Khách Thuê (Bên B)</h3>
+              <h3>{t('contractdetailmanager.tenant_information_party_b')}</h3>
             </div>
             <div className="card-content">
               <div className="detail-row">
-                <span className="detail-label">Họ và tên đại diện</span>
+                <span className="detail-label">{t('contractdetailmanager.representative_name_and_surname')}</span>
                 <span className="detail-value font-weight-bold">{contract.vendorName}</span>
               </div>
               <div className="detail-row">
-                <span className="detail-label">Tên Cơ sở Kinh doanh</span>
+                <span className="detail-label">{t('contractdetailmanager.name_of_business_establishment')}</span>
                 <span className="detail-value">{contract.vendorBusinessName || "N/A"}</span>
               </div>
               <div className="detail-row">
-                <span className="detail-label">Mã số thuế</span>
-                <span className="detail-value">{contract.vendorTaxCode || "Chưa cập nhật"}</span>
+                <span className="detail-label">{t('contractdetailmanager.tax_code')}</span>
+                <span className="detail-value">{contract.vendorTaxCode || t('contractdetailmanager.not_updated_yet')}</span>
               </div>
               <div className="detail-row">
-                <span className="detail-label">Số CCCD/CMND</span>
+                <span className="detail-label">{t('contractdetailmanager.cccdid_card_number')}</span>
                 <span className="detail-value">{contract.vendorCccd}</span>
               </div>
               <div className="detail-row">
-                <span className="detail-label">Số điện thoại</span>
+                <span className="detail-label">{t('contractdetailmanager.phone_number')}</span>
                 <span className="detail-value">{contract.vendorPhone}</span>
               </div>
               <div className="detail-row">
-                <span className="detail-label">Email liên hệ</span>
+                <span className="detail-label">{t('contractdetailmanager.contact_email')}</span>
                 <span className="detail-value">{contract.vendorEmail}</span>
               </div>
               <div className="detail-row">
-                <span className="detail-label">Địa chỉ đăng ký KD</span>
-                <span className="detail-value">{contract.vendorAddress || "Chưa cập nhật"}</span>
+                <span className="detail-label">{t('contractdetailmanager.business_registration_address')}</span>
+                <span className="detail-value">{contract.vendorAddress || t('contractdetailmanager.not_updated_yet')}</span>
               </div>
               <div className="detail-row">
-                <span className="detail-label">Số tài khoản ngân hàng</span>
-                <span className="detail-value">{contract.vendorBankAccount || "Chưa cập nhật"}</span>
+                <span className="detail-label">{t('contractdetailmanager.bank_account_number')}</span>
+                <span className="detail-value">{contract.vendorBankAccount || t('contractdetailmanager.not_updated_yet')}</span>
               </div>
               <div className="detail-row">
-                <span className="detail-label">Tại ngân hàng</span>
-                <span className="detail-value">{contract.vendorBankName || "Chưa cập nhật"}</span>
+                <span className="detail-label">{t('contractdetailmanager.at_the_bank')}</span>
+                <span className="detail-value">{contract.vendorBankName || t('contractdetailmanager.not_updated_yet')}</span>
               </div>
             </div>
           </div>
@@ -388,7 +387,7 @@ export default function ContractDetailManager({ contractId, navigate, addToast }
         <div className="detail-scans-panel">
           <div className="detail-card full-height">
             <div className="card-header flex-header">
-              <h3>Bản Quét Hợp Đồng Đã Ký</h3>
+              <h3>{t('contractdetailmanager.scan_of_signed_contract')}</h3>
               <input
                 ref={fileInputRef}
                 type="file"
@@ -401,7 +400,7 @@ export default function ContractDetailManager({ contractId, navigate, addToast }
                 onClick={handleFileUploadClick}
                 disabled={uploadingFile}
               >
-                {uploadingFile ? "Đang tải..." : "📁 Tải lên bản quét"}
+                {uploadingFile ? t('contractdetailmanager.loading') : t('contractdetailmanager.upload_a_scan')}
               </button>
             </div>
             
@@ -409,15 +408,15 @@ export default function ContractDetailManager({ contractId, navigate, addToast }
               {contract.contractFiles.length === 0 ? (
                 <div className="scans-empty">
                   <span className="empty-icon">📂</span>
-                  <p>Chưa có hình ảnh/bản quét hợp đồng đã ký tên.</p>
-                  <p className="empty-sub">Hãy in hợp đồng ra bản cứng, thực hiện ký kết hai bên, quét/chụp ảnh và tải lên đây để lưu trữ.</p>
+                  <p>{t('contractdetailmanager.there_are_no_picturesscans')}</p>
+                  <p className="empty-sub">{t('contractdetailmanager.please_print_the_contract')}</p>
                 </div>
               ) : (
                 <div className="scans-grid">
                   {contract.contractFiles.map((file, idx) => (
                     <div key={file.contractFileId} className="scan-image-card">
-                      <a href={file.fileUrl} target="_blank" rel="noopener noreferrer" title="Mở hình ảnh đầy đủ">
-                        <img src={file.fileUrl} alt={`Bản quét hợp đồng trang ${idx + 1}`} />
+                      <a href={file.fileUrl} target="_blank" rel="noopener noreferrer" title={t('contractdetailmanager.open_the_full_image')}>
+                        <img src={file.fileUrl} alt={t('contractdetailmanager.scan_of_contract_page')} />
                       </a>
                       <span className="scan-image-label">Trang {idx + 1}</span>
                     </div>
@@ -435,7 +434,7 @@ export default function ContractDetailManager({ contractId, navigate, addToast }
         <div className="modal-overlay-custom no-print">
           <div className="modal-container-custom">
             <div className="modal-header-custom">
-              <h3>Gia Hạn Hợp Đồng Thuê</h3>
+              <h3>{t('contractdetailmanager.lease_renewal')}</h3>
               <button className="btn-close-modal" onClick={() => setShowRenewModal(false)}>✕</button>
             </div>
             
@@ -443,7 +442,7 @@ export default function ContractDetailManager({ contractId, navigate, addToast }
               <div className="modal-form-grid">
                 
                 <div className="form-group-custom">
-                  <label>Ngày bắt đầu gia hạn</label>
+                  <label>{t('contractdetailmanager.renewal_start_date')}</label>
                   <input
                     type="date"
                     value={renewData.startDate}
@@ -454,7 +453,7 @@ export default function ContractDetailManager({ contractId, navigate, addToast }
                 </div>
 
                 <div className="form-group-custom">
-                  <label>Ngày kết thúc gia hạn</label>
+                  <label>{t('contractdetailmanager.extension_end_date')}</label>
                   <input
                     type="date"
                     value={renewData.endDate}
@@ -465,7 +464,7 @@ export default function ContractDetailManager({ contractId, navigate, addToast }
                 </div>
 
                 <div className="form-group-custom">
-                  <label>Giá thuê mới / tháng (VND)</label>
+                  <label>{t('contractdetailmanager.new_rental_price_month')}</label>
                   <input
                     type="number"
                     value={renewData.rentFee}
@@ -476,7 +475,7 @@ export default function ContractDetailManager({ contractId, navigate, addToast }
                 </div>
 
                 <div className="form-group-custom">
-                  <label>Tiền đặt cọc mới (VND)</label>
+                  <label>{t('contractdetailmanager.new_deposit_vnd')}</label>
                   <input
                     type="number"
                     value={renewData.deposit}
@@ -495,14 +494,13 @@ export default function ContractDetailManager({ contractId, navigate, addToast }
                   onClick={() => setShowRenewModal(false)}
                   disabled={actionLoading}
                 >
-                  Hủy bỏ
-                </button>
+                  {t('contractdetailmanager.cancel')}</button>
                 <button 
                   type="submit" 
                   className="btn-submit"
                   disabled={actionLoading}
                 >
-                  {actionLoading ? "Đang xử lý..." : "Xác nhận gia hạn"}
+                  {actionLoading ? t('contractdetailmanager.processing') : t('contractdetailmanager.confirm_extension')}
                 </button>
               </div>
             </form>

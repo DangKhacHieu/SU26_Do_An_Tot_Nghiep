@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import './UserFormAdminSystem.css';
 
@@ -95,6 +96,8 @@ const getStrength = (pw) => {
 };
 
 export default function UserFormAdminSystem({ userId, navigate, addToast }) {
+  const { t } = useTranslation();
+
   const isEdit  = !!userId;
   const [roles, setRoles]           = useState([]);
   const [loading, setLoading]       = useState(false);
@@ -181,11 +184,11 @@ export default function UserFormAdminSystem({ userId, navigate, addToast }) {
         body: JSON.stringify(payload),
       });
       if (res.ok) {
-        addToast(isEdit ? 'Cập nhật tài khoản thành công!' : 'Đăng ký tài khoản thành công!', 'success');
+        addToast(isEdit ? t('userformadminsystem.account_updated_successfully') : t('userformadminsystem.account_registration_successful'), 'success');
         navigate('admin-users');
       } else {
         const err = await res.json().catch(() => ({}));
-        addToast(err.detail || err.title || 'Lỗi khi lưu tài khoản, kiểm tra lại dữ liệu.', 'error');
+        addToast(err.detail || err.title || t('userformadminsystem.error_when_saving_account'), 'error');
       }
     } catch { addToast('Không thể kết nối đến máy chủ.', 'error'); }
     finally { setSubmitting(false); }
@@ -199,8 +202,7 @@ export default function UserFormAdminSystem({ userId, navigate, addToast }) {
         <div className="form-card">
           <div className="form-loading">
             <div className="spinner" />
-            Đang tải thông tin tài khoản...
-          </div>
+            {t('userformadminsystem.loading_account_information')}</div>
         </div>
       </div>
     );
@@ -214,16 +216,15 @@ export default function UserFormAdminSystem({ userId, navigate, addToast }) {
           {/* ── Header ── */}
           <div className="form-card-header">
             <div>
-              <h2>{isEdit ? 'Chỉnh sửa tài khoản (Admin)' : 'Đăng ký tài khoản mới (Admin)'}</h2>
+              <h2>{isEdit ? t('userformadminsystem.edit_account_admin') : t('userformadminsystem.register_a_new_account')}</h2>
               <p className="form-card-sub">
                 {isEdit
-                  ? 'Cập nhật thông tin tài khoản thành viên hệ thống.'
-                  : 'Điền đầy đủ thông tin để tạo tài khoản mới.'}
+                  ? t('userformadminsystem.update_system_member_account')
+                  : t('userformadminsystem.fill_in_all_information')}
               </p>
             </div>
             <button type="button" className="btn-secondary" onClick={() => navigate('admin-users')}>
-              <IconArrow /> Quay lại
-            </button>
+              <IconArrow /> {t('userformadminsystem.come_back')}</button>
           </div>
 
           {/* ── Error summary banner ── */}
@@ -232,7 +233,7 @@ export default function UserFormAdminSystem({ userId, navigate, addToast }) {
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
               </svg>
-              <span>Có <strong>{totalErrors} trường</strong> chưa hợp lệ. Vui lòng kiểm tra và sửa trước khi lưu.</span>
+              <span>{t('userformadminsystem.there_are')} <strong>{totalErrors}</strong> {t('userformadminsystem.invalid_fields_please_check')}</span>
             </div>
           )}
 
@@ -241,19 +242,19 @@ export default function UserFormAdminSystem({ userId, navigate, addToast }) {
 
             {/* Section: Thông tin cá nhân */}
             <div className="form-section">
-              <p className="form-section-label">Thông tin cá nhân</p>
+              <p className="form-section-label">{t('userformadminsystem.personal_information')}</p>
 
               <div className="form-row">
                 {/* Họ và tên */}
                 <FormField
-                  label="Họ và tên" required
-                  hint="Tên đầy đủ, không chứa số."
+                  label={t('userformadminsystem.full_name')} required
+                  hint={t('userformadminsystem.full_name_no_numbers')}
                   ok={isFieldOk('name')} err={showErr('name')}
                 >
                   <input
                     type="text"
                     className={`form-control ${isFieldErr('name') ? 'is-error' : isFieldOk('name') ? 'is-ok' : ''}`}
-                    placeholder="Nguyễn Văn A"
+                    placeholder={t('userformadminsystem.nguyen_van_a')}
                     value={form.name}
                     onChange={(e) => set('name', e.target.value)}
                     onBlur={() => setTouched(p => ({ ...p, name: true }))}
@@ -262,8 +263,8 @@ export default function UserFormAdminSystem({ userId, navigate, addToast }) {
 
                 {/* Số CCCD */}
                 <FormField
-                  label="Số CCCD" required
-                  hint="12 chữ số, không chứa chữ cái."
+                  label={t('userformadminsystem.cccd_number')} required
+                  hint={t('userformadminsystem.12_digits_no_letters')}
                   ok={isFieldOk('cccd')} err={showErr('cccd')}
                 >
                   <input
@@ -282,8 +283,8 @@ export default function UserFormAdminSystem({ userId, navigate, addToast }) {
               <div className="form-row">
                 {/* Số điện thoại */}
                 <FormField
-                  label="Số điện thoại" required
-                  hint="10–11 chữ số, đầu số Việt Nam."
+                  label={t('userformadminsystem.phone_number')} required
+                  hint={t('userformadminsystem.1011_digits_vietnamese_prefix')}
                   ok={isFieldOk('phone')} err={showErr('phone')}
                 >
                   <input
@@ -300,8 +301,8 @@ export default function UserFormAdminSystem({ userId, navigate, addToast }) {
 
                 {/* Email */}
                 <FormField
-                  label="Email đăng nhập" required
-                  hint={isEdit ? 'Email không thể thay đổi sau khi tạo.' : 'Dùng để đăng nhập vào hệ thống.'}
+                  label={t('userformadminsystem.login_email')} required
+                  hint={isEdit ? t('userformadminsystem.email_cannot_be_changed') : t('userformadminsystem.used_to_log_into')}
                   ok={!isEdit && isFieldOk('email')} err={!isEdit ? showErr('email') : ''}
                 >
                   <input
@@ -319,13 +320,13 @@ export default function UserFormAdminSystem({ userId, navigate, addToast }) {
 
             {/* Section: Phân quyền & Bảo mật */}
             <div className="form-section">
-              <p className="form-section-label">Phân quyền &amp; Bảo mật</p>
+              <p className="form-section-label">{t('userformadminsystem.decentralization_security')}</p>
 
               <div className="form-row">
                 {/* Vai trò */}
                 <FormField
-                  label="Vai trò hệ thống" required
-                  hint="Xác định tất cả các quyền của tài khoản."
+                  label={t('userformadminsystem.system_role')} required
+                  hint={t('userformadminsystem.determine_all_account_permissions')}
                   ok={isFieldOk('roleId')} err={showErr('roleId')}
                 >
                   <select
@@ -334,22 +335,22 @@ export default function UserFormAdminSystem({ userId, navigate, addToast }) {
                     onChange={(e) => set('roleId', e.target.value)}
                     onBlur={() => setTouched(p => ({ ...p, roleId: true }))}
                   >
-                    <option value="">— Chọn vai trò —</option>
+                    <option value="">{t('userformadminsystem.select_role')}</option>
                     {roles.map(r => <option key={r.roleId} value={r.roleId}>{r.name}</option>)}
                   </select>
                 </FormField>
 
                 {/* Trạng thái (chỉ khi edit) */}
                 {isEdit ? (
-                  <FormField label="Trạng thái hoạt động" hint="Cập nhật trạng thái tài khoản.">
+                  <FormField label={t('userformadminsystem.operating_status')} hint={t('userformadminsystem.update_account_status')}>
                     <select
                       className="form-control"
                       value={form.status}
                       onChange={(e) => set('status', e.target.value)}
                     >
-                      <option value="Active">Active — Đang hoạt động</option>
-                      <option value="Locked">Locked — Đã khóa</option>
-                      <option value="Suspended">Suspended — Tạm ngưng</option>
+                      <option value="Active">{t('userformadminsystem.active_active')}</option>
+                      <option value="Locked">{t('userformadminsystem.locked_locked')}</option>
+                      <option value="Suspended">{t('userformadminsystem.suspended_suspended')}</option>
                     </select>
                   </FormField>
                 ) : <div />}
@@ -358,16 +359,16 @@ export default function UserFormAdminSystem({ userId, navigate, addToast }) {
               {/* Mật khẩu */}
               <div className="form-row-single">
                 <FormField
-                  label={isEdit ? 'Mật khẩu mới (để trống nếu không đổi)' : 'Mật khẩu'}
+                  label={isEdit ? t('userformadminsystem.new_password_leave_blank') : t('userformadminsystem.password')}
                   required={!isEdit}
-                  hint={isEdit ? 'Chỉ điền nếu muốn đổi mật khẩu.' : 'Tối thiểu 6 ký tự. Nên kết hợp chữ, số và ký tự đặc biệt.'}
+                  hint={isEdit ? t('userformadminsystem.only_fill_in_if') : t('userformadminsystem.minimum_6_characters_should')}
                   ok={isFieldOk('password')} err={showErr('password')}
                 >
                   <div className="pw-input-wrap">
                     <input
                       type={showPw ? 'text' : 'password'}
                       className={`form-control pw-input ${isFieldErr('password') ? 'is-error' : isFieldOk('password') ? 'is-ok' : ''}`}
-                      placeholder={isEdit ? 'Nhập mật khẩu mới nếu muốn thay đổi' : 'Tối thiểu 6 ký tự...'}
+                      placeholder={isEdit ? t('userformadminsystem.enter_a_new_password') : t('userformadminsystem.minimum_6_characters')}
                       value={form.password}
                       onChange={(e) => set('password', e.target.value)}
                       onBlur={() => setTouched(p => ({ ...p, password: true }))}
@@ -402,11 +403,10 @@ export default function UserFormAdminSystem({ userId, navigate, addToast }) {
           {/* ── Footer ── */}
           <div className="form-footer">
             <button type="button" className="btn-secondary" onClick={() => navigate('admin-users')}>
-              Hủy bỏ
-            </button>
+              {t('userformadminsystem.cancel')}</button>
             <button type="submit" className="btn-primary btn-admin-accent" disabled={submitting}>
               <IconSave />
-              {submitting ? 'Đang lưu...' : isEdit ? 'Lưu thay đổi' : 'Tạo tài khoản'}
+              {submitting ? t('userformadminsystem.saving') : isEdit ? t('userformadminsystem.save_changes') : t('userformadminsystem.create_an_account')}
             </button>
           </div>
         </div>

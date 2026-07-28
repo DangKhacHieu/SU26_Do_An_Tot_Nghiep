@@ -1,8 +1,11 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect } from 'react';
 import styles from './Viewer.module.css';
 import { getMarketMap } from '../../../../services/marketApi';
 
 const MarketMapViewer = ({ marketId, onBack }) => {
+  const { t } = useTranslation();
+
     const [marketData, setMarketData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [selectedAreaId, setSelectedAreaId] = useState(null);
@@ -22,8 +25,8 @@ const MarketMapViewer = ({ marketId, onBack }) => {
         }
     };
 
-    if (loading) return <div style={{ padding: 40, textAlign: 'center' }}>Đang tải bản đồ...</div>;
-    if (!marketData) return <div style={{ padding: 40, textAlign: 'center' }}>Không tìm thấy dữ liệu bản đồ.</div>;
+    if (loading) return <div style={{ padding: 40, textAlign: 'center' }}>{'Đang tải bản đồ...'}</div>;
+    if (!marketData) return <div style={{ padding: 40, textAlign: 'center' }}>{'Không tìm thấy dữ liệu bản đồ.'}</div>;
 
 
     let viewBox = "0 0 800 600";
@@ -81,12 +84,11 @@ const MarketMapViewer = ({ marketId, onBack }) => {
                 <div>
                     <h1>Bản đồ chi tiết: {marketData.marketName}</h1>
                     <p style={{ color: 'var(--mw-text-muted)', margin: '8px 0 0 0' }}>
-                        📍 {marketData.address || 'Chưa cập nhật địa chỉ'} {marketData.size ? `• Diện tích: ${marketData.size}m²` : ''}
+                        📍 {marketData.address || 'Chưa cập nhật địa chỉ'} {marketData.size ? '• Diện tích: ${marketData.size}m²' : ''}
                     </p>
                 </div>
-                <button className={styles.secondaryBtn} onClick={onBack} aria-label="Quay lại danh sách chợ">
-                    ← Quay lại
-                </button>
+                <button className={styles.secondaryBtn} onClick={onBack} aria-label={'Quay lại danh sách chợ'}>
+                    {'← Quay lại'}</button>
             </header>
             
             <section className={styles.viewerContent}>
@@ -100,7 +102,7 @@ const MarketMapViewer = ({ marketId, onBack }) => {
                                 backgroundImage: 'linear-gradient(#e2e8f0 1px, transparent 1px), linear-gradient(90deg, #e2e8f0 1px, transparent 1px)',
                                 backgroundSize: '40px 40px'
                             }}
-                            aria-label={`Bản đồ trực quan của chợ ${marketData.marketName}`}
+                            aria-label={'Bản đồ trực quan của chợ ${marketData.marketName}'}
                             role="img"
                         >
                         {/* Render Market Polygon */}
@@ -189,36 +191,36 @@ const MarketMapViewer = ({ marketId, onBack }) => {
                     <div className={styles.statGrid}>
                         <div className={styles.statCard}>
                             <div className={styles.statValue}>{totalAreas}</div>
-                            <div className={styles.statLabel}>Khu vực</div>
+                            <div className={styles.statLabel}>{'Khu vực'}</div>
                         </div>
                         <div className={styles.statCard}>
                             <div className={styles.statValue}>{totalStalls}</div>
-                            <div className={styles.statLabel}>Sạp hàng</div>
+                            <div className={styles.statLabel}>{'Sạp hàng'}</div>
                         </div>
                     </div>
 
-                    <div className={styles.legendTitle}>Chú giải bản đồ</div>
+                    <div className={styles.legendTitle}>{'Chú giải bản đồ'}</div>
                     
                     <div className={styles.viewerLegendItem}>
                         <div className={styles.legendBox} style={{ background: 'rgba(5,150,105,.15)', border: '2px solid #059669' }}></div>
                         <div className={styles.legendItemText}>
-                            <strong>Khu vực chợ</strong>
-                            <small>Click để xem sạp bên trong</small>
+                            <strong>{'Khu vực chợ'}</strong>
+                            <small>{'Click để xem sạp bên trong'}</small>
                         </div>
                     </div>
 
                     <div className={styles.viewerLegendItem}>
                         <div className={styles.legendBox} style={{ background: '#3b82f6', border: '2px solid #2563eb', borderRadius: 4 }}></div>
                         <div className={styles.legendItemText}>
-                            <strong>Sạp hàng</strong>
-                            <small>Vị trí gian hàng</small>
+                            <strong>{'Sạp hàng'}</strong>
+                            <small>{'Vị trí gian hàng'}</small>
                         </div>
                     </div>
 
                     {selectedAreaId !== null && (
                         <div className={styles.activeAreaBanner}>
-                            <strong>✓ Đang xem khu vực</strong>
-                            <span>Các sạp trong khu vực này đang được hiển thị trên bản đồ.</span>
+                            <strong>{'✓ Đang xem khu vực'}</strong>
+                            <span>{'Các sạp trong khu vực này đang được hiển thị trên bản đồ.'}</span>
                         </div>
                     )}
                 </aside>

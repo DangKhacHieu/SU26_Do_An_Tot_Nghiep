@@ -1,8 +1,12 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
+import { getAuthHeaders } from '../../utils/authHeaders';
 import readProblemDetail from '../../utils/readProblemDetail';
 import './ReceiveCashModal.css';
 
 export default function ReceiveCashModal({ stallId, stallCode, invoiceId, baseUrl, onClose, onSuccess }) {
+  const { t } = useTranslation();
+
   const [invoice, setInvoice] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -18,20 +22,20 @@ export default function ReceiveCashModal({ stallId, stallCode, invoiceId, baseUr
       setConfirmed(false);
 
       try {
-        const response = await fetch(`${baseUrl}/api/staff/billing/invoices/stall/${stallId}/unpaid`);
+        const response = await fetch(`${baseUrl}/api/staff/billing/invoices/stall/${stallId}/unpaid`, { headers: getAuthHeaders() });
         if (!response.ok) {
-          throw new Error(await readProblemDetail(response, 'Unable to load the selected invoice.'));
+          throw new Error(await readProblemDetail(response, t('receivecashmodal.unable_to_load_the')));
         }
 
         const data = await response.json();
         const currentInvoice = data.find(item => item.invoiceId === invoiceId);
         if (!currentInvoice) {
-          throw new Error('The selected invoice is no longer unpaid or is unavailable.');
+          throw new Error(t('receivecashmodal.the_selected_invoice_is'));
         }
 
         setInvoice(currentInvoice);
       } catch (err) {
-        console.error('Error loading the selected invoice:', err);
+        console.error(t('receivecashmodal.error_loading_the_selected'), err);
         setError(err.message);
       } finally {
         setLoading(false);
@@ -50,21 +54,22 @@ export default function ReceiveCashModal({ stallId, stallCode, invoiceId, baseUr
 
     try {
       const response = await fetch(`${baseUrl}/api/staff/billing/payments/cash`, {
-        method: 'POST',
+        method: t('receivecashmodal.post'),
         headers: {
           'Content-Type': 'application/json',
+          ...getAuthHeaders(),
         },
         body: JSON.stringify({ invoiceId: invoice.invoiceId }),
       });
 
       if (!response.ok) {
-        throw new Error(await readProblemDetail(response, 'Unable to record cash payment.'));
+        throw new Error(await readProblemDetail(response, t('receivecashmodal.unable_to_record_cash')));
       }
 
       const result = await response.json();
       onSuccess(result);
     } catch (err) {
-      console.error('Error recording cash payment:', err);
+      console.error(t('receivecashmodal.error_recording_cash_payment'), err);
       setSubmitError(err.message);
     } finally {
       setSubmitting(false);
@@ -82,15 +87,15 @@ export default function ReceiveCashModal({ stallId, stallCode, invoiceId, baseUr
         <form onSubmit={handleSubmit} className="modal-form">
           {submitError && (
             <div className="error-alert">
-              <strong>Error:</strong> {submitError}
+              <strong>{t('receivecashmodal.error')}</strong> {submitError}
             </div>
           )}
 
           <div className="form-group">
-            <label className="form-label">CURRENT INVOICE TO COLLECT</label>
+            <label className="form-label">{t('receivecashmodal.current_invoice_to_collect')}</label>
 
             {loading ? (
-              <div className="modal-loading-state">Loading invoice...</div>
+              <div className="modal-loading-state">{t('receivecashmodal.loading_invoice')}</div>
             ) : error ? (
               <div className="modal-error-state">
                 <span className="warning-text">Error: {error}</span>
@@ -101,13 +106,13 @@ export default function ReceiveCashModal({ stallId, stallCode, invoiceId, baseUr
                   <div className="invoice-card-details">
                     <div className="invoice-card-header">
                       <span className="invoice-month-year">Invoice Month {invoice.month}/{invoice.year}</span>
-                      <span className="invoice-amount">{invoice.totalAmount.toLocaleString('vi-VN')} VND</span>
+                      <span className="invoice-amount">{invoice.totalAmount.toLocaleString(t('receivecashmodal.vivn'))} VND</span>
                     </div>
                     <div className="invoice-card-body">
-                      <span className="invoice-fee-summary">Fees: {invoice.feeTypeSummary || 'Service Fee'}</span>
+                      <span className="invoice-fee-summary">Fees: {invoice.feeTypeSummary || t('receivecashmodal.service_fee')}</span>
                       {invoice.dueDate && (
                         <span className="invoice-due-date">
-                          Due Date: {new Date(invoice.dueDate).toLocaleDateString('en-US')}
+                          Due Date: {new Date(invoice.dueDate).toLocaleDateString(t('receivecashmodal.enus'))}
                         </span>
                       )}
                     </div>
@@ -115,23 +120,22 @@ export default function ReceiveCashModal({ stallId, stallCode, invoiceId, baseUr
                 </div>
               </div>
             ) : (
-              <div className="modal-empty-state">No invoice is available for collection.</div>
+              <div className="modal-empty-state">{t('receivecashmodal.no_invoice_is_available')}</div>
             )}
           </div>
 
           {invoice && (
             <div className="payment-summary-box">
               <div className="summary-row">
-                <span>Total Amount:</span>
-                <strong className="text-primary">{invoice.totalAmount.toLocaleString('vi-VN')} VND</strong>
+                <span>{t('receivecashmodal.total_amount')}</span>
+                <strong className="text-primary">{invoice.totalAmount.toLocaleString(t('receivecashmodal.vivn'))} VND</strong>
               </div>
               <div className="summary-row font-sm text-muted">
-                <span>Method:</span>
-                <span>Cash (100% debit clearing)</span>
+                <span>{t('receivecashmodal.method')}</span>
+                <span>{t('receivecashmodal.cash_100_debit_clearing')}</span>
               </div>
               <div className="summary-info-alert">
-                The invoice status will be updated to <strong>Pending Confirmation</strong> and the Vendor will be notified.
-              </div>
+                {t('receivecashmodal.the_invoice_status_will')}<strong>{t('receivecashmodal.pending_confirmation')}</strong> {t('receivecashmodal.and_the_vendor_will')}</div>
               <label className="cash-confirmation">
                 <input
                   type="checkbox"
@@ -139,7 +143,7 @@ export default function ReceiveCashModal({ stallId, stallCode, invoiceId, baseUr
                   onChange={(event) => setConfirmed(event.target.checked)}
                   disabled={submitting}
                 />
-                <span>I confirm that I received the full cash amount shown above.</span>
+                <span>{t('receivecashmodal.i_confirm_that_i')}</span>
               </label>
             </div>
           )}
@@ -151,14 +155,13 @@ export default function ReceiveCashModal({ stallId, stallCode, invoiceId, baseUr
               onClick={onClose}
               disabled={submitting}
             >
-              Cancel
-            </button>
+              {t('receivecashmodal.cancel')}</button>
             <button
               type="submit"
               className="btn-primary-dark"
               disabled={submitting || !invoice || !confirmed}
             >
-              {submitting ? 'Recording...' : 'Confirm Collection'}
+              {submitting ? t('receivecashmodal.recording') : t('receivecashmodal.confirm_collection')}
             </button>
           </div>
         </form>

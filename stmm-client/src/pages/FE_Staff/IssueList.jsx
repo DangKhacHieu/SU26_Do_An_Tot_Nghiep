@@ -1,19 +1,22 @@
+import { useTranslation } from 'react-i18next';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getAuthHeaders } from '../../utils/authHeaders';
 import './IssueList.css';
 
 const PAGE_SIZE = 8;
 
-const readProblemDetail = async (response) => {
+const readProblemDetail = async (response, t) => {
   try {
     const problem = await response.json();
-    return problem.detail || problem.title || 'Unable to load issues.';
+    return problem.detail || problem.title || t('issuelist.unable_to_load_issues');
   } catch {
-    return 'Unable to load issues.';
+    return t('issuelist.unable_to_load_issues');
   }
 };
 
 export default function IssueList({ baseUrl, onViewDetails, onOpenCreateModal }) {
+  const { t } = useTranslation();
+
   const [issues, setIssues] = useState([]);
   const [pageNumber, setPageNumber] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
@@ -26,7 +29,7 @@ export default function IssueList({ baseUrl, onViewDetails, onOpenCreateModal })
     setError('');
     try {
       const response = await fetch(`${baseUrl}/api/staff/issues`, { headers: getAuthHeaders() });
-      if (!response.ok) throw new Error(await readProblemDetail(response));
+      if (!response.ok) throw new Error(await readProblemDetail(response, t));
       const data = await response.json();
       setIssues(Array.isArray(data) ? data : []);
     } catch (fetchError) {
@@ -35,7 +38,7 @@ export default function IssueList({ baseUrl, onViewDetails, onOpenCreateModal })
     } finally {
       setLoading(false);
     }
-  }, [baseUrl]);
+  }, [baseUrl, t]);
 
   useEffect(() => { fetchIssues(); }, [fetchIssues]);
 
@@ -76,37 +79,37 @@ export default function IssueList({ baseUrl, onViewDetails, onOpenCreateModal })
           <input
             type="search"
             className="search-input"
-            placeholder="Search issues by ID, title, description, or stall"
+            placeholder={t('issuelist.search_issues_by_id')}
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
           />
-          <button type="submit" className="btn-secondary">Search</button>
+          <button type="submit" className="btn-secondary">{t('issuelist.search')}</button>
           {appliedSearch ? (
-            <button type="button" className="btn-filter-clear" onClick={() => { setSearchQuery(''); setAppliedSearch(''); setPageNumber(1); }}>Clear</button>
+            <button type="button" className="btn-filter-clear" onClick={() => { setSearchQuery(''); setAppliedSearch(''); setPageNumber(1); }}>{t('issuelist.clear')}</button>
           ) : null}
         </form>
         <button type="button" className="btn-primary" onClick={onOpenCreateModal}>+ Report New Issue</button>
       </div>
 
-      {loading ? <div className="loading-state">Loading issues...</div> : null}
-      {!loading && error ? <div className="error-state"><p className="error-message">{error}</p><button className="btn-secondary" onClick={fetchIssues}>Retry</button></div> : null}
-      {!loading && !error && visibleIssues.length === 0 ? <div className="empty-state"><p>No issues found.</p></div> : null}
+      {loading ? <div className="loading-state">{t('issuelist.loading_issues')}</div> : null}
+      {!loading && error ? <div className="error-state"><p className="error-message">{error}</p><button className="btn-secondary" onClick={fetchIssues}>{t('issuelist.retry')}</button></div> : null}
+      {!loading && !error && visibleIssues.length === 0 ? <div className="empty-state"><p>{t('issuelist.no_issues_found')}</p></div> : null}
       {!loading && !error && visibleIssues.length > 0 ? (
         <>
           <div className="table-card">
-            <div className="table-card-header"><span className="table-card-title">Issues</span><span className="table-count-badge">{totalCount} issues</span></div>
+            <div className="table-card-header"><span className="table-card-title">{t('issuelist.issues')}</span><span className="table-count-badge">{totalCount} issues</span></div>
             <div className="table-responsive">
               <table className="staff-table">
-                <thead><tr><th>ID</th><th>Issue</th><th>Location</th><th>Status</th><th>Reported</th><th>Action</th></tr></thead>
+                <thead><tr><th>{t('issuelist.id')}</th><th>{t('issuelist.issue')}</th><th>{t('issuelist.location')}</th><th>{t('issuelist.status')}</th><th>{t('issuelist.reported')}</th><th>{t('issuelist.action')}</th></tr></thead>
                 <tbody>
                   {visibleIssues.map((issue) => (
                     <tr key={issue.issueId}>
                       <td><strong>#{issue.issueId}</strong></td>
                       <td>{issue.title}</td>
-                      <td><span className="badge-stall">{issue.stallCode || 'Unknown stall'}</span></td>
-                      <td><span className={`status-badge ${issue.status?.toLowerCase() || 'reported'}`}>{issue.status || 'Reported'}</span></td>
-                      <td>{issue.createdAt ? new Date(issue.createdAt).toLocaleDateString('en-US') : 'N/A'}</td>
-                      <td><button type="button" className="btn-link" onClick={() => onViewDetails(issue.issueId)}>View Details</button></td>
+                      <td><span className="badge-stall">{issue.stallCode || t('issuelist.unknown_stall')}</span></td>
+                      <td><span className={`status-badge ${issue.status?.toLowerCase() || t('issuelist.reported')}`}>{issue.status || t('issuelist.reported')}</span></td>
+                      <td>{issue.createdAt ? new Date(issue.createdAt).toLocaleDateString(t('issuelist.enus')) : t('issuelist.na')}</td>
+                      <td><button type="button" className="btn-link" onClick={() => onViewDetails(issue.issueId)}>{t('issuelist.view_details')}</button></td>
                     </tr>
                   ))}
                 </tbody>
@@ -117,8 +120,8 @@ export default function IssueList({ baseUrl, onViewDetails, onOpenCreateModal })
             <div className="pagination-wrapper">
               <span className="pagination-info">Page {safePageNumber} of {totalPages}</span>
               <div className="pagination-buttons">
-                <button className="btn-page" onClick={() => setPageNumber((page) => Math.max(1, page - 1))} disabled={safePageNumber === 1}>Prev</button>
-                <button className="btn-page" onClick={() => setPageNumber((page) => Math.min(totalPages, page + 1))} disabled={safePageNumber === totalPages}>Next</button>
+                <button className="btn-page" onClick={() => setPageNumber((page) => Math.max(1, page - 1))} disabled={safePageNumber === 1}>{t('issuelist.prev')}</button>
+                <button className="btn-page" onClick={() => setPageNumber((page) => Math.min(totalPages, page + 1))} disabled={safePageNumber === totalPages}>{t('issuelist.next')}</button>
               </div>
             </div>
           ) : null}

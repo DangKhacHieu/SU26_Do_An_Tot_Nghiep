@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect } from 'react';
 import { 
   TrendingUp, 
@@ -14,6 +15,8 @@ import {
 } from 'lucide-react';
 
 export default function Dashboard() {
+  const { t } = useTranslation();
+
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isMock, setIsMock] = useState(false);
@@ -38,7 +41,7 @@ export default function Dashboard() {
 
     fetch(`http://localhost:5056/api/accountant/dashboard?userId=${userIdStr}`, { headers })
       .then(res => {
-        if (!res.ok) throw new Error('Phản hồi từ API lỗi');
+        if (!res.ok) throw new Error(t('dashboard.response_from_error_api'));
         return res.json();
       })
       .then(json => {
@@ -46,7 +49,7 @@ export default function Dashboard() {
         setLoading(false);
       })
       .catch(err => {
-        console.warn('Lỗi kết nối API Backend, sử dụng dữ liệu mô phỏng:', err);
+        console.warn(t('dashboard.backend_api_connection_error'), err);
         // Fallback to high-quality mock data so the app never crashes and user can still interact
         setTimeout(() => {
           setData(getMockData());
@@ -83,34 +86,34 @@ export default function Dashboard() {
           <tr><td colspan="5" style="border: none;"></td></tr>
           
           <tr>
-            <td colspan="2" class="header">Chỉ số tài chính</td>
-            <td colspan="3" class="header">Giá trị</td>
+            <td colspan="2" class="header">{t('dashboard.financial_index')}</td>
+            <td colspan="3" class="header">{t('dashboard.value')}</td>
           </tr>
           <tr>
-            <td colspan="2">Doanh thu tháng này</td>
+            <td colspan="2">{t('dashboard.revenue_this_month')}</td>
             <td colspan="3" class="number">${data.revenueThisMonth.toLocaleString('vi-VN')} đ</td>
           </tr>
           <tr>
-            <td colspan="2">Hóa đơn định kỳ</td>
+            <td colspan="2">{t('dashboard.recurring_invoices')}</td>
             <td colspan="3" class="number">${data.invoicesPaidCount} / ${data.invoicesTotalCount} (Đã thu / Tổng số)</td>
           </tr>
           <tr>
-            <td colspan="2">Chi phí sự cố & sửa chữa</td>
+            <td colspan="2">{t('dashboard.incident_repair_costs')}</td>
             <td colspan="3" class="number">${data.repairCostThisMonth.toLocaleString('vi-VN')} đ</td>
           </tr>
           <tr>
-            <td colspan="2">Tiền phạt vi phạm</td>
+            <td colspan="2">{t('dashboard.violation_fines')}</td>
             <td colspan="3" class="number">${data.violationFinesThisMonth.toLocaleString('vi-VN')} đ</td>
           </tr>
           <tr><td colspan="5" style="border: none;"></td></tr>
           
           <tr><td colspan="5" class="header">GIAO DỊCH GẦN ĐÂY</td></tr>
           <tr>
-            <td class="header">Mã Giao Dịch</td>
-            <td class="header">Gian Hàng</td>
-            <td class="header">Loại Phí</td>
-            <td class="header">Số Tiền (VND)</td>
-            <td class="header">Trạng Thái</td>
+            <td class="header">{t('dashboard.transaction_code')}</td>
+            <td class="header">{t('dashboard.booth')}</td>
+            <td class="header">{t('dashboard.fee_type')}</td>
+            <td class="header">{t('dashboard.amount_vnd')}</td>
+            <td class="header">{t('dashboard.status')}</td>
           </tr>
           ${data.recentTransactions.map(tx => `
             <tr>
@@ -118,7 +121,7 @@ export default function Dashboard() {
               <td>${tx.stallCode} (${tx.tenantName})</td>
               <td>${tx.type}</td>
               <td class="number">${tx.amount.toLocaleString('vi-VN')}</td>
-              <td>${tx.status === 'Paid' ? 'Đã thanh toán' : (tx.status === 'Pending' ? 'Chờ xử lý' : 'Thất bại')}</td>
+              <td>${tx.status === 'Paid' ? t('dashboard.paid') : (tx.status === 'Pending' ? t('dashboard.waiting_for_processing') : t('dashboard.failure'))}</td>
             </tr>
           `).join('')}
         </table>
@@ -150,11 +153,11 @@ export default function Dashboard() {
     violationFinesChangePercent: '+24.0%',
     isViolationFinesPositive: true,
     recentTransactions: [
-      { transactionId: 'PAY-001', stallCode: 'Kiosk A-12', tenantName: 'Nguyễn Văn A', type: 'Thuê mặt bằng', amount: 12500000, status: 'Paid', date: 'Hôm nay, 14:30' },
-      { transactionId: 'PAY-002', stallCode: 'Kiosk B-05', tenantName: 'Trần Thị B', type: 'Tiền điện nước', amount: 3240000, status: 'Pending', date: 'Hôm nay, 11:15' },
-      { transactionId: 'PAY-003', stallCode: 'Kiosk C-02', tenantName: 'Phạm Văn C', type: 'Sửa chữa điện', amount: 850000, status: 'Paid', date: 'Hôm qua, 17:00' },
-      { transactionId: 'PAY-004', stallCode: 'Kiosk A-10', tenantName: 'Lê Hoàng D', type: 'Phạt vi phạm', amount: 2000000, status: 'Failed', date: '02 Th06, 09:45' },
-      { transactionId: 'PAY-005', stallCode: 'Kiosk E-01', tenantName: 'Hoàng Thị E', type: 'Thuê mặt bằng', amount: 15000000, status: 'Paid', date: '01 Th06, 16:30' },
+      { transactionId: 'PAY-001', stallCode: 'Kiosk A-12', tenantName: t('dashboard.nguyen_van_a'), type: t('dashboard.rent_premises'), amount: 12500000, status: 'Paid', date: t('dashboard.today_1430') },
+      { transactionId: 'PAY-002', stallCode: 'Kiosk B-05', tenantName: t('dashboard.tran_thi_b'), type: t('dashboard.electricity_and_water_bills'), amount: 3240000, status: 'Pending', date: t('dashboard.today_1115') },
+      { transactionId: 'PAY-003', stallCode: 'Kiosk C-02', tenantName: t('dashboard.pham_van_c'), type: t('dashboard.electrical_repair'), amount: 850000, status: 'Paid', date: t('dashboard.yesterday_500_pm') },
+      { transactionId: 'PAY-004', stallCode: 'Kiosk A-10', tenantName: t('dashboard.le_hoang_d'), type: t('dashboard.penalties_for_violations'), amount: 2000000, status: 'Failed', date: '02 Th06, 09:45' },
+      { transactionId: 'PAY-005', stallCode: 'Kiosk E-01', tenantName: t('dashboard.hoang_thi_e'), type: t('dashboard.rent_premises'), amount: 15000000, status: 'Paid', date: '01 Th06, 16:30' },
     ],
     monthlyRevenueChart: [
       { label: 'Th.1', value: '65%', amount: 310000000 },
@@ -170,7 +173,7 @@ export default function Dashboard() {
     return (
       <div className="loading-container">
         <div className="loading-spinner" />
-        <span className="loading-text">Đang kết nối cơ sở dữ liệu và tải báo cáo tài chính...</span>
+        <span className="loading-text">{t('dashboard.connecting_to_the_database')}</span>
       </div>
     );
   }
@@ -183,54 +186,54 @@ export default function Dashboard() {
   };
 
   const getStatusLabel = (status) => {
-    if (status === 'Paid') return 'Đã thanh toán';
-    if (status === 'Pending') return 'Chờ xử lý';
-    if (status === 'Pending Confirmation') return 'Chờ xác nhận';
-    if (status === 'Failed') return 'Thất bại';
-    if (status === 'Overdue') return 'Quá hạn';
+    if (status === 'Paid') return t('dashboard.paid');
+    if (status === 'Pending') return t('dashboard.waiting_for_processing');
+    if (status === 'Pending Confirmation') return t('dashboard.wait_for_confirmation');
+    if (status === 'Failed') return t('dashboard.failure');
+    if (status === 'Overdue') return t('dashboard.overdue');
     return status;
   };
 
   const stats = [
     {
-      title: 'Doanh thu tháng này',
+      title: t('dashboard.revenue_this_month'),
       value: data.revenueThisMonth.toLocaleString('vi-VN') + ' ₫',
       change: data.revenueChangePercent,
       isPositive: data.isRevenuePositive,
       icon: DollarSign,
       iconBg: 'var(--primary-light)',
       iconColor: 'var(--primary)',
-      desc: 'Tổng thực thu'
+      desc: t('dashboard.total_revenue')
     },
     {
-      title: 'Hóa đơn định kỳ',
+      title: t('dashboard.recurring_invoices'),
       value: `${data.invoicesPaidCount} / ${data.invoicesTotalCount}`,
       change: data.invoicesChangePercent,
       isPositive: true,
       icon: Receipt,
       iconBg: 'var(--info-light)',
       iconColor: 'var(--info)',
-      desc: `Hoàn thành ${data.invoicesTotalCount > 0 ? Math.round((data.invoicesPaidCount / data.invoicesTotalCount) * 100) : 0}%`
+      desc: t('dashboard.completed_percentage', { percent: data.invoicesTotalCount > 0 ? Math.round((data.invoicesPaidCount / data.invoicesTotalCount) * 100) : 0 })
     },
     {
-      title: 'Sự cố & Sửa chữa',
+      title: t('dashboard.problems_repairs'),
       value: data.repairCostThisMonth.toLocaleString('vi-VN') + ' ₫',
       change: data.repairCostChangePercent,
       isPositive: data.isRepairCostPositive,
       icon: Wrench,
       iconBg: 'var(--warning-light)',
       iconColor: 'var(--warning)',
-      desc: 'Chi phí bảo trì phát sinh'
+      desc: t('dashboard.maintenance_costs_arise')
     },
     {
-      title: 'Tiền phạt vi phạm',
+      title: t('dashboard.violation_fines'),
       value: data.violationFinesThisMonth.toLocaleString('vi-VN') + ' ₫',
       change: data.violationFinesChangePercent,
       isPositive: data.isViolationFinesPositive,
       icon: FileWarning,
       iconBg: 'var(--danger-light)',
       iconColor: 'var(--danger)',
-      desc: 'Phạt vi phạm hợp đồng'
+      desc: t('dashboard.penalty_for_breach_of')
     },
   ];
 
@@ -240,14 +243,13 @@ export default function Dashboard() {
       {/* Page Header */}
       <div className="page-header">
         <div>
-          <h1 className="page-title">Dashboard &amp; Báo cáo</h1>
+          <h1 className="page-title">{t('dashboard.dashboards_reports')}</h1>
           <p className="page-subtitle">
-            Dữ liệu thống kê doanh thu và hoạt động tài chính cập nhật từ cơ sở dữ liệu.
-          </p>
+            {t('dashboard.statistical_data_on_revenue')}</p>
         </div>
         <div className="page-actions">
           <button className="btn btn-primary" onClick={handleExportExcel}>
-            <span>Xuất Báo Cáo</span>
+            <span>{t('dashboard.xut_bo_co')}</span>
             <ArrowUpRight size={15} />
           </button>
         </div>
@@ -258,9 +260,8 @@ export default function Dashboard() {
         <div className="alert alert-warning">
           <AlertTriangle size={17} className="alert-icon" />
           <span>
-            <strong>Lưu ý kết nối:</strong> Không thể kết nối tới Backend tại{' '}
-            <code>http://localhost:5056</code> (Kiểm tra xem Backend đã khởi chạy chưa). Hệ thống đang
-            hiển thị dữ liệu giả định chất lượng cao để hiển thị giao diện.
+            <strong>{t('dashboard.backend_connection_failed')}</strong>{' '}
+            <code>http://localhost:5056</code>. {t('dashboard.using_mock_data')}
           </span>
         </div>
       )}
@@ -310,14 +311,12 @@ export default function Dashboard() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <h3 style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-title)', letterSpacing: '-0.02em' }}>
-                Xu Hướng Doanh Thu 6 Tháng
-              </h3>
+                {t('dashboard.6month_revenue_trend')}</h3>
               <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                Tổng thực thu từng tháng (triệu đồng)
-              </p>
+                {t('dashboard.total_revenue_each_month')}</p>
             </div>
             <select className="filter-select" style={{ width: 'auto' }}>
-              <option>6 tháng gần nhất</option>
+              <option>{t('dashboard.the_most_recent_6')}</option>
             </select>
           </div>
 
@@ -404,8 +403,7 @@ export default function Dashboard() {
         <div className="card-padded" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h3 style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-title)', letterSpacing: '-0.02em' }}>
-              Giao Dịch Gần Đây
-            </h3>
+              {t('dashboard.recent_transactions')}</h3>
             <span className="badge badge-primary">{data.recentTransactions?.length || 0} giao dịch</span>
           </div>
 
@@ -460,8 +458,8 @@ export default function Dashboard() {
                 <div className="empty-state-icon">
                   <Receipt size={24} />
                 </div>
-                <p className="empty-state-title">Chưa có giao dịch</p>
-                <p className="empty-state-desc">Chưa có lịch sử giao dịch thanh toán nào được thực hiện.</p>
+                <p className="empty-state-title">{t('dashboard.no_transactions_yet')}</p>
+                <p className="empty-state-desc">{t('dashboard.cha_c_lch_s')}</p>
               </div>
             )}
           </div>

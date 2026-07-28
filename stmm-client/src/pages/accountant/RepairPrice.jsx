@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect } from 'react';
 import {
   Plus, Search, Edit3, Trash2, AlertTriangle,
@@ -7,8 +8,8 @@ import {
 
 const getCategoryBadge = (name) => {
   const n = name.toLowerCase();
-  if (n.includes('điện') || n.includes('bóng đèn') || n.includes('led') || n.includes('ổ cắm')) return { cls: 'badge badge-warning', label: 'Điện' };
-  if (n.includes('nước') || n.includes('vòi') || n.includes('ống') || n.includes('thoát')) return { cls: 'badge badge-info', label: 'Nước' };
+  if (n.includes('Điện') || n.includes('bóng đèn') || n.includes('led') || n.includes('ổ cắm')) return { cls: 'badge badge-warning', label: 'Điện' };
+  if (n.includes('Nước') || n.includes('vòi') || n.includes('ống') || n.includes('thoát')) return { cls: 'badge badge-info', label: 'Nước' };
   return { cls: 'badge badge-neutral', label: 'Xây dựng' };
 };
 
@@ -19,6 +20,8 @@ const formatDate = (d) => {
 };
 
 export default function RepairPrice() {
+  const { t } = useTranslation();
+
   const [activeTab, setActiveTab] = useState('prices');
   const [searchTerm, setSearchTerm] = useState('');
   const [repairItems, setRepairItems] = useState([]);
@@ -29,7 +32,7 @@ export default function RepairPrice() {
 
   const [activeModal, setActiveModal] = useState(null);
   const [selectedItem, setSelectedItem] = useState(null);
-  const [formState, setFormState] = useState({ itemName: '', unit: 'Cái', price: 0, description: '', isActive: true });
+  const [formState, setFormState] = useState({ itemName: '', unit: t('repairprice.female'), price: 0, description: '', isActive: true });
   const [modalError, setModalError] = useState(null);
 
   const [pricesPage, setPricesPage] = useState(1);
@@ -65,17 +68,17 @@ export default function RepairPrice() {
   useEffect(() => { loadData(); }, []);
 
   const getMockPrices = () => [
-    { repairPriceId: 1, itemName: 'Thay thế bóng đèn LED 1.2m', unit: 'Cái', price: 150000, description: 'Đã bao gồm bóng đèn và công thay thế của thợ kỹ thuật.', isActive: true, usageCount: 15 },
-    { repairPriceId: 2, itemName: 'Sửa chữa vòi nước rò rỉ', unit: 'Lần', price: 80000, description: 'Chưa bao gồm vật tư phụ nếu phải thay thế đường ống lớn.', isActive: true, usageCount: 8 },
-    { repairPriceId: 3, itemName: 'Lắp đặt lại ổ cắm điện âm tường', unit: 'Cái', price: 120000, description: 'Bao gồm ổ cắm tiêu chuẩn Panasonic.', isActive: true, usageCount: 4 },
-    { repairPriceId: 4, itemName: 'Sửa ổ khóa cửa kính thủy lực', unit: 'Cái', price: 350000, description: 'Bảo hành sửa chữa trong vòng 3 tháng.', isActive: true, usageCount: 1 },
-    { repairPriceId: 5, itemName: 'Thông tắc đường ống thoát nước thải', unit: 'Mét', price: 100000, description: 'Tính theo mét dài thực tế thi công.', isActive: false, usageCount: 0 },
+    { repairPriceId: 1, itemName: t('repairprice.replace_12m_led_bulb'), unit: t('repairprice.female'), price: 150000, description: t('repairprice.includes_light_bulbs_and'), isActive: true, usageCount: 15 },
+    { repairPriceId: 2, itemName: t('repairprice.repair_leaking_faucets'), unit: t('repairprice.time'), price: 80000, description: t('repairprice.additional_materials_are_not'), isActive: true, usageCount: 8 },
+    { repairPriceId: 3, itemName: t('repairprice.reinstall_the_wall_electrical'), unit: t('repairprice.female'), price: 120000, description: t('repairprice.includes_panasonic_standard_socket'), isActive: true, usageCount: 4 },
+    { repairPriceId: 4, itemName: t('repairprice.repair_hydraulic_glass_door'), unit: t('repairprice.female'), price: 350000, description: t('repairprice.repair_warranty_within_3'), isActive: true, usageCount: 1 },
+    { repairPriceId: 5, itemName: t('repairprice.unclogging_wastewater_pipes'), unit: t('repairprice.meter'), price: 100000, description: t('repairprice.calculated_according_to_actual'), isActive: false, usageCount: 0 },
   ];
 
   const getMockUsedTools = () => [
-    { id: 101, taskId: 12, taskTitle: 'Sửa đường điện Kiosk A-10', assignedToStaff: 'Nguyễn Văn Hùng (Kỹ thuật)', repairPriceId: 1, itemName: 'Thay thế bóng đèn LED 1.2m', quantity: 2, unit: 'Cái', unitPrice: 150000, amount: 300000, usedDate: '2026-06-03T10:30:00Z' },
-    { id: 102, taskId: 15, taskTitle: 'Khắc phục rò rỉ nước Kiosk B-02', assignedToStaff: 'Trần Minh Hải (Kỹ thuật)', repairPriceId: 2, itemName: 'Sửa chữa vòi nước rò rỉ', quantity: 1, unit: 'Lần', unitPrice: 80000, amount: 80000, usedDate: '2026-06-02T14:15:00Z' },
-    { id: 103, taskId: 12, taskTitle: 'Sửa đường điện Kiosk A-10', assignedToStaff: 'Nguyễn Văn Hùng (Kỹ thuật)', repairPriceId: 3, itemName: 'Lắp đặt lại ổ cắm điện âm tường', quantity: 1, unit: 'Cái', unitPrice: 120000, amount: 120000, usedDate: '2026-06-03T10:30:00Z' },
+    { id: 101, taskId: 12, taskTitle: t('repairprice.repair_power_lines_kiosk'), assignedToStaff: t('repairprice.nguyen_van_hung_engineering'), repairPriceId: 1, itemName: t('repairprice.replace_12m_led_bulb'), quantity: 2, unit: t('repairprice.female'), unitPrice: 150000, amount: 300000, usedDate: '2026-06-03T10:30:00Z' },
+    { id: 102, taskId: 15, taskTitle: t('repairprice.fix_water_leak_kiosk'), assignedToStaff: t('repairprice.tran_minh_hai_engineering'), repairPriceId: 2, itemName: t('repairprice.repair_leaking_faucets'), quantity: 1, unit: t('repairprice.time'), unitPrice: 80000, amount: 80000, usedDate: '2026-06-02T14:15:00Z' },
+    { id: 103, taskId: 12, taskTitle: t('repairprice.repair_power_lines_kiosk'), assignedToStaff: t('repairprice.nguyen_van_hung_engineering'), repairPriceId: 3, itemName: t('repairprice.reinstall_the_wall_electrical'), quantity: 1, unit: t('repairprice.female'), unitPrice: 120000, amount: 120000, usedDate: '2026-06-03T10:30:00Z' },
   ];
 
   const filteredPrices = repairItems.filter(i => i.itemName.toLowerCase().includes(searchTerm.toLowerCase()) || (i.description || '').toLowerCase().includes(searchTerm.toLowerCase()));
@@ -88,7 +91,7 @@ export default function RepairPrice() {
     if (isMock) {
       if (isEdit) setRepairItems(p => p.map(i => i.repairPriceId === selectedItem.repairPriceId ? { ...i, ...formState } : i));
       else setRepairItems(p => [...p, { repairPriceId: Math.floor(Math.random() * 1000) + 10, ...formState, usageCount: 0 }]);
-      showNotification('success', `${isEdit ? 'Cập nhật' : 'Thêm'} hạng mục thành công!`);
+      showNotification('success', `${isEdit ? t('repairprice.update') : t('repairprice.more')} hạng mục thành công!`);
       setActiveModal(null);
     } else {
       setModalError(null);
@@ -96,9 +99,9 @@ export default function RepairPrice() {
         .then(async r => { 
           if (!r.ok) {
             const errData = await r.json().catch(() => ({}));
-            throw new Error(errData.detail || errData.title || 'Thao tác thất bại.');
+            throw new Error(errData.detail || errData.title || t('repairprice.operation_failed'));
           } 
-          showNotification('success', `${isEdit ? 'Cập nhật' : 'Thêm'} hạng mục thành công!`); 
+          showNotification('success', `${isEdit ? t('repairprice.update') : t('repairprice.more')} hạng mục thành công!`); 
           setActiveModal(null); 
           loadData(); 
         })
@@ -112,7 +115,7 @@ export default function RepairPrice() {
         setModalError(`Không thể xóa hạng mục '${selectedItem.itemName}' vì đã được sử dụng trong các lịch sử sửa chữa.`);
       } else {
         setRepairItems(p => p.filter(i => i.repairPriceId !== selectedItem.repairPriceId));
-        showNotification('success', 'Đã xóa hạng mục sửa chữa!');
+        showNotification('success', t('repairprice.repair_category_removed'));
         setActiveModal(null);
       }
     } else {
@@ -121,9 +124,9 @@ export default function RepairPrice() {
         .then(async r => { 
           if (!r.ok) {
             const errData = await r.json().catch(() => ({}));
-            throw new Error(errData.detail || errData.title || 'Không thể xóa hạng mục.');
+            throw new Error(errData.detail || errData.title || t('repairprice.item_cannot_be_deleted'));
           } 
-          showNotification('success', 'Xóa thành công!'); 
+          showNotification('success', t('repairprice.deleted_successfully')); 
           setActiveModal(null); 
           loadData(); 
         })
@@ -136,14 +139,13 @@ export default function RepairPrice() {
       {/* Header */}
       <div className="page-header">
         <div>
-          <h1 className="page-title">Bảng Giá Sửa Chữa</h1>
-          <p className="page-subtitle">Thiết lập đơn giá sửa chữa kỹ thuật và xem nhật ký vật tư đã cấp phát.</p>
+          <h1 className="page-title">{t('repairprice.repair_price_list')}</h1>
+          <p className="page-subtitle">{t('repairprice.set_technical_repair_unit')}</p>
         </div>
         <div className="page-actions">
           {activeTab === 'prices' && (
-            <button className="btn btn-primary" onClick={() => { setSelectedItem(null); setFormState({ itemName: '', unit: 'Cái', price: 0, description: '', isActive: true }); setModalError(null); setActiveModal('add'); }}>
-              <Plus size={15} /> Thêm hạng mục
-            </button>
+            <button className="btn btn-primary" onClick={() => { setSelectedItem(null); setFormState({ itemName: '', unit: t('repairprice.female'), price: 0, description: '', isActive: true }); setModalError(null); setActiveModal('add'); }}>
+              <Plus size={15} /> {t('repairprice.add_categories')}</button>
           )}
         </div>
       </div>
@@ -161,7 +163,7 @@ export default function RepairPrice() {
       {isMock && (
         <div className="alert alert-warning">
           <AlertTriangle size={16} className="alert-icon" />
-          <span><strong>Chế độ mô phỏng:</strong> Đang hiển thị dữ liệu mô phỏng.</span>
+          <span><strong>{t('repairprice.simulation_mode')}</strong> {t('repairprice.showing_simulation_data')}</span>
         </div>
       )}
 
@@ -171,7 +173,7 @@ export default function RepairPrice() {
           <div className="search-wrapper" style={{ flex: '1 1 220px' }}>
             <Search size={14} className="search-icon-inner" />
             <input type="text" className="search-input" style={{ width: '100%' }}
-              placeholder="Tìm tên vật tư, hạng mục..."
+              placeholder={t('repairprice.find_names_of_materials')}
               value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
           </div>
           <span className="badge badge-neutral">{activeTab === 'prices' ? filteredPrices.length : filteredUsed.length} kết quả</span>
@@ -180,7 +182,7 @@ export default function RepairPrice() {
 
       {/* Tabs */}
       <div className="tab-bar">
-        {[{ id: 'prices', label: 'Danh mục Đơn giá', icon: Wrench }, { id: 'history', label: 'Vật tư Đã dùng', icon: History }].map(tab => {
+        {[{ id: 'prices', label: t('repairprice.list_of_unit_prices'), icon: Wrench }, { id: 'history', label: t('repairprice.supplies_used'), icon: History }].map(tab => {
           const Icon = tab.icon;
           return (
             <button key={tab.id} className={`tab-btn ${activeTab === tab.id ? 'active' : ''}`} onClick={() => setActiveTab(tab.id)}>
@@ -193,7 +195,7 @@ export default function RepairPrice() {
       {loading ? (
         <div className="loading-container">
           <div className="loading-spinner" />
-          <p className="loading-text">Đang tải dữ liệu sửa chữa...</p>
+          <p className="loading-text">{t('repairprice.loading_repair_data')}</p>
         </div>
       ) : (
         <>
@@ -203,14 +205,14 @@ export default function RepairPrice() {
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th>Tên Vật tư / Hạng mục</th>
-                    <th>Danh mục</th>
-                    <th>Đơn vị</th>
-                    <th className="text-right">Đơn giá</th>
-                    <th>Số lần dùng</th>
-                    <th>Mô tả</th>
-                    <th>Trạng thái</th>
-                    <th className="text-right">Thao tác</th>
+                    <th>{t('repairprice.name_of_material_item')}</th>
+                    <th>{t('repairprice.category')}</th>
+                    <th>{t('repairprice.unit')}</th>
+                    <th className="text-right">{t('repairprice.unit_price')}</th>
+                    <th>{t('repairprice.number_of_uses')}</th>
+                    <th>{t('repairprice.describe')}</th>
+                    <th>{t('repairprice.status')}</th>
+                    <th className="text-right">{t('repairprice.operation')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -226,15 +228,15 @@ export default function RepairPrice() {
                         <td><span style={{ color: 'var(--text-muted)', fontSize: 13 }}>{item.description || '—'}</span></td>
                         <td>
                           <span className={item.isActive ? 'badge badge-success' : 'badge badge-neutral'}>
-                            {item.isActive ? 'Hoạt động' : 'Ngừng'}
+                            {item.isActive ? t('repairprice.work') : t('repairprice.stop')}
                           </span>
                         </td>
                         <td className="text-right">
                           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
-                            <button className="btn btn-ghost btn-sm btn-icon" title="Cập nhật" onClick={() => { setSelectedItem(item); setFormState({ itemName: item.itemName, unit: item.unit, price: item.price, description: item.description || '', isActive: item.isActive }); setActiveModal('edit'); }}>
+                            <button className="btn btn-ghost btn-sm btn-icon" title={t('repairprice.update')} onClick={() => { setSelectedItem(item); setFormState({ itemName: item.itemName, unit: item.unit, price: item.price, description: item.description || '', isActive: item.isActive }); setActiveModal('edit'); }}>
                               <Edit3 size={14} />
                             </button>
-                            <button className="btn btn-ghost btn-sm btn-icon" title="Xóa" style={{ color: 'var(--danger)' }} onClick={() => { setSelectedItem(item); setActiveModal('delete'); }}>
+                            <button className="btn btn-ghost btn-sm btn-icon" title={t('repairprice.erase')} style={{ color: 'var(--danger)' }} onClick={() => { setSelectedItem(item); setActiveModal('delete'); }}>
                               <Trash2 size={14} />
                             </button>
                           </div>
@@ -242,7 +244,7 @@ export default function RepairPrice() {
                       </tr>
                     );
                   }) : (
-                    <tr><td colSpan={8}><div className="empty-state"><div className="empty-state-icon"><Wrench size={24} /></div><p className="empty-state-title">Chưa có hạng mục nào</p></div></td></tr>
+                    <tr><td colSpan={8}><div className="empty-state"><div className="empty-state-icon"><Wrench size={24} /></div><p className="empty-state-title">{t('repairprice.there_are_no_categories')}</p></div></td></tr>
                   )}
                 </tbody>
               </table>
@@ -257,8 +259,7 @@ export default function RepairPrice() {
                       onClick={() => setPricesPage(prev => Math.max(prev - 1, 1))} 
                       disabled={pricesPage === 1}
                     >
-                      Trước
-                    </button>
+                      {t('repairprice.before')}</button>
                     {Array.from({ length: Math.ceil(filteredPrices.length / itemsPerPage) }, (_, i) => i + 1).map(page => (
                       <button 
                         key={page} 
@@ -287,14 +288,14 @@ export default function RepairPrice() {
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th>Mã phiếu</th>
-                    <th>Công việc sửa chữa</th>
-                    <th>Nhân viên kỹ thuật</th>
-                    <th>Vật tư sử dụng</th>
-                    <th className="text-right">Số lượng</th>
-                    <th className="text-right">Đơn giá</th>
-                    <th className="text-right">Thành tiền</th>
-                    <th>Thời gian</th>
+                    <th>{t('repairprice.coupon_code')}</th>
+                    <th>{t('repairprice.repair_work')}</th>
+                    <th>{t('repairprice.technical_staff')}</th>
+                    <th>{t('repairprice.materials_used')}</th>
+                    <th className="text-right">{t('repairprice.quantity')}</th>
+                    <th className="text-right">{t('repairprice.unit_price')}</th>
+                    <th className="text-right">{t('repairprice.make_money')}</th>
+                    <th>{t('repairprice.time')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -310,7 +311,7 @@ export default function RepairPrice() {
                       <td><span style={{ color: 'var(--text-muted)', fontSize: 12 }}>{formatDate(tool.usedDate)}</span></td>
                     </tr>
                   )) : (
-                    <tr><td colSpan={8}><div className="empty-state"><div className="empty-state-icon"><History size={24} /></div><p className="empty-state-title">Chưa có nhật ký vật tư</p></div></td></tr>
+                    <tr><td colSpan={8}><div className="empty-state"><div className="empty-state-icon"><History size={24} /></div><p className="empty-state-title">{t('repairprice.there_is_no_material')}</p></div></td></tr>
                   )}
                 </tbody>
               </table>
@@ -325,8 +326,7 @@ export default function RepairPrice() {
                       onClick={() => setUsedPage(prev => Math.max(prev - 1, 1))} 
                       disabled={usedPage === 1}
                     >
-                      Trước
-                    </button>
+                      {t('repairprice.before')}</button>
                     {Array.from({ length: Math.ceil(filteredUsed.length / itemsPerPage) }, (_, i) => i + 1).map(page => (
                       <button 
                         key={page} 
@@ -356,7 +356,7 @@ export default function RepairPrice() {
         <div className="modal-overlay" onClick={() => setActiveModal(null)}>
           <div className="modal-container" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <span className="modal-title">{activeModal === 'edit' ? 'Chỉnh sửa' : 'Thêm'} Hạng mục Sửa chữa</span>
+              <span className="modal-title">{activeModal === 'edit' ? t('repairprice.edit') : t('repairprice.more')} Hạng mục Sửa chữa</span>
               <button className="modal-close-btn" onClick={() => setActiveModal(null)}><X size={16} /></button>
             </div>
             <form onSubmit={handleSubmit}>
@@ -368,38 +368,38 @@ export default function RepairPrice() {
                   </div>
                 )}
                 <div>
-                  <label className="form-label">Tên vật tư / Hạng mục</label>
+                  <label className="form-label">{t('repairprice.material_name_item')}</label>
                   <input type="text" className="form-input" required maxLength={100}
-                    placeholder="Ví dụ: Thay thế bóng đèn LED 1.2m..."
+                    placeholder={t('repairprice.v_d_thay_th')}
                     value={formState.itemName} onChange={e => setFormState({ ...formState, itemName: e.target.value })} />
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                   <div>
-                    <label className="form-label">Đơn vị tính</label>
+                    <label className="form-label">{t('repairprice.n_v_tnh')}</label>
                     <select className="form-select" value={formState.unit} onChange={e => setFormState({ ...formState, unit: e.target.value })}>
-                      {['Cái', 'Lần', 'Mét', 'Kg', 'Bộ', 'Thùng', 'm²'].map(u => <option key={u} value={u}>{u}</option>)}
+                      {[t('repairprice.female'), t('repairprice.time'), t('repairprice.meter'), 'Kg', t('repairprice.set'), t('repairprice.bin'), 'm²'].map(u => <option key={u} value={u}>{u}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label className="form-label">Đơn giá (VNĐ)</label>
+                    <label className="form-label">{t('repairprice.unit_price_vnd')}</label>
                     <input type="number" className="form-input" required min={0}
                       value={formState.price} onChange={e => setFormState({ ...formState, price: parseFloat(e.target.value) || 0 })} />
                   </div>
                 </div>
                 <div>
-                  <label className="form-label">Mô tả chi tiết</label>
+                  <label className="form-label">{t('repairprice.detailed_description')}</label>
                   <textarea className="form-textarea" rows={3} maxLength={500}
-                    placeholder="Ghi chú về phạm vi bao gồm, điều kiện bảo hành..."
+                    placeholder={t('repairprice.notes_on_coverage_warranty')}
                     value={formState.description} onChange={e => setFormState({ ...formState, description: e.target.value })} />
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <input type="checkbox" id="isActive-check" checked={formState.isActive} onChange={e => setFormState({ ...formState, isActive: e.target.checked })} />
-                  <label htmlFor="isActive-check" style={{ fontSize: 13.5, fontWeight: 500, cursor: 'pointer' }}>Đang áp dụng</label>
+                  <label htmlFor="isActive-check" style={{ fontSize: 13.5, fontWeight: 500, cursor: 'pointer' }}>{t('repairprice.applying')}</label>
                 </div>
               </div>
               <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={() => setActiveModal(null)}>Hủy</button>
-                <button type="submit" className="btn btn-primary">Lưu thay đổi</button>
+                <button type="button" className="btn btn-secondary" onClick={() => setActiveModal(null)}>{t('repairprice.cancel')}</button>
+                <button type="submit" className="btn btn-primary">{t('repairprice.save_changes')}</button>
               </div>
             </form>
           </div>
@@ -411,7 +411,7 @@ export default function RepairPrice() {
         <div className="modal-overlay" onClick={() => setActiveModal(null)}>
           <div className="modal-container modal-container-sm" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <span className="modal-title">Xác nhận xóa</span>
+              <span className="modal-title">{t('repairprice.confirm_deletion')}</span>
               <button className="modal-close-btn" onClick={() => setActiveModal(null)}><X size={16} /></button>
             </div>
             <div className="modal-body">
@@ -424,16 +424,16 @@ export default function RepairPrice() {
               <div className="alert alert-warning">
                 <AlertTriangle size={16} className="alert-icon" />
                 <div>
-                  <p>Bạn sắp xóa hạng mục <strong>"{selectedItem.itemName}"</strong>.</p>
+                  <p>{t('repairprice.you_are_about_to')}<strong>"{selectedItem.itemName}"</strong>.</p>
                   {selectedItem.usageCount > 0 && (
-                    <p style={{ marginTop: 6, fontSize: 13, color: 'var(--color-danger)' }}><strong>Cảnh báo:</strong> Hạng mục này đã được sử dụng <strong>{selectedItem.usageCount} lần</strong>. Không thể xóa.</p>
+                    <p style={{ marginTop: 6, fontSize: 13, color: 'var(--color-danger)' }}><strong>{t('repairprice.warning')}</strong> {t('repairprice.category_used_in')} <strong>{selectedItem.usageCount}</strong> {t('repairprice.tasks_cannot_be_deleted')}</p>
                   )}
                 </div>
               </div>
             </div>
             <div className="modal-footer">
-              <button className="btn btn-secondary" onClick={() => setActiveModal(null)}>Hủy</button>
-              <button className="btn btn-danger" onClick={handleDelete} disabled={selectedItem.usageCount > 0}>Xác nhận xóa</button>
+              <button className="btn btn-secondary" onClick={() => setActiveModal(null)}>{t('repairprice.cancel')}</button>
+              <button className="btn btn-danger" onClick={handleDelete} disabled={selectedItem.usageCount > 0}>{t('repairprice.confirm_deletion')}</button>
             </div>
           </div>
         </div>

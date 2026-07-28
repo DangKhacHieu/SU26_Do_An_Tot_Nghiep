@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect } from 'react';
 import styles from './MarketAreaForm.module.css';
 import { getAllCategories } from '../api/categoryApi';
@@ -16,6 +17,7 @@ const MarketAreaForm = ({
   cWidth,
   cHeight
 }) => {
+  const { t } = useTranslation();
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -105,6 +107,7 @@ const MarketAreaForm = ({
   }, [marketSize, existingAreas, initialData]);
 
   const handleChange = (e) => {
+
     const { name, value } = e.target;
     setFormData(prev => {
         const newData = { ...prev, [name]: value };
@@ -153,7 +156,7 @@ const MarketAreaForm = ({
     }
 
     if (formData.size && parseFloat(formData.size) > maxAllowedAreaSize) {
-        setError(`Diện tích khu vực (${formData.size} m²) vượt quá diện tích còn trống của chợ (còn lại khoảng ${Math.round(maxAllowedAreaSize * 100) / 100} m²).`);
+        setError('Diện tích khu vực (${formData.size} m²) vượt quá diện tích còn trống của chợ (còn lại khoảng ${Math.round(maxAllowedAreaSize * 100) / 100} m²).');
         return;
     }
 
@@ -203,7 +206,7 @@ const MarketAreaForm = ({
               name="name"
               value={formData.name}
               onChange={handleChange}
-              placeholder="VD: Khu A, Khu Ẩm Thực..." 
+              placeholder={'VD: Khu A, Khu Ẩm Thực...'} 
             />
           </div>
 
@@ -214,7 +217,7 @@ const MarketAreaForm = ({
               name="description"
               value={formData.description}
               onChange={handleChange}
-              placeholder="Nhập mô tả ngắn gọn..."></textarea>
+              placeholder={'Nhập mô tả ngắn gọn...'}></textarea>
           </div>
 
           <div className={styles.formGroup}>
@@ -275,7 +278,7 @@ const MarketAreaForm = ({
                     {formData.svgPath ? 'Sửa Hình Dáng' : 'Vẽ Hình Dáng'}
                 </button>
                 {formData.svgPath && (
-                    <span style={{ fontSize: '14px', color: '#10b981', fontWeight: 'bold' }}>✓ Đã tạo hình dáng</span>
+                    <span style={{ fontSize: '14px', color: '#10b981', fontWeight: 'bold' }}>{'✓ Đã tạo hình dáng'}</span>
                 )}
             </div>
           </div>
@@ -288,7 +291,7 @@ const MarketAreaForm = ({
               value={formData.categoryName}
               onChange={handleChange}
             >
-              <option value="">-- Chọn ngành hàng --</option>
+              <option value="">{'-- Chọn ngành hàng --'}</option>
               {categories.map(c => (
                 <option key={c.categoryId} value={c.name}>
                   {c.name}

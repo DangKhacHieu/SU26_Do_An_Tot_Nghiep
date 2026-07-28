@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import './FaqListManager.css';
 
@@ -34,6 +35,8 @@ const IconEmpty   = () => <svg width="48" height="48" viewBox="0 0 24 24" fill="
 const IconXCircle = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>;
 
 export default function FaqListManager({ navigate, addToast }) {
+  const { t } = useTranslation();
+
   const [faqs, setFaqs]               = useState([]);
   const [loading, setLoading]         = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -132,47 +135,45 @@ export default function FaqListManager({ navigate, addToast }) {
             <input
               type="text"
               className="search-input"
-              placeholder="Tìm câu hỏi, câu trả lời..."
+              placeholder={t('faqlistmanager.find_questions_answers')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
             {searchQuery && (
-              <button className="search-clear" onClick={() => setSearchQuery('')} title="Xóa">
+              <button className="search-clear" onClick={() => setSearchQuery('')} title={t('faqlistmanager.erase')}>
                 <IconXCircle />
               </button>
             )}
           </div>
 
           <select className="filter-select" value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
-            <option value="">Tất cả danh mục</option>
+            <option value="">{t('faqlistmanager.all_categories')}</option>
             <option value="General">General (Chung)</option>
-            <option value="Contract">Contract (Hợp đồng)</option>
-            <option value="Payment">Payment (Thanh toán)</option>
-            <option value="Rules">Rules (Nội quy)</option>
+            <option value="Contract">{t('faqlistmanager.contract')}</option>
+            <option value="Payment">{t('faqlistmanager.payment')}</option>
+            <option value="Rules">{t('faqlistmanager.rules')}</option>
           </select>
 
           <select className="filter-select" value={activeFilter} onChange={(e) => setActiveFilter(e.target.value)}>
-            <option value="">Tất cả trạng thái</option>
-            <option value="true">Hiển thị (Active)</option>
+            <option value="">{t('faqlistmanager.all_status')}</option>
+            <option value="true">{t('faqlistmanager.display_active')}</option>
             <option value="false">Ẩn (Hidden)</option>
           </select>
 
           {hasFilters && (
             <button className="btn-filter-clear" onClick={clearFilters}>
-              Xóa bộ lọc
-            </button>
+              {t('faqlistmanager.clear_filter')}</button>
           )}
         </div>
 
         <button className="btn-primary" onClick={() => navigate('faq-form')}>
-          <IconPlus /> Thêm câu hỏi FAQ
-        </button>
+          <IconPlus /> {t('faqlistmanager.add_faq_question')}</button>
       </div>
 
       {/* ── Collapsible List Card ── */}
       <div className="table-card">
         <div className="table-card-header">
-          <span className="table-card-title">Danh sách FAQs</span>
+          <span className="table-card-title">{t('faqlistmanager.list_of_faqs')}</span>
           {!loading && (
             <span className="table-count-badge">{filteredFaqs.length} câu hỏi</span>
           )}
@@ -181,18 +182,17 @@ export default function FaqListManager({ navigate, addToast }) {
         {loading ? (
           <div className="state-empty">
             <div className="spinner" />
-            <span className="state-empty-text">Đang tải dữ liệu...</span>
+            <span className="state-empty-text">{t('faqlistmanager.loading_data')}</span>
           </div>
         ) : filteredFaqs.length === 0 ? (
           <div className="state-empty">
             <IconEmpty />
             <span className="state-empty-text">
-              {hasFilters ? 'Không tìm thấy câu hỏi FAQ nào phù hợp.' : 'Chưa có câu hỏi FAQ nào được cấu hình.'}
+              {hasFilters ? t('faqlistmanager.no_matching_faq_questions') : t('faqlistmanager.there_are_no_faqs')}
             </span>
             {hasFilters && (
               <button className="btn-secondary" style={{ marginTop: 8 }} onClick={clearFilters}>
-                Xóa bộ lọc
-              </button>
+                {t('faqlistmanager.clear_filter')}</button>
             )}
           </div>
         ) : (
@@ -215,14 +215,14 @@ export default function FaqListManager({ navigate, addToast }) {
                       <div className="faq-actions-wrap" onClick={(e) => e.stopPropagation()}>
                         <button
                           className="btn-icon edit"
-                          title="Chỉnh sửa FAQ"
+                          title={t('faqlistmanager.edit_faq')}
                           onClick={() => navigate('faq-form', faq.faqId)}
                         >
                           <IconEdit />
                         </button>
                         <button
                           className="btn-icon delete"
-                          title="Xóa FAQ"
+                          title={t('faqlistmanager.delete_faq')}
                           onClick={(e) => openDeleteModal(e, faq)}
                         >
                           <IconTrash />
@@ -243,7 +243,7 @@ export default function FaqListManager({ navigate, addToast }) {
                         ))}
                       </div>
                       <div className="faq-meta-footer">
-                        <span>Được tạo hoặc cập nhật bởi quản trị viên.</span>
+                        <span>{t('faqlistmanager.created_or_updated_by')}</span>
                       </div>
                     </div>
                   )}
@@ -259,24 +259,22 @@ export default function FaqListManager({ navigate, addToast }) {
         <div className="modal-overlay" onClick={closeDeleteModal}>
           <div className="modal-box" onClick={(e) => e.stopPropagation()}>
             <div className="modal-head">
-              <h3>Xóa câu hỏi FAQ</h3>
+              <h3>{t('faqlistmanager.delete_faq_question')}</h3>
               <button className="modal-close" onClick={closeDeleteModal}>×</button>
             </div>
             <div className="modal-body text-center">
               <div className="modal-icon-wrap danger"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
               <p className="modal-desc" style={{ marginTop: 16 }}>
-                Bạn có chắc chắn muốn xóa câu hỏi FAQ:
-                <br />
+                {t('faqlistmanager.are_you_sure_you')}<br />
                 <strong style={{ display: 'block', marginTop: 8 }}>"{targetFaq.question}"</strong>
               </p>
               <p className="text-secondary" style={{ fontSize: '13px', marginTop: 8 }}>
-                Hành động này sẽ xóa vĩnh viễn câu hỏi và câu trả lời thường gặp này.
-              </p>
+                {t('faqlistmanager.this_action_will_permanently')}</p>
             </div>
             <div className="modal-foot">
-              <button className="btn-secondary" onClick={closeDeleteModal} disabled={actionLoading}>Hủy</button>
+              <button className="btn-secondary" onClick={closeDeleteModal} disabled={actionLoading}>{t('faqlistmanager.cancel')}</button>
               <button className="btn-danger" onClick={handleDelete} disabled={actionLoading}>
-                {actionLoading ? 'Đang xóa...' : 'Xác nhận xóa'}
+                {actionLoading ? t('faqlistmanager.deleting') : t('faqlistmanager.confirm_deletion')}
               </button>
             </div>
           </div>

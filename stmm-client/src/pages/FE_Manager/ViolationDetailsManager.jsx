@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { getAuthHeaders } from '../../utils/authHeaders';
 import './ViolationDetailsManager.css';
@@ -35,6 +36,8 @@ const IconX = () => (
 );
 
 export default function ViolationDetailsManager({ violationId, baseUrl, navigate, addToast }) {
+  const { t } = useTranslation();
+
   const [violation, setViolation] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -71,7 +74,7 @@ export default function ViolationDetailsManager({ violationId, baseUrl, navigate
       });
       if (!res.ok) throw new Error();
       
-      addToast(approve ? 'Đã phê duyệt chấp nhận kháng nghị.' : 'Đã bác bỏ kháng nghị.', 'success');
+      addToast(approve ? t('violationdetailsmanager.approved_to_accept_the') : t('violationdetailsmanager.the_appeal_was_dismissed'), 'success');
       await fetchViolationDetails(); // Refresh details to show updated status
     } catch {
       addToast('Thao tác thất bại. Vui lòng thử lại.', 'error');
@@ -114,7 +117,7 @@ export default function ViolationDetailsManager({ violationId, baseUrl, navigate
     return (
       <div className="vd-loading">
         <div className="vd-spinner" />
-        <span>Đang tải thông tin chi tiết...</span>
+        <span>{t('violationdetailsmanager.loading_details')}</span>
       </div>
     );
   }
@@ -122,10 +125,9 @@ export default function ViolationDetailsManager({ violationId, baseUrl, navigate
   if (!violation) {
     return (
       <div className="vd-not-found">
-        <h3>Không tìm thấy biên bản vi phạm</h3>
+        <h3>{t('violationdetailsmanager.no_violation_records_found')}</h3>
         <button className="vd-back-btn" onClick={() => navigate('violations')}>
-          <IconArrowLeft /> Quay lại danh sách
-        </button>
+          <IconArrowLeft /> {t('violationdetailsmanager.back_to_the_list')}</button>
       </div>
     );
   }
@@ -142,8 +144,7 @@ export default function ViolationDetailsManager({ violationId, baseUrl, navigate
         <div className="vd-header-accent" />
         <div className="vd-header-top">
           <button className="vd-back-btn" onClick={() => navigate('violations')}>
-            <IconArrowLeft /> Danh sách vi phạm
-          </button>
+            <IconArrowLeft /> {t('violationdetailsmanager.list_of_violations')}</button>
           <span className={`vd-status-badge ${sm.cls}`}>
             {sm.label}
           </span>
@@ -152,8 +153,8 @@ export default function ViolationDetailsManager({ violationId, baseUrl, navigate
           <p className="vd-vio-id">VIO-{violation.violationId}</p>
           <h2 className="vd-vio-title">{violation.title}</h2>
           <div className="vd-meta-row">
-            <span>Ngày lập: <strong>{formatDate(violation.createdAt)}</strong></span>
-            <span>Cập nhật cuối: <strong>{formatDate(violation.updatedAt)}</strong></span>
+            <span>{t('violationdetailsmanager.date_of_establishment')}<strong>{formatDate(violation.createdAt)}</strong></span>
+            <span>{t('violationdetailsmanager.last_update')}<strong>{formatDate(violation.updatedAt)}</strong></span>
           </div>
         </div>
       </div>
@@ -163,23 +164,23 @@ export default function ViolationDetailsManager({ violationId, baseUrl, navigate
         {/* Left Column: Details */}
         <div className="vd-col-left">
           <div className="vd-card">
-            <h3 className="vd-card-title">Chi tiết vi phạm</h3>
+            <h3 className="vd-card-title">{t('violationdetailsmanager.violation_details')}</h3>
             <div className="vd-details-list">
               <div className="vd-detail-item">
-                <span className="vd-detail-label">Mô tả</span>
-                <p className="vd-detail-desc">{violation.description || '(Không có mô tả)'}</p>
+                <span className="vd-detail-label">{t('violationdetailsmanager.describe')}</span>
+                <p className="vd-detail-desc">{violation.description || t('violationdetailsmanager.no_description')}</p>
               </div>
               <div className="vd-detail-item-grid">
                 <div>
-                  <span className="vd-detail-label">Mã quầy sạp</span>
+                  <span className="vd-detail-label">{t('violationdetailsmanager.stall_code')}</span>
                   <p className="vd-detail-val"><span className="vd-stall-badge">{violation.stallCode}</span></p>
                 </div>
                 <div>
-                  <span className="vd-detail-label">Số tiền phạt</span>
+                  <span className="vd-detail-label">{t('violationdetailsmanager.fine_amount')}</span>
                   <p className="vd-detail-val vd-fine-amount">{formatVnd(violation.fineAmount)}</p>
                 </div>
                 <div>
-                  <span className="vd-detail-label">Người lập biên bản</span>
+                  <span className="vd-detail-label">{t('violationdetailsmanager.minute_maker')}</span>
                   <p className="vd-detail-val">Staff #{violation.createdBy}</p>
                 </div>
               </div>
@@ -190,13 +191,13 @@ export default function ViolationDetailsManager({ violationId, baseUrl, navigate
           {appealRequest && (
             <div className="vd-card vd-appeal-card">
               <div className="vd-appeal-header">
-                <h3 className="vd-card-title">Kháng nghị của tiểu thương</h3>
+                <h3 className="vd-card-title">{t('violationdetailsmanager.protest_by_small_businesses')}</h3>
                 <span className={`vd-appeal-status-badge ${(APPEAL_STATUS_META[appealRequest.status] || {cls: ''}).cls}`}>
                   {(APPEAL_STATUS_META[appealRequest.status] || {label: appealRequest.status}).label}
                 </span>
               </div>
               <div className="vd-appeal-body">
-                <p className="vd-appeal-title"><strong>Tiêu đề:</strong> {appealRequest.title}</p>
+                <p className="vd-appeal-title"><strong>{t('violationdetailsmanager.title')}</strong> {appealRequest.title}</p>
                 <div className="vd-appeal-desc-box">
                   {appealRequest.description}
                 </div>
@@ -210,15 +211,13 @@ export default function ViolationDetailsManager({ violationId, baseUrl, navigate
                       disabled={submitting}
                       onClick={() => handleResolveAppeal(appealRequest.requestId, true)}
                     >
-                      <IconCheck /> Chấp nhận kháng nghị
-                    </button>
+                      <IconCheck /> {t('violationdetailsmanager.accept_the_appeal')}</button>
                     <button
                       className="vd-btn-reject"
                       disabled={submitting}
                       onClick={() => handleResolveAppeal(appealRequest.requestId, false)}
                     >
-                      <IconX /> Bác bỏ kháng nghị
-                    </button>
+                      <IconX /> {t('violationdetailsmanager.rejected_the_appeal')}</button>
                   </div>
                 )}
               </div>
@@ -228,12 +227,9 @@ export default function ViolationDetailsManager({ violationId, baseUrl, navigate
           {!appealRequest && (
             <div className="vd-card vd-simulator-card" style={{ borderLeft: '4px solid #3b82f6', background: '#eff6ff' }}>
               <h3 className="vd-card-title" style={{ borderLeftColor: '#3b82f6', color: '#1e40af', marginBottom: '14px' }}>
-                Kháng nghị vi phạm (Demo / Test)
-              </h3>
+                {t('violationdetailsmanager.violation_protest_demo_test')}</h3>
               <p style={{ fontSize: '0.88rem', color: '#475569', marginBottom: '16px', lineHeight: '1.5' }}>
-                Biên bản vi phạm này chưa có yêu cầu kháng nghị từ tiểu thương. 
-                Bạn có thể nhấn nút dưới đây để giả lập một yêu cầu kháng nghị được gửi lên hệ thống và kiểm thử tính năng **Duyệt / Từ chối kháng nghị**.
-              </p>
+                {t('violationdetailsmanager.this_violation_record_has')}</p>
               <button
                 className="vd-btn-simulate"
                 disabled={submitting}
@@ -257,8 +253,7 @@ export default function ViolationDetailsManager({ violationId, baseUrl, navigate
                 onMouseEnter={(e) => { if(!submitting) e.currentTarget.style.backgroundColor = '#2563eb'; }}
                 onMouseLeave={(e) => { if(!submitting) e.currentTarget.style.backgroundColor = '#3b82f6'; }}
               >
-                Gửi Kháng nghị (Giả lập Demo)
-              </button>
+                {t('violationdetailsmanager.submit_an_appeal_demo')}</button>
             </div>
           )}
         </div>
@@ -266,12 +261,12 @@ export default function ViolationDetailsManager({ violationId, baseUrl, navigate
         {/* Right Column: Evidence Photo */}
         <div className="vd-col-right">
           <div className="vd-card">
-            <h3 className="vd-card-title">Hình ảnh minh chứng</h3>
+            <h3 className="vd-card-title">{t('violationdetailsmanager.evidence_images')}</h3>
             <div className="vd-image-container">
               {violation.imageUrl ? (
                 <img
                   src={violation.imageUrl}
-                  alt="Minh chứng vi phạm"
+                  alt={t('violationdetailsmanager.evidence_of_violation')}
                   className="vd-evidence-img"
                   onError={(e) => {
                     e.target.onerror = null;
@@ -280,7 +275,7 @@ export default function ViolationDetailsManager({ violationId, baseUrl, navigate
                 />
               ) : (
                 <div className="vd-no-image">
-                  <span>Không có ảnh minh chứng đính kèm</span>
+                  <span>{t('violationdetailsmanager.there_is_no_photo')}</span>
                 </div>
               )}
             </div>

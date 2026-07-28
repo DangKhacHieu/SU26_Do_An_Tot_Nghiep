@@ -1,9 +1,12 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect } from 'react';
 import { vendorFeedbackApi } from '../../../services/vendorFeedbackApi';
 import { showError, showWarning } from '../../../utils/alert';
 import './VendorFeedbackList.css';
 
 export default function VendorFeedbackList({ stallId, rentedStalls }) {
+  const { t } = useTranslation();
+
     const [summary, setSummary] = useState({ reviews: [], totalReviews: 0, averageRating: 0 });
     const [loading, setLoading] = useState(false);
     const [filterRating, setFilterRating] = useState('ALL');
@@ -28,7 +31,7 @@ export default function VendorFeedbackList({ stallId, rentedStalls }) {
             }
         } catch (error) {
             console.error('Failed to fetch feedbacks', error);
-            showError('Thất bại', 'Không thể tải danh sách đánh giá.');
+            showError(t('vendorfeedbacklist.failure'), t('vendorfeedbacklist.unable_to_load_review'));
         } finally {
             setLoading(false);
         }
@@ -66,8 +69,8 @@ export default function VendorFeedbackList({ stallId, rentedStalls }) {
         <main className="vendor-fb-container fade-in">
             <header className="fb-header">
                 <div className="fb-header-content">
-                    <h1>Đánh giá & Phản hồi</h1>
-                    <p>Lắng nghe khách hàng để nâng cao chất lượng dịch vụ của sạp.</p>
+                    <h1>{t('vendorfeedbacklist.reviews_feedback')}</h1>
+                    <p>{t('vendorfeedbacklist.listen_to_customers_to')}</p>
                 </div>
             </header>
 
@@ -83,14 +86,14 @@ export default function VendorFeedbackList({ stallId, rentedStalls }) {
                                 {renderStars(Math.round(summary.averageRating || 0))}
                             </div>
                             <div className="overview-total">
-                                Dựa trên <strong>{summary.totalReviews}</strong> đánh giá thực tế
+                                {t('vendorfeedbacklist.based_on')} <strong>{summary.totalReviews}</strong> {t('vendorfeedbacklist.realistic_assessment')}
                             </div>
                         </div>
                     </div>
                     <div className="overview-illustration">
                         <div className="satisfaction-badge">
                             <span className="emoji">😊</span>
-                            <span className="text">Sự hài lòng</span>
+                            <span className="text">{t('vendorfeedbacklist.satisfaction')}</span>
                         </div>
                     </div>
                 </div>
@@ -102,11 +105,11 @@ export default function VendorFeedbackList({ stallId, rentedStalls }) {
                         <span className="search-icon">🔍</span>
                         <input 
                             type="text" 
-                            placeholder="Tìm kiếm theo tên hoặc nội dung đánh giá..." 
+                            placeholder={t('vendorfeedbacklist.search_by_name_or')} 
                             className="fb-search"
                             value={searchTerm}
                             onChange={handleSearch}
-                            aria-label="Tìm kiếm đánh giá"
+                            aria-label={t('vendorfeedbacklist.search_for_reviews')}
                         />
                     </div>
                     <div className="filter-wrapper">
@@ -115,14 +118,14 @@ export default function VendorFeedbackList({ stallId, rentedStalls }) {
                             className="fb-filter"
                             value={filterRating}
                             onChange={(e) => setFilterRating(e.target.value)}
-                            aria-label="Lọc theo số sao"
+                            aria-label={t('vendorfeedbacklist.filter_by_number_of')}
                         >
-                            <option value="ALL">Tất cả số sao</option>
-                            <option value="5">5 Sao (Rất tốt)</option>
-                            <option value="4">4 Sao (Tốt)</option>
-                            <option value="3">3 Sao (Bình thường)</option>
-                            <option value="2">2 Sao (Tệ)</option>
-                            <option value="1">1 Sao (Rất tệ)</option>
+                            <option value="ALL">{t('vendorfeedbacklist.all_stars')}</option>
+                            <option value="5">{t('vendorfeedbacklist.5_stars_very_good')}</option>
+                            <option value="4">{t('vendorfeedbacklist.4_stars_good')}</option>
+                            <option value="3">{t('vendorfeedbacklist.3_stars_normal')}</option>
+                            <option value="2">{t('vendorfeedbacklist.2_stars_bad')}</option>
+                            <option value="1">{t('vendorfeedbacklist.1_star_very_poor')}</option>
                         </select>
                     </div>
                 </header>
@@ -131,15 +134,15 @@ export default function VendorFeedbackList({ stallId, rentedStalls }) {
                     {loading ? (
                         <div className="fb-loading-state">
                             <div className="spinner"></div>
-                            <p>Đang tải dữ liệu đánh giá...</p>
+                            <p>{t('vendorfeedbacklist.loading_assessment_data')}</p>
                         </div>
                     ) : filteredReviews.length === 0 ? (
                         <div className="fb-empty-state">
                             <div className="empty-icon-wrapper">
                                 <span className="empty-emoji">📝</span>
                             </div>
-                            <h3>Chưa có đánh giá nào</h3>
-                            <p>Sạp của bạn chưa nhận được đánh giá nào phù hợp với bộ lọc hiện tại.</p>
+                            <h3>{t('vendorfeedbacklist.there_are_no_reviews')}</h3>
+                            <p>{t('vendorfeedbacklist.your_store_has_not')}</p>
                         </div>
                     ) : (
                         <div className="reviews-grid">
@@ -158,7 +161,7 @@ export default function VendorFeedbackList({ stallId, rentedStalls }) {
                                                 {(rev.userName || 'K').charAt(0).toUpperCase()}
                                             </div>
                                             <div className="customer-meta">
-                                                <h2 className="customer-name">{rev.userName || 'Khách hàng ẩn danh'}</h2>
+                                                <h2 className="customer-name">{rev.userName || t('vendorfeedbacklist.anonymous_customer')}</h2>
                                                 <time className="review-date" dateTime={rev.createdAt}>
                                                     {new Date(rev.createdAt).toLocaleDateString('vi-VN', { 
                                                         year: 'numeric', 
@@ -175,14 +178,14 @@ export default function VendorFeedbackList({ stallId, rentedStalls }) {
                                         </div>
                                     </header>
                                     <div className="review-body">
-                                        <p className="review-comment">"{rev.comment || 'Khách hàng không để lại nội dung nhận xét.'}"</p>
+                                        <p className="review-comment">"{rev.comment || t('vendorfeedbacklist.customers_do_not_leave')}"</p>
                                     </div>
                                     <footer className="review-footer">
                                         <span className="verified-badge">
-                                            ✓ Đã mua hàng
+                                            {t('vendorfeedbacklist.purchased')}
                                         </span>
-                                        <button className="btn-reply" onClick={() => showWarning('Tính năng', 'Chức năng phản hồi đang được phát triển.')}>
-                                            <span className="reply-icon">💬</span> Phản hồi
+                                        <button className="btn-reply" onClick={() => showWarning(t('vendorfeedbacklist.features'), t('vendorfeedbacklist.feedback_functionality_is_under'))}>
+                                            <span className="reply-icon">💬</span> {t('vendorfeedbacklist.feedback')}
                                         </button>
                                     </footer>
                                 </article>

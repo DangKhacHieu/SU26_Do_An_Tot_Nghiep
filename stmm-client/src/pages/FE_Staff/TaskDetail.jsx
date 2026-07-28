@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useCallback, useEffect, useState } from 'react';
 import { getAuthHeaders } from '../../utils/authHeaders';
 import { TASK_STATUS, TASK_TYPE } from '../../constants/taskEnums';
@@ -9,6 +10,8 @@ import RepairProgressStepper from './components/RepairProgressStepper';
 import './TaskDetail.css';
 
 export default function TaskDetail({ taskId, baseUrl, onBack, onShowNotification, onViewIssueDetails }) {
+  const { t } = useTranslation();
+
   const [task, setTask] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -30,13 +33,13 @@ export default function TaskDetail({ taskId, baseUrl, onBack, onShowNotification
         } catch { problem = null; }
 
         throw new Error(response.status === 404
-          ? 'Task not found or no longer assigned to you.'
-          : problem?.detail || problem?.title || 'Failed to load task details.');
+          ? t('taskdetail.task_not_found_or')
+          : problem?.detail || problem?.title || t('taskdetail.failed_to_load_task'));
       }
 
       setTask(await response.json());
     } catch (fetchError) {
-      console.error('Error loading task details:', fetchError);
+      console.error(t('taskdetail.error_loading_task_details'), fetchError);
       setError(fetchError.message);
       setTask(null);
     } finally {
@@ -49,18 +52,18 @@ export default function TaskDetail({ taskId, baseUrl, onBack, onShowNotification
   }, [fetchTaskDetails]);
 
   if (loading) {
-    return <div className="task-detail-container"><div className="loading-state"><span className="spinner" /> Loading task details...</div></div>;
+    return <div className="task-detail-container"><div className="loading-state"><span className="spinner" /> {t('taskdetail.loading_task_details')}</div></div>;
   }
 
   if (error || !task) {
     return (
       <div className="task-detail-container">
         <div className="error-state">
-          <h3>Task details are unavailable</h3>
-          <p className="error-message">{error || 'Task data was not found.'}</p>
+          <h3>{t('taskdetail.task_details_are_unavailable')}</h3>
+          <p className="error-message">{error || t('taskdetail.task_data_was_not')}</p>
           <div className="task-detail-error-actions">
-            <button onClick={fetchTaskDetails} className="btn-primary-dark">Retry</button>
-            <button onClick={onBack} className="btn-secondary">Back to List</button>
+            <button onClick={fetchTaskDetails} className="btn-primary-dark">{t('taskdetail.retry')}</button>
+            <button onClick={onBack} className="btn-secondary">{t('taskdetail.back_to_list')}</button>
           </div>
         </div>
       </div>
@@ -83,7 +86,7 @@ export default function TaskDetail({ taskId, baseUrl, onBack, onShowNotification
   return (
     <main className="task-detail-container">
       <div className="breadcrumb-path">
-        <button type="button" onClick={onBack} className="link-path">Daily Tasks</button>
+        <button type="button" onClick={onBack} className="link-path">{t('taskdetail.daily_tasks')}</button>
         <span>/</span>
         <span className="active-path">Task #{task.taskId}</span>
       </div>
@@ -92,7 +95,7 @@ export default function TaskDetail({ taskId, baseUrl, onBack, onShowNotification
         <div>
           <h1 className="main-title">{task.title}</h1>
           <p className="subtitle">
-            Location: {task.stallCode || task.areaName || 'Location not specified'} | Type: {task.taskType}
+            Location: {task.stallCode || task.areaName || t('taskdetail.location_not_specified')} | Type: {task.taskType}
           </p>
         </div>
         <button onClick={onBack} className="btn-secondary">&larr; Back to List</button>
@@ -128,18 +131,18 @@ export default function TaskDetail({ taskId, baseUrl, onBack, onShowNotification
 
           {task.status === TASK_STATUS.COMPLETED && (task.imageBeforeUrl || task.imageAfterUrl) ? (
             <div className="evidence-panel">
-              <h3 className="card-section-title">Completion Evidence</h3>
+              <h3 className="card-section-title">{t('taskdetail.completion_evidence')}</h3>
               <div className="evidence-images-grid">
                 {task.imageBeforeUrl ? (
                   <div className="evidence-image-wrapper">
-                    <div className="evidence-label">BEFORE PHOTO</div>
-                    <img src={task.imageBeforeUrl} alt="Before repair" className="evidence-img-large" />
+                    <div className="evidence-label">{t('taskdetail.before_photo')}</div>
+                    <img src={task.imageBeforeUrl} alt={t('taskdetail.before_repair')} className="evidence-img-large" />
                   </div>
                 ) : null}
                 {task.imageAfterUrl ? (
                   <div className="evidence-image-wrapper">
-                    <div className="evidence-label">AFTER PHOTO</div>
-                    <img src={task.imageAfterUrl} alt="After repair" className="evidence-img-large" />
+                    <div className="evidence-label">{t('taskdetail.after_photo')}</div>
+                    <img src={task.imageAfterUrl} alt={t('taskdetail.after_repair')} className="evidence-img-large" />
                   </div>
                 ) : null}
               </div>

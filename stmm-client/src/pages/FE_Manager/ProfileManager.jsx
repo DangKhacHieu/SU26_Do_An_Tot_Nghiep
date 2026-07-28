@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './ProfileManager.css';
@@ -68,6 +69,8 @@ const IconKey = () => (
 const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5056/api').replace(/\/$/, '');
 
 export default function ProfileManager({ addToast, navigate }) {
+  const { t } = useTranslation();
+
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -99,7 +102,7 @@ export default function ProfileManager({ addToast, navigate }) {
       setName(res.data.name || '');
       setPhone(res.data.phone || '');
     } catch (err) {
-      addToast(err.response?.data?.message || 'Không thể tải thông tin hồ sơ.', 'error');
+      addToast(err.response?.data?.message || t('profilemanager.unable_to_load_profile'), 'error');
     } finally {
       setLoading(false);
     }
@@ -126,7 +129,7 @@ export default function ProfileManager({ addToast, navigate }) {
       setProfile(res.data);
       addToast('Cập nhật thông tin cá nhân thành công!', 'success');
     } catch (err) {
-      addToast(err.response?.data?.message || 'Không thể cập nhật thông tin.', 'error');
+      addToast(err.response?.data?.message || t('profilemanager.unable_to_update_information'), 'error');
     } finally {
       setSaving(false);
     }
@@ -148,7 +151,7 @@ export default function ProfileManager({ addToast, navigate }) {
       addToast('Đổi mật khẩu thành công!', 'success');
       setCurrentPassword(''); setNewPassword(''); setConfirmPassword('');
     } catch (err) {
-      addToast(err.response?.data?.message || 'Đổi mật khẩu thất bại.', 'error');
+      addToast(err.response?.data?.message || t('profilemanager.password_change_failed'), 'error');
     } finally {
       setPasswordSaving(false);
     }
@@ -158,7 +161,7 @@ export default function ProfileManager({ addToast, navigate }) {
     return (
       <div className="mp2-loading">
         <div className="mp2-spinner" />
-        <p>Đang tải hồ sơ…</p>
+        <p>{t('profilemanager.loading_profile')}</p>
       </div>
     );
   }
@@ -184,8 +187,7 @@ export default function ProfileManager({ addToast, navigate }) {
               <p className="mp2-hero-meta">
                 <span className="mp2-badge mp2-badge-role">{profile?.roleName || 'Manager'}</span>
                 <span className="mp2-badge mp2-badge-active">
-                  <span className="mp2-pulse" />Đang hoạt động
-                </span>
+                  <span className="mp2-pulse" />{t('profilemanager.active')}</span>
               </p>
             </div>
           </div>
@@ -214,20 +216,17 @@ export default function ProfileManager({ addToast, navigate }) {
           className={`mp2-tab ${activeTab === 'info' ? 'mp2-tab-active' : ''}`}
           onClick={() => setActiveTab('info')}
         >
-          <IconUser /> Thông tin cá nhân
-        </button>
+          <IconUser /> {t('profilemanager.personal_information')}</button>
         <button
           className={`mp2-tab ${activeTab === 'security' ? 'mp2-tab-active' : ''}`}
           onClick={() => setActiveTab('security')}
         >
-          <IconShield /> Bảo mật & Mật khẩu
-        </button>
+          <IconShield /> {t('profilemanager.security_passwords')}</button>
         <button
           className={`mp2-tab ${activeTab === 'activity' ? 'mp2-tab-active' : ''}`}
           onClick={() => setActiveTab('activity')}
         >
-          <IconClock /> Lịch sử hoạt động
-        </button>
+          <IconClock /> {t('profilemanager.activity_history')}</button>
       </div>
 
       {/* ═══ TAB PANELS ═══ */}
@@ -237,22 +236,21 @@ export default function ProfileManager({ addToast, navigate }) {
         {activeTab === 'info' && (
           <form onSubmit={handleSaveChanges} className="mp2-form">
             <div className="mp2-section-title">
-              <IconUser /> Chỉnh sửa thông tin
-            </div>
+              <IconUser /> {t('profilemanager.edit_information')}</div>
             <div className="mp2-field-grid">
               <div className="mp2-field">
-                <label className="mp2-label">Họ và tên</label>
+                <label className="mp2-label">{t('profilemanager.full_name')}</label>
                 <input
                   type="text"
                   className="mp2-input"
                   value={name}
                   onChange={e => setName(e.target.value)}
-                  placeholder="Nhập họ và tên đầy đủ"
+                  placeholder={t('profilemanager.enter_full_name_and')}
                   required
                 />
               </div>
               <div className="mp2-field">
-                <label className="mp2-label">Số điện thoại</label>
+                <label className="mp2-label">{t('profilemanager.phone_number')}</label>
                 <div className="mp2-input-icon-wrap">
                   <span className="mp2-input-icon"><IconPhone /></span>
                   <input
@@ -266,7 +264,7 @@ export default function ProfileManager({ addToast, navigate }) {
                 </div>
               </div>
               <div className="mp2-field">
-                <label className="mp2-label">Địa chỉ Email <span className="mp2-lock-tag">Không thể thay đổi</span></label>
+                <label className="mp2-label">{t('profilemanager.email_address')}<span className="mp2-lock-tag">{t('profilemanager.cannot_be_changed')}</span></label>
                 <div className="mp2-input-icon-wrap">
                   <span className="mp2-input-icon"><IconMail /></span>
                   <input
@@ -278,7 +276,7 @@ export default function ProfileManager({ addToast, navigate }) {
                 </div>
               </div>
               <div className="mp2-field">
-                <label className="mp2-label">Số CCCD <span className="mp2-lock-tag">Không thể thay đổi</span></label>
+                <label className="mp2-label">{t('profilemanager.cccd_number')}<span className="mp2-lock-tag">{t('profilemanager.cannot_be_changed')}</span></label>
                 <div className="mp2-input-icon-wrap">
                   <span className="mp2-input-icon"><IconCard /></span>
                   <input
@@ -293,9 +291,9 @@ export default function ProfileManager({ addToast, navigate }) {
             <div className="mp2-form-footer">
               <button type="submit" className="mp2-btn-save" disabled={saving}>
                 {saving ? (
-                  <><span className="mp2-btn-spinner" /> Đang lưu…</>
+                  <><span className="mp2-btn-spinner" /> {t('profilemanager.saving')}</>
                 ) : (
-                  <><IconCheck /> Lưu thay đổi</>
+                  <><IconCheck /> {t('profilemanager.save_changes')}</>
                 )}
               </button>
             </div>
@@ -306,17 +304,16 @@ export default function ProfileManager({ addToast, navigate }) {
         {activeTab === 'security' && (
           <form onSubmit={handleChangePassword} className="mp2-form">
             <div className="mp2-section-title">
-              <IconKey /> Đổi mật khẩu
-            </div>
+              <IconKey /> {t('profilemanager.change_password')}</div>
             <div className="mp2-security-note">
               <IconShield />
-              <p>Nên thay đổi mật khẩu định kỳ để bảo vệ tài khoản quản trị viên của bạn.</p>
+              <p>{t('profilemanager.it_is_recommended_to')}</p>
             </div>
             <div className="mp2-field-grid mp2-field-grid-1">
               {[
-                { label: 'Mật khẩu hiện tại', val: currentPassword, set: setCurrentPassword, show: showCur, toggle: setShowCur, ac: 'current-password' },
-                { label: 'Mật khẩu mới', val: newPassword, set: setNewPassword, show: showNew, toggle: setShowNew, ac: 'new-password' },
-                { label: 'Xác nhận mật khẩu mới', val: confirmPassword, set: setConfirmPassword, show: showCfm, toggle: setShowCfm, ac: 'new-password' },
+                { label: t('profilemanager.current_password'), val: currentPassword, set: setCurrentPassword, show: showCur, toggle: setShowCur, ac: 'current-password' },
+                { label: t('profilemanager.new_password'), val: newPassword, set: setNewPassword, show: showNew, toggle: setShowNew, ac: 'new-password' },
+                { label: t('profilemanager.confirm_new_password'), val: confirmPassword, set: setConfirmPassword, show: showCfm, toggle: setShowCfm, ac: 'new-password' },
               ].map(({ label, val, set, show, toggle, ac }) => (
                 <div className="mp2-field" key={label}>
                   <label className="mp2-label">{label}</label>
@@ -344,9 +341,9 @@ export default function ProfileManager({ addToast, navigate }) {
             <div className="mp2-form-footer">
               <button type="submit" className="mp2-btn-save mp2-btn-danger" disabled={passwordSaving}>
                 {passwordSaving ? (
-                  <><span className="mp2-btn-spinner" /> Đang cập nhật…</>
+                  <><span className="mp2-btn-spinner" /> {t('profilemanager.updating')}</>
                 ) : (
-                  <><IconKey /> Cập nhật mật khẩu</>
+                  <><IconKey /> {t('profilemanager.update_password')}</>
                 )}
               </button>
             </div>
@@ -356,28 +353,28 @@ export default function ProfileManager({ addToast, navigate }) {
         {/* ── ACTIVITY TAB ── */}
         {activeTab === 'activity' && (
           <div className="mp2-activity">
-            <div className="mp2-section-title"><IconClock /> Lịch sử hoạt động</div>
+            <div className="mp2-section-title"><IconClock /> {t('profilemanager.activity_history')}</div>
             <div className="mp2-timeline">
               <div className="mp2-tl-item">
                 <div className="mp2-tl-dot mp2-tl-dot-green" />
                 <div className="mp2-tl-content">
-                  <span className="mp2-tl-label">Lần đăng nhập gần nhất</span>
+                  <span className="mp2-tl-label">{t('profilemanager.last_login')}</span>
                   <span className="mp2-tl-value">
-                    {profile?.lastLogin ? fmtDate(profile.lastLogin) : 'Phiên hiện tại'}
+                    {profile?.lastLogin ? fmtDate(profile.lastLogin) : t('profilemanager.current_session')}
                   </span>
                 </div>
               </div>
               <div className="mp2-tl-item">
                 <div className="mp2-tl-dot mp2-tl-dot-blue" />
                 <div className="mp2-tl-content">
-                  <span className="mp2-tl-label">Ngày tạo tài khoản</span>
+                  <span className="mp2-tl-label">{t('profilemanager.account_creation_date')}</span>
                   <span className="mp2-tl-value">{fmtDate(profile?.createdAt)}</span>
                 </div>
               </div>
               <div className="mp2-tl-item">
                 <div className="mp2-tl-dot mp2-tl-dot-purple" />
                 <div className="mp2-tl-content">
-                  <span className="mp2-tl-label">Trạng thái tài khoản</span>
+                  <span className="mp2-tl-label">{t('profilemanager.account_status')}</span>
                   <span className="mp2-tl-value mp2-tl-value-active">
                     <span className="mp2-pulse" /> {profile?.status || 'Active'}
                   </span>
@@ -386,7 +383,7 @@ export default function ProfileManager({ addToast, navigate }) {
               <div className="mp2-tl-item">
                 <div className="mp2-tl-dot mp2-tl-dot-gray" />
                 <div className="mp2-tl-content">
-                  <span className="mp2-tl-label">Vai trò hệ thống</span>
+                  <span className="mp2-tl-label">{t('profilemanager.system_role')}</span>
                   <span className="mp2-tl-value">{profile?.roleName || 'Manager'}</span>
                 </div>
               </div>

@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+import LanguageSwitcher from './LanguageSwitcher';
 import React, { useState, useEffect } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
@@ -23,47 +25,51 @@ import {
 } from 'lucide-react';
 import './AccountantLayout.css';
 
-const NAV_ITEMS = [
+const getNavItems = (t) => [
   {
-    section: 'Tổng quan',
+    section: t('accountantlayout.overview'),
     items: [
-      { path: '/accountant/dashboard', label: 'Tổng quan & Báo cáo', icon: LayoutDashboard }
+      { path: '/accountant/dashboard', label: t('accountantlayout.overview_report'), icon: LayoutDashboard }
     ]
   },
   {
-    section: 'Nghiệp vụ Tài chính',
+    section: t('accountantlayout.financial_operations'),
     items: [
-      { path: '/accountant/financial-config', label: 'Cấu hình tài chính', icon: Settings },
-      { path: '/accountant/periodic-invoices', label: 'Hóa đơn định kỳ', icon: Receipt },
-      { path: '/accountant/payment-verification', label: 'Đối soát & Thanh toán', icon: CheckSquare },
+      { path: '/accountant/financial-config', label: t('accountantlayout.financial_configuration'), icon: Settings },
+      { path: '/accountant/periodic-invoices', label: t('accountantlayout.recurring_bills'), icon: Receipt },
+      { path: '/accountant/payment-verification', label: t('accountantlayout.control_payment'), icon: CheckSquare },
     ]
   },
   {
-    section: 'Quản lý',
+    section: t('accountantlayout.manage'),
     items: [
-      { path: '/accountant/violations-penalties', label: 'Vi phạm & Phạt', icon: ShieldAlert },
-      { path: '/accountant/repair-price', label: 'Giá sửa chữa', icon: Wrench },
+      { path: '/accountant/violations-penalties', label: t('accountantlayout.violations_fines'), icon: ShieldAlert },
+      { path: '/accountant/repair-price', label: t('accountantlayout.repair_price'), icon: Wrench },
     ]
   },
   {
-    section: 'Tài khoản',
+    section: t('accountantlayout.account'),
     items: [
-      { path: '/accountant/profile-management', label: 'Hồ sơ cá nhân', icon: User },
+      { path: '/accountant/profile-management', label: t('accountantlayout.personal_profile'), icon: User },
     ]
   }
 ];
 
-const PAGE_LABELS = {
-  '/accountant/dashboard': 'Tổng quan & Báo cáo',
-  '/accountant/financial-config': 'Cấu hình Tài chính',
-  '/accountant/periodic-invoices': 'Hóa đơn Định kỳ',
-  '/accountant/violations-penalties': 'Vi phạm & Phạt',
-  '/accountant/repair-price': 'Giá Sửa Chữa',
-  '/accountant/payment-verification': 'Đối soát & Thanh toán',
-  '/accountant/profile-management': 'Hồ sơ Cá nhân',
-};
+const getPageLabels = (t) => ({
+  '/accountant/dashboard': t('accountantlayout.overview_report'),
+  '/accountant/financial-config': t('accountantlayout.financial_configuration'),
+  '/accountant/periodic-invoices': t('accountantlayout.recurring_bills'),
+  '/accountant/violations-penalties': t('accountantlayout.violations_fines'),
+  '/accountant/repair-price': t('accountantlayout.repair_price'),
+  '/accountant/payment-verification': t('accountantlayout.control_payment'),
+  '/accountant/profile-management': t('accountantlayout.personal_profile'),
+});
 
 export default function AccountantLayout() {
+  const { t } = useTranslation();
+  const NAV_ITEMS = getNavItems(t);
+  const PAGE_LABELS = getPageLabels(t);
+
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -74,7 +80,7 @@ export default function AccountantLayout() {
   const [selectedNoti, setSelectedNoti] = useState(null);
 
   const [currentUser, setCurrentUser] = useState({
-    name: 'Lê Thanh Bình',
+    name: t('accountantlayout.le_thanh_binh'),
     email: 'binhlt.accountant@stmm.vn',
     roleName: 'Accountant',
     avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=200'
@@ -151,7 +157,7 @@ export default function AccountantLayout() {
         try {
           const parsed = JSON.parse(session);
           setCurrentUser({
-            name: parsed.name || 'Lê Thanh Bình',
+            name: parsed.name || t('accountantlayout.le_thanh_binh'),
             email: parsed.email || 'binhlt.accountant@stmm.vn',
             roleName: parsed.roleName || 'Accountant',
             avatar: parsed.avatar || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=200'
@@ -190,7 +196,7 @@ export default function AccountantLayout() {
   };
 
   const handleLogout = () => {
-    if (window.confirm('Bạn có chắc chắn muốn đăng xuất khỏi hệ thống STMM?')) {
+    if (window.confirm(t('accountantlayout.are_you_sure_you'))) {
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
       localStorage.removeItem('user');
@@ -199,7 +205,7 @@ export default function AccountantLayout() {
   };
 
   const roleLabel = (roleName) => {
-    const map = { Accountant: 'Kế toán viên', Admin: 'Quản trị viên', Manager: 'Quản lý' };
+    const map = { Accountant: t('accountantlayout.accountant'), Admin: t('accountantlayout.administrator'), Manager: t('accountantlayout.manage') };
     return map[roleName] || roleName;
   };
 
@@ -218,13 +224,13 @@ export default function AccountantLayout() {
             </div>
             <div className="sidebar-brand-text">
               <span className="sidebar-brand-name">STMM Portal</span>
-              <span className="sidebar-brand-sub">Hệ thống Kế toán</span>
+              <span className="sidebar-brand-sub">{t('accountantlayout.accounting_system')}</span>
             </div>
           </div>
           <button
             className="collapse-btn"
             onClick={() => setIsCollapsed(!isCollapsed)}
-            title={isCollapsed ? 'Mở rộng menu' : 'Thu gọn menu'}
+            title={isCollapsed ? t('accountantlayout.expand_menu') : t('accountantlayout.collapse_menu')}
           >
             {isCollapsed ? <ChevronRight size={15} /> : <ChevronLeft size={15} />}
           </button>
@@ -269,9 +275,9 @@ export default function AccountantLayout() {
 
         {/* Footer Logout */}
         <div className="sidebar-footer">
-          <button className="logout-btn" onClick={handleLogout} title="Đăng xuất">
+          <button className="logout-btn" onClick={handleLogout} title={t('accountantlayout.sign_out')}>
             <LogOut size={18} />
-            <span className="logout-btn-text">Đăng xuất</span>
+            <span className="logout-btn-text">{t('accountantlayout.sign_out')}</span>
           </button>
         </div>
       </aside>
@@ -286,7 +292,7 @@ export default function AccountantLayout() {
             <div className="header-breadcrumb">
               <Building2 size={15} />
               <span className="header-breadcrumb-separator">›</span>
-              <span>Kế toán</span>
+              <span>{t('accountantlayout.accountant')}</span>
               <span className="header-breadcrumb-separator">›</span>
               <span className="header-breadcrumb-current">{currentPageLabel}</span>
             </div>
@@ -297,16 +303,19 @@ export default function AccountantLayout() {
           {/* Right: Controls */}
           <div className="header-controls">
             {/* Theme Toggle */}
-            <button className="control-btn" onClick={toggleTheme} title={isDark ? 'Giao diện sáng' : 'Giao diện tối'}>
+            <button className="control-btn" onClick={toggleTheme} title={isDark ? t('accountantlayout.bright_interface') : t('accountantlayout.dark_interface')}>
               {isDark ? <Sun size={17} /> : <Moon size={17} />}
             </button>
+
+            {/* Language Switcher */}
+            <LanguageSwitcher />
 
             {/* Notifications */}
             <div className="notification-wrapper">
               <button
                 className="control-btn"
                 onClick={() => setShowNotifications(!showNotifications)}
-                title="Thông báo"
+                title={t('accountantlayout.notification')}
               >
                 <Bell size={17} />
                 {notifications.filter(n => !n.isRead).length > 0 && (
@@ -317,10 +326,9 @@ export default function AccountantLayout() {
               {showNotifications && (
                 <div className="notifications-dropdown">
                   <div className="notif-header">
-                    <h4>Thông báo</h4>
+                    <h4>{t('accountantlayout.notification')}</h4>
                     <button className="mark-read-btn" onClick={handleMarkAllAsRead}>
-                      Đánh dấu tất cả đã đọc
-                    </button>
+                      {t('accountantlayout.mark_all_as_read')}</button>
                   </div>
                   <div className="notif-list">
                     {notifications.length > 0 ? notifications.map((n) => (
@@ -335,7 +343,7 @@ export default function AccountantLayout() {
                             className="btn-ghost btn-icon" 
                             style={{ position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)', padding: 4 }}
                             onClick={(e) => handleDeleteNotification(e, n.id)}
-                            title="Xóa thông báo"
+                            title={t('accountantlayout.delete_notification')}
                           >
                             <Trash2 size={14} color="var(--danger)" />
                           </button>
@@ -343,8 +351,7 @@ export default function AccountantLayout() {
                       </div>
                     )) : (
                       <div style={{ padding: '16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
-                        Không có thông báo nào.
-                      </div>
+                        {t('accountantlayout.there_are_no_announcements')}</div>
                     )}
                   </div>
                 </div>
@@ -378,7 +385,7 @@ export default function AccountantLayout() {
         <div className="modal-overlay" onClick={() => setSelectedNoti(null)} style={{ zIndex: 9999 }}>
           <div className="modal-container" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <span className="modal-title">Chi Tiết Thông Báo</span>
+              <span className="modal-title">{t('accountantlayout.notification_details')}</span>
               <button className="modal-close-btn" onClick={() => setSelectedNoti(null)}><X size={16} /></button>
             </div>
             <div className="modal-body" style={{ minHeight: '120px' }}>
@@ -389,7 +396,7 @@ export default function AccountantLayout() {
               </div>
             </div>
             <div className="modal-footer">
-              <button className="btn btn-secondary" onClick={() => setSelectedNoti(null)}>Đóng</button>
+              <button className="btn btn-secondary" onClick={() => setSelectedNoti(null)}>{t('accountantlayout.close')}</button>
             </div>
           </div>
         </div>

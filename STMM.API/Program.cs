@@ -231,8 +231,18 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization();
 builder.Services.AddSignalR();
+builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
 
 var app = builder.Build();
+
+// Configure Request Localization middleware
+var supportedCultures = new[] { "vi", "en" };
+var localizationOptions = new RequestLocalizationOptions()
+    .SetDefaultCulture("vi")
+    .AddSupportedCultures(supportedCultures)
+    .AddSupportedUICultures(supportedCultures);
+
+app.UseRequestLocalization(localizationOptions);
 
 // Register Exception Middleware at the beginning of the pipeline to catch all exceptions
 app.UseMiddleware<ExceptionHandlingMiddleware>();

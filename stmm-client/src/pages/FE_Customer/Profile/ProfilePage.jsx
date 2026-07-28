@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useEffect, useState } from "react";
 import Header from "../Layout/Header";
 import Footer from "../Layout/Footer";
@@ -5,6 +6,8 @@ import notificationService from "../../../services/notificationService";
 import "./ProfilePage.css";
 
 function getInitials(name) {
+  const { t } = useTranslation();
+
   if (!name) return "U";
   return name
     .split(" ")
@@ -39,7 +42,7 @@ export default function ProfilePage({
           prev.map((n) => (n.notiId === item.notiId ? { ...n, isRead: true } : n))
         );
       } catch (err) {
-        console.error("Lỗi khi đánh dấu đã đọc:", err);
+        console.error(t('profilepage.error_when_marking_read'), err);
       }
     }
   };
@@ -58,7 +61,7 @@ export default function ProfilePage({
           setLoading(false);
         })
         .catch((err) => {
-          console.error("Lỗi khi lấy thông báo:", err);
+          console.error(t('profilepage.error_while_getting_notification'), err);
           setLoading(false);
         });
     }

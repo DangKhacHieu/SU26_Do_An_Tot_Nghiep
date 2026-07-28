@@ -1,8 +1,12 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
+import { getAuthHeaders } from '../../utils/authHeaders';
 import readProblemDetail from '../../utils/readProblemDetail';
 import './MeterDetail.css';
 
 export default function MeterDetail({ meterId, baseUrl, onBack }) {
+  const { t, i18n } = useTranslation();
+
   const [meter, setMeter] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -12,9 +16,9 @@ export default function MeterDetail({ meterId, baseUrl, onBack }) {
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch(`${baseUrl}/api/meters/${meterId}`);
+        const response = await fetch(`${baseUrl}/api/meters/${meterId}`, { headers: getAuthHeaders() });
         if (!response.ok) {
-          throw new Error(await readProblemDetail(response, 'Unable to load meter details.'));
+          throw new Error(await readProblemDetail(response, t('meterdetail.unable_to_load_meter')));
         }
         const data = await response.json();
         setMeter(data);
@@ -29,20 +33,21 @@ export default function MeterDetail({ meterId, baseUrl, onBack }) {
   }, [meterId, baseUrl]);
 
   const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString('en-US', {
+    if (!dateString) return t('meterdetail.na');
+    const locale = i18n?.language?.startsWith('vi') ? 'vi-VN' : 'en-US';
+    return new Date(dateString).toLocaleDateString(locale, {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
     });
   };
 
-  if (loading) return <div className="loading-state">Loading meter details...</div>;
+  if (loading) return <div className="loading-state">{t('meterdetail.loading_meter_details')}</div>;
 
   if (error) return (
     <div className="error-state">
       <p className="error-message">Error: {error}</p>
-      <button className="btn-secondary" onClick={onBack}>Back to History</button>
+      <button className="btn-secondary" onClick={onBack}>{t('meterdetail.back_to_history')}</button>
     </div>
   );
 
@@ -50,7 +55,7 @@ export default function MeterDetail({ meterId, baseUrl, onBack }) {
 
   return (
     <div className="violation-details-container">
-      <div className="details-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+      <div className="details-header" style={{ display: 'flex', justifyContent: t('meterdetail.spacebetween'), alignItems: t('meterdetail.center'), marginBottom: '20px' }}>
         <h2 style={{ fontSize: '18px', fontWeight: '700', margin: 0, color: 'var(--text-main)' }}>METER DETAILS: {meter.serialNumber}</h2>
         <button className="btn-secondary-outline" onClick={onBack}>
           &larr; Back to History
@@ -60,39 +65,39 @@ export default function MeterDetail({ meterId, baseUrl, onBack }) {
       <div className="details-card">
         <div className="details-info-section" style={{ width: '100%' }}>
           <div className="info-block">
-            <span className="info-label">SERIAL NUMBER</span>
+            <span className="info-label">{t('meterdetail.serial_number')}</span>
             <span className="info-value stall-code-highlight">{meter.serialNumber}</span>
           </div>
 
           <div className="info-block">
-            <span className="info-label">METER TYPE</span>
+            <span className="info-label">{t('meterdetail.meter_type')}</span>
             <span className="info-value">
               {meter.type === 'Electricity' ? '⚡ Electricity Meter' : '💧 Water Meter'}
             </span>
           </div>
 
           <div className="info-block">
-            <span className="info-label">STALL CODE / LOCATION</span>
+            <span className="info-label">{t('meterdetail.stall_code_location')}</span>
             <span className="info-value">{meter.stallCode || `Stall ID: ${meter.stallId}`}</span>
           </div>
 
           <div className="info-block">
-            <span className="info-label">INSTALLED DATE</span>
+            <span className="info-label">{t('meterdetail.installed_date')}</span>
             <span className="info-value">{formatDate(meter.installedAt)}</span>
           </div>
 
           <div className="info-block">
-            <span className="info-label">STATUS</span>
+            <span className="info-label">{t('meterdetail.status')}</span>
             <div className="status-container">
-              <span className={`status-badge-large ${meter.isActive ? 'approved' : 'rejected'}`}>
-                [STATUS: {meter.isActive ? 'ACTIVE' : 'INACTIVE / REPLACED'}]
+              <span className={`status-badge-large ${meter.isActive ? t('meterdetail.approved') : t('meterdetail.rejected')}`}>
+                [STATUS: {meter.isActive ? t('meterdetail.active') : t('meterdetail.inactive_replaced')}]
               </span>
             </div>
           </div>
 
           {meter.lastReadingValue !== null && meter.lastReadingValue !== undefined && (
             <div className="info-block" style={{ marginTop: '20px', borderTop: '1px dashed #ccc', paddingTop: '15px' }}>
-              <span className="info-label">LATEST RECORDED VALUE</span>
+              <span className="info-label">{t('meterdetail.latest_recorded_value')}</span>
               <span className="info-value" style={{ fontSize: '1.4rem', fontWeight: 'bold' }}>
                 {meter.lastReadingValue}
               </span>
@@ -101,12 +106,12 @@ export default function MeterDetail({ meterId, baseUrl, onBack }) {
 
           {meter.lastReadingImageUrl && (
             <div className="info-block" style={{ marginTop: '20px', borderTop: '1px dashed #ccc', paddingTop: '15px' }}>
-              <span className="info-label">LATEST READING EVIDENCE PHOTO</span>
+              <span className="info-label">{t('meterdetail.latest_reading_evidence_photo')}</span>
               <div className="meter-evidence-photo-container" style={{ marginTop: '10px' }}>
                 <img 
                   src={meter.lastReadingImageUrl} 
-                  alt="Latest Meter Reading Evidence" 
-                  style={{ maxWidth: '100%', maxHeight: '320px', borderRadius: '8px', border: '1px solid #cbd5e1', display: 'block', objectFit: 'contain' }} 
+                  alt={t('meterdetail.latest_meter_reading_evidence')} 
+                  style={{ maxWidth: '100%', maxHeight: '320px', borderRadius: '8px', border: '1px solid #cbd5e1', display: 'block', objectFit: t('meterdetail.contain') }} 
                 />
               </div>
             </div>

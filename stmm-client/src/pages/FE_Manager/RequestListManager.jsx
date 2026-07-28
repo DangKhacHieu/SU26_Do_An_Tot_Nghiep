@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import './RequestListManager.css';
 
@@ -55,6 +56,8 @@ const IconFilter = () => (
 );
 
 export default function RequestListManager({ baseUrl, navigate, addToast }) {
+  const { t } = useTranslation();
+
   const [requests, setRequests] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -112,7 +115,7 @@ export default function RequestListManager({ baseUrl, navigate, addToast }) {
             ref={searchRef}
             className="rl-search-input"
             type="text"
-            placeholder="Tìm theo tiêu đề, sạp, tiểu thương..."
+            placeholder={t('requestlistmanager.search_by_title_stall')}
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
           />
@@ -125,7 +128,7 @@ export default function RequestListManager({ baseUrl, navigate, addToast }) {
           <div className="rl-select-wrap">
             <IconFilter />
             <select className="rl-select" value={typeFilter} onChange={e => setTypeFilter(e.target.value)}>
-              <option value="">Tất cả loại</option>
+              <option value="">{t('requestlistmanager.all_types')}</option>
               {Object.entries(TYPE_META).map(([k,v]) => <option key={k} value={k}>{v.label}</option>)}
             </select>
           </div>
@@ -133,7 +136,7 @@ export default function RequestListManager({ baseUrl, navigate, addToast }) {
           <div className="rl-select-wrap">
             <IconFilter />
             <select className="rl-select" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
-              <option value="">Tất cả trạng thái</option>
+              <option value="">{t('requestlistmanager.all_status')}</option>
               {Object.entries(STATUS_META).map(([k,v]) => <option key={k} value={k}>{v.label}</option>)}
             </select>
           </div>
@@ -148,17 +151,16 @@ export default function RequestListManager({ baseUrl, navigate, addToast }) {
       {loading ? (
         <div className="rl-loading">
           <div className="rl-spinner" />
-          <span>Đang tải dữ liệu...</span>
+          <span>{t('requestlistmanager.loading_data')}</span>
         </div>
       ) : requests.length === 0 ? (
         <div className="rl-empty">
           <div className="rl-empty-icon"><IconInbox /></div>
-          <h3>Không có yêu cầu nào</h3>
-          <p>{hasFilters ? 'Không có kết quả phù hợp với bộ lọc hiện tại.' : 'Chưa có yêu cầu nào được gửi lên hệ thống.'}</p>
+          <h3>{t('requestlistmanager.there_are_no_requirements')}</h3>
+          <p>{hasFilters ? t('requestlistmanager.there_are_no_matches') : t('requestlistmanager.no_requests_have_been')}</p>
           {hasFilters && (
             <button className="rl-clear-filters" onClick={() => { setSearchQuery(''); setStatusFilter(''); setTypeFilter(''); }}>
-              Xóa bộ lọc
-            </button>
+              {t('requestlistmanager.clear_filter')}</button>
           )}
         </div>
       ) : (
@@ -167,13 +169,13 @@ export default function RequestListManager({ baseUrl, navigate, addToast }) {
             <table className="rl-table">
               <thead>
                 <tr>
-                  <th>Mã YC</th>
-                  <th>Sạp</th>
-                  <th>Tiểu thương</th>
-                  <th>Loại yêu cầu</th>
-                  <th>Tiêu đề</th>
-                  <th>Ngày tạo</th>
-                  <th>Trạng thái</th>
+                  <th>{t('requestlistmanager.code_yc')}</th>
+                  <th>{t('requestlistmanager.stall')}</th>
+                  <th>{t('requestlistmanager.small_business')}</th>
+                  <th>{t('requestlistmanager.request_type')}</th>
+                  <th>{t('requestlistmanager.title')}</th>
+                  <th>{t('requestlistmanager.creation_date')}</th>
+                  <th>{t('requestlistmanager.status')}</th>
                   <th style={{textAlign:'center'}}>Xem</th>
                 </tr>
               </thead>
@@ -218,7 +220,7 @@ export default function RequestListManager({ baseUrl, navigate, addToast }) {
                         <button
                           className="rl-view-btn"
                           onClick={e => { e.stopPropagation(); navigate('request-detail', item.requestId); }}
-                          title="Xem chi tiết"
+                          title={t('requestlistmanager.see_details')}
                         >
                           <IconEye />
                         </button>
@@ -233,8 +235,7 @@ export default function RequestListManager({ baseUrl, navigate, addToast }) {
           {/* ── Pagination ── */}
           <div className="rl-pagination">
             <button className="rl-page-btn" onClick={() => setPage(p => Math.max(p-1, 1))} disabled={page === 1}>
-              <IconChevronLeft /> Trước
-            </button>
+              <IconChevronLeft /> {t('requestlistmanager.before')}</button>
             <div className="rl-page-nums">
               {Array.from({ length: totalPages }, (_, i) => i + 1)
                 .filter(n => n === 1 || n === totalPages || Math.abs(n - page) <= 1)

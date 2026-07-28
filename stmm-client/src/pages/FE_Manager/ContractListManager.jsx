@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from "react";
 import "./ContractListManager.css";
 
@@ -10,6 +11,8 @@ const IconEmpty = () => <svg width="48" height="48" viewBox="0 0 24 24" fill="no
 const IconChevron = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>;
 
 export default function ContractListManager({ navigate, addToast }) {
+  const { t } = useTranslation();
+
   const [contracts, setContracts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -47,11 +50,11 @@ export default function ContractListManager({ navigate, addToast }) {
   const renderStatusBadge = (status) => {
     switch (status) {
       case "Active":
-        return <span className="status-badge status-active">Hoạt động</span>;
+        return <span className="status-badge status-active">{t('contractlistmanager.work')}</span>;
       case "Expired":
-        return <span className="status-badge status-expired">Hết hạn</span>;
+        return <span className="status-badge status-expired">{t('contractlistmanager.expired')}</span>;
       case "Terminated":
-        return <span className="status-badge status-terminated">Đã chấm dứt</span>;
+        return <span className="status-badge status-terminated">{t('contractlistmanager.terminated')}</span>;
       default:
         return <span className="status-badge">{status}</span>;
     }
@@ -63,11 +66,9 @@ export default function ContractListManager({ navigate, addToast }) {
       <div className="info-banner">
         <div className="info-banner-icon">📋</div>
         <div className="info-banner-content">
-          <h4>Quy trình quản lý hợp đồng</h4>
+          <h4>{t('contractlistmanager.contract_management_process')}</h4>
           <p>
-            Tạo hợp đồng thuê mới sẽ tự động chuyển sạp hàng sang trạng thái <strong>Đang thuê (Rented)</strong>.
-            Khi thực hiện gia hạn (Renew), hợp đồng hiện tại sẽ chuyển sang trạng thái <strong>Hết hạn (Expired)</strong> và một hợp đồng mới được tạo ra.
-            Chấm dứt hợp đồng (Terminate) sẽ đưa sạp hàng về trạng thái <strong>Trống (Available)</strong>.
+            {t('contractlistmanager.creating_a_new_lease')}<strong>{t('contractlistmanager.rented')}</strong>{t('contractlistmanager.when_renewing_the_current')}<strong>{t('contractlistmanager.expired')}</strong> {t('contractlistmanager.and_a_new_contract')}<strong>{t('contractlistmanager.available')}</strong>.
           </p>
         </div>
       </div>
@@ -79,7 +80,7 @@ export default function ContractListManager({ navigate, addToast }) {
             <span className="search-icon"><IconSearch /></span>
             <input
               type="text"
-              placeholder="Tìm theo số sạp, tên tiểu thương..."
+              placeholder={t('contractlistmanager.search_by_stall_number')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -90,17 +91,16 @@ export default function ContractListManager({ navigate, addToast }) {
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
             >
-              <option value="">Tất cả trạng thái</option>
-              <option value="Active">Hoạt động (Active)</option>
-              <option value="Expired">Hết hạn (Expired)</option>
-              <option value="Terminated">Đã chấm dứt (Terminated)</option>
+              <option value="">{t('contractlistmanager.all_status')}</option>
+              <option value="Active">{t('contractlistmanager.active')}</option>
+              <option value="Expired">{t('contractlistmanager.expired')}</option>
+              <option value="Terminated">{t('contractlistmanager.terminated')}</option>
             </select>
           </div>
         </div>
 
         <button className="btn-add-contract" onClick={() => navigate("contract-form")}>
-          <IconPlus /> Ký Hợp Đồng Mới
-        </button>
+          <IconPlus /> {t('contractlistmanager.sign_a_new_contract')}</button>
       </div>
 
       {/* Data Table */}
@@ -108,26 +108,26 @@ export default function ContractListManager({ navigate, addToast }) {
         {loading ? (
           <div className="table-loading">
             <div className="loading-spinner"></div>
-            <span>Đang tải dữ liệu...</span>
+            <span>{t('contractlistmanager.loading_data')}</span>
           </div>
         ) : contracts.length === 0 ? (
           <div className="table-empty">
             <IconEmpty />
-            <p>Không tìm thấy hợp đồng nào phù hợp.</p>
+            <p>{t('contractlistmanager.no_suitable_contracts_were')}</p>
           </div>
         ) : (
           <table className="glass-table">
             <thead>
               <tr>
-                <th>Mã HĐ</th>
-                <th>Sạp hàng</th>
-                <th>Khu vực</th>
-                <th>Tiểu thương</th>
-                <th>Thời hạn thuê</th>
-                <th>Giá thuê / tháng</th>
-                <th>Đặt cọc</th>
-                <th>Trạng thái</th>
-                <th className="actions-header">Thao tác</th>
+                <th>{t('contractlistmanager.hd_code')}</th>
+                <th>{t('contractlistmanager.shop')}</th>
+                <th>{t('contractlistmanager.area')}</th>
+                <th>{t('contractlistmanager.small_business')}</th>
+                <th>{t('contractlistmanager.rental_term')}</th>
+                <th>{t('contractlistmanager.rental_pricemonth')}</th>
+                <th>{t('contractlistmanager.deposit')}</th>
+                <th>{t('contractlistmanager.status')}</th>
+                <th className="actions-header">{t('contractlistmanager.operation')}</th>
               </tr>
             </thead>
             <tbody>
@@ -145,7 +145,7 @@ export default function ContractListManager({ navigate, addToast }) {
                   <td>
                     <div className="date-cell">
                       <span>{c.startDate}</span>
-                      <span className="date-separator">đến</span>
+                      <span className="date-separator">{t('contractlistmanager.arrive')}</span>
                       <span>{c.endDate}</span>
                     </div>
                   </td>
@@ -157,7 +157,7 @@ export default function ContractListManager({ navigate, addToast }) {
                       className="btn-view-detail"
                       onClick={() => navigate("contract-detail", c.contractId)}
                     >
-                      Chi tiết <IconChevron />
+                      {t('contractlistmanager.detail')}<IconChevron />
                     </button>
                   </td>
                 </tr>

@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="0" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="ID Chợ không hợp lệ." xml:space="preserve">
+    <value>Invalid Market ID.</value>
+  </data>
+  <data name="Tên khu vực không được để trống." xml:space="preserve">
+    <value>Area name cannot be empty.</value>
+  </data>
+  <data name="Diện tích khu vực phải lớn hơn 0." xml:space="preserve">
+    <value>Area size must be greater than 0.</value>
+  </data>
+  <data name="Tên khu vực này đã tồn tại trong chợ. Vui lòng chọn tên khác." xml:space="preserve">
+    <value>This area name already exists in the market. Please choose another name.</value>
+  </data>
+  <data name="ID Khu vực không hợp lệ." xml:space="preserve">
+    <value>Invalid Area ID.</value>
+  </data>
+  <data name="Khu vực không tồn tại." xml:space="preserve">
+    <value>Area does not exist.</value>
+  </data>
+  <data name="Không thể xóa khu vực vì có sạp đang có hợp đồng hiệu lực (có người thuê)." xml:space="preserve">
+    <value>Cannot delete the area because there are stalls with active contracts (occupied).</value>
+  </data>
+  <data name="Yêu cầu đăng nhập không được để trống" xml:space="preserve">
+    <value>Login request cannot be empty.</value>
+  </data>
+  <data name="Email hoặc mật khẩu không chính xác" xml:space="preserve">
+    <value>Incorrect email or password.</value>
+  </data>
+  <data name="Tài khoản chưa được xác thực email. Vui lòng xác thực trước khi đăng nhập." xml:space="preserve">
+    <value>Email has not been verified. Please verify it before logging in.</value>
+  </data>
+  <data name="Tài khoản đã bị khóa hoặc tạm dừng" xml:space="preserve">
+    <value>Account has been locked or suspended.</value>
+  </data>
+  <data name="Email đã được sử dụng" xml:space="preserve">
+    <value>Email is already in use.</value>
+  </data>
+  <data name="Số điện thoại đã được sử dụng" xml:space="preserve">
+    <value>Phone number is already in use.</value>
+  </data>
+  <data name="CCCD đã được sử dụng" xml:space="preserve">
+    <value>National ID is already in use.</value>
+  </data>
+  <data name="Mã xác thực đã hết hạn hoặc thông tin đăng ký không còn hiệu lực. Vui lòng đăng ký lại." xml:space="preserve">
+    <value>Verification code has expired or registration info is no longer valid. Please register again.</value>
+  </data>
+  <data name="Mã xác thực không chính xác" xml:space="preserve">
+    <value>Incorrect verification code.</value>
+  </data>
+  <data name="Mã xác thực đã hết hạn. Vui lòng gửi lại mã mới." xml:space="preserve">
+    <value>Verification code has expired. Please request a new one.</value>
+  </data>
+  <data name="Email đã được đăng ký và xác thực bởi tài khoản khác." xml:space="preserve">
+    <value>Email is already registered and verified by another account.</value>
+  </data>
+  <data name="Số điện thoại đã được đăng ký bởi tài khoản khác." xml:space="preserve">
+    <value>Phone number is already registered by another account.</value>
+  </data>
+  <data name="CCCD đã được đăng ký bởi tài khoản khác." xml:space="preserve">
+    <value>National ID is already registered by another account.</value>
+  </data>
+  <data name="Phiên đăng ký không tồn tại hoặc đã hết hạn. Vui lòng thực hiện đăng ký lại." xml:space="preserve">
+    <value>Registration session does not exist or has expired. Please register again.</value>
+  </data>
+  <data name="Email không tồn tại trong hệ thống" xml:space="preserve">
+    <value>Email does not exist in the system.</value>
+  </data>
+  <data name="Tài khoản không tồn tại" xml:space="preserve">
+    <value>Account does not exist.</value>
+  </data>
+  <data name="Token không hợp lệ" xml:space="preserve">
+    <value>Invalid token.</value>
+  </data>
+  <data name="Tài khoản không hợp lệ" xml:space="preserve">
+    <value>Invalid account.</value>
+  </data>
+  <data name="Refresh token không hợp lệ" xml:space="preserve">
+    <value>Invalid refresh token.</value>
+  </data>
+  <data name="Token Google không hợp lệ" xml:space="preserve">
+    <value>Invalid Google token.</value>
+  </data>
+  <data name="Xác thực Token Google thất bại" xml:space="preserve">
+    <value>Google token verification failed.</value>
+  </data>
+</root>

@@ -1,8 +1,10 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { showSuccess, showError, showWarning } from '../../../utils/alert';
 
-const VendorRequestCreate = ({ onBack, onSuccess, prefillViolationId, prefillInvoiceId, prefillStallId }) => {
+export default function VendorRequestCreate({ onBack, onSuccess, prefillViolationId, prefillInvoiceId, prefillStallId }) {
+  const { t } = useTranslation();
     const [stalls, setStalls] = useState([]);
     const [loadingStalls, setLoadingStalls] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -10,7 +12,11 @@ const VendorRequestCreate = ({ onBack, onSuccess, prefillViolationId, prefillInv
     // Form state
     const [stallId, setStallId] = useState(prefillStallId || '');
     const [requestType, setRequestType] = useState(prefillViolationId ? 'ViolationAppeal' : (prefillInvoiceId ? 'InvoiceDispute' : 'FacilityIssue'));
-    const [title, setTitle] = useState(prefillViolationId ? `Kháng nghị vi phạm #${prefillViolationId}` : '');
+    const [title, setTitle] = useState(
+      prefillViolationId 
+        ? t('vendorrequestcreate.violation_appeal_title', { id: prefillViolationId }) 
+        : (prefillInvoiceId ? t('vendorrequestcreate.invoice_dispute_title', { id: prefillInvoiceId }) : '')
+    );
     const [description, setDescription] = useState('');
     const [violationId, setViolationId] = useState(prefillViolationId || '');
     const [invoiceId, setInvoiceId] = useState(prefillInvoiceId || '');
@@ -21,24 +27,24 @@ const VendorRequestCreate = ({ onBack, onSuccess, prefillViolationId, prefillInv
 
     const getViolationStatusText = (status) => {
         switch (status) {
-            case 'Pending': return 'Chờ duyệt';
-            case 'Notified': return 'Chưa khiếu nại (Đã thông báo)';
-            case 'Appealed': return 'Đang kháng nghị';
-            case 'Approved': return 'Kháng nghị thành công';
-            case 'Rejected': return 'Kháng nghị bị từ chối';
-            case 'Finalized': return 'Đã chốt phạt';
-            default: return status || 'Chưa khiếu nại';
+            case 'Pending': return t('vendorrequestcreate.waiting_for_approval');
+            case 'Notified': return t('vendorrequestcreate.no_complaints_yet_notified');
+            case 'Appealed': return t('vendorrequestcreate.appealing');
+            case 'Approved': return t('vendorrequestcreate.appeal_successful');
+            case 'Rejected': return t('vendorrequestcreate.appeal_denied');
+            case 'Finalized': return t('vendorrequestcreate.penalty_fixed');
+            default: return status || t('vendorrequestcreate.no_complaints_yet');
         }
     };
 
     // Helper to translate invoice status
     const getInvoiceStatusText = (status) => {
         switch (status) {
-            case 'Paid': return 'Đã thanh toán';
-            case 'Overdue': return 'Quá hạn';
+            case 'Paid': return t('vendorrequestcreate.paid');
+            case 'Overdue': return t('vendorrequestcreate.overdue');
             case 'Pending':
-            case 'Unpaid': return 'Chưa thanh toán';
-            default: return status || 'Chưa thanh toán';
+            case 'Unpaid': return t('vendorrequestcreate.not_yet_paid');
+            default: return status || t('vendorrequestcreate.not_yet_paid');
         }
     };
 
@@ -73,7 +79,7 @@ const VendorRequestCreate = ({ onBack, onSuccess, prefillViolationId, prefillInv
                 }
 
             } catch (err) {
-                console.error('Lỗi khi tải dữ liệu khởi tạo:', err);
+                console.error(t('vendorrequestcreate.error_loading_initialization_data'), err);
             } finally {
                 setLoadingStalls(false);
             }
@@ -85,7 +91,7 @@ const VendorRequestCreate = ({ onBack, onSuccess, prefillViolationId, prefillInv
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!stallId) {
-            showWarning('Thiếu thông tin', 'Vui lòng chọn sạp.');
+            showWarning(t('vendorrequestcreate.missing_information'), t('vendorrequestcreate.vui_lng_chn_sp'));
             return;
         }
 
@@ -105,12 +111,12 @@ const VendorRequestCreate = ({ onBack, onSuccess, prefillViolationId, prefillInv
                 headers: { Authorization: `Bearer ${token}` }
             });
 
-            await showSuccess('Thành công', 'Gửi yêu cầu thành công!');
+            await showSuccess(t('vendorrequestcreate.success'), t('vendorrequestcreate.request_sent_successfully'));
             onSuccess();
         } catch (err) {
-            console.error('Lỗi khi gửi yêu cầu:', err);
-            const msg = err.response?.data?.message || 'Có lỗi xảy ra khi gửi yêu cầu.';
-            showError('Thất bại', msg);
+            console.error(t('vendorrequestcreate.error_sending_request'), err);
+            const msg = err.response?.data?.message || t('vendorrequestcreate.an_error_occurred_while');
+            showError(t('vendorrequestcreate.failure'), msg);
         } finally {
             setIsSubmitting(false);
         }
@@ -125,18 +131,18 @@ const VendorRequestCreate = ({ onBack, onSuccess, prefillViolationId, prefillInv
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
                 </button>
                 <div>
-                    <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 'bold' }}>Tạo Yêu Cầu Hỗ Trợ</h2>
-                    <span style={{ color: '#888', fontSize: '13px' }}>Điền thông tin bên dưới để gửi yêu cầu đến Ban Quản Lý</span>
+                    <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 'bold' }}>{t('vendorrequestcreate.create_a_support_request')}</h2>
+                    <span style={{ color: '#888', fontSize: '13px' }}>{t('vendorrequestcreate.fill_in_the_information')}</span>
                 </div>
             </div>
 
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                 <div>
-                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', marginBottom: '8px' }}>Chọn Sạp</label>
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', marginBottom: '8px' }}>{t('vendorrequestcreate.select_shop')}</label>
                     {loadingStalls ? (
-                        <div style={{ padding: '10px', background: '#f9fafb', borderRadius: '6px', color: '#888' }}>Đang tải danh sách sạp...</div>
+                        <div style={{ padding: '10px', background: '#f9fafb', borderRadius: '6px', color: '#888' }}>{t('vendorrequestcreate.loading_stall_list')}</div>
                     ) : stalls.length === 0 ? (
-                        <div style={{ padding: '10px', background: '#fee2e2', borderRadius: '6px', color: '#991b1b' }}>Bạn không có hợp đồng sạp hợp lệ nào để tạo yêu cầu.</div>
+                        <div style={{ padding: '10px', background: '#fee2e2', borderRadius: '6px', color: '#991b1b' }}>{t('vendorrequestcreate.you_do_not_have')}</div>
                     ) : (
                         <select 
                             value={stallId} 
@@ -153,7 +159,7 @@ const VendorRequestCreate = ({ onBack, onSuccess, prefillViolationId, prefillInv
                 </div>
 
                 <div>
-                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', marginBottom: '8px' }}>Loại Yêu Cầu</label>
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', marginBottom: '8px' }}>{t('vendorrequestcreate.request_type')}</label>
                     <select 
                         value={requestType} 
                         onChange={(e) => setRequestType(e.target.value)}
@@ -161,9 +167,9 @@ const VendorRequestCreate = ({ onBack, onSuccess, prefillViolationId, prefillInv
                         disabled={!!prefillViolationId || !!prefillInvoiceId}
                         style={{ width: '100%', padding: '12px', border: '1px solid #e5e7eb', borderRadius: '6px', outline: 'none', background: (prefillViolationId || prefillInvoiceId) ? '#f9fafb' : 'white', cursor: (prefillViolationId || prefillInvoiceId) ? 'not-allowed' : 'auto' }}>
                         
-                        <option value="FacilityIssue">Sự cố hạ tầng chung (Facility Issue)</option>
-                        <option value="ViolationAppeal">Kháng nghị vi phạm (Violation Appeal)</option>
-                        <option value="InvoiceDispute">Khiếu nại hóa đơn (Invoice Dispute)</option>
+                        <option value="FacilityIssue">{t('vendorrequestcreate.general_infrastructure_issue_facility')}</option>
+                        <option value="ViolationAppeal">{t('vendorrequestcreate.violation_appeal')}</option>
+                        <option value="InvoiceDispute">{t('vendorrequestcreate.invoice_dispute')}</option>
                     </select>
                 </div>
 
@@ -171,16 +177,16 @@ const VendorRequestCreate = ({ onBack, onSuccess, prefillViolationId, prefillInv
                     const eligibleViolations = violations.filter(v => !['Appealed', 'Approved', 'Rejected', 'Finalized'].includes(v.status));
                     return (
                         <div>
-                            <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', marginBottom: '8px' }}>Chọn Biên Bản Vi Phạm</label>
+                            <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', marginBottom: '8px' }}>{t('vendorrequestcreate.select_violation_record')}</label>
                             {eligibleViolations.length === 0 ? (
-                                <div style={{ padding: '10px', background: '#fee2e2', borderRadius: '6px', color: '#991b1b', fontSize: '13px' }}>Bạn hiện không có biên bản vi phạm nào để khiếu nại.</div>
+                                <div style={{ padding: '10px', background: '#fee2e2', borderRadius: '6px', color: '#991b1b', fontSize: '13px' }}>{t('vendorrequestcreate.you_currently_do_not')}</div>
                             ) : (
                                 <select 
                                     value={violationId} 
                                     onChange={(e) => setViolationId(e.target.value)} 
                                     required
                                     style={{ width: '100%', padding: '12px', border: '1px solid #e5e7eb', borderRadius: '6px', outline: 'none' }}>
-                                    <option value="" disabled>-- Hãy chọn biên bản cần khiếu nại --</option>
+                                    <option value="" disabled>{t('vendorrequestcreate.please_select_the_record')}</option>
                                     {eligibleViolations.map(v => (
                                         <option key={v.violationId} value={v.violationId}>
                                             [{getViolationStatusText(v.status)}] Biên bản: {v.title} (Sạp {v.stallCode})
@@ -200,16 +206,16 @@ const VendorRequestCreate = ({ onBack, onSuccess, prefillViolationId, prefillInv
 
                 {requestType === 'InvoiceDispute' && !prefillInvoiceId && (
                     <div>
-                        <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', marginBottom: '8px' }}>Chọn Hóa Đơn</label>
+                        <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', marginBottom: '8px' }}>{t('vendorrequestcreate.select_invoice')}</label>
                         {invoices.length === 0 ? (
-                            <div style={{ padding: '10px', background: '#fee2e2', borderRadius: '6px', color: '#991b1b', fontSize: '13px' }}>Bạn hiện không có hóa đơn nào để khiếu nại.</div>
+                            <div style={{ padding: '10px', background: '#fee2e2', borderRadius: '6px', color: '#991b1b', fontSize: '13px' }}>{t('vendorrequestcreate.you_currently_have_no')}</div>
                         ) : (
                             <select 
                                 value={invoiceId} 
                                 onChange={(e) => setInvoiceId(e.target.value)} 
                                 required
                                 style={{ width: '100%', padding: '12px', border: '1px solid #e5e7eb', borderRadius: '6px', outline: 'none' }}>
-                                <option value="" disabled>-- Hãy chọn hóa đơn cần khiếu nại --</option>
+                                <option value="" disabled>{t('vendorrequestcreate.please_select_the_invoice')}</option>
                                 {invoices.map(inv => {
                                     return (
                                         <option key={inv.invoiceId} value={inv.invoiceId}>
@@ -229,24 +235,24 @@ const VendorRequestCreate = ({ onBack, onSuccess, prefillViolationId, prefillInv
                 )}
 
                 <div>
-                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', marginBottom: '8px' }}>Tiêu đề yêu cầu</label>
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', marginBottom: '8px' }}>{t('vendorrequestcreate.request_title')}</label>
                     <input 
                         type="text" 
                         value={title} 
                         onChange={(e) => setTitle(e.target.value)} 
                         required
-                        placeholder="VD: Bóng đèn khu A102 bị cháy..." 
+                        placeholder={t('vendorrequestcreate.for_example_the_light')} 
                         style={{ width: '100%', padding: '12px', border: '1px solid #e5e7eb', borderRadius: '6px', outline: 'none' }} />
                 </div>
 
                 <div>
-                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', marginBottom: '8px' }}>Mô tả chi tiết</label>
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', marginBottom: '8px' }}>{t('vendorrequestcreate.detailed_description')}</label>
                     <textarea 
                         value={description} 
                         onChange={(e) => setDescription(e.target.value)} 
                         required
                         rows="5"
-                        placeholder="Mô tả cụ thể vấn đề bạn đang gặp phải..." 
+                        placeholder={t('vendorrequestcreate.describe_specifically_the_problem')} 
                         style={{ width: '100%', padding: '12px', border: '1px solid #e5e7eb', borderRadius: '6px', outline: 'none', resize: 'vertical' }} />
                 </div>
 
@@ -256,18 +262,16 @@ const VendorRequestCreate = ({ onBack, onSuccess, prefillViolationId, prefillInv
                         onClick={onBack}
                         disabled={isSubmitting}
                         style={{ background: 'transparent', border: '1px solid #ccc', padding: '12px 24px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>
-                        Hủy
+                        {t('vendorrequestcreate.cancel')}
                     </button>
                     <button 
                         type="submit" 
                         disabled={isSubmitting || stalls.length === 0}
                         style={{ background: isSubmitting || stalls.length === 0 ? '#9ca3af' : '#000', color: '#fff', border: 'none', padding: '12px 32px', borderRadius: '6px', fontWeight: 'bold', cursor: isSubmitting || stalls.length === 0 ? 'not-allowed' : 'pointer' }}>
-                        {isSubmitting ? 'Đang gửi...' : 'Gửi Yêu Cầu'}
+                        {isSubmitting ? t('vendorrequestcreate.sending') : t('vendorrequestcreate.send_request')}
                     </button>
                 </div>
             </form>
         </div>
     );
 };
-
-export default VendorRequestCreate;

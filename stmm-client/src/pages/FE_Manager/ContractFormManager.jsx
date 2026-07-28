@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from "react";
 import "./ContractFormManager.css";
 
@@ -7,6 +8,8 @@ const API_CONTRACTS = "http://localhost:5056/api/manager/contracts";
 
 
 export default function ContractFormManager({ navigate, addToast }) {
+  const { t } = useTranslation();
+
   const [stalls, setStalls] = useState([]);
   const [vendors, setVendors] = useState([]);
   const [loadingDropdowns, setLoadingDropdowns] = useState(true);
@@ -83,20 +86,20 @@ export default function ContractFormManager({ navigate, addToast }) {
 
   const validateForm = () => {
     const newErrors = {};
-    if (!formData.stallId) newErrors.stallId = "Vui lòng chọn sạp hàng.";
-    if (!formData.userId) newErrors.userId = "Vui lòng chọn tiểu thương.";
-    if (!formData.startDate) newErrors.startDate = "Vui lòng chọn ngày bắt đầu.";
-    if (!formData.endDate) newErrors.endDate = "Vui lòng chọn ngày kết thúc.";
+    if (!formData.stallId) newErrors.stallId = t('contractformmanager.please_select_a_stall');
+    if (!formData.userId) newErrors.userId = t('contractformmanager.please_choose_a_merchant');
+    if (!formData.startDate) newErrors.startDate = t('contractformmanager.please_select_a_start');
+    if (!formData.endDate) newErrors.endDate = t('contractformmanager.please_select_an_end');
     if (formData.startDate && formData.endDate) {
       if (new Date(formData.startDate) >= new Date(formData.endDate)) {
-        newErrors.endDate = "Ngày kết thúc phải sau ngày bắt đầu.";
+        newErrors.endDate = t('contractformmanager.the_end_date_must');
       }
     }
     if (!formData.rentFee || parseFloat(formData.rentFee) < 0) {
-      newErrors.rentFee = "Giá thuê không hợp lệ.";
+      newErrors.rentFee = t('contractformmanager.invalid_rental_price');
     }
     if (!formData.deposit || parseFloat(formData.deposit) < 0) {
-      newErrors.deposit = "Tiền đặt cọc không hợp lệ.";
+      newErrors.deposit = t('contractformmanager.invalid_deposit');
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -136,7 +139,7 @@ export default function ContractFormManager({ navigate, addToast }) {
         // Navigate to the details page of the newly created contract
         navigate("contract-detail", data.contractId);
       } else {
-        addToast(data.message || "Không thể ký hợp đồng.", "error");
+        addToast(data.message || t('contractformmanager.cannot_sign_contract'), "error");
       }
     } catch {
       addToast("Lỗi kết nối máy chủ.", "error");
@@ -149,14 +152,14 @@ export default function ContractFormManager({ navigate, addToast }) {
     <div className="contract-form-container animate-fade-in">
       <div className="form-card">
         <div className="form-card-header">
-          <h2>Ký Hợp Đồng Thuê Ki-ốt</h2>
-          <p>Nhập thông tin thuê mặt bằng kinh doanh cho tiểu thương trong hệ thống.</p>
+          <h2>{t('contractformmanager.sign_kiosk_rental_contract')}</h2>
+          <p>{t('contractformmanager.enter_business_space_rental')}</p>
         </div>
 
         {loadingDropdowns ? (
           <div className="form-loading">
             <div className="loading-spinner"></div>
-            <span>Đang tải thông tin biểu mẫu...</span>
+            <span>{t('contractformmanager.loading_form_information')}</span>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="glass-form">
@@ -164,13 +167,13 @@ export default function ContractFormManager({ navigate, addToast }) {
               
               {/* Stall selection */}
               <div className="form-group full-width">
-                <label>Sạp hàng còn trống (Available Stalls)</label>
+                <label>{t('contractformmanager.available_stalls')}</label>
                 <select
                   value={formData.stallId}
                   onChange={(e) => handleStallChange(e.target.value)}
                   className={errors.stallId ? "input-error" : ""}
                 >
-                  <option value="">-- Chọn sạp hàng trống --</option>
+                  <option value="">{t('contractformmanager.select_an_empty_stall')}</option>
                   {stalls.map((s) => (
                     <option key={s.stallId} value={s.stallId}>
                       {s.code} - Khu vực: {s.areaName} ({s.size} m²) - {s.categoryName}
@@ -182,16 +185,16 @@ export default function ContractFormManager({ navigate, addToast }) {
 
               {/* Vendor selection */}
               <div className="form-group full-width">
-                <label>Tiểu thương (Vendor Accounts)</label>
+                <label>{t('contractformmanager.vendor_accounts')}</label>
                 <select
                   value={formData.userId}
                   onChange={(e) => handleVendorChange(e.target.value)}
                   className={errors.userId ? "input-error" : ""}
                 >
-                  <option value="">-- Chọn tài khoản tiểu thương --</option>
+                  <option value="">{t('contractformmanager.select_merchant_account')}</option>
                   {vendors.map((v) => (
                     <option key={v.userId} value={v.userId}>
-                      {v.name} ({v.phone}) - {v.businessName || "Chưa tạo cơ sở KD"} - CCCD: {v.cccd}
+                      {v.name} ({v.phone}) - {v.businessName || t('contractformmanager.havent_created_a_business')} - CCCD: {v.cccd}
                     </option>
                   ))}
                 </select>
@@ -200,40 +203,40 @@ export default function ContractFormManager({ navigate, addToast }) {
 
               {/* Optional Vendor Business Info */}
               <div className="form-group">
-                <label>Tên Cơ sở Kinh doanh (Không bắt buộc)</label>
+                <label>{t('contractformmanager.business_name_optional')}</label>
                 <input
                   type="text"
-                  placeholder="Ví dụ: Cửa hàng Tiện lợi Gia Đình"
+                  placeholder={t('contractformmanager.for_example_family_convenience')}
                   value={formData.businessName}
                   onChange={(e) => setFormData({ ...formData, businessName: e.target.value })}
                 />
               </div>
 
               <div className="form-group">
-                <label>Mã số thuế Bên B (Không bắt buộc)</label>
+                <label>{t('contractformmanager.party_bs_tax_code')}</label>
                 <input
                   type="text"
-                  placeholder="Nhập mã số thuế"
+                  placeholder={t('contractformmanager.enter_tax_code')}
                   value={formData.taxCode}
                   onChange={(e) => setFormData({ ...formData, taxCode: e.target.value })}
                 />
               </div>
 
               <div className="form-group">
-                <label>Số tài khoản ngân hàng Bên B (Không bắt buộc)</label>
+                <label>{t('contractformmanager.party_bs_bank_account')}</label>
                 <input
                   type="text"
-                  placeholder="Nhập số tài khoản ngân hàng"
+                  placeholder={t('contractformmanager.enter_the_bank_account')}
                   value={formData.bankAccount}
                   onChange={(e) => setFormData({ ...formData, bankAccount: e.target.value })}
                 />
               </div>
 
               <div className="form-group">
-                <label>Tên Ngân hàng Bên B (Không bắt buộc)</label>
+                <label>{t('contractformmanager.party_bs_bank_name')}</label>
                 <input
                   type="text"
-                  placeholder="Nhập tên ngân hàng và chi nhánh"
+                  placeholder={t('contractformmanager.enter_the_bank_and')}
                   value={formData.bankName}
                   onChange={(e) => setFormData({ ...formData, bankName: e.target.value })}
                 />
@@ -241,7 +244,7 @@ export default function ContractFormManager({ navigate, addToast }) {
 
               {/* Start Date */}
               <div className="form-group">
-                <label>Ngày bắt đầu hợp đồng</label>
+                <label>{t('contractformmanager.contract_start_date')}</label>
                 <input
                   type="date"
                   value={formData.startDate}
@@ -253,7 +256,7 @@ export default function ContractFormManager({ navigate, addToast }) {
 
               {/* End Date */}
               <div className="form-group">
-                <label>Ngày kết thúc hợp đồng</label>
+                <label>{t('contractformmanager.contract_end_date')}</label>
                 <input
                   type="date"
                   value={formData.endDate}
@@ -265,10 +268,10 @@ export default function ContractFormManager({ navigate, addToast }) {
 
               {/* Rent Fee */}
               <div className="form-group">
-                <label>Giá thuê mỗi tháng (VND)</label>
+                <label>{t('contractformmanager.rental_price_per_month')}</label>
                 <input
                   type="number"
-                  placeholder="Ví dụ: 3000000"
+                  placeholder={t('contractformmanager.for_example_3000000')}
                   value={formData.rentFee}
                   onChange={(e) => setFormData({ ...formData, rentFee: e.target.value })}
                   className={errors.rentFee ? "input-error" : ""}
@@ -278,10 +281,10 @@ export default function ContractFormManager({ navigate, addToast }) {
 
               {/* Deposit */}
               <div className="form-group">
-                <label>Tiền đặt cọc thế chân (VND)</label>
+                <label>{t('contractformmanager.security_deposit_vnd')}</label>
                 <input
                   type="number"
-                  placeholder="Ví dụ: 9000000"
+                  placeholder={t('contractformmanager.for_example_9000000')}
                   value={formData.deposit}
                   onChange={(e) => setFormData({ ...formData, deposit: e.target.value })}
                   className={errors.deposit ? "input-error" : ""}
@@ -298,8 +301,7 @@ export default function ContractFormManager({ navigate, addToast }) {
                 onClick={() => navigate("contracts")}
                 disabled={submitLoading}
               >
-                Hủy bỏ
-              </button>
+                {t('contractformmanager.cancel')}</button>
               <button
                 type="submit"
                 className="btn-submit"
@@ -307,10 +309,9 @@ export default function ContractFormManager({ navigate, addToast }) {
               >
                 {submitLoading ? (
                   <>
-                    <span className="spinner-small"></span> Đang xử lý...
-                  </>
+                    <span className="spinner-small"></span> {t('contractformmanager.processing')}</>
                 ) : (
-                  "Ký hợp đồng"
+                  t('contractformmanager.sign_the_contract')
                 )}
               </button>
             </div>

@@ -1,9 +1,12 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { showError } from '../../../utils/alert';
 import VendorRequestCreate from '../VendorRequests/VendorRequestCreate';
 
-const VendorViolationDetail = ({ violationId, onBack, onSuccess }) => {
+export default function VendorViolationDetail({ violationId, onBack, onSuccess }) {
+  const { t } = useTranslation();
+
     const [violation, setViolation] = useState(null);
     const [loading, setLoading] = useState(true);
     const [isAppealing, setIsAppealing] = useState(false);
@@ -17,8 +20,8 @@ const VendorViolationDetail = ({ violationId, onBack, onSuccess }) => {
                 });
                 setViolation(response.data);
             } catch (err) {
-                console.error('Lỗi khi tải chi tiết biên bản:', err);
-                showError('Thất bại', 'Không thể tải chi tiết biên bản vi phạm.');
+                console.error(t('vendorviolationdetail.error_when_loading_minutes'), err);
+                showError(t('vendorviolationdetail.failure'), t('vendorviolationdetail.unable_to_download_details'));
                 onBack();
             } finally {
                 setLoading(false);
@@ -32,12 +35,12 @@ const VendorViolationDetail = ({ violationId, onBack, onSuccess }) => {
 
     const getStatusBadge = (status) => {
         switch(status) {
-            case 'Pending': return <span style={{ background: '#fef3c7', color: '#92400e', padding: '6px 12px', borderRadius: '20px', fontWeight: 'bold', fontSize: '13px' }}>Chờ duyệt</span>;
-            case 'Notified': return <span style={{ background: '#dbeafe', color: '#1e40af', padding: '6px 12px', borderRadius: '20px', fontWeight: 'bold', fontSize: '13px' }}>Đã thông báo</span>;
-            case 'Appealed': return <span style={{ background: '#fce7f3', color: '#9d174d', padding: '6px 12px', borderRadius: '20px', fontWeight: 'bold', fontSize: '13px' }}>Đang kháng nghị</span>;
-            case 'Approved': return <span style={{ background: '#d1fae5', color: '#065f46', padding: '6px 12px', borderRadius: '20px', fontWeight: 'bold', fontSize: '13px' }}>Kháng nghị thành công</span>;
-            case 'Rejected': return <span style={{ background: '#fee2e2', color: '#991b1b', padding: '6px 12px', borderRadius: '20px', fontWeight: 'bold', fontSize: '13px' }}>Kháng nghị thất bại</span>;
-            case 'Finalized': return <span style={{ background: '#dcfce3', color: '#166534', padding: '6px 12px', borderRadius: '20px', fontWeight: 'bold', fontSize: '13px' }}>Đã chốt phạt</span>;
+            case 'Pending': return <span style={{ background: '#fef3c7', color: '#92400e', padding: '6px 12px', borderRadius: '20px', fontWeight: 'bold', fontSize: '13px' }}>{t('vendorviolationdetail.waiting_for_approval')}</span>;
+            case 'Notified': return <span style={{ background: '#dbeafe', color: '#1e40af', padding: '6px 12px', borderRadius: '20px', fontWeight: 'bold', fontSize: '13px' }}>{t('vendorviolationdetail.notified')}</span>;
+            case 'Appealed': return <span style={{ background: '#fce7f3', color: '#9d174d', padding: '6px 12px', borderRadius: '20px', fontWeight: 'bold', fontSize: '13px' }}>{t('vendorviolationdetail.appealing')}</span>;
+            case 'Approved': return <span style={{ background: '#d1fae5', color: '#065f46', padding: '6px 12px', borderRadius: '20px', fontWeight: 'bold', fontSize: '13px' }}>{t('vendorviolationdetail.appeal_successful')}</span>;
+            case 'Rejected': return <span style={{ background: '#fee2e2', color: '#991b1b', padding: '6px 12px', borderRadius: '20px', fontWeight: 'bold', fontSize: '13px' }}>{t('vendorviolationdetail.the_appeal_failed')}</span>;
+            case 'Finalized': return <span style={{ background: '#dcfce3', color: '#166534', padding: '6px 12px', borderRadius: '20px', fontWeight: 'bold', fontSize: '13px' }}>{t('vendorviolationdetail.penalty_fixed')}</span>;
             default: return <span style={{ background: '#f3f4f6', color: '#374151', padding: '6px 12px', borderRadius: '20px', fontWeight: 'bold', fontSize: '13px' }}>{status}</span>;
         }
     };
@@ -52,7 +55,7 @@ const VendorViolationDetail = ({ violationId, onBack, onSuccess }) => {
     }
 
     if (loading || !violation) {
-        return <div style={{ padding: '32px', textAlign: 'center', color: '#888' }}>Đang tải chi tiết...</div>;
+        return <div style={{ padding: '32px', textAlign: 'center', color: '#888' }}>{t('vendorviolationdetail.loading_details')}</div>;
     }
 
     return (
@@ -67,7 +70,7 @@ const VendorViolationDetail = ({ violationId, onBack, onSuccess }) => {
                     </button>
                     <div>
                         <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 'bold' }}>Chi Tiết Vi Phạm #{violation.violationId}</h2>
-                        <span style={{ color: '#888', fontSize: '13px' }}>Lập ngày {new Date(violation.createdAt).toLocaleDateString('vi-VN')} lúc {new Date(violation.createdAt).toLocaleTimeString('vi-VN')}</span>
+                        <span style={{ color: '#888', fontSize: '13px' }}>{t('vendorviolationdetail.created_at_time', { date: new Date(violation.createdAt).toLocaleDateString('vi-VN'), time: new Date(violation.createdAt).toLocaleTimeString('vi-VN') })}</span>
                     </div>
                 </div>
                 {getStatusBadge(violation.status)}
@@ -77,19 +80,19 @@ const VendorViolationDetail = ({ violationId, onBack, onSuccess }) => {
             <div style={{ border: '1px solid #e5e7eb', borderRadius: '8px', padding: '24px', marginBottom: '24px' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
                     <div>
-                        <label style={{ display: 'block', fontSize: '12px', color: '#888', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '4px' }}>Sạp Vi Phạm</label>
+                        <label style={{ display: 'block', fontSize: '12px', color: '#888', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '4px' }}>{t('vendorviolationdetail.violation_booth')}</label>
                         <div style={{ fontSize: '14px', fontWeight: '500' }}>{violation.stallCode}</div>
                     </div>
                     <div>
-                        <label style={{ display: 'block', fontSize: '12px', color: '#888', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '4px' }}>Loại Vi Phạm</label>
+                        <label style={{ display: 'block', fontSize: '12px', color: '#888', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '4px' }}>{t('vendorviolationdetail.type_of_violation')}</label>
                         <div style={{ fontSize: '14px', fontWeight: '500' }}>{violation.violationTypeName || 'N/A'}</div>
                     </div>
                     <div>
-                        <label style={{ display: 'block', fontSize: '12px', color: '#888', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '4px' }}>Nhân Viên Lập Biên Bản</label>
+                        <label style={{ display: 'block', fontSize: '12px', color: '#888', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '4px' }}>{t('vendorviolationdetail.record_keeping_staff')}</label>
                         <div style={{ fontSize: '14px', fontWeight: '500' }}>{violation.createdByName}</div>
                     </div>
                     <div>
-                        <label style={{ display: 'block', fontSize: '12px', color: '#888', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '4px' }}>Số Tiền Phạt</label>
+                        <label style={{ display: 'block', fontSize: '12px', color: '#888', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '4px' }}>{t('vendorviolationdetail.amount_of_fine')}</label>
                         <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#991b1b' }}>
                             {violation.fineAmount ? `${violation.fineAmount.toLocaleString('vi-VN')} VNĐ` : '0 VNĐ'}
                         </div>
@@ -97,12 +100,12 @@ const VendorViolationDetail = ({ violationId, onBack, onSuccess }) => {
                 </div>
 
                 <div style={{ marginBottom: '20px' }}>
-                    <label style={{ display: 'block', fontSize: '12px', color: '#888', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '8px' }}>Tiêu đề vi phạm</label>
+                    <label style={{ display: 'block', fontSize: '12px', color: '#888', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '8px' }}>{t('vendorviolationdetail.offending_title')}</label>
                     <div style={{ fontSize: '15px', fontWeight: '600', background: '#f9fafb', padding: '12px', borderRadius: '6px' }}>{violation.title}</div>
                 </div>
 
                 <div style={{ marginBottom: '20px' }}>
-                    <label style={{ display: 'block', fontSize: '12px', color: '#888', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '8px' }}>Mô tả chi tiết</label>
+                    <label style={{ display: 'block', fontSize: '12px', color: '#888', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '8px' }}>{t('vendorviolationdetail.detailed_description')}</label>
                     <div style={{ fontSize: '14px', lineHeight: '1.6', background: '#f9fafb', padding: '16px', borderRadius: '6px', whiteSpace: 'pre-wrap' }}>
                         {violation.description}
                     </div>
@@ -110,9 +113,9 @@ const VendorViolationDetail = ({ violationId, onBack, onSuccess }) => {
 
                 {violation.imageUrl && (
                     <div>
-                        <label style={{ display: 'block', fontSize: '12px', color: '#888', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '8px' }}>Hình Ảnh Minh Chứng</label>
+                        <label style={{ display: 'block', fontSize: '12px', color: '#888', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '8px' }}>{t('vendorviolationdetail.photo_evidence')}</label>
                         <div style={{ borderRadius: '8px', overflow: 'hidden', border: '1px solid #e5e7eb', display: 'inline-block' }}>
-                            <img src={violation.imageUrl} alt="Minh chứng vi phạm" style={{ maxWidth: '100%', maxHeight: '400px', display: 'block' }} />
+                            <img src={violation.imageUrl} alt={t('vendorviolationdetail.evidence_of_violation')} style={{ maxWidth: '100%', maxHeight: '400px', display: 'block' }} />
                         </div>
                     </div>
                 )}
@@ -124,12 +127,10 @@ const VendorViolationDetail = ({ violationId, onBack, onSuccess }) => {
                     <button 
                         onClick={() => setIsAppealing(true)}
                         style={{ background: '#000', color: '#fff', border: 'none', padding: '12px 24px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', transition: 'background 0.2s' }}>
-                        Kháng Nghị Biên Bản Này
+                        {t('vendorviolationdetail.protest_this_minutes')}
                     </button>
                 </div>
             )}
         </div>
     );
 };
-
-export default VendorViolationDetail;

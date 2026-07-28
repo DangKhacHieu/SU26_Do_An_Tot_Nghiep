@@ -1,0 +1,64 @@
+.language-switcher {
+  display: inline-flex;
+  align-items: center;
+  background-color: var(--color-bg-secondary, #f3f4f6);
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: 20px;
+  padding: 2px;
+  gap: 2px;
+}
+
+.language-switcher .lang-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  border-radius: 18px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-secondary, #6b7280);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.language-switcher .lang-btn:hover {
+  color: var(--color-text-primary, #111827);
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.language-switcher .lang-btn.active {
+  background-color: var(--color-bg-primary, #ffffff);
+  color: var(--color-primary, #2563eb);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.language-switcher .flag {
+  font-size: 14px;
+}
+
+/* Dark mode overrides */
+.dark .language-switcher,
+[data-theme='dark'] .language-switcher {
+  background-color: #374151;
+  border-color: #4b5563;
+}
+
+.dark .language-switcher .lang-btn,
+[data-theme='dark'] .language-switcher .lang-btn {
+  color: #9ca3af;
+}
+
+.dark .language-switcher .lang-btn:hover,
+[data-theme='dark'] .language-switcher .lang-btn:hover {
+  color: #f3f4f6;
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.dark .language-switcher .lang-btn.active,
+[data-theme='dark'] .language-switcher .lang-btn.active {
+  background-color: #1f2937;
+  color: #3b82f6;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}

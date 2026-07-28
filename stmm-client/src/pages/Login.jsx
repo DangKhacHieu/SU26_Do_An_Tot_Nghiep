@@ -1,5 +1,7 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import LanguageSwitcher from '../components/layout/LanguageSwitcher';
 import {
   Building2,
   Mail,
@@ -20,6 +22,8 @@ const MOCK_ACCOUNTS = [
 ];
 
 export default function Login() {
+  const { t } = useTranslation();
+
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -37,7 +41,7 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!email.trim() || !password.trim()) {
-      setError('Vui lòng nhập đầy đủ email và mật khẩu.');
+      setError(t('login.please_enter_full_email'));
       return;
     }
 
@@ -54,7 +58,7 @@ export default function Login() {
 
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.message || 'Email hoặc mật khẩu không chính xác.');
+        throw new Error(errData.message || t('login.email_or_password_is'));
       }
 
       const data = await res.json();
@@ -69,8 +73,8 @@ export default function Login() {
         avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=200'
       }));
 
-      const userName = data.user?.name || 'bạn';
-      setSuccess(`Xin chào, ${userName}! Đang chuyển hướng...`);
+      const userName = data.user?.name || t('login.friend');
+      setSuccess(t('login.hello_username_changing_direction'));
       const redirectPath = data.redirectUrl || '/dashboard';
       setTimeout(() => navigate(redirectPath), 1000);
 
@@ -93,10 +97,10 @@ export default function Login() {
           token: mockToken,
           avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=200'
         }));
-        setSuccess(`Xin chào, ${matched.name}! (Chế độ thử nghiệm)`);
+        setSuccess(t('login.hello_matchedname_test_mode'));
         setTimeout(() => navigate('/dashboard'), 1000);
       } else {
-        setError(err.message || 'Email hoặc mật khẩu không chính xác.');
+        setError(err.message || t('login.email_or_password_is'));
       }
     } finally {
       setLoading(false);
@@ -157,7 +161,7 @@ export default function Login() {
             </div>
             <div>
               <div style={{ fontSize: 17, fontWeight: 800, color: 'white', letterSpacing: '-0.03em' }}>STMM Portal</div>
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', marginTop: 1 }}>Hệ thống Quản lý Chợ</div>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', marginTop: 1 }}>{t('login.market_management_system')}</div>
             </div>
           </div>
 
@@ -182,16 +186,15 @@ export default function Login() {
               letterSpacing: '-0.04em', lineHeight: 1.1,
               marginBottom: 16
             }}>
-              Quản lý tài chính<br />
-              <span style={{ color: '#93c5fd' }}>thông minh</span>
+              {t('login.financial_management')}<br />
+              <span style={{ color: '#93c5fd' }}>{t('login.smart')}</span>
             </h1>
 
             <p style={{
               fontSize: 15, color: 'rgba(255,255,255,0.65)',
               lineHeight: 1.65, maxWidth: 340
             }}>
-              Hệ thống kế toán tập trung dành cho Ban Quản Lý Chợ STMM — theo dõi doanh thu, hóa đơn và vi phạm theo thời gian thực.
-            </p>
+              {t('login.centralized_accounting_system_for')}</p>
           </div>
         </div>
 
@@ -202,9 +205,9 @@ export default function Login() {
             gap: 14
           }}>
             {[
-              { value: '250+', label: 'Kiosk đang hoạt động' },
-              { value: '98.5%', label: 'Tỷ lệ thu phí đúng hạn' },
-              { value: '24/7', label: 'Giám sát liên tục' }
+              { value: '250+', label: t('login.kiosk_is_working') },
+              { value: '98.5%', label: t('login.ontime_fee_collection_rate') },
+              { value: '24/7', label: t('login.continuous_monitoring') }
             ].map((s, i) => (
               <div key={i} style={{
                 background: 'rgba(255,255,255,0.08)',
@@ -230,6 +233,11 @@ export default function Login() {
         background: 'var(--bg-surface)'
       }}>
         <div style={{ width: '100%', maxWidth: 420 }}>
+          {/* Language Switcher - top right */}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 24 }}>
+            <LanguageSwitcher />
+          </div>
+
           {/* Form Header */}
           <div style={{ marginBottom: 36 }}>
             <h2 style={{
@@ -238,11 +246,9 @@ export default function Login() {
               letterSpacing: '-0.04em',
               marginBottom: 8
             }}>
-              Đăng nhập hệ thống
-            </h2>
+              {t('login.login_to_the_system')}</h2>
             <p style={{ fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.5 }}>
-              Vui lòng xác thực danh tính bằng tài khoản nội bộ của bạn.
-            </p>
+              {t('login.please_authenticate_your_identity')}</p>
           </div>
 
           {/* Alert Messages */}
@@ -283,8 +289,7 @@ export default function Login() {
                 display: 'block', fontSize: 13, fontWeight: 600,
                 color: 'var(--text-main)', marginBottom: 7
               }}>
-                Email công tác
-              </label>
+                {t('login.work_email')}</label>
               <div style={{ position: 'relative' }}>
                 <Mail size={15} style={{
                   position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)',
@@ -322,8 +327,7 @@ export default function Login() {
                 display: 'block', fontSize: 13, fontWeight: 600,
                 color: 'var(--text-main)', marginBottom: 7
               }}>
-                Mật khẩu
-              </label>
+                {t('login.password')}</label>
               <div style={{ position: 'relative' }}>
                 <Lock size={15} style={{
                   position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)',
@@ -395,11 +399,11 @@ export default function Login() {
               {loading ? (
                 <>
                   <Loader2 size={17} style={{ animation: 'spin 0.8s linear infinite' }} />
-                  <span>Đang xác thực...</span>
+                  <span>{t('login.verifying')}</span>
                 </>
               ) : (
                 <>
-                  <span>Đăng nhập</span>
+                  <span>{t('login.log_in')}</span>
                   <ArrowRight size={17} />
                 </>
               )}
@@ -413,8 +417,7 @@ export default function Login() {
           }}>
             <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
             <span style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 500, whiteSpace: 'nowrap' }}>
-              Tài khoản thử nghiệm
-            </span>
+              {t('login.test_account')}</span>
             <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
           </div>
 
@@ -460,7 +463,7 @@ export default function Login() {
                   border: `1px solid ${acc.roleName === 'Admin' ? 'var(--danger-border)' : 'var(--primary-border)'}`,
                   flexShrink: 0
                 }}>
-                  {acc.roleName === 'Accountant' ? 'Kế toán' : 'Admin'}
+                  {acc.roleName === 'Accountant' ? t('login.accountant') : 'Admin'}
                 </span>
               </button>
             ))}
@@ -472,8 +475,7 @@ export default function Login() {
             marginTop: 32, lineHeight: 1.5
           }}>
             © 2026 STMM Market Management System.<br />
-            Mọi quyền được bảo lưu.
-          </p>
+            {t('login.all_rights_reserved')}</p>
         </div>
       </div>
 

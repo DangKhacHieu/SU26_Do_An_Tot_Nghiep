@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import './SidebarManager.css';
 
 /**
@@ -77,11 +78,7 @@ const IconBell = () => (
 );
 
 // ─── Navigation structure ─────────────────────────────────────────────────────
-// Mỗi group có label và danh sách items.
-// Mỗi item: { key, label, icon, childKeys? }
-//   - key       : page name dùng để navigate
-//   - childKeys : các page con cũng được tính là active khi mở
-const NAV_GROUPS = [
+const getNavGroups = (t) => [
   {
     label: 'Tổng quan',
     items: [
@@ -121,7 +118,7 @@ const NAV_GROUPS = [
       {
         key: 'market-areas',
         label: 'Quản lý Mặt bằng',
-        icon: <IconGrid />, // Using IconGrid for Market Areas
+        icon: <IconGrid />,
         childKeys: [],
       },
       {
@@ -144,7 +141,7 @@ const NAV_GROUPS = [
       },
       {
         key: 'tasks',
-        label: 'Tasks Management',
+        label: 'Quản lý công việc',
         icon: <IconContent />,
         childKeys: ['task-details'],
       },
@@ -179,6 +176,9 @@ const NAV_GROUPS = [
 
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function SidebarManager({ currentPage, navigate, user, onLogout }) {
+  const { t } = useTranslation();
+  const NAV_GROUPS = getNavGroups(t);
+
   const isActive = (item) =>
     item.key === currentPage ||
     (item.childKeys && item.childKeys.includes(currentPage));
@@ -218,7 +218,7 @@ export default function SidebarManager({ currentPage, navigate, user, onLogout }
         <div 
           className={`user-profile-summary ${currentPage === 'manager-profile' ? 'active' : ''}`}
           onClick={() => navigate('manager-profile')}
-          title="Xem hồ sơ cá nhân"
+          title={t('sidebarmanager.view_personal_profile')}
           style={{ 
             display: 'flex', 
             alignItems: 'center', 
@@ -245,7 +245,7 @@ export default function SidebarManager({ currentPage, navigate, user, onLogout }
           </div>
           <div className="user-info">
             <span className="user-name">{user?.name || 'Manager'}</span>
-            <span className="user-role">{user?.roleName || 'Quản trị viên'}</span>
+            <span className="user-role">{user?.roleName || t('sidebarmanager.administrator')}</span>
           </div>
         </div>
         {onLogout && (
@@ -255,7 +255,7 @@ export default function SidebarManager({ currentPage, navigate, user, onLogout }
               onLogout();
             }}
             className="logout-icon-btn"
-            title="Đăng xuất"
+            title={t('sidebarmanager.sign_out')}
             style={{
               background: 'none',
               border: 'none',

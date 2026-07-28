@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect } from 'react';
 import { vendorInvoiceApi } from '../../../services/vendorInvoiceApi';
 import VendorRequestCreate from '../VendorRequests/VendorRequestCreate';
@@ -9,6 +10,8 @@ import { paymentApi } from '../../../services/paymentApi';
 import './VendorBillsList.css';
 
 export default function VendorBillsList({ vendorId, stallId }) {
+  const { t } = useTranslation();
+
     const [invoices, setInvoices] = useState([]);
     const [loading, setLoading] = useState(false);
 
@@ -58,8 +61,8 @@ export default function VendorBillsList({ vendorId, stallId }) {
                 setTotalCount((data || []).length);
             }
         } catch (err) {
-            console.error('Lỗi khi tải hóa đơn:', err);
-            showError('Thất bại', 'Đã xảy ra lỗi khi tải danh sách hóa đơn.');
+            console.error(t('vendorbillslist.error_loading_invoice'), err);
+            showError(t('vendorbillslist.failure'), t('vendorbillslist.an_error_occurred_while'));
         } finally {
             setLoading(false);
         }
@@ -81,7 +84,7 @@ export default function VendorBillsList({ vendorId, stallId }) {
                 window.location.href = payUrl; // Chuyển hướng sang MoMo
             }
         } catch (err) {
-            console.error('Lỗi khởi tạo thanh toán MoMo:', err);
+            console.error(t('vendorbillslist.error_initiating_momo_payment'), err);
             const errorMsg = err.response?.data?.message || err.message;
             alert('Đã xảy ra lỗi khi tạo yêu cầu thanh toán MoMo: ' + errorMsg);
         } finally {
@@ -96,11 +99,11 @@ export default function VendorBillsList({ vendorId, stallId }) {
     const getStatusBadge = (status) => {
         switch (status?.toLowerCase()) {
             case 'paid':
-                return <span className="bill-badge badge-success">Đã thanh toán</span>;
+                return <span className="bill-badge badge-success">{t('vendorbillslist.paid')}</span>;
             case 'unpaid':
-                return <span className="bill-badge badge-warning">Chưa thanh toán</span>;
+                return <span className="bill-badge badge-warning">{t('vendorbillslist.not_yet_paid')}</span>;
             case 'overdue':
-                return <span className="bill-badge badge-danger">Quá hạn</span>;
+                return <span className="bill-badge badge-danger">{t('vendorbillslist.overdue')}</span>;
             default:
                 return <span className="bill-badge badge-secondary">{status}</span>;
         }
@@ -118,44 +121,44 @@ export default function VendorBillsList({ vendorId, stallId }) {
     return (
         <div className="vendor-bills-container fade-in">
             <div className="bills-header">
-                <h2>Hóa đơn tiện ích</h2>
-                <p>Xem danh sách hóa đơn tiện ích hàng tháng.</p>
+                <h2>{t('vendorbillslist.utility_bills')}</h2>
+                <p>{t('vendorbillslist.view_a_list_of')}</p>
             </div>
 
             <div className="bills-filters">
                 <div className="filter-group">
-                    <label>Tháng</label>
+                    <label>{t('vendorbillslist.month')}</label>
                     <select value={month} onChange={(e) => setMonth(e.target.value)}>
-                        <option value="">Tất cả</option>
+                        <option value="">{t('vendorbillslist.all')}</option>
                         {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
                             <option key={m} value={m}>Tháng {m}</option>
                         ))}
                     </select>
                 </div>
                 <div className="filter-group">
-                    <label>Năm</label>
+                    <label>{t('vendorbillslist.year')}</label>
                     <select value={year} onChange={(e) => setYear(e.target.value)}>
-                        <option value="">Tất cả</option>
+                        <option value="">{t('vendorbillslist.all')}</option>
                         {years.map(y => (
                             <option key={y} value={y}>{y}</option>
                         ))}
                     </select>
                 </div>
                 <button className="btn-search" onClick={handleSearch} disabled={loading}>
-                    {loading ? 'Đang tìm...' : 'Tìm kiếm'}
+                    {loading ? t('vendorbillslist.looking_for') : t('vendorbillslist.search')}
                 </button>
             </div>
 
             <div className="bills-content">
                 {loading ? (
-                    <div className="loading-state">Đang tải dữ liệu...</div>
+                    <div className="loading-state">{t('vendorbillslist.loading_data')}</div>
                 ) : invoices.length === 0 ? (
                     <div className="empty-state">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                             <rect x="2" y="4" width="20" height="16" rx="2" />
                             <line x1="2" y1="10" x2="22" y2="10" />
                         </svg>
-                        <p>Không có hóa đơn nào cho thời gian đã chọn.</p>
+                        <p>{t('vendorbillslist.there_are_no_invoices')}</p>
                     </div>
                 ) : (
                     <div className="table-responsive">
@@ -163,11 +166,11 @@ export default function VendorBillsList({ vendorId, stallId }) {
                             <thead>
                                 <tr>
                                     <th>STT</th>
-                                    <th>Kỳ thu (Month/Year)</th>
-                                    <th>Tổng tiền (VNĐ)</th>
-                                    <th>Hạn chót (Due Date)</th>
-                                    <th>Trạng thái (Status)</th>
-                                    <th style={{ textAlign: 'center' }}>Thao tác</th>
+                                    <th>{t('vendorbillslist.fall_semester_monthyear')}</th>
+                                    <th>{t('vendorbillslist.total_amount_vnd')}</th>
+                                    <th>{t('vendorbillslist.due_date')}</th>
+                                    <th>{t('vendorbillslist.trng_thi_status')}</th>
+                                    <th style={{ textAlign: 'center' }}>{t('vendorbillslist.operation')}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -182,17 +185,17 @@ export default function VendorBillsList({ vendorId, stallId }) {
                                             <button 
                                                 className="btn-view"
                                                 onClick={() => setSelectedInvoice(inv)}
-                                                title="Xem chi tiết hóa đơn"
+                                                title={t('vendorbillslist.view_invoice_details')}
                                             >
-                                                Xem chi tiết
+                                                {t('vendorbillslist.see_details')}
                                             </button>
                                             <button 
                                                 className={`btn-pay ${inv.status?.toLowerCase() === 'paid' ? 'disabled' : ''}`}
                                                 disabled={inv.status?.toLowerCase() === 'paid'}
                                                 onClick={() => setSelectedInvoice(inv)}
-                                                title={inv.status?.toLowerCase() === 'paid' ? 'Hóa đơn đã thanh toán' : 'Thanh toán trực tuyến'}
+                                                title={inv.status?.toLowerCase() === 'paid' ? t('vendorbillslist.invoice_paid') : t('vendorbillslist.online_payment')}
                                             >
-                                                Thanh toán
+                                                {t('vendorbillslist.pay')}
                                             </button>
                                         </td>
                                     </tr>
@@ -210,7 +213,7 @@ export default function VendorBillsList({ vendorId, stallId }) {
                             disabled={pageNumber <= 1}
                             onClick={() => setPageNumber(prev => Math.max(1, prev - 1))}
                         >
-                            Trang trước
+                            {t('vendorbillslist.previous_page')}
                         </button>
                         <span style={{ fontSize: '14px', color: '#475569' }}>Trang {pageNumber} / {totalPages}</span>
                         <button 
@@ -234,19 +237,19 @@ export default function VendorBillsList({ vendorId, stallId }) {
                         </div>
                         <div className="bill-modal-body">
                             <div className="bill-info-grid">
-                                <div><strong>Mã sạp:</strong> {selectedInvoice.stallCode}</div>
-                                <div><strong>Hạn chót:</strong> {selectedInvoice.dueDate || '-'}</div>
-                                <div><strong>Trạng thái:</strong> {getStatusBadge(selectedInvoice.status)}</div>
+                                <div><strong>{t('vendorbillslist.store_code')}</strong> {selectedInvoice.stallCode}</div>
+                                <div><strong>{t('vendorbillslist.deadline')}</strong> {selectedInvoice.dueDate || '-'}</div>
+                                <div><strong>{t('vendorbillslist.status')}</strong> {getStatusBadge(selectedInvoice.status)}</div>
                             </div>
                             
-                            <h4 style={{ marginTop: '20px', marginBottom: '12px', color: '#334155' }}>Các khoản thu</h4>
+                            <h4 style={{ marginTop: '20px', marginBottom: '12px', color: '#334155' }}>{t('vendorbillslist.revenues')}</h4>
                             <table className="bills-details-table">
                                 <thead>
                                     <tr>
-                                        <th>Loại phí</th>
-                                        <th>Mô tả</th>
-                                        <th style={{ textAlign: 'right' }}>Chỉ số / Số lượng</th>
-                                        <th style={{ textAlign: 'right' }}>Thành tiền</th>
+                                        <th>{t('vendorbillslist.fee_type')}</th>
+                                        <th>{t('vendorbillslist.describe')}</th>
+                                        <th style={{ textAlign: 'right' }}>{t('vendorbillslist.index_quantity')}</th>
+                                        <th style={{ textAlign: 'right' }}>{t('vendorbillslist.make_money')}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -285,17 +288,17 @@ export default function VendorBillsList({ vendorId, stallId }) {
                                         className="btn-pay-momo" 
                                         style={{ backgroundColor: '#a50064', color: 'white', padding: '8px 16px', borderRadius: '4px', border: 'none', cursor: 'pointer' }}
                                         onClick={() => handlePayment(selectedInvoice.invoiceId, 'captureWallet')}>
-                                        Quét mã QR MoMo
+                                        {t('vendorbillslist.scan_the_momo_qr')}
                                     </button>
                                     <button 
                                         className="btn-pay-atm" 
                                         style={{ backgroundColor: '#334155', color: 'white', padding: '8px 16px', borderRadius: '4px', border: 'none', cursor: 'pointer' }}
                                         onClick={() => handlePayment(selectedInvoice.invoiceId, 'payWithATM')}>
-                                        Thanh toán Thẻ ATM
+                                        {t('vendorbillslist.atm_card_payment')}
                                     </button>
                                 </div>
                             )}
-                            <button className="btn-cancel" onClick={() => setSelectedInvoice(null)}>Đóng</button>
+                            <button className="btn-cancel" onClick={() => setSelectedInvoice(null)}>{t('vendorbillslist.close')}</button>
                         </div>
                     </div>
                 </div>

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useEffect, useMemo, useState } from "react";
 import { getStaffMarketMap } from "../../services/marketApi";
 import { TASK_STATUS, TASK_TYPE } from "../../constants/taskEnums";
@@ -5,6 +6,8 @@ import readProblemDetail from "../../utils/readProblemDetail";
 import "./TaskMapView.css";
 
 export default function TaskMapView({ baseUrl, onBack, onViewDetails }) {
+  const { t } = useTranslation();
+
   const MAP_SCALE = 0.65;
   const [marketMap, setMarketMap] = useState(null);
   const [tasks, setTasks] = useState([]);
@@ -17,7 +20,7 @@ export default function TaskMapView({ baseUrl, onBack, onViewDetails }) {
 
   useEffect(() => {
     const originalTitle = document.title;
-    document.title = "STMM - Staff Task Map";
+    document.title = t('taskmapview.stmm_staff_task_map');
 
     let metaDesc = document.querySelector('meta[name="description"]');
     const originalDesc = metaDesc ? metaDesc.getAttribute("content") : "";
@@ -27,7 +30,7 @@ export default function TaskMapView({ baseUrl, onBack, onViewDetails }) {
       metaDesc.name = "description";
       document.head.appendChild(metaDesc);
     }
-    metaDesc.setAttribute("content", "Market layout showing active tasks assigned to the current Staff account.");
+    metaDesc.setAttribute("content", t('taskmapview.market_layout_showing_active'));
 
     return () => {
       document.title = originalTitle;
@@ -47,7 +50,7 @@ export default function TaskMapView({ baseUrl, onBack, onViewDetails }) {
         setLoading(true);
         setError("");
         
-        const token = localStorage.getItem("token");
+        const token = localStorage.getItem("accessToken") || localStorage.getItem("token");
         const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
         const [mapData, tasksResponse] = await Promise.all([
@@ -68,11 +71,11 @@ export default function TaskMapView({ baseUrl, onBack, onViewDetails }) {
           setCanvasWidth(max_x + 50);
           setCanvasHeight(max_y + 50);
         } else {
-          throw new Error("The market map is not available.");
+          throw new Error(t('taskmapview.the_market_map_is'));
         }
 
         if (!tasksResponse.ok) {
-          throw new Error(await readProblemDetail(tasksResponse, "Unable to load assigned tasks."));
+          throw new Error(await readProblemDetail(tasksResponse, t('taskmapview.unable_to_load_assigned')));
         }
         const tasksData = await tasksResponse.json();
         const assignedTasks = Array.isArray(tasksData) ? tasksData : [];
@@ -88,7 +91,7 @@ export default function TaskMapView({ baseUrl, onBack, onViewDetails }) {
           utilityTasks.map(async (task) => {
             const response = await fetch(`${baseUrl}/api/staff/tasks/${task.taskId}/stalls`, { headers });
             if (!response.ok) {
-              throw new Error(await readProblemDetail(response, "Unable to load utility task stalls."));
+              throw new Error(await readProblemDetail(response, t('taskmapview.unable_to_load_utility')));
             }
             const stalls = await response.json();
             return [task.taskId, Array.isArray(stalls) ? stalls.map((stall) => stall.stallId) : []];
@@ -97,8 +100,8 @@ export default function TaskMapView({ baseUrl, onBack, onViewDetails }) {
         setUtilityStallIdsByTask(Object.fromEntries(utilityEntries));
 
       } catch (err) {
-        console.error("Unable to load Staff task map:", err);
-        setError(err.message || "Unable to load the task map.");
+        console.error(t('taskmapview.unable_to_load_staff'), err);
+        setError(err.message || t('taskmapview.unable_to_load_the'));
       } finally {
         setLoading(false);
       }
@@ -143,12 +146,12 @@ export default function TaskMapView({ baseUrl, onBack, onViewDetails }) {
 
   const getStatusLabel = (status) => {
     switch (status) {
-      case "Available":
-        return "Available";
-      case "Rented":
-        return "Rented";
-      case "Maintenance":
-        return "Maintenance";
+      case t('taskmapview.available'):
+        return t('taskmapview.available');
+      case t('taskmapview.rented'):
+        return t('taskmapview.rented');
+      case t('taskmapview.maintenance'):
+        return t('taskmapview.maintenance');
       default:
         return status;
     }
@@ -156,11 +159,11 @@ export default function TaskMapView({ baseUrl, onBack, onViewDetails }) {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case "Available":
+      case t('taskmapview.available'):
         return "#10b981";
-      case "Rented":
+      case t('taskmapview.rented'):
         return "#3b82f6";
-      case "Maintenance":
+      case t('taskmapview.maintenance'):
         return "#f59e0b";
       default:
         return "#94a3b8";
@@ -169,37 +172,37 @@ export default function TaskMapView({ baseUrl, onBack, onViewDetails }) {
 
   const getTaskStatusLabel = (status) => {
     switch (status) {
-      case TASK_STATUS.PENDING: return "Pending";
-      case TASK_STATUS.PENDING_APPROVAL: return "Pending Approval";
-      case TASK_STATUS.IN_PROGRESS: return "In Progress";
+      case TASK_STATUS.PENDING: return t('taskmapview.pending');
+      case TASK_STATUS.PENDING_APPROVAL: return t('taskmapview.pending_approval');
+      case TASK_STATUS.IN_PROGRESS: return t('taskmapview.in_progress');
       default: return status;
     }
   };
 
   const getTaskTypeLabel = (type) => {
     switch (type) {
-      case TASK_TYPE.REPAIR: return "Repair";
-      case TASK_TYPE.MAINTENANCE: return "Maintenance";
-      case TASK_TYPE.UTILITY_READING: return "Meter Reading";
+      case TASK_TYPE.REPAIR: return t('taskmapview.repair');
+      case TASK_TYPE.MAINTENANCE: return t('taskmapview.maintenance');
+      case TASK_TYPE.UTILITY_READING: return t('taskmapview.meter_reading');
       default: return type;
     }
   };
 
   const getTaskTypeClass = (type) => {
     switch (type) {
-      case TASK_TYPE.REPAIR: return "type-repair";
-      case TASK_TYPE.MAINTENANCE: return "type-maintenance";
-      case TASK_TYPE.UTILITY_READING: return "type-utility";
-      default: return "type-default";
+      case TASK_TYPE.REPAIR: return t('taskmapview.typerepair');
+      case TASK_TYPE.MAINTENANCE: return t('taskmapview.typemaintenance');
+      case TASK_TYPE.UTILITY_READING: return t('taskmapview.typeutility');
+      default: return t('taskmapview.typedefault');
     }
   };
 
   const getTaskStatusClass = (status) => {
     switch (status) {
-      case TASK_STATUS.PENDING: return "status-pending";
-      case TASK_STATUS.PENDING_APPROVAL: return "status-approval";
-      case TASK_STATUS.IN_PROGRESS: return "status-progress";
-      default: return "status-default";
+      case TASK_STATUS.PENDING: return t('taskmapview.statuspending');
+      case TASK_STATUS.PENDING_APPROVAL: return t('taskmapview.statusapproval');
+      case TASK_STATUS.IN_PROGRESS: return t('taskmapview.statusprogress');
+      default: return t('taskmapview.statusdefault');
     }
   };
 
@@ -253,14 +256,12 @@ export default function TaskMapView({ baseUrl, onBack, onViewDetails }) {
 
       {loading ? (
         <div className="map-loading-state">
-          <span className="spinner"></span> Loading blueprint map and tasks...
-        </div>
+          <span className="spinner"></span> {t('taskmapview.loading_blueprint_map_and')}</div>
       ) : error ? (
         <div className="map-error-state">
           <p className="error-message">⚠️ Error: {error}</p>
           <button className="btn-secondary" onClick={() => window.location.reload()}>
-            Retry
-          </button>
+            {t('taskmapview.retry')}</button>
         </div>
       ) : (
         <div className={`map-grid-layout ${selectedStall ? "has-selection" : ""}`}>
@@ -277,15 +278,15 @@ export default function TaskMapView({ baseUrl, onBack, onViewDetails }) {
               </div>
               <div className="legend-item">
                 <span className="legend-color-box rented"></span>
-                <span>Rented</span>
+                <span>{t('taskmapview.rented')}</span>
               </div>
               <div className="legend-item">
                 <span className="legend-color-box available"></span>
-                <span>Available</span>
+                <span>{t('taskmapview.available')}</span>
               </div>
               <div className="legend-item">
                 <span className="legend-color-box maintenance"></span>
-                <span>Maintenance</span>
+                <span>{t('taskmapview.maintenance')}</span>
               </div>
             </div>
 
@@ -341,7 +342,7 @@ export default function TaskMapView({ baseUrl, onBack, onViewDetails }) {
                                   borderLeft: `3px solid ${getStatusColor(stall.status)}`,
                                 }}
                                 onClick={() => handleStallClick(stall, area)}
-                                title={`Stall ${stall.code} - ${stallTasks.length} active tasks`}
+                                title={`Stall ${stall.code} (${stallTasks.length} active tasks)`}
                               >
                                 <span className="stall-code-text">
                                   {stall.code}
@@ -353,7 +354,7 @@ export default function TaskMapView({ baseUrl, onBack, onViewDetails }) {
                     );
                   })
                 ) : (
-                  <div className="map-empty">The market layout has not been configured.</div>
+                  <div className="map-empty">{t('taskmapview.the_market_layout_has')}</div>
                 )}
               </div>
             </div>
@@ -363,7 +364,7 @@ export default function TaskMapView({ baseUrl, onBack, onViewDetails }) {
             <button
               type="button"
               className="map-drawer-backdrop"
-              aria-label="Close stall summary"
+              aria-label={t('taskmapview.close_stall_summary')}
               onClick={() => setSelectedStall(null)}
             />
           )}
@@ -376,7 +377,7 @@ export default function TaskMapView({ baseUrl, onBack, onViewDetails }) {
               <div className="drawer-details">
                 <div className="drawer-section-header">
                   <div className="drawer-title-group">
-                    <span className="section-label">Stall Information</span>
+                    <span className="section-label">{t('taskmapview.stall_information')}</span>
                     <span
                       className="stall-status-badge"
                       style={{ backgroundColor: getStatusColor(selectedStall.status) }}
@@ -388,7 +389,7 @@ export default function TaskMapView({ baseUrl, onBack, onViewDetails }) {
                     type="button"
                     className="drawer-close-btn"
                     onClick={() => setSelectedStall(null)}
-                    aria-label="Close stall summary"
+                    aria-label={t('taskmapview.close_stall_summary')}
                   >
                     ×
                   </button>
@@ -396,12 +397,12 @@ export default function TaskMapView({ baseUrl, onBack, onViewDetails }) {
 
                 <div className="stall-main-info">
                   <h4>Stall {selectedStall.code}</h4>
-                  <p className="area-info">Area: <strong>{selectedStall.areaName}</strong></p>
+                  <p className="area-info">{t('taskmapview.area')}<strong>{selectedStall.areaName}</strong></p>
                   <p className="owner-info">
-                    Vendor: <strong>{selectedStall.businessName || "No active vendor"}</strong>
+                    {t('taskmapview.vendor')}<strong>{selectedStall.businessName || t('taskmapview.no_active_vendor')}</strong>
                   </p>
                   <p className="category-info">
-                    Category: <strong>{selectedStall.categoryName || "Not specified"}</strong>
+                    {t('taskmapview.category')}<strong>{selectedStall.categoryName || t('taskmapview.not_specified')}</strong>
                   </p>
                 </div>
 
@@ -429,8 +430,7 @@ export default function TaskMapView({ baseUrl, onBack, onViewDetails }) {
                               id={`btn-go-task-details-${task.taskId}`}
                               onClick={() => onViewDetails(task.taskId)}
                             >
-                              Go to Details →
-                            </button>
+                              {t('taskmapview.go_to_details')}</button>
                           </div>
                         </div>
                       ))}
@@ -438,7 +438,7 @@ export default function TaskMapView({ baseUrl, onBack, onViewDetails }) {
                   ) : (
                     <div className="empty-tasks-placeholder">
                       <span className="ok-icon">✅</span>
-                      <p>No active task is assigned to you at this stall.</p>
+                      <p>{t('taskmapview.no_active_task_is')}</p>
                     </div>
                   )}
                 </div>
@@ -446,10 +446,9 @@ export default function TaskMapView({ baseUrl, onBack, onViewDetails }) {
             ) : (
               <div className="drawer-placeholder">
                 <span className="placeholder-icon">🏪</span>
-                <h4>Stall Details Panel</h4>
+                <h4>{t('taskmapview.stall_details_panel')}</h4>
                 <p>
-                  Click on any stall on the map layout to inspect its details and review tasks assigned to you. Stalls marked with 🛠️ have active tasks.
-                </p>
+                  {t('taskmapview.click_on_any_stall')}</p>
               </div>
             )}
           </aside>

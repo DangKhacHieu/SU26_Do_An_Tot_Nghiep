@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { Stage, Layer, Group, Rect, Text } from 'react-konva';
 
@@ -8,13 +9,15 @@ const STATUS_COLORS = {
 };
 
 export default function AreaDetailView({ area, onSelectStall, width = 700 }) {
+  const { t } = useTranslation();
+
   if (!area || !area.stalls) return <div>Loading Area...</div>;
 
   const areaWidth = area.maxX - area.minX;
   const areaHeight = area.maxY - area.minY;
 
   if (!areaWidth || !areaHeight) {
-    return <div>Chưa có dữ liệu toạ độ cho khu vực này.</div>;
+    return <div>{t('areadetailview.there_is_no_coordinate')}</div>;
   }
 
   const scale = width / areaWidth;

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect } from 'react';
 import {
   CheckCircle, XCircle, Search, DollarSign, Clock,
@@ -26,6 +27,8 @@ const getDisputeStatusBadge = (s) => {
 };
 
 export default function PaymentVerification() {
+  const { t } = useTranslation();
+
   const [activeTab, setActiveTab] = useState('verification');
   const [searchQuery, setSearchQuery] = useState('');
   const [payments, setPayments] = useState([]);
@@ -86,49 +89,49 @@ export default function PaymentVerification() {
   }, [searchQuery, activeTab]);
 
   const getMockPayments = () => [
-    { paymentId: 10, transactionCode: 'FT2605892309', method: 'Chuyển khoản NH', amount: 3240000, paidAt: '2026-06-03T10:20:00Z', invoiceId: 5, stallCode: 'Kiosk B-05', tenantName: 'Trần Thị B', status: 'Pending' },
-    { paymentId: 11, transactionCode: 'FT2605892288', method: 'Chuyển khoản NH', amount: 15000000, paidAt: '2026-06-02T15:45:00Z', invoiceId: 6, stallCode: 'Kiosk E-01', tenantName: 'Hoàng Thị E', status: 'Pending' },
-    { paymentId: 12, transactionCode: 'CASH-9092', method: 'Tiền mặt', amount: 2000000, paidAt: '2026-06-01T14:15:00Z', invoiceId: 7, stallCode: 'Kiosk A-10', tenantName: 'Lê Hoàng D', status: 'Pending' },
-    { paymentId: 8, transactionCode: 'FT2605891102', method: 'Chuyển khoản NH', amount: 12500000, paidAt: '2026-05-30T09:30:00Z', invoiceId: 3, stallCode: 'Kiosk A-12', tenantName: 'Nguyễn Văn A', status: 'Approved' }
+    { paymentId: 10, transactionCode: 'FT2605892309', method: t('paymentverification.bank_transfer'), amount: 3240000, paidAt: '2026-06-03T10:20:00Z', invoiceId: 5, stallCode: 'Kiosk B-05', tenantName: t('paymentverification.trn_th_b'), status: 'Pending' },
+    { paymentId: 11, transactionCode: 'FT2605892288', method: t('paymentverification.bank_transfer'), amount: 15000000, paidAt: '2026-06-02T15:45:00Z', invoiceId: 6, stallCode: 'Kiosk E-01', tenantName: t('paymentverification.hoang_thi_e'), status: 'Pending' },
+    { paymentId: 12, transactionCode: 'CASH-9092', method: t('paymentverification.cash'), amount: 2000000, paidAt: '2026-06-01T14:15:00Z', invoiceId: 7, stallCode: 'Kiosk A-10', tenantName: t('paymentverification.le_hoang_d'), status: 'Pending' },
+    { paymentId: 8, transactionCode: 'FT2605891102', method: t('paymentverification.bank_transfer'), amount: 12500000, paidAt: '2026-05-30T09:30:00Z', invoiceId: 3, stallCode: 'Kiosk A-12', tenantName: t('paymentverification.nguyen_van_a'), status: 'Approved' }
   ];
   const getMockDebts = () => [
-    { stallId: 1, stallCode: 'Kiosk B-12', tenantName: 'Nguyễn Văn Hùng', rentDebt: 4500000, utilityDebt: 1250000, violationDebt: 1500000, totalDebt: 7250000, lastDueDate: '2026-05-25' },
-    { stallId: 2, stallCode: 'Kiosk A-03', tenantName: 'Trần Thị Mỹ', rentDebt: 0, utilityDebt: 480000, violationDebt: 500000, totalDebt: 980000, lastDueDate: '2026-05-25' },
-    { stallId: 3, stallCode: 'Kiosk C-10', tenantName: 'Phạm Thanh Sơn', rentDebt: 8000000, utilityDebt: 2300000, violationDebt: 5000000, totalDebt: 15300000, lastDueDate: '2026-05-25' }
+    { stallId: 1, stallCode: 'Kiosk B-12', tenantName: t('paymentverification.nguyen_van_hung'), rentDebt: 4500000, utilityDebt: 1250000, violationDebt: 1500000, totalDebt: 7250000, lastDueDate: '2026-05-25' },
+    { stallId: 2, stallCode: 'Kiosk A-03', tenantName: t('paymentverification.tran_thi_my'), rentDebt: 0, utilityDebt: 480000, violationDebt: 500000, totalDebt: 980000, lastDueDate: '2026-05-25' },
+    { stallId: 3, stallCode: 'Kiosk C-10', tenantName: t('paymentverification.pham_thanh_son'), rentDebt: 8000000, utilityDebt: 2300000, violationDebt: 5000000, totalDebt: 15300000, lastDueDate: '2026-05-25' }
   ];
   const getMockDisputes = () => [
-    { requestId: 51, invoiceId: 5, title: 'Sai lệch số nước sạch', description: 'Chỉ số nước đầu kỳ ghi nhận sai lệch 15m3 so với đồng hồ thực tế.', status: 'Pending', createdAt: '2026-06-02T08:15:00Z', stallCode: 'Kiosk B-05', tenantName: 'Trần Thị B', invoiceMonth: 5, invoiceYear: 2026, invoiceTotalAmount: 3240000, vendorBankName: 'Vietcombank', vendorBankAccount: '0123456789', invoiceStatus: 'Unpaid' },
-    { requestId: 48, invoiceId: 3, title: 'Tính thừa tiền dịch vụ vệ sinh', description: 'Gia đình đã đăng ký tạm ngưng dịch vụ thu gom rác nhưng hóa đơn vẫn tính phụ thu.', status: 'Approved', createdAt: '2026-05-28T14:40:00Z', stallCode: 'Kiosk A-12', tenantName: 'Nguyễn Văn A', invoiceMonth: 5, invoiceYear: 2026, invoiceTotalAmount: 12500000, vendorBankName: 'Techcombank', vendorBankAccount: '190333444555', invoiceStatus: 'Paid' }
+    { requestId: 51, invoiceId: 5, title: t('paymentverification.sai_lch_s_nc'), description: t('paymentverification.the_water_index_at'), status: 'Pending', createdAt: '2026-06-02T08:15:00Z', stallCode: 'Kiosk B-05', tenantName: t('paymentverification.tran_thi_b'), invoiceMonth: 5, invoiceYear: 2026, invoiceTotalAmount: 3240000, vendorBankName: 'Vietcombank', vendorBankAccount: '0123456789', invoiceStatus: 'Unpaid' },
+    { requestId: 48, invoiceId: 3, title: t('paymentverification.overcharging_for_cleaning_services'), description: t('paymentverification.the_family_has_registered'), status: 'Approved', createdAt: '2026-05-28T14:40:00Z', stallCode: 'Kiosk A-12', tenantName: t('paymentverification.nguyen_van_a'), invoiceMonth: 5, invoiceYear: 2026, invoiceTotalAmount: 12500000, vendorBankName: 'Techcombank', vendorBankAccount: '190333444555', invoiceStatus: 'Paid' }
   ];
   const getMockInvoiceDetail = (invoiceId) => ({
     invoiceId, month: 5, year: 2026, totalAmount: 3240000, status: 'Unpaid',
-    stallCode: 'Kiosk B-05', vendorName: 'Trần Thị B',
+    stallCode: 'Kiosk B-05', vendorName: t('paymentverification.tran_thi_b'),
     details: [
-      { invoiceDetailId: 1, feeTypeName: 'Tiền thuê mặt bằng', description: 'Tiền thuê Kiosk tháng 5/2026', quantity: 1, unitPrice: 3000000, amount: 3000000 },
-      { invoiceDetailId: 2, feeTypeName: 'Tiền điện sinh hoạt', description: 'Tiêu thụ điện (80 kWh)', quantity: 80, unitPrice: 3000, amount: 240000 }
+      { invoiceDetailId: 1, feeTypeName: t('paymentverification.premises_rent'), description: t('paymentverification.kiosk_rental_in_may'), quantity: 1, unitPrice: 3000000, amount: 3000000 },
+      { invoiceDetailId: 2, feeTypeName: t('paymentverification.electricity_bills_for_daily'), description: t('paymentverification.electricity_consumption_80_kwh'), quantity: 80, unitPrice: 3000, amount: 240000 }
     ]
   });
   const getMockStallDebtDetail = (stallId) => ({
     stallId, stallCode: stallId === 1 ? 'Kiosk B-12' : stallId === 2 ? 'Kiosk A-03' : 'Kiosk C-10',
-    tenantName: stallId === 1 ? 'Nguyễn Văn Hùng' : stallId === 2 ? 'Trần Thị Mỹ' : 'Phạm Thanh Sơn',
+    tenantName: stallId === 1 ? t('paymentverification.nguyen_van_hung') : stallId === 2 ? t('paymentverification.tran_thi_my') : t('paymentverification.pham_thanh_son'),
     unpaidInvoices: [{ invoiceId: 101, month: 5, year: 2026, totalAmount: stallId === 1 ? 5750000 : stallId === 2 ? 480000 : 10300000, status: 'Unpaid', dueDate: '2026-05-25' }],
-    unpaidViolations: [{ violationId: 81, title: 'Lấn chiếm hành lang', fineAmount: stallId === 1 ? 1500000 : stallId === 2 ? 500000 : 5000000 }]
+    unpaidViolations: [{ violationId: 81, title: t('paymentverification.encroaching_the_hallway'), fineAmount: stallId === 1 ? 1500000 : stallId === 2 ? 500000 : 5000000 }]
   });
 
   const handleApprovePayment = (pay) => {
-    if (!window.confirm(`Xác nhận duyệt giao dịch ${pay.transactionCode} — ${formatCurrency(pay.amount)}?`)) return;
-    if (isMock) { setPayments(p => p.map(x => x.paymentId === pay.paymentId ? { ...x, status: 'Approved' } : x)); showNotification('success', 'Đã xác nhận giao dịch thành công!'); }
+    if (!window.confirm(t('paymentverification.confirm_transaction_approval_paytransactioncode'))) return;
+    if (isMock) { setPayments(p => p.map(x => x.paymentId === pay.paymentId ? { ...x, status: 'Approved' } : x)); showNotification('success', t('paymentverification.successful_transaction_confirmed')); }
     else fetch(`http://localhost:5056/api/accountant/payments/${pay.paymentId}/verify?userId=1`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` }, body: JSON.stringify({ approve: true }) })
-      .then(r => { if (!r.ok) throw new Error(); showNotification('success', 'Xác nhận thanh toán thành công!'); loadAllData(); })
-      .catch(() => showNotification('danger', 'Không thể duyệt thanh toán.'));
+      .then(r => { if (!r.ok) throw new Error(); showNotification('success', t('paymentverification.successful_payment_confirmation')); loadAllData(); })
+      .catch(() => showNotification('danger', t('paymentverification.unable_to_approve_payment')));
   };
 
   const submitRejectPayment = (e) => {
     e.preventDefault();
-    if (isMock) { setPayments(p => p.filter(x => x.paymentId !== selectedItem.paymentId)); showNotification('success', `Đã từ chối giao dịch ${selectedItem.transactionCode}!`); setActiveModal(null); }
+    if (isMock) { setPayments(p => p.filter(x => x.paymentId !== selectedItem.paymentId)); showNotification('success', t('paymentverification.selecteditemtransactioncode_transaction_declined')); setActiveModal(null); }
     else fetch(`http://localhost:5056/api/accountant/payments/${selectedItem.paymentId}/verify?userId=1`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` }, body: JSON.stringify({ approve: false, rejectionNote }) })
-      .then(r => { if (!r.ok) throw new Error(); showNotification('success', 'Đã từ chối thanh toán!'); setActiveModal(null); loadAllData(); })
-      .catch(() => showNotification('danger', 'Không thể từ chối thanh toán.'));
+      .then(r => { if (!r.ok) throw new Error(); showNotification('success', t('paymentverification.payment_refused')); setActiveModal(null); loadAllData(); })
+      .catch(() => showNotification('danger', t('paymentverification.payment_cannot_be_refused')));
   };
 
   const handleViewOriginalInvoice = (invoiceId, stallCode) => {
@@ -145,21 +148,21 @@ export default function PaymentVerification() {
 
   const handleSendReminderClick = (debt) => {
     setSelectedItem(debt);
-    setReminderMessage(`Ban quản lý thông báo: Sạp ${debt.stallCode} đang có tổng nợ ${formatCurrency(debt.totalDebt)}. Kính đề nghị Quý khách thanh toán sớm nhất.`);
+    setReminderMessage(t('paymentverification.management_announced_store_debtstallcode'));
     setActiveModal('send_reminder');
   };
 
   const submitSendReminder = (e) => {
     e.preventDefault();
-    if (isMock) { showNotification('success', `Đã gửi thông báo nhắc nợ tới sạp ${selectedItem.stallCode}!`); setActiveModal(null); }
+    if (isMock) { showNotification('success', t('paymentverification.debt_reminder_sent_to')); setActiveModal(null); }
     else fetch('http://localhost:5056/api/accountant/payments/debts/notify?userId=1', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` }, body: JSON.stringify({ stallId: selectedItem.stallId, customMessage: reminderMessage }) })
-      .then(r => { if (!r.ok) throw new Error(); showNotification('success', 'Gửi thông báo nhắc nợ thành công!'); setActiveModal(null); })
-      .catch(() => showNotification('danger', 'Gửi nhắc nợ thất bại.'));
+      .then(r => { if (!r.ok) throw new Error(); showNotification('success', t('paymentverification.debt_reminder_sent_successfully')); setActiveModal(null); })
+      .catch(() => showNotification('danger', t('paymentverification.sending_debt_reminder_failed')));
   };
 
   const handleResolveDisputeClick = (dispute, approve) => {
     setSelectedItem(dispute); setDisputeApprove(approve);
-    setDisputeFeedback(approve ? 'Đã ghi nhận phản ánh. Kế toán sẽ điều chỉnh hóa đơn giảm trừ.' : 'Từ chối giải quyết. Chỉ số trùng khớp với biên bản ghi nhận.');
+    setDisputeFeedback(approve ? t('paymentverification.feedback_has_been_received') : t('paymentverification.refuse_to_resolve_the'));
     setIsRefund(false);
     setRefundAmount('');
     setRefundMethod('Transfer');
@@ -169,7 +172,7 @@ export default function PaymentVerification() {
 
   const submitResolveDispute = (e) => {
     e.preventDefault();
-    if (isMock) { setDisputes(d => d.map(x => x.requestId === selectedItem.requestId ? { ...x, status: disputeApprove ? 'Approved' : 'Rejected' } : x)); showNotification('success', `Đã ${disputeApprove ? 'chấp nhận' : 'từ chối'} kháng nghị!`); setActiveModal(null); }
+    if (isMock) { setDisputes(d => d.map(x => x.requestId === selectedItem.requestId ? { ...x, status: disputeApprove ? 'Approved' : 'Rejected' } : x)); showNotification('success', `Đã ${disputeApprove ? t('paymentverification.accept') : t('paymentverification.refuse')} kháng nghị!`); setActiveModal(null); }
     else fetch(`http://localhost:5056/api/accountant/payments/disputes/${selectedItem.requestId}/resolve?userId=1`, { 
       method: 'POST', 
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` }, 
@@ -182,8 +185,8 @@ export default function PaymentVerification() {
         transactionCode: isRefund ? transactionCode : null
       }) 
     })
-      .then(r => { if (!r.ok) throw new Error(); showNotification('success', 'Đã phản hồi kháng nghị thành công!'); setActiveModal(null); loadAllData(); })
-      .catch(() => showNotification('danger', 'Xử lý kháng nghị thất bại.'));
+      .then(r => { if (!r.ok) throw new Error(); showNotification('success', t('paymentverification.appeal_responded_successfully')); setActiveModal(null); loadAllData(); })
+      .catch(() => showNotification('danger', t('paymentverification.appeal_processing_failed')));
   };
 
   const filteredPayments = payments.filter(p => [p.transactionCode, p.stallCode, p.tenantName].some(s => s.toLowerCase().includes(searchQuery.toLowerCase())));
@@ -195,8 +198,8 @@ export default function PaymentVerification() {
       {/* Header */}
       <div className="page-header">
         <div>
-          <h1 className="page-title">Xác Minh Thanh Toán &amp; Dư Nợ</h1>
-          <p className="page-subtitle">Đối soát giao dịch, quản lý dư nợ và xử lý kháng nghị hóa đơn.</p>
+          <h1 className="page-title">{t('paymentverification.payment_verification_balance')}</h1>
+          <p className="page-subtitle">{t('paymentverification.check_transactions_manage_outstanding')}</p>
         </div>
         <div className="page-actions"></div>
       </div>
@@ -212,7 +215,7 @@ export default function PaymentVerification() {
       {isMock && (
         <div className="alert alert-warning">
           <AlertTriangle size={16} className="alert-icon" />
-          <span><strong>Chế độ mô phỏng:</strong> Đang hiển thị dữ liệu mô phỏng thay thế.</span>
+          <span><strong>{t('paymentverification.simulation_mode')}</strong> {t('paymentverification.showing_alternative_simulation_data')}</span>
         </div>
       )}
 
@@ -222,7 +225,7 @@ export default function PaymentVerification() {
           <div className="search-wrapper" style={{ flex: '1 1 220px' }}>
             <Search size={14} className="search-icon-inner" />
             <input type="text" className="search-input" style={{ width: '100%' }}
-              placeholder="Tìm mã GD, tên sạp, tiểu thương..."
+              placeholder={t('paymentverification.find_gd_code_stall')}
               value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
           </div>
         </div>
@@ -231,9 +234,9 @@ export default function PaymentVerification() {
       {/* Tabs */}
       <div className="tab-bar">
         {[
-          { id: 'verification', label: 'Đối soát Giao dịch', icon: Clock },
-          { id: 'debts', label: 'Theo dõi Dư nợ', icon: Building },
-          { id: 'disputes', label: 'Kháng nghị Hóa đơn', icon: MessageSquare }
+          { id: 'verification', label: t('paymentverification.transaction_reconciliation'), icon: Clock },
+          { id: 'debts', label: t('paymentverification.monitor_outstanding_balances'), icon: Building },
+          { id: 'disputes', label: t('paymentverification.invoice_appeal'), icon: MessageSquare }
         ].map(tab => {
           const Icon = tab.icon;
           return (
@@ -247,7 +250,7 @@ export default function PaymentVerification() {
       {loading ? (
         <div className="loading-container">
           <div className="loading-spinner" />
-          <p className="loading-text">Đang tải dữ liệu thanh toán...</p>
+          <p className="loading-text">{t('paymentverification.loading_payment_data')}</p>
         </div>
       ) : (
         <>
@@ -257,13 +260,13 @@ export default function PaymentVerification() {
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th>Mã Giao Dịch</th>
-                    <th>Sạp / Tiểu thương</th>
-                    <th>Phương thức</th>
-                    <th>Ngày nộp</th>
-                    <th className="text-right">Số tiền</th>
-                    <th>Trạng thái</th>
-                    <th className="text-right">Thao tác</th>
+                    <th>{t('paymentverification.transaction_code')}</th>
+                    <th>{t('paymentverification.stallssmall_traders')}</th>
+                    <th>{t('paymentverification.method')}</th>
+                    <th>{t('paymentverification.date_of_submission')}</th>
+                    <th className="text-right">{t('paymentverification.amount')}</th>
+                    <th>{t('paymentverification.status')}</th>
+                    <th className="text-right">{t('paymentverification.operation')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -283,16 +286,13 @@ export default function PaymentVerification() {
                         <td className="text-right">
                           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
                             <button className="btn btn-secondary btn-sm" onClick={() => handleViewOriginalInvoice(pay.invoiceId, pay.stallCode)}>
-                              <FileText size={13} /> HĐ gốc
-                            </button>
+                              <FileText size={13} /> {t('paymentverification.original_contract')}</button>
                             {pay.status === 'Pending' && (
                               <>
                                 <button className="btn btn-success btn-sm" onClick={() => handleApprovePayment(pay)}>
-                                  <ThumbsUp size={13} /> Duyệt
-                                </button>
+                                  <ThumbsUp size={13} /> {t('paymentverification.browse')}</button>
                                 <button className="btn btn-danger btn-sm" onClick={() => { setSelectedItem(pay); setRejectionNote(''); setActiveModal('reject_payment'); }}>
-                                  <ThumbsDown size={13} /> Từ chối
-                                </button>
+                                  <ThumbsDown size={13} /> {t('paymentverification.refuse')}</button>
                               </>
                             )}
                           </div>
@@ -300,7 +300,7 @@ export default function PaymentVerification() {
                       </tr>
                     );
                   }) : (
-                    <tr><td colSpan={7}><div className="empty-state"><div className="empty-state-icon"><CheckCircle size={24} /></div><p className="empty-state-title">Không có giao dịch nào</p></div></td></tr>
+                    <tr><td colSpan={7}><div className="empty-state"><div className="empty-state-icon"><CheckCircle size={24} /></div><p className="empty-state-title">{t('paymentverification.there_are_no_transactions')}</p></div></td></tr>
                   )}
                 </tbody>
               </table>
@@ -315,8 +315,7 @@ export default function PaymentVerification() {
                       onClick={() => setPaymentsPage(prev => Math.max(prev - 1, 1))} 
                       disabled={paymentsPage === 1}
                     >
-                      Trước
-                    </button>
+                      {t('paymentverification.before')}</button>
                     {Array.from({ length: Math.ceil(filteredPayments.length / itemsPerPage) }, (_, i) => i + 1).map(page => (
                       <button 
                         key={page} 
@@ -345,13 +344,13 @@ export default function PaymentVerification() {
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th>Sạp / Tiểu thương</th>
-                    <th className="text-right">Nợ tiền thuê</th>
-                    <th className="text-right">Nợ điện/nước</th>
-                    <th className="text-right">Nợ vi phạm</th>
-                    <th className="text-right">Tổng nợ</th>
-                    <th>Hạn cuối</th>
-                    <th className="text-right">Thao tác</th>
+                    <th>{t('paymentverification.stallssmall_traders')}</th>
+                    <th className="text-right">{t('paymentverification.rent_debt')}</th>
+                    <th className="text-right">{t('paymentverification.electricitywater_debt')}</th>
+                    <th className="text-right">{t('paymentverification.debt_violation')}</th>
+                    <th className="text-right">{t('paymentverification.total_debt')}</th>
+                    <th>{t('paymentverification.deadline')}</th>
+                    <th className="text-right">{t('paymentverification.operation')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -368,13 +367,13 @@ export default function PaymentVerification() {
                       <td><span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{debt.lastDueDate}</span></td>
                       <td className="text-right">
                         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
-                          <button className="btn btn-secondary btn-sm" onClick={() => handleViewDebtDetail(debt)}><FileText size={13} /> Chi tiết</button>
-                          <button className="btn btn-primary btn-sm" onClick={() => handleSendReminderClick(debt)}><Bell size={13} /> Nhắc nợ</button>
+                          <button className="btn btn-secondary btn-sm" onClick={() => handleViewDebtDetail(debt)}><FileText size={13} /> {t('paymentverification.detail')}</button>
+                          <button className="btn btn-primary btn-sm" onClick={() => handleSendReminderClick(debt)}><Bell size={13} /> {t('paymentverification.debt_reminder')}</button>
                         </div>
                       </td>
                     </tr>
                   )) : (
-                    <tr><td colSpan={7}><div className="empty-state"><div className="empty-state-icon"><DollarSign size={24} /></div><p className="empty-state-title">Không có dư nợ sạp</p></div></td></tr>
+                    <tr><td colSpan={7}><div className="empty-state"><div className="empty-state-icon"><DollarSign size={24} /></div><p className="empty-state-title">{t('paymentverification.there_is_no_outstanding')}</p></div></td></tr>
                   )}
                 </tbody>
               </table>
@@ -389,8 +388,7 @@ export default function PaymentVerification() {
                       onClick={() => setDebtsPage(prev => Math.max(prev - 1, 1))} 
                       disabled={debtsPage === 1}
                     >
-                      Trước
-                    </button>
+                      {t('paymentverification.before')}</button>
                     {Array.from({ length: Math.ceil(filteredDebts.length / itemsPerPage) }, (_, i) => i + 1).map(page => (
                       <button 
                         key={page} 
@@ -419,13 +417,13 @@ export default function PaymentVerification() {
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th>Sạp / Tiểu thương</th>
-                    <th>Nội dung kháng nghị</th>
-                    <th>HĐ tháng</th>
-                    <th className="text-right">Giá trị HĐ</th>
-                    <th>Ngày gửi</th>
-                    <th>Trạng thái</th>
-                    <th className="text-right">Thao tác</th>
+                    <th>{t('paymentverification.stallssmall_traders')}</th>
+                    <th>{t('paymentverification.content_of_appeal')}</th>
+                    <th>{t('paymentverification.monthly_contract')}</th>
+                    <th className="text-right">{t('paymentverification.contract_value')}</th>
+                    <th>{t('paymentverification.date_sent')}</th>
+                    <th>{t('paymentverification.status')}</th>
+                    <th className="text-right">{t('paymentverification.operation')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -445,16 +443,16 @@ export default function PaymentVerification() {
                         <td className="text-right">
                           {dis.status === 'Pending' && (
                             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
-                              <button className="btn btn-success btn-sm" onClick={() => handleResolveDisputeClick(dis, true)}><ThumbsUp size={13} /> Chấp nhận</button>
-                              <button className="btn btn-danger btn-sm" onClick={() => handleResolveDisputeClick(dis, false)}><ThumbsDown size={13} /> Từ chối</button>
+                              <button className="btn btn-success btn-sm" onClick={() => handleResolveDisputeClick(dis, true)}><ThumbsUp size={13} /> {t('paymentverification.accept')}</button>
+                              <button className="btn btn-danger btn-sm" onClick={() => handleResolveDisputeClick(dis, false)}><ThumbsDown size={13} /> {t('paymentverification.refuse')}</button>
                             </div>
                           )}
-                          {dis.status !== 'Pending' && <span className="badge badge-neutral">Đã xử lý</span>}
+                          {dis.status !== 'Pending' && <span className="badge badge-neutral">{t('paymentverification.processed')}</span>}
                         </td>
                       </tr>
                     );
                   }) : (
-                    <tr><td colSpan={7}><div className="empty-state"><div className="empty-state-icon"><MessageSquare size={24} /></div><p className="empty-state-title">Không có kháng nghị nào</p></div></td></tr>
+                    <tr><td colSpan={7}><div className="empty-state"><div className="empty-state-icon"><MessageSquare size={24} /></div><p className="empty-state-title">{t('paymentverification.there_were_no_appeals')}</p></div></td></tr>
                   )}
                 </tbody>
               </table>
@@ -469,8 +467,7 @@ export default function PaymentVerification() {
                       onClick={() => setDisputesPage(prev => Math.max(prev - 1, 1))} 
                       disabled={disputesPage === 1}
                     >
-                      Trước
-                    </button>
+                      {t('paymentverification.before')}</button>
                     {Array.from({ length: Math.ceil(filteredDisputes.length / itemsPerPage) }, (_, i) => i + 1).map(page => (
                       <button 
                         key={page} 
@@ -506,21 +503,21 @@ export default function PaymentVerification() {
             <form onSubmit={submitRejectPayment}>
               <div className="modal-body">
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, background: 'var(--bg-base)', padding: 14, borderRadius: 'var(--radius-md)', fontSize: 13.5 }}>
-                  <div><span style={{ color: 'var(--text-muted)' }}>Sạp: </span><strong>{selectedItem.stallCode}</strong></div>
-                  <div><span style={{ color: 'var(--text-muted)' }}>Tiểu thương: </span>{selectedItem.tenantName}</div>
-                  <div><span style={{ color: 'var(--text-muted)' }}>Số tiền: </span><strong style={{ color: 'var(--danger)' }}>{formatCurrency(selectedItem.amount)}</strong></div>
-                  <div><span style={{ color: 'var(--text-muted)' }}>Phương thức: </span>{selectedItem.method}</div>
+                  <div><span style={{ color: 'var(--text-muted)' }}>{t('paymentverification.stall')}</span><strong>{selectedItem.stallCode}</strong></div>
+                  <div><span style={{ color: 'var(--text-muted)' }}>{t('paymentverification.small_business')}</span>{selectedItem.tenantName}</div>
+                  <div><span style={{ color: 'var(--text-muted)' }}>{t('paymentverification.amount')}</span><strong style={{ color: 'var(--danger)' }}>{formatCurrency(selectedItem.amount)}</strong></div>
+                  <div><span style={{ color: 'var(--text-muted)' }}>{t('paymentverification.method')}</span>{selectedItem.method}</div>
                 </div>
                 <div>
-                  <label className="form-label">Lý do từ chối <span style={{ color: 'var(--danger)' }}>*</span></label>
+                  <label className="form-label">{t('paymentverification.reason_for_refusal')}<span style={{ color: 'var(--danger)' }}>*</span></label>
                   <textarea className="form-textarea" rows={4} required
-                    placeholder="Ghi rõ lý do: sai số tài khoản, số tiền không khớp, hóa đơn đã được thanh toán trước đó..."
+                    placeholder={t('paymentverification.specify_the_reason_wrong')}
                     value={rejectionNote} onChange={e => setRejectionNote(e.target.value)} />
                 </div>
               </div>
               <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={() => setActiveModal(null)}>Hủy</button>
-                <button type="submit" className="btn btn-danger">Xác nhận từ chối</button>
+                <button type="button" className="btn btn-secondary" onClick={() => setActiveModal(null)}>{t('paymentverification.cancel')}</button>
+                <button type="submit" className="btn btn-danger">{t('paymentverification.confirmed_refusal')}</button>
               </div>
             </form>
           </div>
@@ -538,18 +535,18 @@ export default function PaymentVerification() {
             <div className="modal-body">
               {loadingPopup ? (
                 <div className="loading-container" style={{ padding: 40 }}>
-                  <div className="loading-spinner" /><p className="loading-text">Đang tải...</p>
+                  <div className="loading-spinner" /><p className="loading-text">{t('paymentverification.loading')}</p>
                 </div>
               ) : selectedInvoiceDetail && (
                 <>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, background: 'var(--bg-base)', padding: 14, borderRadius: 'var(--radius-md)', fontSize: 13.5 }}>
-                    <div><span style={{ color: 'var(--text-muted)' }}>Sạp: </span><strong>{selectedInvoiceDetail.stallCode}</strong></div>
-                    <div><span style={{ color: 'var(--text-muted)' }}>Tháng: </span>Th.{selectedInvoiceDetail.month}/{selectedInvoiceDetail.year}</div>
-                    <div><span style={{ color: 'var(--text-muted)' }}>Tiểu thương: </span>{selectedInvoiceDetail.vendorName}</div>
-                    <div><span style={{ color: 'var(--text-muted)' }}>Trạng thái: </span><span className="badge badge-warning">{selectedInvoiceDetail.status}</span></div>
+                    <div><span style={{ color: 'var(--text-muted)' }}>{t('paymentverification.stall')}</span><strong>{selectedInvoiceDetail.stallCode}</strong></div>
+                    <div><span style={{ color: 'var(--text-muted)' }}>{t('paymentverification.month')}</span>Th.{selectedInvoiceDetail.month}/{selectedInvoiceDetail.year}</div>
+                    <div><span style={{ color: 'var(--text-muted)' }}>{t('paymentverification.small_business')}</span>{selectedInvoiceDetail.vendorName}</div>
+                    <div><span style={{ color: 'var(--text-muted)' }}>{t('paymentverification.status')}</span><span className="badge badge-warning">{selectedInvoiceDetail.status}</span></div>
                   </div>
                   <table className="data-table">
-                    <thead><tr><th>Khoản phí</th><th>Mô tả</th><th className="text-right">Số lượng</th><th className="text-right">Đơn giá</th><th className="text-right">Thành tiền</th></tr></thead>
+                    <thead><tr><th>{t('paymentverification.fees')}</th><th>{t('paymentverification.describe')}</th><th className="text-right">{t('paymentverification.quantity')}</th><th className="text-right">{t('paymentverification.unit_price')}</th><th className="text-right">{t('paymentverification.make_money')}</th></tr></thead>
                     <tbody>
                       {selectedInvoiceDetail.details?.map((d, i) => (
                         <tr key={i}>
@@ -561,7 +558,7 @@ export default function PaymentVerification() {
                         </tr>
                       ))}
                       <tr style={{ background: 'var(--primary-light)', fontWeight: 800 }}>
-                        <td colSpan={4} className="text-right">Tổng cộng:</td>
+                        <td colSpan={4} className="text-right">{t('paymentverification.total')}</td>
                         <td className="text-right" style={{ color: 'var(--primary)', fontSize: 15 }}>{formatCurrency(selectedInvoiceDetail.totalAmount)}</td>
                       </tr>
                     </tbody>
@@ -569,7 +566,7 @@ export default function PaymentVerification() {
                 </>
               )}
             </div>
-            <div className="modal-footer"><button className="btn btn-secondary" onClick={() => setActiveModal(null)}>Đóng</button></div>
+            <div className="modal-footer"><button className="btn btn-secondary" onClick={() => setActiveModal(null)}>{t('paymentverification.close')}</button></div>
           </div>
         </div>
       )}
@@ -592,9 +589,9 @@ export default function PaymentVerification() {
                   </div>
                   {selectedInvoiceDetail.unpaidInvoices?.length > 0 && (
                     <>
-                      <label className="form-label" style={{ marginBottom: 8 }}>Hóa đơn chưa thanh toán</label>
+                      <label className="form-label" style={{ marginBottom: 8 }}>{t('paymentverification.unpaid_invoice')}</label>
                       <table className="data-table">
-                        <thead><tr><th>Mã HĐ</th><th>Kỳ</th><th className="text-right">Số tiền</th><th>Hạn</th><th>Trạng thái</th></tr></thead>
+                        <thead><tr><th>{t('paymentverification.hd_code')}</th><th>{t('paymentverification.ky')}</th><th className="text-right">{t('paymentverification.amount')}</th><th>{t('paymentverification.term')}</th><th>{t('paymentverification.status')}</th></tr></thead>
                         <tbody>
                           {selectedInvoiceDetail.unpaidInvoices.map(inv => (
                             <tr key={inv.invoiceId}>
@@ -611,9 +608,9 @@ export default function PaymentVerification() {
                   )}
                   {selectedInvoiceDetail.unpaidViolations?.length > 0 && (
                     <>
-                      <label className="form-label" style={{ marginTop: 16, marginBottom: 8 }}>Vi phạm chưa đóng phạt</label>
+                      <label className="form-label" style={{ marginTop: 16, marginBottom: 8 }}>{t('paymentverification.violations_have_not_yet')}</label>
                       <table className="data-table">
-                        <thead><tr><th>Hành vi vi phạm</th><th className="text-right">Tiền phạt</th></tr></thead>
+                        <thead><tr><th>{t('paymentverification.violations')}</th><th className="text-right">{t('paymentverification.fine')}</th></tr></thead>
                         <tbody>
                           {selectedInvoiceDetail.unpaidViolations.map(v => (
                             <tr key={v.violationId}>
@@ -628,7 +625,7 @@ export default function PaymentVerification() {
                 </>
               )}
             </div>
-            <div className="modal-footer"><button className="btn btn-secondary" onClick={() => setActiveModal(null)}>Đóng</button></div>
+            <div className="modal-footer"><button className="btn btn-secondary" onClick={() => setActiveModal(null)}>{t('paymentverification.close')}</button></div>
           </div>
         </div>
       )}
@@ -644,17 +641,17 @@ export default function PaymentVerification() {
             <form onSubmit={submitSendReminder}>
               <div className="modal-body">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: 'var(--danger-light)', borderRadius: 'var(--radius-md)', border: '1px solid var(--danger-border)' }}>
-                  <span style={{ fontSize: 13 }}>Tổng nợ hiện tại:</span>
+                  <span style={{ fontSize: 13 }}>{t('paymentverification.total_current_debt')}</span>
                   <strong style={{ color: 'var(--danger)', fontSize: 16 }}>{formatCurrency(selectedItem.totalDebt)}</strong>
                 </div>
                 <div>
-                  <label className="form-label">Nội dung thông báo</label>
+                  <label className="form-label">{t('paymentverification.notification_content')}</label>
                   <textarea className="form-textarea" rows={5} value={reminderMessage} onChange={e => setReminderMessage(e.target.value)} />
                 </div>
               </div>
               <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={() => setActiveModal(null)}>Hủy</button>
-                <button type="submit" className="btn btn-primary"><Bell size={14} /> Gửi thông báo</button>
+                <button type="button" className="btn btn-secondary" onClick={() => setActiveModal(null)}>{t('paymentverification.cancel')}</button>
+                <button type="submit" className="btn btn-primary"><Bell size={14} /> {t('paymentverification.send_notification')}</button>
               </div>
             </form>
           </div>
@@ -666,31 +663,31 @@ export default function PaymentVerification() {
         <div className="modal-overlay" onClick={() => setActiveModal(null)}>
           <div className="modal-container" style={{ maxWidth: 850, width: '100%' }} onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <span className="modal-title">{disputeApprove ? 'Chấp nhận' : 'Từ chối'} Kháng nghị</span>
+              <span className="modal-title">{disputeApprove ? t('paymentverification.accept') : t('paymentverification.refuse')} Kháng nghị</span>
               <button className="modal-close-btn" onClick={() => setActiveModal(null)}><X size={16} /></button>
             </div>
             <form onSubmit={submitResolveDispute}>
               <div className="modal-body" style={{ display: 'flex', gap: 24, padding: '24px', overflowY: 'auto', maxHeight: '70vh' }}>
                 {/* Left Column: Original Invoice Info */}
                 <div style={{ flex: 1, borderRight: '1px solid var(--border-color)', paddingRight: 24 }}>
-                  <h4 style={{ margin: '0 0 16px 0', fontSize: 16, color: 'var(--text-main)' }}>Thông tin Hóa đơn gốc</h4>
+                  <h4 style={{ margin: '0 0 16px 0', fontSize: 16, color: 'var(--text-main)' }}>{t('paymentverification.original_invoice_information')}</h4>
                   <div style={{ padding: 16, backgroundColor: '#f8fafc', borderRadius: 8, border: '1px solid var(--border-color)' }}>
                     <div style={{ marginBottom: 12 }}>
-                      <span style={{ fontSize: 13, color: 'var(--text-light)', display: 'block' }}>Kỳ hóa đơn</span>
+                      <span style={{ fontSize: 13, color: 'var(--text-light)', display: 'block' }}>{t('paymentverification.invoice_period')}</span>
                       <strong style={{ fontSize: 15 }}>Tháng {selectedItem.invoiceMonth}/{selectedItem.invoiceYear}</strong>
                     </div>
                     <div style={{ marginBottom: 12 }}>
-                      <span style={{ fontSize: 13, color: 'var(--text-light)', display: 'block' }}>Gian hàng</span>
+                      <span style={{ fontSize: 13, color: 'var(--text-light)', display: 'block' }}>{t('paymentverification.booth')}</span>
                       <strong style={{ fontSize: 15 }}>{selectedItem.stallCode} - {selectedItem.tenantName}</strong>
                     </div>
                     <div>
-                      <span style={{ fontSize: 13, color: 'var(--text-light)', display: 'block' }}>Tổng tiền hóa đơn</span>
+                      <span style={{ fontSize: 13, color: 'var(--text-light)', display: 'block' }}>{t('paymentverification.total_invoice_amount')}</span>
                       <strong style={{ fontSize: 18, color: 'var(--primary)' }}>{formatCurrency(selectedItem.invoiceTotalAmount)}</strong>
                     </div>
                     <div style={{ marginTop: 12 }}>
-                      <span style={{ fontSize: 13, color: 'var(--text-light)', display: 'block' }}>Trạng thái</span>
+                      <span style={{ fontSize: 13, color: 'var(--text-light)', display: 'block' }}>{t('paymentverification.status')}</span>
                       <span className={`badge ${selectedItem.invoiceStatus === 'Paid' ? 'badge-success' : 'badge-warning'}`}>
-                        {selectedItem.invoiceStatus === 'Paid' ? 'Đã thu' : 'Chờ thu'}
+                        {selectedItem.invoiceStatus === 'Paid' ? t('paymentverification.collected') : t('paymentverification.waiting_for_collection')}
                       </span>
                     </div>
                   </div>
@@ -698,7 +695,7 @@ export default function PaymentVerification() {
                 
                 {/* Right Column: Dispute Resolution */}
                 <div style={{ flex: 1.2 }}>
-                  <h4 style={{ margin: '0 0 16px 0', fontSize: 16, color: 'var(--text-main)' }}>Nội dung Kháng nghị</h4>
+                  <h4 style={{ margin: '0 0 16px 0', fontSize: 16, color: 'var(--text-main)' }}>{t('paymentverification.content_of_appeal')}</h4>
                   <div className={`alert ${disputeApprove ? 'alert-success' : 'alert-danger'}`} style={{ marginBottom: 16 }}>
                     <Info size={16} className="alert-icon" />
                     <div>
@@ -708,46 +705,46 @@ export default function PaymentVerification() {
                   </div>
                   
                   <div style={{ marginBottom: 16 }}>
-                    <label className="form-label">Phản hồi cho tiểu thương</label>
+                    <label className="form-label">{t('paymentverification.feedback_for_small_businesses')}</label>
                     <textarea className="form-textarea" rows={3} value={disputeFeedback} onChange={e => setDisputeFeedback(e.target.value)} />
                   </div>
                   {disputeApprove && (
                     <div style={{ padding: 12, border: '1px solid var(--border-color)', borderRadius: 8, backgroundColor: '#f8fafc' }}>
                       <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontWeight: 600, color: 'var(--primary)' }}>
                         <input type="checkbox" checked={isRefund} onChange={e => setIsRefund(e.target.checked)} />
-                        {selectedItem.invoiceStatus === 'Paid' ? 'Thực hiện hoàn tiền trực tiếp cho tiểu thương' : 'Điều chỉnh giảm trừ trực tiếp vào hóa đơn'}
+                        {selectedItem.invoiceStatus === 'Paid' ? t('paymentverification.make_refunds_directly_to') : t('paymentverification.adjust_deductions_directly_to')}
                       </label>
                       
                       {isRefund && (
                         <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 12 }}>
                           <div>
                             <label className="form-label">
-                              {selectedItem.invoiceStatus === 'Paid' ? 'Số tiền hoàn (VND)' : 'Số tiền giảm trừ (VND)'}
+                              {selectedItem.invoiceStatus === 'Paid' ? t('paymentverification.refund_amount_vnd') : t('paymentverification.deduction_amount_vnd')}
                             </label>
-                            <input type="number" className="form-input" min={0} value={refundAmount} onChange={e => setRefundAmount(e.target.value)} placeholder="Nhập số tiền..." required={isRefund} />
+                            <input type="number" className="form-input" min={0} value={refundAmount} onChange={e => setRefundAmount(e.target.value)} placeholder={t('paymentverification.enter_the_amount')} required={isRefund} />
                           </div>
                           
                           {selectedItem.invoiceStatus === 'Paid' && (
                             <>
                               <div>
-                                <label className="form-label">Phương thức hoàn</label>
+                                <label className="form-label">{t('paymentverification.completion_method')}</label>
                                 <select className="form-select" value={refundMethod} onChange={e => setRefundMethod(e.target.value)}>
-                                  <option value="Transfer">Chuyển khoản</option>
-                                  <option value="Cash">Tiền mặt</option>
+                                  <option value="Transfer">{t('paymentverification.transfer')}</option>
+                                  <option value="Cash">{t('paymentverification.cash')}</option>
                                 </select>
                               </div>
                               {refundMethod === 'Transfer' && (
                                 <div className="alert alert-info" style={{ marginTop: 0 }}>
                                   <Info size={16} className="alert-icon" />
                                   <div style={{ fontSize: 13 }}>
-                                    <strong>STK Tiểu thương:</strong> {selectedItem.vendorBankAccount || 'Chưa cập nhật'} <br/>
-                                    <strong>Ngân hàng:</strong> {selectedItem.vendorBankName || 'Chưa cập nhật'}
+                                    <strong>{t('paymentverification.stk_small_business')}</strong> {selectedItem.vendorBankAccount || t('paymentverification.not_updated_yet')} <br/>
+                                    <strong>{t('paymentverification.bank')}</strong> {selectedItem.vendorBankName || t('paymentverification.not_updated_yet')}
                                   </div>
                                 </div>
                               )}
                               {refundMethod === 'Transfer' && (
                                 <div>
-                                  <label className="form-label">Mã giao dịch (Nếu có)</label>
+                                  <label className="form-label">{t('paymentverification.transaction_code_if_any')}</label>
                                   <input type="text" className="form-input" value={transactionCode} onChange={e => setTransactionCode(e.target.value)} placeholder="VD: FT2605..." />
                                 </div>
                               )}
@@ -760,9 +757,9 @@ export default function PaymentVerification() {
                 </div>
               </div>
               <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={() => setActiveModal(null)}>Hủy</button>
+                <button type="button" className="btn btn-secondary" onClick={() => setActiveModal(null)}>{t('paymentverification.cancel')}</button>
                 <button type="submit" className={`btn ${disputeApprove ? 'btn-success' : 'btn-danger'}`}>
-                  {disputeApprove ? <><ThumbsUp size={14} /> Chấp nhận</> : <><ThumbsDown size={14} /> Từ chối</>}
+                  {disputeApprove ? <><ThumbsUp size={14} /> {t('paymentverification.accept')}</> : <><ThumbsDown size={14} /> {t('paymentverification.refuse')}</>}
                 </button>
               </div>
             </form>

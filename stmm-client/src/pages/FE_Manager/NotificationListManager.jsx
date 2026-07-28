@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from "react";
 import notificationService from "../../services/notificationService";
 import "./NotificationListManager.css";
@@ -41,6 +42,8 @@ const IconMailOpen = () => (
 );
 
 export default function NotificationListManager({ navigate, addToast }) {
+  const { t } = useTranslation();
+
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all"); // 'all', 'unread', 'read'
@@ -53,7 +56,7 @@ export default function NotificationListManager({ navigate, addToast }) {
   // Set Page Metadata
   useEffect(() => {
     const originalTitle = document.title;
-    document.title = "STMM - Thông báo hệ thống";
+    document.title = t('notificationlistmanager.stmm_system_notifications');
 
     let metaDesc = document.querySelector('meta[name="description"]');
     const originalDesc = metaDesc ? metaDesc.getAttribute("content") : "";
@@ -63,7 +66,7 @@ export default function NotificationListManager({ navigate, addToast }) {
       metaDesc.name = "description";
       document.head.appendChild(metaDesc);
     }
-    metaDesc.setAttribute("content", "Hộp thư thông báo của ban quản lý hệ thống MHMS.");
+    metaDesc.setAttribute("content", t('notificationlistmanager.notification_mailbox_of_mhms'));
 
     return () => {
       document.title = originalTitle;
@@ -89,7 +92,7 @@ export default function NotificationListManager({ navigate, addToast }) {
       setNotifications(sorted);
     } catch (err) {
       console.error("Error loading notifications:", err);
-      addToast(err instanceof Error ? err.message : "Không thể tải danh sách thông báo.", "error");
+      addToast(err instanceof Error ? err.message : t('notificationlistmanager.unable_to_load_notification'), "error");
     } finally {
       if (!silent) setLoading(false);
     }
@@ -130,7 +133,7 @@ export default function NotificationListManager({ navigate, addToast }) {
       addToast(`Đã đánh dấu ${unreadCount} thông báo là đã đọc.`, "success");
     } catch (err) {
       console.error("Error marking all as read:", err);
-      addToast(err instanceof Error ? err.message : "Thất bại khi đánh dấu tất cả đã đọc.", "error");
+      addToast(err instanceof Error ? err.message : t('notificationlistmanager.failed_to_mark_all'), "error");
     }
   };
 
@@ -157,7 +160,7 @@ export default function NotificationListManager({ navigate, addToast }) {
       addToast("Xóa thông báo thành công.", "success");
     } catch (err) {
       console.error("Error deleting notification:", err);
-      addToast(err instanceof Error ? err.message : "Xóa thông báo thất bại.", "error");
+      addToast(err instanceof Error ? err.message : t('notificationlistmanager.delete_failure_message'), "error");
     } finally {
       setNotiToDelete(null);
     }
@@ -203,22 +206,22 @@ export default function NotificationListManager({ navigate, addToast }) {
 
     if (cleanType === "WARNING") {
       badgeClass = "badge-warning";
-      text = "Cảnh báo";
+      text = t('notificationlistmanager.warning');
     } else if (cleanType === "ALERT" || cleanType === "DANGER" || cleanType === "VIOLATION") {
       badgeClass = "badge-danger";
-      text = "Khẩn cấp";
+      text = t('notificationlistmanager.urgent');
     } else if (cleanType === "SYSTEM" || cleanType === "INFO") {
       badgeClass = "badge-info";
-      text = "Hệ thống";
+      text = t('notificationlistmanager.system');
     } else if (cleanType === "UTILITYREADING") {
       badgeClass = "badge-success";
-      text = "Ghi số điện nước";
+      text = t('notificationlistmanager.write_down_electricity_and');
     } else if (cleanType === "CASHCOLLECTION") {
       badgeClass = "badge-purple";
-      text = "Thu tiền mặt";
+      text = t('notificationlistmanager.collect_cash');
     } else if (cleanType === "CONTRACT" || cleanType === "LEASE") {
       badgeClass = "badge-orange";
-      text = "Hợp đồng";
+      text = t('notificationlistmanager.contract');
     }
 
     return <span className={`noti-badge ${badgeClass}`}>{text}</span>;
@@ -259,8 +262,7 @@ export default function NotificationListManager({ navigate, addToast }) {
           onClick={handleMarkAllAsRead}
         >
           <IconCheckAll />
-          Đánh dấu tất cả đã đọc
-        </button>
+          {t('notificationlistmanager.mark_all_as_read')}</button>
       </div>
 
       <div className="noti-workspace-split">
@@ -272,7 +274,7 @@ export default function NotificationListManager({ navigate, addToast }) {
               <input
                 type="text"
                 className="search-field"
-                placeholder="Tìm kiếm thông báo (tiêu đề, nội dung)..."
+                placeholder={t('notificationlistmanager.search_for_notifications_title')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -292,13 +294,13 @@ export default function NotificationListManager({ navigate, addToast }) {
             {loading ? (
               <div className="noti-state-message">
                 <div className="spinner-loader"></div>
-                <p>Đang tải danh sách thông báo...</p>
+                <p>{t('notificationlistmanager.loading_notification_list')}</p>
               </div>
             ) : filteredNotifications.length === 0 ? (
               <div className="noti-state-message empty">
                 <IconBell size={32} />
-                <p>Không tìm thấy thông báo nào</p>
-                {searchQuery && <span className="small-sub text-muted">Thử tìm với từ khóa khác</span>}
+                <p>{t('notificationlistmanager.no_notifications_found')}</p>
+                {searchQuery && <span className="small-sub text-muted">{t('notificationlistmanager.try_searching_with_other')}</span>}
               </div>
             ) : (
               <div className="noti-items-list">
@@ -323,7 +325,7 @@ export default function NotificationListManager({ navigate, addToast }) {
                             type="button"
                             className="btn-delete-card"
                             onClick={(e) => openDeleteConfirm(e, item)}
-                            title="Xóa thông báo"
+                            title={t('notificationlistmanager.delete_notification')}
                           >
                             <IconTrash />
                           </button>
@@ -333,7 +335,7 @@ export default function NotificationListManager({ navigate, addToast }) {
                         <div className="card-item-footer">
                           {renderTypeBadge(item.notiType)}
                           {!item.isRead && (
-                            <span className="card-unread-pill">Mới</span>
+                            <span className="card-unread-pill">{t('notificationlistmanager.new')}</span>
                           )}
                         </div>
                       </div>
@@ -361,8 +363,7 @@ export default function NotificationListManager({ navigate, addToast }) {
                   className="btn-delete-detail"
                   onClick={(e) => openDeleteConfirm(e, selectedNoti)}
                 >
-                  <IconTrash /> Xóa thông báo
-                </button>
+                  <IconTrash /> {t('notificationlistmanager.delete_notification')}</button>
               </div>
 
               <h2 className="detail-title">{selectedNoti.title}</h2>
@@ -379,8 +380,8 @@ export default function NotificationListManager({ navigate, addToast }) {
                     <IconMailOpen />
                   </span>
                   <div className="sender-meta">
-                    <span className="sender-name">Thông báo từ hệ thống MHMS</span>
-                    <span className="sender-sub">Dành cho: {selectedNoti.targetRole || "Toàn bộ hệ thống"}</span>
+                    <span className="sender-name">{t('notificationlistmanager.notifications_from_the_mhms')}</span>
+                    <span className="sender-sub">{selectedNoti.targetRole === 'Public' ? t('notificationlistmanager.entire_system') : `${t('notificationlistmanager.for')}: ${selectedNoti.targetRole}`}</span>
                   </div>
                 </div>
               </div>
@@ -390,8 +391,8 @@ export default function NotificationListManager({ navigate, addToast }) {
               <div className="empty-bell-circle animate-pulse">
                 <IconBell size={48} />
               </div>
-              <h3>Hộp thư Thông báo</h3>
-              <p>Chọn bất kỳ thông báo nào từ danh sách bên trái để đọc nội dung chi tiết.</p>
+              <h3>{t('notificationlistmanager.notification_mailbox')}</h3>
+              <p>{t('notificationlistmanager.select_any_notification_from')}</p>
             </div>
           )}
         </div>
@@ -403,15 +404,15 @@ export default function NotificationListManager({ navigate, addToast }) {
           <div className="custom-confirm-card">
             <div className="confirm-header">
               <span className="confirm-icon-warning">⚠️</span>
-              <h3>Xác nhận xóa thông báo</h3>
+              <h3>{t('notificationlistmanager.confirm_deletion_of_notification')}</h3>
             </div>
             <div className="confirm-body">
-              <p>Bạn có chắc chắn muốn xóa thông báo này không?</p>
+              <p>{t('notificationlistmanager.are_you_sure_you')}</p>
               <div className="confirm-noti-quote">
                 <strong>{notiToDelete.title}</strong>
                 <p>{notiToDelete.content?.substring(0, 80)}...</p>
               </div>
-              <p className="confirm-warning-desc">Hành động này không thể hoàn tác.</p>
+              <p className="confirm-warning-desc">{t('notificationlistmanager.this_action_cannot_be')}</p>
             </div>
             <div className="confirm-actions">
               <button
@@ -419,15 +420,13 @@ export default function NotificationListManager({ navigate, addToast }) {
                 className="btn-confirm-cancel"
                 onClick={() => setNotiToDelete(null)}
               >
-                Hủy bỏ
-              </button>
+                {t('notificationlistmanager.cancel')}</button>
               <button
                 type="button"
                 className="btn-confirm-danger"
                 onClick={confirmDelete}
               >
-                Xóa ngay
-              </button>
+                {t('notificationlistmanager.delete_now')}</button>
             </div>
           </div>
         </div>

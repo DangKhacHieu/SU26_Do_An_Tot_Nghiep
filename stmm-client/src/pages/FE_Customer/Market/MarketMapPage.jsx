@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useRef } from "react";
 import Header from "../Layout/Header";
 import Footer from "../Layout/Footer";
@@ -16,6 +17,7 @@ export default function MarketMapPage({
   onGoToStallDetail,
   onLogout,
 }) {
+  const { t } = useTranslation();
   const MAP_SCALE = 0.65;
   const [marketMap, setMarketMap] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -133,8 +135,8 @@ export default function MarketMapPage({
           setError("No blueprint data found for this market.");
         }
       } catch (err) {
-        console.error("Error loading market map:", err);
-        setError("Market layout not found (Invalid Market ID or layout not configured).");
+        console.error(t('marketmappage.error_when_loading_market'), err);
+        setError(t('marketmappage.error_when_loading_market'));
       } finally {
         setLoading(false);
       }
@@ -206,6 +208,7 @@ export default function MarketMapPage({
 
   useEffect(() => {
     const handleClickOutside = (e) => {
+
       if (searchRef.current && !searchRef.current.contains(e.target)) {
         setShowSuggestions(false);
       }
@@ -246,6 +249,14 @@ export default function MarketMapPage({
     setHighlightedStallId(stall.stallId);
     setSearchQuery(`${stall.code} - ${stall.areaName}`);
     setShowSuggestions(false);
+    setRatingSummary(null);
+
+    // Scroll to the highlighted stall block on map if needed
+    const element = document.getElementById(`stall-node-${stall.stallId}`);
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+
     fetchStallRating(stall.stallId);
   };
 
@@ -260,7 +271,7 @@ export default function MarketMapPage({
       const data = await getStallReviews(sId);
       setRatingSummary(data);
     } catch (err) {
-      console.error("Lỗi khi tải đánh giá sạp:", err);
+      console.error(t('marketmappage.error_loading_stall_reviews'), err);
       setRatingSummary(null);
     }
   };

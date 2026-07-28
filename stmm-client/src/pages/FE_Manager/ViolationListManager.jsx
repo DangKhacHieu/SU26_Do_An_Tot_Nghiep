@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useCallback } from 'react';
 import { getAuthHeaders } from '../../utils/authHeaders';
 import './ViolationListManager.css';
@@ -24,6 +25,8 @@ const IconReset = () => (
 );
 
 export default function ViolationListManager({ baseUrl, navigate, addToast }) {
+  const { t } = useTranslation();
+
   const [violations, setViolations] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -104,7 +107,7 @@ export default function ViolationListManager({ baseUrl, navigate, addToast }) {
           <input
             type="text"
             className="vl-search-input"
-            placeholder="Tìm theo ID, Sạp, Tiêu đề, Loại..."
+            placeholder={t('violationlistmanager.search_by_id_store')}
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
           />
@@ -116,13 +119,13 @@ export default function ViolationListManager({ baseUrl, navigate, addToast }) {
             value={statusFilter}
             onChange={(e) => { setStatusFilter(e.target.value); setPageNumber(1); }}
           >
-            <option value="">Tất cả trạng thái</option>
-            <option value="Pending">Chờ duyệt</option>
-            <option value="Notified">Đã thông báo</option>
-            <option value="Appealed">Kháng nghị</option>
-            <option value="Finalized">Đã kết luận</option>
-            <option value="Approved">Chấp nhận</option>
-            <option value="Rejected">Bị bác bỏ</option>
+            <option value="">{t('violationlistmanager.all_status')}</option>
+            <option value="Pending">{t('violationlistmanager.waiting_for_approval')}</option>
+            <option value="Notified">{t('violationlistmanager.notified')}</option>
+            <option value="Appealed">{t('violationlistmanager.appeal')}</option>
+            <option value="Finalized">{t('violationlistmanager.concluded')}</option>
+            <option value="Approved">{t('violationlistmanager.accept')}</option>
+            <option value="Rejected">{t('violationlistmanager.rejected')}</option>
           </select>
 
           <select
@@ -130,8 +133,8 @@ export default function ViolationListManager({ baseUrl, navigate, addToast }) {
             value={sortDescending ? "desc" : "asc"}
             onChange={(e) => { setSortDescending(e.target.value === "desc"); setPageNumber(1); }}
           >
-            <option value="desc">Mới nhất trước</option>
-            <option value="asc">Cũ nhất trước</option>
+            <option value="desc">{t('violationlistmanager.newest_first')}</option>
+            <option value="asc">{t('violationlistmanager.oldest_first')}</option>
           </select>
         </div>
       </div>
@@ -141,24 +144,24 @@ export default function ViolationListManager({ baseUrl, navigate, addToast }) {
         {loading ? (
           <div className="vl-loading">
             <div className="vl-spinner" />
-            <span>Đang tải danh sách biên bản...</span>
+            <span>{t('violationlistmanager.loading_list_of_minutes')}</span>
           </div>
         ) : violations.length === 0 ? (
           <div className="vl-empty">
-            <p className="vl-empty-text">Không tìm thấy biên bản vi phạm nào.</p>
+            <p className="vl-empty-text">{t('violationlistmanager.no_violation_records_were')}</p>
           </div>
         ) : (
           <div className="vl-table-wrap">
             <table className="vl-table">
               <thead>
                 <tr>
-                  <th>Mã biên bản</th>
-                  <th>Sạp</th>
-                  <th>Tiêu đề</th>
-                  <th>Tiền phạt</th>
-                  <th>Ngày lập</th>
-                  <th>Trạng thái</th>
-                  <th style={{ textAlign: 'right' }}>Thao tác</th>
+                  <th>{t('violationlistmanager.minute_code')}</th>
+                  <th>{t('violationlistmanager.stall')}</th>
+                  <th>{t('violationlistmanager.title')}</th>
+                  <th>{t('violationlistmanager.fine')}</th>
+                  <th>{t('violationlistmanager.date_of_establishment')}</th>
+                  <th>{t('violationlistmanager.status')}</th>
+                  <th style={{ textAlign: 'right' }}>{t('violationlistmanager.operation')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -181,8 +184,7 @@ export default function ViolationListManager({ baseUrl, navigate, addToast }) {
                           className="vl-action-btn"
                           onClick={() => navigate('violation-details', v.violationId)}
                         >
-                          Chi tiết
-                        </button>
+                          {t('violationlistmanager.detail')}</button>
                       </td>
                     </tr>
                   );
@@ -201,8 +203,7 @@ export default function ViolationListManager({ baseUrl, navigate, addToast }) {
             disabled={pageNumber === 1}
             onClick={() => setPageNumber(p => Math.max(p - 1, 1))}
           >
-            Trước
-          </button>
+            {t('violationlistmanager.before')}</button>
           <span className="vl-page-info">Trang {pageNumber} / {totalPages}</span>
           <button
             className="vl-page-btn"

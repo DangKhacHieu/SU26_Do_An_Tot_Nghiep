@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import './UserListAdminSystem.css';
 
@@ -30,6 +31,8 @@ const IconEyeShow = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="
 const IconEyeHide = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>;
 
 export default function UserListAdminSystem({ navigate, addToast }) {
+  const { t } = useTranslation();
+
   const [users, setUsers]             = useState([]);
   const [roles, setRoles]             = useState([]);
   const [loading, setLoading]         = useState(true);
@@ -87,12 +90,12 @@ export default function UserListAdminSystem({ navigate, addToast }) {
         body: JSON.stringify({ status: newStatus }),
       });
       if (res.ok) {
-        addToast(`${newStatus === 'Active' ? 'Mở khóa' : 'Khóa'} tài khoản thành công!`, 'success');
+        addToast(`${newStatus === 'Active' ? t('userlistadminsystem.unlock') : t('userlistadminsystem.lock')} tài khoản thành công!`, 'success');
         closeModal();
         fetchUsers();
       } else {
         const err = await res.json().catch(() => ({}));
-        addToast(err.detail || 'Lỗi khi cập nhật trạng thái.', 'error');
+        addToast(err.detail || t('userlistadminsystem.error_updating_status'), 'error');
       }
     } catch { addToast('Lỗi kết nối. Vui lòng thử lại.', 'error'); }
     finally { setActionLoading(false); }
@@ -111,7 +114,7 @@ export default function UserListAdminSystem({ navigate, addToast }) {
         fetchUsers();
       } else {
         const err = await res.json().catch(() => ({}));
-        addToast(err.detail || 'Lỗi máy chủ khi xóa tài khoản.', 'error');
+        addToast(err.detail || t('userlistadminsystem.server_error_when_deleting'), 'error');
       }
     } catch { addToast('Lỗi kết nối. Vui lòng thử lại.', 'error'); }
     finally { setActionLoading(false); }
@@ -137,7 +140,7 @@ export default function UserListAdminSystem({ navigate, addToast }) {
         closeModal();
       } else {
         const err = await res.json().catch(() => ({}));
-        addToast(err.detail || 'Lỗi khi đặt lại mật khẩu.', 'error');
+        addToast(err.detail || t('userlistadminsystem.error_resetting_password'), 'error');
       }
     } catch { addToast('Lỗi kết nối. Vui lòng thử lại.', 'error'); }
     finally { setActionLoading(false); }
@@ -177,24 +180,24 @@ export default function UserListAdminSystem({ navigate, addToast }) {
             <input
               type="text"
               className="search-input"
-              placeholder="Tìm kiếm tài khoản (Tên, Email, SĐT, CCCD)..."
+              placeholder={t('userlistadminsystem.search_account_name_email')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
             {searchQuery && (
-              <button className="search-clear" onClick={() => setSearchQuery('')} title="Xóa">
+              <button className="search-clear" onClick={() => setSearchQuery('')} title={t('userlistadminsystem.erase')}>
                 <IconXCircle />
               </button>
             )}
           </div>
 
           <select className="filter-select" value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
-            <option value="">Tất cả vai trò</option>
+            <option value="">{t('userlistadminsystem.all_roles')}</option>
             {roles.map(r => <option key={r.roleId} value={r.name}>{r.name}</option>)}
           </select>
 
           <select className="filter-select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-            <option value="">Tất cả trạng thái</option>
+            <option value="">{t('userlistadminsystem.all_status')}</option>
             <option value="Active">Active</option>
             <option value="Locked">Locked</option>
             <option value="Suspended">Suspended</option>
@@ -202,20 +205,18 @@ export default function UserListAdminSystem({ navigate, addToast }) {
 
           {hasFilters && (
             <button className="btn-filter-clear" onClick={clearFilters}>
-              Xóa bộ lọc
-            </button>
+              {t('userlistadminsystem.clear_filter')}</button>
           )}
         </div>
 
         <button className="btn-primary btn-admin-accent" onClick={() => navigate('admin-user-form')}>
-          <IconPlus /> Đăng ký tài khoản
-        </button>
+          <IconPlus /> {t('userlistadminsystem.register_an_account')}</button>
       </div>
 
       {/* ── Table card ── */}
       <div className="table-card">
         <div className="table-card-header">
-          <span className="table-card-title">Danh sách tài khoản hệ thống</span>
+          <span className="table-card-title">{t('userlistadminsystem.list_of_system_accounts')}</span>
           {!loading && (
             <span className="table-count-badge badge-admin">{users.length} kết quả</span>
           )}
@@ -224,18 +225,17 @@ export default function UserListAdminSystem({ navigate, addToast }) {
         {loading ? (
           <div className="state-empty">
             <div className="spinner" />
-            <span className="state-empty-text">Đang tải dữ liệu tài khoản...</span>
+            <span className="state-empty-text">{t('userlistadminsystem.loading_account_data')}</span>
           </div>
         ) : users.length === 0 ? (
           <div className="state-empty">
             <IconEmpty />
             <span className="state-empty-text">
-              {hasFilters ? 'Không tìm thấy kết quả phù hợp.' : 'Chưa có tài khoản nào trong hệ thống.'}
+              {hasFilters ? t('userlistadminsystem.no_matching_results_were') : t('userlistadminsystem.there_are_no_accounts')}
             </span>
             {hasFilters && (
               <button className="btn-secondary" style={{ marginTop: 4 }} onClick={clearFilters}>
-                Xóa bộ lọc
-              </button>
+                {t('userlistadminsystem.clear_filter')}</button>
             )}
           </div>
         ) : (
@@ -244,11 +244,11 @@ export default function UserListAdminSystem({ navigate, addToast }) {
               <thead>
                 <tr>
                   <th style={{ width: 44, textAlign: 'center' }}>#</th>
-                  <th>Thành viên</th>
+                  <th>{t('userlistadminsystem.member')}</th>
                   <th>CCCD</th>
-                  <th>Vai trò</th>
-                  <th>Trạng thái</th>
-                  <th style={{ textAlign: 'center' }}>Hành động</th>
+                  <th>{t('userlistadminsystem.role')}</th>
+                  <th>{t('userlistadminsystem.status')}</th>
+                  <th style={{ textAlign: 'center' }}>{t('userlistadminsystem.act')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -283,23 +283,23 @@ export default function UserListAdminSystem({ navigate, addToast }) {
                       </td>
                       <td>
                         <div className="actions-cell" style={{ justifyContent: 'center' }}>
-                          <button className="btn-icon view"   title="Xem chi tiết"   onClick={() => navigate('admin-user-detail', user.userId)}><IconEye /></button>
-                          <button className="btn-icon edit"   title="Chỉnh sửa"       onClick={() => navigate('admin-user-form',   user.userId)}><IconEdit /></button>
+                          <button className="btn-icon view"   title={t('userlistadminsystem.see_details')}   onClick={() => navigate('admin-user-detail', user.userId)}><IconEye /></button>
+                          <button className="btn-icon edit"   title={t('userlistadminsystem.edit')}       onClick={() => navigate('admin-user-form',   user.userId)}><IconEdit /></button>
                           <button
                             className="btn-icon reset-pw"
-                            title="Đặt lại mật khẩu"
+                            title={t('userlistadminsystem.reset_password')}
                             onClick={() => openModal('reset', user)}
                           >
                             <IconKey />
                           </button>
                           <button
                             className={`btn-icon ${user.status === 'Locked' ? 'unlock' : 'lock'}`}
-                            title={user.status === 'Locked' ? 'Mở khóa tài khoản' : 'Khóa tài khoản'}
+                            title={user.status === 'Locked' ? t('userlistadminsystem.unlock_account') : t('userlistadminsystem.lock_account')}
                             onClick={() => openModal('lock', user)}
                           >
                             {user.status === 'Locked' ? <IconUnlock /> : <IconLock />}
                           </button>
-                          <button className="btn-icon delete" title="Xóa tài khoản"   onClick={() => openModal('delete', user)}><IconTrash /></button>
+                          <button className="btn-icon delete" title={t('userlistadminsystem.delete_account')}   onClick={() => openModal('delete', user)}><IconTrash /></button>
                         </div>
                       </td>
                     </tr>
@@ -316,7 +316,7 @@ export default function UserListAdminSystem({ navigate, addToast }) {
         <div className="modal-overlay" onClick={closeModal}>
           <div className="modal-box" onClick={(e) => e.stopPropagation()}>
             <div className="modal-head">
-              <h3>{targetUser.status === 'Locked' ? 'Mở khóa tài khoản' : 'Khóa tài khoản'}</h3>
+              <h3>{targetUser.status === 'Locked' ? t('userlistadminsystem.unlock_account') : t('userlistadminsystem.lock_account')}</h3>
               <button className="modal-close" onClick={closeModal}>×</button>
             </div>
             <div className="modal-body">
@@ -339,19 +339,19 @@ export default function UserListAdminSystem({ navigate, addToast }) {
 
               <p className="modal-desc">
                 {targetUser.status === 'Locked'
-                  ? <>Tài khoản sẽ được <strong>mở khóa</strong> và có thể đăng nhập lại ngay.</>
-                  : <>Tài khoản sẽ bị <strong>khóa</strong>. Người dùng sẽ không thể đăng nhập cho đến khi mở khóa.</>
+                  ? <>{t('userlistadminsystem.account_will_be')}<strong>{t('userlistadminsystem.unlock')}</strong> {t('userlistadminsystem.and_can_log_back')}</>
+                  : <>{t('userlistadminsystem.account_will_be')}<strong>{t('userlistadminsystem.lock')}</strong>{t('userlistadminsystem.users_will_not_be')}</>
                 }
               </p>
             </div>
             <div className="modal-foot">
-              <button className="btn-secondary" onClick={closeModal} disabled={actionLoading}>Hủy</button>
+              <button className="btn-secondary" onClick={closeModal} disabled={actionLoading}>{t('userlistadminsystem.cancel')}</button>
               <button
                 className={targetUser.status === 'Locked' ? 'btn-success' : 'btn-warn'}
                 onClick={handleLockUnlock}
                 disabled={actionLoading}
               >
-                {actionLoading ? 'Đang xử lý...' : targetUser.status === 'Locked' ? 'Xác nhận mở khóa' : 'Xác nhận khóa'}
+                {actionLoading ? t('userlistadminsystem.processing') : targetUser.status === 'Locked' ? t('userlistadminsystem.confirm_unlock') : t('userlistadminsystem.confirm_key')}
               </button>
             </div>
           </div>
@@ -363,7 +363,7 @@ export default function UserListAdminSystem({ navigate, addToast }) {
         <div className="modal-overlay" onClick={closeModal}>
           <div className="modal-box" onClick={(e) => e.stopPropagation()}>
             <div className="modal-head">
-              <h3>Xóa tài khoản</h3>
+              <h3>{t('userlistadminsystem.delete_account')}</h3>
               <button className="modal-close" onClick={closeModal}>×</button>
             </div>
             <div className="modal-body">
@@ -383,37 +383,35 @@ export default function UserListAdminSystem({ navigate, addToast }) {
               </div>
 
               <p className="modal-desc">
-                Tài khoản sẽ bị <strong>xóa mềm</strong> khỏi hệ thống. Lịch sử giao dịch và hóa đơn vẫn được lưu lại cho mục đích kiểm toán.
-              </p>
+                {t('userlistadminsystem.account_will_be')}<strong>{t('userlistadminsystem.soft_delete')}</strong> {t('userlistadminsystem.out_of_the_system')}</p>
 
               <div className="modal-confirm-input">
                 <label>
-                  Nhập tên <strong>{targetUser.name}</strong> để xác nhận xóa:
-                </label>
+                  {t('userlistadminsystem.enter_a_name')}<strong>{targetUser.name}</strong> {t('userlistadminsystem.to_confirm_deletion')}</label>
                 <input
                   type="text"
                   className={`form-control ${confirmName && (deleteConfirmed ? 'is-ok' : 'is-error')}`}
-                  placeholder={`Nhập: ${targetUser.name}`}
+                  placeholder={t('userlistadminsystem.enter_targetusername')}
                   value={confirmName}
                   onChange={(e) => setConfirmName(e.target.value)}
                   autoComplete="off"
                 />
                 {confirmName && !deleteConfirmed && (
-                  <span className="modal-confirm-hint">Tên không khớp.</span>
+                  <span className="modal-confirm-hint">{t('userlistadminsystem.names_do_not_match')}</span>
                 )}
                 {deleteConfirmed && (
-                  <span className="modal-confirm-ok">✓ Tên khớp, có thể xóa.</span>
+                  <span className="modal-confirm-ok">{t('userlistadminsystem.name_matches_can_be')}</span>
                 )}
               </div>
             </div>
             <div className="modal-foot">
-              <button className="btn-secondary" onClick={closeModal} disabled={actionLoading}>Hủy</button>
+              <button className="btn-secondary" onClick={closeModal} disabled={actionLoading}>{t('userlistadminsystem.cancel')}</button>
               <button
                 className="btn-danger"
                 onClick={handleDelete}
                 disabled={actionLoading || !deleteConfirmed}
               >
-                {actionLoading ? 'Đang xóa...' : 'Xóa tài khoản'}
+                {actionLoading ? t('userlistadminsystem.deleting') : t('userlistadminsystem.delete_account')}
               </button>
             </div>
           </div>
@@ -425,7 +423,7 @@ export default function UserListAdminSystem({ navigate, addToast }) {
         <div className="modal-overlay" onClick={closeModal}>
           <div className="modal-box" onClick={(e) => e.stopPropagation()}>
             <div className="modal-head">
-              <h3>Đặt lại mật khẩu</h3>
+              <h3>{t('userlistadminsystem.reset_password')}</h3>
               <button className="modal-close" onClick={closeModal}>×</button>
             </div>
             <div className="modal-body">
@@ -445,16 +443,15 @@ export default function UserListAdminSystem({ navigate, addToast }) {
               </div>
 
               <p className="modal-desc">
-                Cung cấp mật khẩu mới cho tài khoản này. Người dùng sẽ sử dụng mật khẩu này để đăng nhập lần sau.
-              </p>
+                {t('userlistadminsystem.provide_a_new_password')}</p>
 
               <div className="modal-confirm-input">
-                <label>Mật khẩu mới (tối thiểu 6 ký tự):</label>
+                <label>{t('userlistadminsystem.new_password_minimum_6')}</label>
                 <div className="pw-input-wrap" style={{ position: 'relative' }}>
                   <input
                     type={showPw ? 'text' : 'password'}
                     className="form-control"
-                    placeholder="Nhập mật khẩu mới..."
+                    placeholder={t('userlistadminsystem.enter_new_password')}
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     autoComplete="new-password"
@@ -480,13 +477,13 @@ export default function UserListAdminSystem({ navigate, addToast }) {
               </div>
             </div>
             <div className="modal-foot">
-              <button className="btn-secondary" onClick={closeModal} disabled={actionLoading}>Hủy</button>
+              <button className="btn-secondary" onClick={closeModal} disabled={actionLoading}>{t('userlistadminsystem.cancel')}</button>
               <button
                 className="btn-primary btn-admin-accent"
                 onClick={handleResetPassword}
                 disabled={actionLoading || !newPassword || newPassword.length < 6}
               >
-                {actionLoading ? 'Đang xử lý...' : 'Xác nhận đặt lại'}
+                {actionLoading ? t('userlistadminsystem.processing') : t('userlistadminsystem.confirm_reset')}
               </button>
             </div>
           </div>

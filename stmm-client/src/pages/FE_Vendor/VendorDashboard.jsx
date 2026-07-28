@@ -1,6 +1,8 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect } from "react";
 import axios from 'axios';
 import "./VendorDashboard.css";
+import LanguageSwitcher from '../../components/layout/LanguageSwitcher';
 import VendorServiceList from "../FE_Vendor/VendorServices/VendorServiceList";
 import VendorMyServices from "../FE_Vendor/VendorServices/VendorMyServices";
 import VendorRequestList from "./VendorRequests/VendorRequestList";
@@ -84,7 +86,9 @@ const IconSetting = () => (
   </svg>
 );
 
-function VendorDashboard({ user, onBack, onLogout }) {
+export default function VendorDashboard({ user, onBack, onLogout }) {
+  const { t } = useTranslation();
+
   const vendorId = user?.userId;
   const [activeMenu, setActiveMenu] = useState('DASHBOARD');
   const [searchTerm, setSearchTerm] = useState('');
@@ -141,25 +145,25 @@ function VendorDashboard({ user, onBack, onLogout }) {
   }, []);
 
   const MENU_ITEMS = [
-    { id: 'DASHBOARD', label: 'OVERVIEW', icon: <IconHome /> },
-    { id: 'SERVICES', label: 'SERVICES', icon: <IconServices /> },
-    { id: 'REQUESTS', label: 'REQUESTS', icon: <IconRequests /> },
-    { id: 'FEEDBACK', label: 'FEEDBACK', icon: <IconFeedback /> },
-    { id: 'NOTIFICATIONS', label: 'NOTIFICATIONS', icon: <IconNotifications /> },
-    { id: 'BILLS', label: 'BILLS', icon: <IconBills /> },
-    { id: 'VIOLATIONS', label: 'VIOLATIONS', icon: <IconViolations /> },
+    { id: 'DASHBOARD', label: t('vendordashboard.overview'), icon: <IconHome /> },
+    { id: 'SERVICES', label: t('vendordashboard.services'), icon: <IconServices /> },
+    { id: 'REQUESTS', label: t('vendordashboard.requests'), icon: <IconRequests /> },
+    { id: 'FEEDBACK', label: t('vendordashboard.feedback'), icon: <IconFeedback /> },
+    { id: 'NOTIFICATIONS', label: t('vendordashboard.notifications'), icon: <IconNotifications /> },
+    { id: 'BILLS', label: t('vendordashboard.bills'), icon: <IconBills /> },
+    { id: 'VIOLATIONS', label: t('vendordashboard.violations'), icon: <IconViolations /> },
   ];
 
   // SEO Update
   useEffect(() => {
     const titleMap = {
-      'SERVICES': 'Dịch vụ của tôi',
-      'REQUESTS': 'Yêu cầu hỗ trợ',
-      'FEEDBACK': 'Góp ý',
-      'NOTIFICATIONS': 'Thông báo',
-      'BILLS': 'Hóa đơn',
-      'VIOLATIONS': 'Lỗi vi phạm',
-      'PROFILE': 'Hồ sơ cá nhân'
+      'SERVICES': t('vendordashboard.my_service'),
+      'REQUESTS': t('vendordashboard.request_support'),
+      'FEEDBACK': t('vendordashboard.comment'),
+      'NOTIFICATIONS': t('vendordashboard.notification'),
+      'BILLS': t('vendordashboard.bill'),
+      'VIOLATIONS': t('vendordashboard.violation_error'),
+      'PROFILE': t('vendordashboard.personal_profile')
     };
     document.title = `${titleMap[activeMenu] || 'Dashboard'} - Vendor Portal | STMM`;
     
@@ -170,7 +174,7 @@ function VendorDashboard({ user, onBack, onLogout }) {
       metaDescription.name = "description";
       document.head.appendChild(metaDescription);
     }
-    metaDescription.content = `Quản lý ${titleMap[activeMenu] || 'thông tin'} dành cho tiểu thương tại chợ thông minh STMM.`;
+    metaDescription.content = `Quản lý ${titleMap[activeMenu] || t('vendordashboard.information')} dành cho tiểu thương tại chợ thông minh STMM.`;
   }, [activeMenu]);
 
   return (
@@ -186,7 +190,7 @@ function VendorDashboard({ user, onBack, onLogout }) {
           </div>
           <div className="vendor-sidebar-title">
             <h2>VendorPortal</h2>
-            <span>Management Console</span>
+            <span>{t('vendordashboard.management_console')}</span>
           </div>
         </div>
 
@@ -203,10 +207,11 @@ function VendorDashboard({ user, onBack, onLogout }) {
           ))}
         </nav>
 
+
         <div className="vendor-sidebar-footer">
           <button className="vendor-logout-btn" onClick={onLogout}>
             <IconLogout />
-            <span>Logout</span>
+            <span>{t('vendordashboard.logout')}</span>
           </button>
         </div>
       </aside>
@@ -218,15 +223,16 @@ function VendorDashboard({ user, onBack, onLogout }) {
           <div className="vendor-topbar-title">VendorPortal</div>
           
           <div className="vendor-topbar-right">
+            <LanguageSwitcher />
             {rentedStalls.length > 0 && (
               <select 
                 value={selectedStallId} 
                 onChange={(e) => setSelectedStallId(e.target.value)}
                 style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none', background: '#f8fafc', color: '#1e293b', fontWeight: 600, cursor: 'pointer' }}
               >
-                <option value="ALL">Tất cả sạp ({rentedStalls.length})</option>
+                <option value="ALL">{t('vendordashboard.all_stalls', { count: rentedStalls.length })}</option>
                 {rentedStalls.map(s => (
-                  <option key={s.stallId} value={s.stallId}>Sạp {s.code}</option>
+                  <option key={s.stallId} value={s.stallId}>{t('vendordashboard.stall', { code: s.code })}</option>
                 ))}
               </select>
             )}
@@ -234,7 +240,7 @@ function VendorDashboard({ user, onBack, onLogout }) {
               <IconSearch />
               <input 
                 type="text" 
-                placeholder="Tìm kiếm dịch vụ..." 
+                placeholder={t('vendordashboard.search_for_services')} 
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -278,19 +284,19 @@ function VendorDashboard({ user, onBack, onLogout }) {
               {/* Row 1: 4 small cards */}
               <div className="vendor-overview-top-row">
                 <div className="dashboard-card">
-                  <h3 style={{ fontSize: '14px', color: '#64748b', margin: 0, marginBottom: '8px' }}>Active Stalls</h3>
+                  <h3 style={{ fontSize: '14px', color: '#64748b', margin: 0, marginBottom: '8px' }}>{t('vendordashboard.active_stalls')}</h3>
                   <div style={{ fontSize: '28px', fontWeight: 700, color: '#0f172a' }}>2</div>
                 </div>
                 <div className="dashboard-card">
-                  <h3 style={{ fontSize: '14px', color: '#64748b', margin: 0, marginBottom: '8px' }}>Pending Requests</h3>
+                  <h3 style={{ fontSize: '14px', color: '#64748b', margin: 0, marginBottom: '8px' }}>{t('vendordashboard.pending_requests')}</h3>
                   <div style={{ fontSize: '28px', fontWeight: 700, color: '#3b82f6' }}>5</div>
                 </div>
                 <div className="dashboard-card">
-                  <h3 style={{ fontSize: '14px', color: '#64748b', margin: 0, marginBottom: '8px' }}>Unpaid Bills</h3>
+                  <h3 style={{ fontSize: '14px', color: '#64748b', margin: 0, marginBottom: '8px' }}>{t('vendordashboard.unpaid_bills')}</h3>
                   <div style={{ fontSize: '28px', fontWeight: 700, color: '#ef4444' }}>1</div>
                 </div>
                 <div className="dashboard-card">
-                  <h3 style={{ fontSize: '14px', color: '#64748b', margin: 0, marginBottom: '8px' }}>Violations</h3>
+                  <h3 style={{ fontSize: '14px', color: '#64748b', margin: 0, marginBottom: '8px' }}>{t('vendordashboard.violations')}</h3>
                   <div style={{ fontSize: '28px', fontWeight: 700, color: '#d97706' }}>0</div>
                 </div>
               </div>
@@ -300,27 +306,27 @@ function VendorDashboard({ user, onBack, onLogout }) {
                 {/* Left Column (2 large blocks) */}
                 <div className="vendor-overview-left-col">
                   <div className="dashboard-card large-panel" style={{ flex: 1.5 }}>
-                    <h3 style={{ fontSize: '16px', color: '#0f172a', margin: 0, marginBottom: '16px' }}>Overview Chart</h3>
-                    <div style={{ flex: 1, background: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>[Chart Placeholder]</div>
+                    <h3 style={{ fontSize: '16px', color: '#0f172a', margin: 0, marginBottom: '16px' }}>{t('vendordashboard.overview_chart')}</h3>
+                    <div style={{ flex: 1, background: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>{t('vendordashboard.chart_placeholder')}</div>
                   </div>
                   <div className="dashboard-card large-panel" style={{ flex: 1 }}>
-                    <h3 style={{ fontSize: '16px', color: '#0f172a', margin: 0, marginBottom: '16px' }}>Recent Activity</h3>
-                    <div style={{ flex: 1, background: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>[Table/List Placeholder]</div>
+                    <h3 style={{ fontSize: '16px', color: '#0f172a', margin: 0, marginBottom: '16px' }}>{t('vendordashboard.recent_activity')}</h3>
+                    <div style={{ flex: 1, background: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>{t('vendordashboard.table_placeholder')}</div>
                   </div>
                 </div>
                 
                 {/* Right Column (3 smaller stacked blocks) */}
                 <div className="vendor-overview-right-col">
                   <div className="dashboard-card" style={{ flex: 1 }}>
-                    <h3 style={{ fontSize: '16px', color: '#0f172a', margin: 0, marginBottom: '16px' }}>Notifications</h3>
+                    <h3 style={{ fontSize: '16px', color: '#0f172a', margin: 0, marginBottom: '16px' }}>{t('vendordashboard.notifications')}</h3>
                     <div style={{ flex: 1, background: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1' }}></div>
                   </div>
                   <div className="dashboard-card" style={{ flex: 1 }}>
-                    <h3 style={{ fontSize: '16px', color: '#0f172a', margin: 0, marginBottom: '16px' }}>Upcoming Payments</h3>
+                    <h3 style={{ fontSize: '16px', color: '#0f172a', margin: 0, marginBottom: '16px' }}>{t('vendordashboard.upcoming_payments')}</h3>
                     <div style={{ flex: 1, background: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1' }}></div>
                   </div>
                   <div className="dashboard-card" style={{ flex: 1 }}>
-                    <h3 style={{ fontSize: '16px', color: '#0f172a', margin: 0, marginBottom: '16px' }}>Quick Actions</h3>
+                    <h3 style={{ fontSize: '16px', color: '#0f172a', margin: 0, marginBottom: '16px' }}>{t('vendordashboard.quick_actions')}</h3>
                     <div style={{ flex: 1, background: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1' }}></div>
                   </div>
                 </div>
@@ -404,5 +410,3 @@ function VendorDashboard({ user, onBack, onLogout }) {
     </div>
   );
 }
-
-export default VendorDashboard;

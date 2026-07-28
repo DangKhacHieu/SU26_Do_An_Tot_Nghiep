@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import './UserDetailAdminSystem.css';
 
@@ -16,13 +17,13 @@ const ROLE_CONFIG = {
 
 /* ── Status config ── */
 const STATUS_CONFIG = {
-  active:    { color: '#16a34a', bg: '#dcfce7', border: '#bbf7d0', dot: '#16a34a', label: 'Đang hoạt động' },
-  locked:    { color: '#dc2626', bg: '#fee2e2', border: '#fecaca', dot: '#dc2626', label: 'Đã khóa' },
-  suspended: { color: '#d97706', bg: '#fef9c3', border: '#fde68a', dot: '#d97706', label: 'Tạm ngưng' },
+  active:    { color: '#16a34a', bg: '#dcfce7', border: '#bbf7d0', dot: '#16a34a', label: 'Hoạt động' },
+  locked:    { color: '#dc2626', bg: '#fee2e2', border: '#fecaca', dot: '#dc2626', label: 'Bị khóa' },
+  suspended: { color: '#d97706', bg: '#fef9c3', border: '#fde68a', dot: '#d97706', label: 'Tạm dừng' },
 };
 
 /* ── Validation rules ── */
-const validateField = (key, value) => {
+const validateField = (key, value, t) => {
   switch (key) {
     case 'name':
       if (!value || !value.trim()) return { ok: false, msg: 'Họ và tên bị trống.' };
@@ -96,20 +97,22 @@ const IconRefresh = () => (
 const fmt = (dt) =>
   dt ? new Date(dt).toLocaleString('vi-VN', { dateStyle: 'medium', timeStyle: 'short' }) : null;
 
-const timeAgo = (dt) => {
+const timeAgo = (dt, t) => {
   if (!dt) return null;
   const diff = Date.now() - new Date(dt).getTime();
   const mins = Math.floor(diff / 60000);
   if (mins < 1)  return 'Vừa xong';
-  if (mins < 60) return `${mins} phút trước`;
+  if (mins < 60) return '${mins} phút trước';
   const hrs = Math.floor(mins / 60);
-  if (hrs < 24)  return `${hrs} giờ trước`;
+  if (hrs < 24)  return '${hrs} giờ trước';
   const days = Math.floor(hrs / 24);
-  if (days < 30) return `${days} ngày trước`;
+  if (days < 30) return '${days} ngày trước';
   return fmt(dt);
 };
 
 export default function UserDetailAdminSystem({ userId, navigate, addToast }) {
+  const { t } = useTranslation();
+
   const [user, setUser]       = useState(null);
   const [loading, setLoading] = useState(true);
   const [showValidation, setShowValidation] = useState(false);
@@ -131,7 +134,7 @@ export default function UserDetailAdminSystem({ userId, navigate, addToast }) {
       <div className="udetail-wrap">
         <div className="udetail-loading">
           <div className="udetail-spinner" />
-          <p>Đang tải hồ sơ tài khoản…</p>
+          <p>{t('userdetailadminsystem.loading_account_profile')}</p>
         </div>
       </div>
     );
@@ -146,10 +149,10 @@ export default function UserDetailAdminSystem({ userId, navigate, addToast }) {
 
   /* Data validation check */
   const validations = {
-    name:  validateField('name',  user.name),
-    email: validateField('email', user.email),
-    phone: validateField('phone', user.phone),
-    cccd:  validateField('cccd',  user.cccd),
+    name:  validateField('name',  user.name, t),
+    email: validateField('email', user.email, t),
+    phone: validateField('phone', user.phone, t),
+    cccd:  validateField('cccd',  user.cccd, t),
   };
   const hasIssues = Object.values(validations).some(v => !v.ok);
 
@@ -161,15 +164,12 @@ export default function UserDetailAdminSystem({ userId, navigate, addToast }) {
       {/* ── TOP ACTION BAR ── */}
       <div className="udetail-topbar">
         <button className="udetail-btn-back" onClick={() => navigate('admin-users')}>
-          <IconArrow /> Quay lại danh sách
-        </button>
+          <IconArrow /> {t('userdetailadminsystem.back_to_the_list')}</button>
         <div className="udetail-topbar-right">
-          <button className="udetail-btn-reload" onClick={load} title="Tải lại">
-            <IconRefresh /> Tải lại
-          </button>
+          <button className="udetail-btn-reload" onClick={load} title={t('userdetailadminsystem.reload')}>
+            <IconRefresh /> {t('userdetailadminsystem.reload')}</button>
           <button className="udetail-btn-edit btn-admin-accent" onClick={() => navigate('admin-user-form', user.userId)}>
-            <IconEdit /> Chỉnh sửa
-          </button>
+            <IconEdit /> {t('userdetailadminsystem.edit')}</button>
         </div>
       </div>
 
@@ -178,9 +178,9 @@ export default function UserDetailAdminSystem({ userId, navigate, addToast }) {
         <div className="udetail-alert-banner">
           <IconWarn />
           <div>
-            <strong>Dữ liệu cần kiểm tra:</strong> Phát hiện {Object.values(validations).filter(v => !v.ok).length} trường không hợp lệ.
+            <strong>{t('userdetailadminsystem.data_to_check')}</strong> Phát hiện {Object.values(validations).filter(v => !v.ok).length} trường không hợp lệ.
             <button className="udetail-alert-toggle" onClick={() => setShowValidation(v => !v)}>
-              {showValidation ? 'Ẩn chi tiết' : 'Xem chi tiết'}
+              {showValidation ? t('userdetailadminsystem.hide_details') : t('userdetailadminsystem.see_details')}
             </button>
           </div>
         </div>
@@ -188,22 +188,22 @@ export default function UserDetailAdminSystem({ userId, navigate, addToast }) {
       {!hasIssues && (
         <div className="udetail-ok-banner">
           <IconCheck />
-          <span>Dữ liệu tài khoản hợp lệ — không phát hiện vấn đề nào.</span>
+          <span>{t('userdetailadminsystem.account_data_is_valid')}</span>
         </div>
       )}
 
       {/* Validation detail panel */}
       {showValidation && hasIssues && (
         <div className="udetail-validation-panel">
-          <p className="udetail-vp-title">Chi tiết kiểm tra dữ liệu</p>
+          <p className="udetail-vp-title">{t('userdetailadminsystem.detailed_test_data')}</p>
           <div className="udetail-vp-list">
             {Object.entries(validations).map(([key, v]) => {
-              const labels = { name: 'Họ và tên', email: 'Email', phone: 'Số điện thoại', cccd: 'Số CCCD' };
+              const labels = { name: t('userdetailadminsystem.full_name'), email: 'Email', phone: t('userdetailadminsystem.phone_number'), cccd: t('userdetailadminsystem.cccd_number') };
               return (
                 <div key={key} className={`udetail-vp-row ${v.ok ? 'ok' : 'fail'}`}>
                   <span className="udetail-vp-icon">{v.ok ? <IconCheck /> : <IconWarn />}</span>
                   <span className="udetail-vp-label">{labels[key]}</span>
-                  <span className="udetail-vp-msg">{v.ok ? 'Hợp lệ' : v.msg}</span>
+                  <span className="udetail-vp-msg">{v.ok ? t('userdetailadminsystem.valid') : v.msg}</span>
                 </div>
               );
             })}
@@ -245,30 +245,30 @@ export default function UserDetailAdminSystem({ userId, navigate, addToast }) {
         <div className="udetail-card">
           <div className="udetail-card-header">
             <span className="udetail-card-icon"><IconUser /></span>
-            <span className="udetail-card-title">Thông tin cá nhân</span>
+            <span className="udetail-card-title">{t('userdetailadminsystem.personal_information')}</span>
           </div>
           <div className="udetail-card-body">
             <FieldRow
-              label="Họ và tên"
+              label={t('userdetailadminsystem.full_name')}
               value={user.name}
               validation={validations.name}
               showValidation
             />
             <FieldRow
-              label="Số CCCD"
+              label={t('userdetailadminsystem.cccd_number')}
               value={user.cccd}
               mono
               validation={validations.cccd}
               showValidation
             />
             <FieldRow
-              label="Địa chỉ Email"
+              label={t('userdetailadminsystem.email_address')}
               value={user.email}
               validation={validations.email}
               showValidation
             />
             <FieldRow
-              label="Số điện thoại"
+              label={t('userdetailadminsystem.phone_number')}
               value={user.phone}
               validation={validations.phone}
               showValidation
@@ -280,11 +280,11 @@ export default function UserDetailAdminSystem({ userId, navigate, addToast }) {
         <div className="udetail-card">
           <div className="udetail-card-header">
             <span className="udetail-card-icon"><IconShield /></span>
-            <span className="udetail-card-title">Phân quyền &amp; Trạng thái</span>
+            <span className="udetail-card-title">{t('userdetailadminsystem.authorization_status')}</span>
           </div>
           <div className="udetail-card-body">
             <div className="udetail-field">
-              <span className="udetail-flabel">Vai trò hệ thống</span>
+              <span className="udetail-flabel">{t('userdetailadminsystem.system_role')}</span>
               <span className="udetail-fvalue">
                 <span className="udetail-badge-role" style={{ color: roleCfg.color, background: roleCfg.bg }}>
                   {roleCfg.label}
@@ -293,7 +293,7 @@ export default function UserDetailAdminSystem({ userId, navigate, addToast }) {
             </div>
 
             <div className="udetail-field">
-              <span className="udetail-flabel">Trạng thái tài khoản</span>
+              <span className="udetail-flabel">{t('userdetailadminsystem.account_status')}</span>
               <span className="udetail-fvalue">
                 <span
                   className="udetail-badge-status"
@@ -307,7 +307,7 @@ export default function UserDetailAdminSystem({ userId, navigate, addToast }) {
 
             {user.roleDescription && (
               <div className="udetail-field udetail-field-full">
-                <span className="udetail-flabel">Mô tả quyền hạn</span>
+                <span className="udetail-flabel">{t('userdetailadminsystem.description_of_powers')}</span>
                 <p className="udetail-desc">{user.roleDescription}</p>
               </div>
             )}
@@ -318,26 +318,26 @@ export default function UserDetailAdminSystem({ userId, navigate, addToast }) {
         <div className="udetail-card udetail-card-full">
           <div className="udetail-card-header">
             <span className="udetail-card-icon"><IconClock /></span>
-            <span className="udetail-card-title">Lịch sử hoạt động</span>
+            <span className="udetail-card-title">{t('userdetailadminsystem.activity_history')}</span>
           </div>
           <div className="udetail-card-body udetail-timeline-grid">
             <TimelineItem
-              label="Ngày tạo tài khoản"
+              label={t('userdetailadminsystem.account_creation_date')}
               date={fmt(user.createdAt)}
-              ago={timeAgo(user.createdAt)}
-              empty="Chưa có thông tin"
+              ago={timeAgo(user.createdAt, t)}
+              empty={t('userdetailadminsystem.no_information_yet')}
             />
             <TimelineItem
-              label="Cập nhật gần nhất"
+              label={t('userdetailadminsystem.most_recent_update')}
               date={fmt(user.updatedAt)}
-              ago={timeAgo(user.updatedAt)}
-              empty="Chưa từng cập nhật"
+              ago={timeAgo(user.updatedAt, t)}
+              empty={t('userdetailadminsystem.never_updated')}
             />
             <TimelineItem
-              label="Đăng nhập gần nhất"
+              label={t('userdetailadminsystem.most_recent_login')}
               date={fmt(user.lastLogin)}
-              ago={timeAgo(user.lastLogin)}
-              empty="Chưa từng đăng nhập"
+              ago={timeAgo(user.lastLogin, t)}
+              empty={t('userdetailadminsystem.never_logged_in')}
             />
           </div>
         </div>
