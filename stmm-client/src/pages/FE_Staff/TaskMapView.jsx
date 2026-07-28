@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { getStaffMarketMap } from "../../services/marketApi";
 import { TASK_STATUS, TASK_TYPE } from "../../constants/taskEnums";
 import readProblemDetail from "../../utils/readProblemDetail";
@@ -17,6 +17,14 @@ export default function TaskMapView({ baseUrl, onBack, onViewDetails }) {
   const [selectedStall, setSelectedStall] = useState(null);
   const [canvasWidth, setCanvasWidth] = useState(950);
   const [canvasHeight, setCanvasHeight] = useState(650);
+
+  // Zoom & Pan states
+  const [zoomScale, setZoomScale] = useState(1);
+  const [panPosition, setPanPosition] = useState({ x: 0, y: 0 });
+  const [isDraggingMap, setIsDraggingMap] = useState(false);
+  const [dragStartPos, setDragStartPos] = useState({ x: 0, y: 0 });
+
+  const viewportRef = useRef(null);
 
   useEffect(() => {
     const originalTitle = document.title;
@@ -43,6 +51,39 @@ export default function TaskMapView({ baseUrl, onBack, onViewDetails }) {
       }
     };
   }, []);
+
+  // Scoped Wheel Zoom: Zoom towards current mouse cursor position
+  useEffect(() => {
+    const viewportEl = viewportRef.current;
+    if (!viewportEl) return;
+
+    const handleWheel = (e) => {
+      e.preventDefault();
+      const rect = viewportEl.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+      const delta = e.deltaY < 0 ? 0.15 : -0.15;
+
+      setZoomScale((prevScale) => {
+        const nextScale = Math.min(Math.max(prevScale + delta, 0.5), 2.5);
+        if (nextScale === prevScale) return prevScale;
+
+        setPanPosition((prevPan) => {
+          const ratio = nextScale / prevScale - 1;
+          const newX = prevPan.x - (mouseX - prevPan.x) * ratio;
+          const newY = prevPan.y - (mouseY - prevPan.y) * ratio;
+          return { x: newX, y: newY };
+        });
+
+        return nextScale;
+      });
+    };
+
+    viewportEl.addEventListener("wheel", handleWheel, { passive: false });
+    return () => {
+      viewportEl.removeEventListener("wheel", handleWheel);
+    };
+  }, [loading]);
 
   useEffect(() => {
     const loadMapAndTasks = async () => {
@@ -109,6 +150,64 @@ export default function TaskMapView({ baseUrl, onBack, onViewDetails }) {
 
     loadMapAndTasks();
   }, [baseUrl]);
+
+  // Zoom & Pan Handlers
+  const zoomTowardsPoint = (delta, focusX, focusY) => {
+    const viewportEl = viewportRef.current;
+    let mouseX = focusX;
+    let mouseY = focusY;
+
+    if (viewportEl && (mouseX === undefined || mouseY === undefined)) {
+      const rect = viewportEl.getBoundingClientRect();
+      mouseX = rect.width / 2;
+      mouseY = rect.height / 2;
+    }
+
+    if (mouseX === undefined || mouseY === undefined) {
+      mouseX = 0;
+      mouseY = 0;
+    }
+
+    setZoomScale((prevScale) => {
+      const nextScale = Math.min(Math.max(prevScale + delta, 0.5), 2.5);
+      if (nextScale === prevScale) return prevScale;
+
+      setPanPosition((prevPan) => {
+        const ratio = nextScale / prevScale - 1;
+        const newX = prevPan.x - (mouseX - prevPan.x) * ratio;
+        const newY = prevPan.y - (mouseY - prevPan.y) * ratio;
+        return { x: newX, y: newY };
+      });
+
+      return nextScale;
+    });
+  };
+
+  const handleZoomIn = () => zoomTowardsPoint(0.25);
+  const handleZoomOut = () => zoomTowardsPoint(-0.25);
+  const handleResetZoom = () => {
+    setZoomScale(1);
+    setPanPosition({ x: 0, y: 0 });
+  };
+
+  const handleMouseDownMap = (e) => {
+    if (e.button !== 0) return;
+    if (e.target.closest('.map-stall-block') || e.target.closest('.map-zoom-controls')) return;
+    setIsDraggingMap(true);
+    setDragStartPos({ x: e.clientX - panPosition.x, y: e.clientY - panPosition.y });
+  };
+
+  const handleMouseMoveMap = (e) => {
+    if (!isDraggingMap) return;
+    setPanPosition({
+      x: e.clientX - dragStartPos.x,
+      y: e.clientY - dragStartPos.y,
+    });
+  };
+
+  const handleMouseUpMap = () => {
+    setIsDraggingMap(false);
+  };
 
   const tasksByStall = useMemo(() => {
     const result = {};
@@ -215,21 +314,6 @@ export default function TaskMapView({ baseUrl, onBack, onViewDetails }) {
     setSelectedStall(enrichedStall);
   };
 
-  const allStalls = [];
-  if (marketMap?.areas) {
-    marketMap.areas.forEach((area) => {
-      if (area.stalls) {
-        area.stalls.forEach((stall) => {
-          allStalls.push({
-            ...stall,
-            areaId: area.areaId,
-            areaName: area.name,
-          });
-        });
-      }
-    });
-  }
-
   const stallsWithTasksCount = Object.keys(tasksByStall).length;
   const activeTaskCount = tasks.filter(
     (task) => task.status !== TASK_STATUS.COMPLETED && task.status !== TASK_STATUS.CANCELLED,
@@ -253,6 +337,8 @@ export default function TaskMapView({ baseUrl, onBack, onViewDetails }) {
           </button>
         </div>
       </div>
+
+
 
       {loading ? (
         <div className="map-loading-state">
@@ -290,12 +376,30 @@ export default function TaskMapView({ baseUrl, onBack, onViewDetails }) {
               </div>
             </div>
 
-            <div className="map-viewport">
+            <div
+              ref={viewportRef}
+              className={`map-viewport ${isDraggingMap ? "dragging" : ""}`}
+              onMouseDown={handleMouseDownMap}
+              onMouseMove={handleMouseMoveMap}
+              onMouseUp={handleMouseUpMap}
+              onMouseLeave={handleMouseUpMap}
+            >
+              {/* Floating Zoom Controls Toolbar */}
+              <div className="map-zoom-controls" onClick={(e) => e.stopPropagation()}>
+                <button type="button" className="zoom-btn" onClick={handleZoomIn} title="Zoom In (+)">➕</button>
+                <span className="zoom-level-text">{Math.round(zoomScale * 100)}%</span>
+                <button type="button" className="zoom-btn" onClick={handleZoomOut} title="Zoom Out (-)">➖</button>
+                <button type="button" className="zoom-btn reset" onClick={handleResetZoom} title="Reset View">🔄 Reset</button>
+              </div>
+
               <div
                 className="blueprint-map-canvas"
                 style={{
                   width: `${canvasWidth * MAP_SCALE}px`,
                   height: `${canvasHeight * MAP_SCALE}px`,
+                  transform: `translate(${panPosition.x}px, ${panPosition.y}px) scale(${zoomScale})`,
+                  transformOrigin: "0 0",
+                  transition: isDraggingMap ? "none" : "transform 0.15s ease-out",
                 }}
               >
                 {marketMap.areas && marketMap.areas.length > 0 ? (
@@ -347,6 +451,12 @@ export default function TaskMapView({ baseUrl, onBack, onViewDetails }) {
                                 <span className="stall-code-text">
                                   {stall.code}
                                 </span>
+
+                                {hasTasks && (
+                                  <span className="stall-task-count-badge" title={`${stallTasks.length} active tasks`}>
+                                    🛠️ {stallTasks.length}
+                                  </span>
+                                )}
                               </div>
                             );
                           })}
@@ -457,3 +567,4 @@ export default function TaskMapView({ baseUrl, onBack, onViewDetails }) {
     </main>
   );
 }
+
