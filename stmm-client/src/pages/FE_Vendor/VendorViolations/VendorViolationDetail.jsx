@@ -5,7 +5,7 @@ import { showError } from '../../../utils/alert';
 import VendorRequestCreate from '../VendorRequests/VendorRequestCreate';
 
 export default function VendorViolationDetail({ violationId, onBack, onSuccess }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
     const [violation, setViolation] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -69,7 +69,7 @@ export default function VendorViolationDetail({ violationId, onBack, onSuccess }
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
                     </button>
                     <div>
-                        <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 'bold' }}>Chi Tiết Vi Phạm #{violation.violationId}</h2>
+                        <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 'bold' }}>{i18n.language === 'en' ? 'Violation Details #' : 'Chi Tiết Vi Phạm #'}{violation.violationId}</h2>
                         <span style={{ color: '#888', fontSize: '13px' }}>{t('vendorviolationdetail.created_at_time', { date: new Date(violation.createdAt).toLocaleDateString('vi-VN'), time: new Date(violation.createdAt).toLocaleTimeString('vi-VN') })}</span>
                     </div>
                 </div>

@@ -107,68 +107,65 @@ export default function VendorServiceList({ vendorId, searchTerm = '', setSearch
     );
 
     return (
-        <div style={{ background: 'white', minHeight: '100%', padding: '32px', borderRadius: '12px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
+        <div className="premium-page-container">
+            <div className="premium-page-header">
                 <div>
-                    <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 'bold' }}>{t('vendorservicelist.available_services')}</h2>
-                    <span style={{ color: '#888', fontSize: '13px' }}>{t('vendorservicelist.explore_and_register')}</span>
+                    <h2 className="premium-page-title">{t('vendorservicelist.available_services') || 'Các Dịch Vụ Mở Rộng'}</h2>
+                    <span className="premium-page-subtitle">{t('vendorservicelist.explore_and_register') || 'Khám phá và đăng ký thêm'}</span>
                 </div>
                 <button 
                     onClick={onViewMyServices}
-                    style={{ background: '#fff', color: '#000', border: '1px solid #000', padding: '10px 16px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    className="premium-btn premium-btn-action">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-                    {t('vendorservicelist.my_services_btn')}
+                    {t('vendorservicelist.my_services_btn') || 'Dịch vụ của tôi'}
                 </button>
             </div>
 
-            <div style={{ display: 'flex', gap: '16px', marginBottom: '24px', alignItems: 'flex-end' }}>
-                <div style={{ flex: 2 }}>
-                    <label style={{ display: 'block', fontSize: '11px', color: '#888', fontWeight: 'bold', marginBottom: '8px', textTransform: 'uppercase' }}>{t('vendorservicelist.search_label')}</label>
-                    <div style={{ position: 'relative' }}>
-                        <svg style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#aaa', width: '14px', height: '14px' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                        <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder={t('vendorservicelist.search_placeholder')} style={{ width: '100%', padding: '10px 12px 10px 36px', border: '1px solid #e5e7eb', borderRadius: '6px', outline: 'none' }} />
+            <div className="premium-filter-bar">
+                <div className="premium-filter-group" style={{ flex: 2 }}>
+                    <label className="premium-filter-label">{t('vendorservicelist.search_label') || 'Tìm kiếm dịch vụ'}</label>
+                    <div className="premium-input-wrapper">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                        <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder={t('vendorservicelist.search_placeholder')} className="premium-input has-icon" />
                     </div>
-                </div>
-                <div style={{ flex: 1 }}>
-                    <button style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e7eb', background: 'white', borderRadius: '6px', fontWeight: 'bold', color: '#555', cursor: 'pointer' }}>{t('vendorservicelist.data_filtering')}</button>
                 </div>
             </div>
 
-            <div style={{ border: '1px solid #e5e7eb', borderRadius: '8px', overflow: 'hidden' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
-                    <thead style={{ background: '#f9fafb' }}>
+            <div className="premium-table-wrapper">
+                <table className="premium-table">
+                    <thead>
                         <tr>
-                            <th style={{ padding: '12px 16px', color: '#888', fontWeight: 'bold', fontSize: '11px', borderBottom: '1px solid #e5e7eb', textTransform: 'uppercase' }}>STT</th>
-                            <th style={{ padding: '12px 16px', color: '#888', fontWeight: 'bold', fontSize: '11px', borderBottom: '1px solid #e5e7eb', textTransform: 'uppercase' }}>{t('vendorservicelist.col_service_name')}</th>
-                            <th style={{ padding: '12px 16px', color: '#888', fontWeight: 'bold', fontSize: '11px', borderBottom: '1px solid #e5e7eb', textTransform: 'uppercase' }}>{t('vendorservicelist.col_type')}</th>
-                            <th style={{ padding: '12px 16px', color: '#888', fontWeight: 'bold', fontSize: '11px', borderBottom: '1px solid #e5e7eb', textTransform: 'uppercase' }}>{t('vendorservicelist.col_price')}</th>
-                            <th style={{ padding: '12px 16px', color: '#888', fontWeight: 'bold', fontSize: '11px', borderBottom: '1px solid #e5e7eb', textTransform: 'uppercase' }}>{t('vendorservicelist.col_billing_cycle')}</th>
-                            <th style={{ padding: '12px 16px', color: '#888', fontWeight: 'bold', fontSize: '11px', borderBottom: '1px solid #e5e7eb', textTransform: 'uppercase', textAlign: 'center' }}>{t('vendorservicelist.col_operation')}</th>
+                            <th>STT</th>
+                            <th>{t('vendorservicelist.col_service_name') || 'Tên dịch vụ'}</th>
+                            <th>{t('vendorservicelist.col_type') || 'Loại'}</th>
+                            <th>{t('vendorservicelist.col_price') || 'Chi phí'}</th>
+                            <th>{t('vendorservicelist.col_billing_cycle') || 'Chu kỳ thanh toán'}</th>
+                            <th style={{ textAlign: 'center' }}>{t('vendorservicelist.col_operation') || 'Thao tác'}</th>
                         </tr>
                     </thead>
                     <tbody>
                         {filteredServices.length === 0 ? (
                             <tr>
-                                <td colSpan="6" style={{ padding: '32px', textAlign: 'center', color: '#888' }}>
-                                    {t('vendorservicelist.no_available_services_found')}
+                                <td colSpan="6" style={{ padding: '32px', textAlign: 'center', color: '#94a3b8' }}>
+                                    {t('vendorservicelist.no_available_services_found') || 'Không tìm thấy dịch vụ khả dụng'}
                                 </td>
                             </tr>
                         ) : (
                             filteredServices.map((service, index) => (
-                                <tr key={service.serviceId} style={{ borderBottom: '1px solid #e5e7eb' }}>
-                                    <td style={{ padding: '16px', color: '#555', fontWeight: 'bold' }}>{index + 1}</td>
-                                    <td style={{ padding: '16px' }}>
-                                        <div style={{ fontWeight: '600', color: '#111', marginBottom: '4px' }}>{service.name}</div>
-                                        <div style={{ color: '#888', fontSize: '12px', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical' }}>{service.description}</div>
+                                <tr key={service.serviceId}>
+                                    <td>{index + 1}</td>
+                                    <td>
+                                        <div className="fw-bold" style={{ marginBottom: '4px' }}>{service.name}</div>
+                                        <div style={{ color: '#64748b', fontSize: '12px', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical' }}>{service.description}</div>
                                     </td>
-                                    <td style={{ padding: '16px', color: '#555' }}>{service.isMandatory ? t('vendorservicelist.obligatory') : t('vendorservicelist.selfselect')}</td>
-                                    <td style={{ padding: '16px', fontWeight: 'bold', color: '#ff4d4f' }}>{service.price.toLocaleString()} VNĐ</td>
-                                    <td style={{ padding: '16px', color: '#555' }}>{service.billingCycle === 'Monthly' ? t('vendorservicelist.per_month') : service.billingCycle}</td>
-                                    <td style={{ padding: '16px', textAlign: 'center' }}>
+                                    <td>{service.isMandatory ? t('vendorservicelist.obligatory') : t('vendorservicelist.selfselect')}</td>
+                                    <td className="fw-bold" style={{ color: '#ef4444' }}>{service.price.toLocaleString()} VNĐ</td>
+                                    <td>{service.billingCycle === 'Monthly' ? t('vendorservicelist.per_month') : service.billingCycle}</td>
+                                    <td style={{ textAlign: 'center' }}>
                                         <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
                                             <button 
                                                 onClick={() => setViewService(service)}
-                                                style={{ background: 'transparent', border: '1px solid #e5e7eb', color: '#333', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}>
+                                                className="premium-btn-action">
                                                 {t('vendorservicelist.detail')}
                                             </button>
                                             {(() => {
@@ -178,16 +175,11 @@ export default function VendorServiceList({ vendorId, searchTerm = '', setSearch
                                                 const isAutoRenewCancelled = activeOrPendingRegs.length > 0 && activeOrPendingRegs.every(ms => ms.status === 'Active' && ms.isAutoRenew === false);
 
                                                 if (isFullyRegistered) {
+                                                    let badgeClass = isPending ? 'premium-badge-warning' : isAutoRenewCancelled ? 'premium-badge-warning' : 'premium-badge-success';
+                                                    let badgeText = isPending ? t('vendorservicelist.waiting_for_approval') : isAutoRenewCancelled ? t('vendorservicelist.renewal_canceled') : t('vendorservicelist.registered');
                                                     return (
-                                                        <span style={{ 
-                                                            fontSize: '11px', fontWeight: 'bold', 
-                                                            color: isPending ? '#92400e' : isAutoRenewCancelled ? '#92400e' : '#065f46', 
-                                                            padding: '6px 12px', 
-                                                            background: isPending ? '#fef3c7' : isAutoRenewCancelled ? '#fef3c7' : '#d1fae5', 
-                                                            borderRadius: '4px',
-                                                            display: 'flex', alignItems: 'center'
-                                                        }}>
-                                                            {isPending ? t('vendorservicelist.waiting_for_approval') : isAutoRenewCancelled ? t('vendorservicelist.renewal_canceled') : t('vendorservicelist.registered')}
+                                                        <span className={`premium-badge ${badgeClass}`}>
+                                                            {badgeText}
                                                         </span>
                                                     );
                                                 }
@@ -195,7 +187,7 @@ export default function VendorServiceList({ vendorId, searchTerm = '', setSearch
                                                 return (
                                                     <button 
                                                         onClick={() => handleRegisterClick(service)}
-                                                        style={{ background: '#000', border: 'none', color: '#fff', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}>
+                                                        className="premium-btn-primary" style={{ padding: '6px 12px', fontSize: '13px' }}>
                                                         {t('vendorservicelist.register')}
                                                     </button>
                                                 );
@@ -206,18 +198,18 @@ export default function VendorServiceList({ vendorId, searchTerm = '', setSearch
                             ))
                         )}
                         {filteredServices.length < 5 && Array.from({ length: Math.max(0, 5 - filteredServices.length) }).map((_, i) => (
-                             <tr key={`empty-${i}`} style={{ borderBottom: '1px solid #e5e7eb', height: '65px' }}>
-                                <td></td><td></td><td></td><td></td><td></td><td></td>
+                             <tr key={`empty-${i}`} style={{ height: '65px' }}>
+                                <td colSpan="6"></td>
                              </tr>
                         ))}
                     </tbody>
                 </table>
-                <div style={{ padding: '16px', background: '#f9fafb', display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#888', fontSize: '13px' }}>
-                    <span>{t('vendorservicelist.showing_count_of_total_services', { count: Math.max(1, filteredServices.length), total: filteredServices.length })}</span>
-                    <div style={{ display: 'flex', gap: '4px' }}>
-                        <button style={{ padding: '4px 8px', border: '1px solid #e5e7eb', background: 'white', borderRadius: '4px', color: '#aaa' }}>&lt;</button>
-                        <button style={{ padding: '4px 8px', border: '1px solid #e5e7eb', background: '#000', color: 'white', borderRadius: '4px', fontWeight: 'bold' }}>1</button>
-                        <button style={{ padding: '4px 8px', border: '1px solid #e5e7eb', background: 'white', borderRadius: '4px', color: '#aaa' }}>&gt;</button>
+                <div className="premium-pagination">
+                    <span className="premium-pagination-info">{t('vendorservicelist.showing_count_of_total_services', { count: Math.max(1, filteredServices.length), total: filteredServices.length })}</span>
+                    <div className="premium-pagination-buttons">
+                        <button className="premium-page-btn" disabled>&lt;</button>
+                        <button className="premium-page-btn active">1</button>
+                        <button className="premium-page-btn" disabled>&gt;</button>
                     </div>
                 </div>
             </div>
