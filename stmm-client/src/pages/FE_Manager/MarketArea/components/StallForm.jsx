@@ -65,7 +65,7 @@ const StallForm = ({ initialData, drawnData, areaId, areaWidth, areaHeight, area
         } else if (drawnData) {
             setFormData(prev => ({
                 ...prev,
-                size: (drawnData.areaM2 || drawnData.area || 0).toString(),
+                size: (Math.round((drawnData.areaM2 || drawnData.area || 0) * 100) / 100).toString(),
                 width: drawnData.width,
                 height: drawnData.height,
                 svgPath: drawnData.svgPath

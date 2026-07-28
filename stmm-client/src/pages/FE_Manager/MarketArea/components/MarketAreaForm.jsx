@@ -49,7 +49,9 @@ const MarketAreaForm = ({
         categoryName: initialData.categoryName || '',
         size: initialData.size || '',
         width: (() => {
-          if (initialData.maxX !== null && initialData.minX !== null) return initialData.maxX - initialData.minX;
+          const valMaxX = initialData.maxX ?? initialData.MaxX;
+          const valMinX = initialData.minX ?? initialData.MinX;
+          if (valMaxX != null && valMinX != null) return valMaxX - valMinX;
           if (initialData.svgPath) {
               const matches = [...initialData.svgPath.matchAll(/(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)/g)];
               if (matches.length > 0) {
@@ -60,7 +62,9 @@ const MarketAreaForm = ({
           return 200;
         })(),
         height: (() => {
-          if (initialData.maxY !== null && initialData.minY !== null) return initialData.maxY - initialData.minY;
+          const valMaxY = initialData.maxY ?? initialData.MaxY;
+          const valMinY = initialData.minY ?? initialData.MinY;
+          if (valMaxY != null && valMinY != null) return valMaxY - valMinY;
           if (initialData.svgPath) {
               const matches = [...initialData.svgPath.matchAll(/(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)/g)];
               if (matches.length > 0) {
@@ -71,8 +75,8 @@ const MarketAreaForm = ({
           return 150;
         })(),
         svgPath: initialData.svgPath || '',
-        minX: initialData.minX,
-        minY: initialData.minY
+        minX: initialData.minX ?? initialData.MinX,
+        minY: initialData.minY ?? initialData.MinY
       });
     } else {
       setFormData({

@@ -117,26 +117,10 @@ const MarketMapViewer = ({ marketId, onBack }) => {
                         {/* Render Areas and Stalls */}
                         {areas?.map((area, aIdx) => {
                             const isSelected = selectedAreaId === (area.areaId || aIdx);
-                            const pathD = area.svgPath || (area.minX != null ? `M ${area.minX},${area.minY} L ${area.maxX},${area.minY} L ${area.maxX},${area.maxY} L ${area.minX},${area.maxY} Z` : null);
-                            
-                            // Calculate center for the Card
-                            let cx = 0, cy = 0;
-                            if (pathD) {
-                                const matches = [...pathD.matchAll(/(\d+(?:\.\d+)?),(\d+(?:\.\d+)?)/g)];
-                                if (matches.length > 0) {
-                                    const xs = matches.map(m => parseFloat(m[1]));
-                                    const ys = matches.map(m => parseFloat(m[2]));
-                                    cx = (Math.min(...xs) + Math.max(...xs)) / 2;
-                                    cy = (Math.min(...ys) + Math.max(...ys)) / 2;
-                                }
-                            }
-
-                            // Card dimensions
-                            const cardW = 320;
-                            const cardH = 140;
+                            const pathD = area.svgPath || (area.minX != null && area.maxX != null && area.minY != null && area.maxY != null ? `M 0,0 L ${area.maxX - area.minX},0 L ${area.maxX - area.minX},${area.maxY - area.minY} L 0,${area.maxY - area.minY} Z` : null);
                             
                             return (
-                                <g key={area.areaId || aIdx} id={`area-${area.areaId || aIdx}`}>
+                                <g key={area.areaId || aIdx} id={`area-${area.areaId || aIdx}`} transform={`translate(${area.minX || 0}, ${area.minY || 0})`}>
                                     {pathD && (
                                         <path
                                             d={pathD}
@@ -151,13 +135,8 @@ const MarketMapViewer = ({ marketId, onBack }) => {
                                     {/* Render stalls always, not just when selected */}
                                     <g>
                                         {area.stalls?.map((stall, sIdx) => {
-                                            // Auto-correct old seeded data which used relative coordinates (e.g. 0,0)
-                                            let renderX = stall.mapX;
-                                            let renderY = stall.mapY;
-                                            if (renderX < area.minX || renderY < area.minY) {
-                                                renderX = area.minX + stall.mapX;
-                                                renderY = area.minY + stall.mapY;
-                                            }
+                                            const renderX = stall.mapX || 0;
+                                            const renderY = stall.mapY || 0;
 
                                             return (
                                             <g key={stall.stallId || sIdx} transform={`translate(${renderX}, ${renderY})`} id={`stall-${stall.stallId || stall.code}`}>

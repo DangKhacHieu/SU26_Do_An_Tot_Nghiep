@@ -558,29 +558,40 @@ export default function MarketMapPage({
                         transition: isDraggingMap ? "none" : "transform 0.15s ease-out",
                       }}
                     >
+                      {/* Render Market Polygon */}
+                      {marketMap.svgPath && (
+                          <path
+                              d={marketMap.svgPath}
+                              fill="rgba(59,130,246,0.05)"
+                              stroke="#3b82f6"
+                              strokeWidth="4"
+                              opacity="0.8"
+                          />
+                      )}
+
                       {/* Render Areas & Stalls directly from DB svgPath or coordinates */}
                       {marketMap.areas &&
                         marketMap.areas.map((area) => {
                           const pathD =
                             area.svgPath ||
-                            (area.minX != null
-                              ? `M ${area.minX},${area.minY} L ${area.maxX},${area.minY} L ${area.maxX},${area.maxY} L ${area.minX},${area.maxY} Z`
+                            (area.minX != null && area.maxX != null && area.minY != null && area.maxY != null
+                              ? `M 0,0 L ${area.maxX - area.minX},0 L ${area.maxX - area.minX},${area.maxY - area.minY} L 0,${area.maxY - area.minY} Z`
                               : null);
 
-                          let areaLabelX = (area.minX ?? 0) + 15;
-                          let areaLabelY = (area.minY ?? 0) + 25;
+                          let areaLabelX = 15;
+                          let areaLabelY = 25;
                           if (pathD) {
                             const matches = [...pathD.matchAll(/(\d+(?:\.\d+)?),(\d+(?:\.\d+)?)/g)];
                             if (matches.length > 0) {
                               const xs = matches.map((m) => parseFloat(m[1]));
                               const ys = matches.map((m) => parseFloat(m[2]));
-                              areaLabelX = Math.min(...xs) + 15;
-                              areaLabelY = Math.min(...ys) + 25;
+                              areaLabelX = (Math.min(...xs) + Math.max(...xs)) / 2;
+                              areaLabelY = (Math.min(...ys) + Math.max(...ys)) / 2;
                             }
                           }
 
                           return (
-                            <g key={area.areaId} className="area-group">
+                            <g key={area.areaId} className="area-group" transform={`translate(${area.minX || 0}, ${area.minY || 0})`}>
                               {/* Area Outline directly from DB */}
                               {pathD && (
                                 <path
@@ -597,6 +608,8 @@ export default function MarketMapPage({
                                 x={areaLabelX}
                                 y={areaLabelY}
                                 className="area-label"
+                                textAnchor="middle"
+                                dominantBaseline="middle"
                               >
                                 {area.name}
                               </text>
@@ -609,17 +622,8 @@ export default function MarketMapPage({
                                   const isOccupied = stall.status === "Occupied";
                                   const isAvailable = stall.status === "Available";
 
-                                  // Auto-correct old seeded data which used relative coordinates (e.g. 0,0)
                                   let renderX = stall.mapX ?? 0;
                                   let renderY = stall.mapY ?? 0;
-                                  if (
-                                    area.minX != null &&
-                                    area.minY != null &&
-                                    (renderX < area.minX || renderY < area.minY)
-                                  ) {
-                                    renderX = area.minX + renderX;
-                                    renderY = area.minY + renderY;
-                                  }
 
                                   const stallWidth = stall.width || 60;
                                   const stallHeight = stall.height || 40;

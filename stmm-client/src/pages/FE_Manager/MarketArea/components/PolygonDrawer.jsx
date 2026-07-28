@@ -135,9 +135,11 @@ const PolygonDrawer = ({
             let hasOverlap = false;
             for (let area of existingAreas) {
                 if (area.svgPath) {
-                    const matches = [...area.svgPath.matchAll(/(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/g)];
+                    const matches = [...area.svgPath.matchAll(/(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)/g)];
                     if (matches.length > 2) {
-                        const exPoly = [matches.map(m => [parseFloat(m[1]), parseFloat(m[2])])];
+                        const exMinX = area.minX ?? area.MinX ?? 0;
+                        const exMinY = area.minY ?? area.MinY ?? 0;
+                        const exPoly = [matches.map(m => [parseFloat(m[1]) + exMinX, parseFloat(m[2]) + exMinY])];
                         const overlap = polygonClipping.intersection(drawnPoly, exPoly);
                         if (overlap.length > 0) {
                             hasOverlap = true;

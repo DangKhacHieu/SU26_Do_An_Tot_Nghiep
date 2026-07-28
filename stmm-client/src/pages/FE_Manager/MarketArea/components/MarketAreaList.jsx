@@ -79,7 +79,7 @@ const MarketAreaList = ({ user }) => {
 
       // 2. Fetch areas
       const data = await getAllAreas(marketId); 
-      setAreas(data || []);
+      setAreas((data || []).map((a, idx) => ({ ...a, _stableIndex: idx })));
     } catch (error) {
       console.error('Error fetching data:', error);
     }
@@ -87,8 +87,8 @@ const MarketAreaList = ({ user }) => {
 
   const fetchAreas = async () => {
     try {
-      const data = await getAllAreas(marketId); 
-      setAreas(data || []);
+      const data = await getAllAreas(marketId);
+      setAreas((data || []).map((a, idx) => ({ ...a, _stableIndex: idx })));
     } catch (error) {
       console.error('Error fetching areas:', error);
     }
@@ -147,7 +147,7 @@ const MarketAreaList = ({ user }) => {
     if (!deleteConfirmId) return;
     try {
       await deleteArea(deleteConfirmId);
-      fetchAreas();
+      setAreas(prev => prev.filter(area => area.areaId !== deleteConfirmId));
       if(selectedArea && selectedArea.areaId === deleteConfirmId) {
         setIsFormVisible(false);
       }
@@ -169,10 +169,10 @@ const MarketAreaList = ({ user }) => {
           description: formData.description,
           categoryName: formData.categoryName,
           size: formData.size,
-          minX: formData.minX !== undefined ? formData.minX : selectedArea.minX,
-          minY: formData.minY !== undefined ? formData.minY : selectedArea.minY,
-          maxX: formData.maxX !== undefined ? formData.maxX : (formData.minX !== undefined ? formData.minX : selectedArea.minX) + formData.width,
-          maxY: formData.maxY !== undefined ? formData.maxY : (formData.minY !== undefined ? formData.minY : selectedArea.minY) + formData.height,
+          minX: formData.minX !== undefined ? formData.minX : (selectedArea.minX ?? selectedArea.MinX),
+          minY: formData.minY !== undefined ? formData.minY : (selectedArea.minY ?? selectedArea.MinY),
+          maxX: formData.maxX !== undefined ? formData.maxX : (formData.minX !== undefined ? formData.minX : (selectedArea.minX ?? selectedArea.MinX)) + formData.width,
+          maxY: formData.maxY !== undefined ? formData.maxY : (formData.minY !== undefined ? formData.minY : (selectedArea.minY ?? selectedArea.MinY)) + formData.height,
           svgPath: formData.svgPath
         };
         await updateArea(selectedArea.areaId, updatePayload);
@@ -282,13 +282,51 @@ const MarketAreaList = ({ user }) => {
     return areas.some((a, index) => {
       if (a.areaId === areaId) return false;
       
-      const defaultX = (index % 4) * 200 + 24;
-      const defaultY = Math.floor(index / 4) * 160 + 24;
+      const stableIdx = a._stableIndex !== undefined ? a._stableIndex : index;
+      const defaultX = (stableIdx % 4) * 200 + 24;
+      const defaultY = Math.floor(stableIdx / 4) * 160 + 24;
 
-      const aMinX = a.minX !== null ? a.minX : defaultX;
-      const aMinY = a.minY !== null ? a.minY : defaultY;
-      const aWidth = (a.maxX !== null && a.minX !== null) ? (a.maxX - a.minX) : 180;
-      const aHeight = (a.maxY !== null && a.minY !== null) ? (a.maxY - a.minY) : 140;
+      const valMinX = a.minX ?? a.MinX;
+      const valMinY = a.minY ?? a.MinY;
+      const valMaxX = a.maxX ?? a.MaxX;
+      const valMaxY = a.maxY ?? a.MaxY;
+      
+      let derivedMinX = null;
+      let derivedMinY = null;
+      if (a.svgPath) {
+          const matches = [...a.svgPath.matchAll(/(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)/g)];
+          if (matches.length > 0) {
+              derivedMinX = Math.min(...matches.map(m => parseFloat(m[1])));
+              derivedMinY = Math.min(...matches.map(m => parseFloat(m[2])));
+          }
+      }
+
+      const isRelativePath = derivedMinX === 0 && derivedMinY === 0;
+      const aMinX = valMinX != null ? valMinX : ((derivedMinX != null && !isRelativePath) ? derivedMinX : defaultX);
+      const aMinY = valMinY != null ? valMinY : ((derivedMinY != null && !isRelativePath) ? derivedMinY : defaultY);
+      let aWidth = 180;
+      let aHeight = 140;
+
+      if (valMaxX != null && valMinX != null) {
+          aWidth = valMaxX - valMinX;
+      } else if (a.svgPath) {
+          const matches = [...a.svgPath.matchAll(/(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)/g)];
+          if (matches.length > 0) {
+              const xs = matches.map(m => parseFloat(m[1]));
+              aWidth = Math.max(...xs) - Math.min(...xs);
+          }
+      }
+
+      if (valMaxY != null && valMinY != null) {
+          aHeight = valMaxY - valMinY;
+      } else if (a.svgPath) {
+          const matches = [...a.svgPath.matchAll(/(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)/g)];
+          if (matches.length > 0) {
+              const ys = matches.map(m => parseFloat(m[2]));
+              aHeight = Math.max(...ys) - Math.min(...ys);
+          }
+      }
+
       const aMaxX = aMinX + aWidth;
       const aMaxY = aMinY + aHeight;
 
@@ -382,12 +420,12 @@ const MarketAreaList = ({ user }) => {
       const dbY = d.y - svgOffsetY;
 
       // Don't update if position didn't actually change much (tolerance for accidental clicks)
-      if (Math.abs(area.minX - dbX) <= 2 && Math.abs(area.minY - dbY) <= 2) return;
+      if (Math.abs((area.minX ?? area.MinX) - dbX) <= 2 && Math.abs((area.minY ?? area.MinY) - dbY) <= 2) return;
       
       let width = 180;
       let height = 140;
 
-      if (area.maxX !== null && area.minX !== null) {
+      if (area.maxX !== undefined && area.maxX !== null && area.minX !== undefined && area.minX !== null) {
           width = area.maxX - area.minX;
       } else if (area.svgPath) {
           const matches = [...area.svgPath.matchAll(/(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)/g)];
@@ -397,7 +435,7 @@ const MarketAreaList = ({ user }) => {
           }
       }
 
-      if (area.maxY !== null && area.minY !== null) {
+      if (area.maxY !== undefined && area.maxY !== null && area.minY !== undefined && area.minY !== null) {
           height = area.maxY - area.minY;
       } else if (area.svgPath) {
           const matches = [...area.svgPath.matchAll(/(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)/g)];
@@ -454,10 +492,10 @@ const MarketAreaList = ({ user }) => {
       // If position didn't change and size didn't change much, ignore
       let oldWidth = 180;
       let oldHeight = 140;
-      if (area.maxX !== null && area.minX !== null) oldWidth = area.maxX - area.minX;
-      if (area.maxY !== null && area.minY !== null) oldHeight = area.maxY - area.minY;
+      if (area.maxX !== undefined && area.maxX !== null && area.minX !== undefined && area.minX !== null) oldWidth = area.maxX - area.minX;
+      if (area.maxY !== undefined && area.maxY !== null && area.minY !== undefined && area.minY !== null) oldHeight = area.maxY - area.minY;
       
-      if (Math.abs(area.minX - dbX) <= 2 && Math.abs(area.minY - dbY) <= 2 &&
+      if (Math.abs((area.minX ?? area.MinX) - dbX) <= 2 && Math.abs((area.minY ?? area.MinY) - dbY) <= 2 &&
           Math.abs(oldWidth - width) <= 2 && Math.abs(oldHeight - height) <= 2) return;
       
       if (!isRectInsidePolygon(dbX, dbY, dbX + width, dbY + height, marketPolygon)) {
@@ -750,19 +788,37 @@ const MarketAreaList = ({ user }) => {
 
                 {/* 1. Interactive Area Map */}
                 {areas.map((area, index) => {
-                  const defaultX = (index % 4) * 200 + 24;
-                  const defaultY = Math.floor(index / 4) * 160 + 24;
+                  const stableIdx = area._stableIndex !== undefined ? area._stableIndex : index;
+                  const defaultX = (stableIdx % 4) * 200 + 24;
+                  const defaultY = Math.floor(stableIdx / 4) * 160 + 24;
+
+                  const valMinX = area.minX ?? area.MinX;
+                  const valMinY = area.minY ?? area.MinY;
+                  const valMaxX = area.maxX ?? area.MaxX;
+                  const valMaxY = area.maxY ?? area.MaxY;
+                  
+                  let derivedMinX = null;
+                  let derivedMinY = null;
+                  if (area.svgPath) {
+                      const matches = [...area.svgPath.matchAll(/(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)/g)];
+                      if (matches.length > 0) {
+                          derivedMinX = Math.min(...matches.map(m => parseFloat(m[1])));
+                          derivedMinY = Math.min(...matches.map(m => parseFloat(m[2])));
+                      }
+                  }
+                  
                   // For rendering, we shift it by svgOffset so it visually matches the SVG shift
-                  const dbX = area.minX !== null ? area.minX : defaultX;
-                  const dbY = area.minY !== null ? area.minY : defaultY;
+                  const isRelativePath = derivedMinX === 0 && derivedMinY === 0;
+                  const dbX = valMinX != null ? valMinX : ((derivedMinX != null && !isRelativePath) ? derivedMinX : defaultX);
+                  const dbY = valMinY != null ? valMinY : ((derivedMinY != null && !isRelativePath) ? derivedMinY : defaultY);
                   const x = dbX + svgOffsetX;
                   const y = dbY + svgOffsetY;
                   
                   let width = 180;
                   let height = 140;
 
-                  if (area.maxX !== null && area.minX !== null) {
-                      width = area.maxX - area.minX;
+                  if (valMaxX != null && valMinX != null) {
+                      width = valMaxX - valMinX;
                   } else if (area.svgPath) {
                       const matches = [...area.svgPath.matchAll(/(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)/g)];
                       if (matches.length > 0) {
@@ -771,8 +827,8 @@ const MarketAreaList = ({ user }) => {
                       }
                   }
 
-                  if (area.maxY !== null && area.minY !== null) {
-                      height = area.maxY - area.minY;
+                  if (valMaxY != null && valMinY != null) {
+                      height = valMaxY - valMinY;
                   } else if (area.svgPath) {
                       const matches = [...area.svgPath.matchAll(/(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)/g)];
                       if (matches.length > 0) {
@@ -784,7 +840,7 @@ const MarketAreaList = ({ user }) => {
 
                   return (
                     <Rnd
-                      key={`${area.areaId}-${renderKey}`}
+                      key={area.areaId}
                       size={{ width, height }}
                       position={{ x, y }}
                       onDragStop={(e, d) => handleDragStop(e, d, area)}
@@ -796,7 +852,7 @@ const MarketAreaList = ({ user }) => {
                       disableDragging={!isInteractive}
                       enableResizing={isInteractive}
                       style={{
-                        position: 'relative',
+                        position: 'absolute',
                         display: 'flex', 
                         flexDirection: 'column',
                         cursor: isInteractive ? 'move' : 'default',

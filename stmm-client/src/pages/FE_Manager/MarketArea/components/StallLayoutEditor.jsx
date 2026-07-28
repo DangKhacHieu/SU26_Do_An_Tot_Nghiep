@@ -172,6 +172,14 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
         if (matches.length < 3) return { x: '50%', y: '50%' };
         
         let pts = matches.map(m => ({ x: parseFloat(m[1]), y: parseFloat(m[2]) }));
+        
+        const xs = pts.map(p => p.x);
+        const ys = pts.map(p => p.y);
+        const minX = Math.min(...xs);
+        const minY = Math.min(...ys);
+        const width = Math.max(...xs) - minX || 1;
+        const height = Math.max(...ys) - minY || 1;
+
         if (pts[0].x !== pts[pts.length - 1].x || pts[0].y !== pts[pts.length - 1].y) {
             pts.push(pts[0]);
         }
@@ -200,7 +208,10 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
              return { x: '50%', y: '50%' };
         }
         
-        return { x: cx, y: cy };
+        const pctX = ((cx - minX) / width) * 100;
+        const pctY = ((cy - minY) / height) * 100;
+
+        return { x: `${pctX}%`, y: `${pctY}%` };
     };
 
     const getPolygonTextColor = (status) => {
@@ -362,8 +373,26 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
                             }}
                         >
                             {stall.svgPath && (
-                                <svg width={stall.width || 100} height={stall.height || 100} viewBox={`0 0 ${stall.width || 100} ${stall.height || 100}`} style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none' }}>
-                                    <path d={stall.svgPath} fill={getPolygonFillColor(stall.status)} fillOpacity={1.0} stroke="#64748b" strokeWidth="1.5" />
+                                <svg 
+                                    width="100%" 
+                                    height="100%" 
+                                    preserveAspectRatio="none" 
+                                    viewBox={(() => {
+                                        const matches = [...stall.svgPath.matchAll(/(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)/g)];
+                                        if(matches.length > 0) {
+                                            const xs = matches.map(m => parseFloat(m[1]));
+                                            const ys = matches.map(m => parseFloat(m[2]));
+                                            const pMinX = Math.min(...xs);
+                                            const pMinY = Math.min(...ys);
+                                            const pMaxX = Math.max(...xs);
+                                            const pMaxY = Math.max(...ys);
+                                            return `${pMinX} ${pMinY} ${Math.max(1, pMaxX - pMinX)} ${Math.max(1, pMaxY - pMinY)}`;
+                                        }
+                                        return `0 0 ${stall.width || 100} ${stall.height || 100}`;
+                                    })()} 
+                                    style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none', overflow: 'visible' }}
+                                >
+                                    <path d={stall.svgPath} fill={getPolygonFillColor(stall.status)} fillOpacity={1.0} stroke="#64748b" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
                                 </svg>
                             )}
                             <div className={styles.stallContent} style={{ 
