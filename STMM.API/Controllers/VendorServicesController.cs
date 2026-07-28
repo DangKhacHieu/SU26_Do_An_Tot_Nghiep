@@ -99,7 +99,7 @@ public class VendorServicesController : ControllerBase
         {
             var vendorId = await GetVendorIdAsync(ct);
             var result = await _vendorServiceManagement.RegisterServiceAsync(vendorId, request, ct);
-            return Ok(new { message = "Đăng ký thành công. Vui lòng đợi Ban quản lý phê duyệt để kích hoạt dịch vụ.", data = result });
+            return Ok(new { message = "Đăng ký dịch vụ thành công.", data = result });
         }
         catch (ArgumentException ex)
         {

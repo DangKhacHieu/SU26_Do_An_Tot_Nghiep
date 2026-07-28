@@ -3571,7 +3571,7 @@
     "failure": "Failure",
     "please_select_at_least": "Please select at least one Store to register for the service.",
     "success": "Success",
-    "service_registration_successful_for": "Service registration successful for selected stalls! Please wait for Management approval.",
+    "service_registration_successful_for": "Service registration successful! ",
     "an_error_occurred_when": "An error occurred when registering the service for some stalls.",
     "obligatory": "Obligatory",
     "selfselect": "Self-select",

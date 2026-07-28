@@ -3571,7 +3571,7 @@
     "failure": "Thất bại",
     "please_select_at_least": "Vui lòng chọn ít nhất một Sạp để đăng ký dịch vụ.",
     "success": "Thành công",
-    "service_registration_successful_for": "Đăng ký dịch vụ thành công cho các sạp đã chọn! Vui lòng đợi Ban quản lý phê duyệt.",
+    "service_registration_successful_for": "Đăng ký dịch vụ thành công cho các sạp đã chọn!",
     "an_error_occurred_when": "Có lỗi xảy ra khi đăng ký dịch vụ cho một số sạp.",
     "obligatory": "Bắt buộc",
     "selfselect": "Tự chọn",

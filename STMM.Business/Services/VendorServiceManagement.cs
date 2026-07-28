@@ -37,8 +37,19 @@ public class VendorServiceManagement : IVendorServiceManagement
 
     public async Task<IEnumerable<ServiceDto>> GetAvailableServicesAsync(int vendorId, CancellationToken ct = default)
     {
-        // Get all active services
-        var services = await _serviceRepository.FindAsync(s => s.IsActive == true, ct);
+        // Find which markets the vendor is operating in based on their contracts
+        var marketIds = await _contractRepository.Query()
+            .Include(c => c.Stall)
+            .ThenInclude(s => s.Area)
+            .Where(c => c.VendorId == vendorId && (c.Status == "Active" || c.Status == "Pending" || c.Status == "PendingApproval"))
+            .Select(c => c.Stall.Area.MarketId)
+            .Distinct()
+            .ToListAsync(ct);
+
+        // Get all active services that belong to the vendor's markets (or global services where MarketId is null)
+        var services = await _serviceRepository.Query()
+            .Where(s => s.IsActive == true && (s.MarketId == null || marketIds.Contains(s.MarketId.Value)))
+            .ToListAsync(ct);
         
         return services.Select(s => new ServiceDto
         {
@@ -181,7 +192,7 @@ public class VendorServiceManagement : IVendorServiceManagement
             ServiceId = request.ServiceId,
             VendorId = vendorId,
             StallId = request.StallId,
-            Status = "Pending",
+            Status = "Active",
             RegisteredAt = DateTime.UtcNow,
             IsAutoRenew = true // default to true until approved
         };
