@@ -21,8 +21,6 @@ export default function Header({
   const dropdownRef = useRef(null);
 
   const [markets, setMarkets] = useState([]);
-  const [isMarketDropdownOpen, setIsMarketDropdownOpen] = useState(false);
-  const marketDropdownRef = useRef(null);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
@@ -67,12 +65,6 @@ export default function Header({
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setIsOpen(false);
-      }
-      if (
-        marketDropdownRef.current &&
-        !marketDropdownRef.current.contains(event.target)
-      ) {
-        setIsMarketDropdownOpen(false);
       }
       if (searchRef.current && !searchRef.current.contains(event.target)) {
         setShowSearchSuggestions(false);
@@ -194,47 +186,15 @@ export default function Header({
             >
               {t('header.overview')}
             </button>
-            <div className="market-dropdown-container" ref={marketDropdownRef}>
-              <button
-                type="button"
-                className={`nav-link dropdown-toggle ${
-                  window.location.pathname.startsWith("/stalls-map") ? "active" : ""
-                }`}
-                onClick={() => setIsMarketDropdownOpen(!isMarketDropdownOpen)}
-              >
-                {t('header.market_map')}
-                <svg
-                  width="10"
-                  height="10"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="3"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className={`dropdown-arrow-svg ${isMarketDropdownOpen ? "open" : ""}`}
-                >
-                  <polyline points="6 9 12 15 18 9" />
-                </svg>
-              </button>
-              {isMarketDropdownOpen && (
-                <ul className="market-dropdown-menu">
-                  {activeMarkets.length === 0 ? (
-                    <li className="market-item-empty">{t('header.no_markets_available')}</li>
-                  ) : (
-                    activeMarkets.map((market) => (
-                      <li
-                        key={market.marketId}
-                        className="market-item"
-                        onClick={() => handleMarketClick(market.marketId)}
-                      >
-                        {market.marketName}
-                      </li>
-                    ))
-                  )}
-                </ul>
-              )}
-            </div>
+            <button
+              type="button"
+              className={`nav-link ${
+                window.location.pathname.startsWith("/stalls-map") ? "active" : ""
+              }`}
+              onClick={handleStallsMapClick}
+            >
+              {t('header.market_map')}
+            </button>
           </nav>
 
           <div className="header-actions">

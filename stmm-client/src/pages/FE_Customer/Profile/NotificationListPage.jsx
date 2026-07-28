@@ -36,6 +36,7 @@ export default function NotificationListPage({
   onGoToStallsMap,
   onLogout,
 }) {
+  const { t } = useTranslation();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all"); // 'all', 'unread', 'read'

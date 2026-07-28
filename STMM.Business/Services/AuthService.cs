@@ -77,14 +77,19 @@ namespace STMM.Business.Services
                 throw new BadRequestException("Email hoặc mật khẩu không chính xác");
             }
 
-            if (user.Status == "Unverified")
+            if (string.Equals(user.Status, "Inactive", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new BadRequestException("Tài khoản của bạn đang ngưng hoạt động (Inactive). Vui lòng liên hệ Ban Quản lý Chợ qua hotline 1900-8888 hoặc email support@stmm.com để được hỗ trợ.");
+            }
+
+            if (string.Equals(user.Status, "Unverified", StringComparison.OrdinalIgnoreCase))
             {
                 throw new BadRequestException("Tài khoản chưa được xác thực email. Vui lòng xác thực trước khi đăng nhập.");
             }
 
-            if (user.Status == "Suspended" || user.Status == "Locked")
+            if (string.Equals(user.Status, "Suspended", StringComparison.OrdinalIgnoreCase) || string.Equals(user.Status, "Locked", StringComparison.OrdinalIgnoreCase))
             {
-                throw new BadRequestException("Tài khoản đã bị khóa hoặc tạm dừng");
+                throw new BadRequestException("Tài khoản đã bị khóa hoặc tạm dừng. Vui lòng liên hệ Ban Quản lý Chợ để được hỗ trợ.");
             }
 
             // Verify password using BCrypt with plain-text fallback for local/seeded accounts
@@ -671,9 +676,14 @@ namespace STMM.Business.Services
             }
             else
             {
-                if (user.Status == "Suspended" || user.Status == "Locked")
+                if (string.Equals(user.Status, "Inactive", StringComparison.OrdinalIgnoreCase))
                 {
-                    throw new BadRequestException("Tài khoản đã bị khóa hoặc tạm dừng");
+                    throw new BadRequestException("Tài khoản của bạn đang ngưng hoạt động (Inactive). Vui lòng liên hệ Ban Quản lý Chợ qua hotline 1900-8888 hoặc email support@stmm.com để được hỗ trợ.");
+                }
+
+                if (string.Equals(user.Status, "Suspended", StringComparison.OrdinalIgnoreCase) || string.Equals(user.Status, "Locked", StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new BadRequestException("Tài khoản đã bị khóa hoặc tạm dừng. Vui lòng liên hệ Ban Quản lý Chợ để được hỗ trợ.");
                 }
                 
                 customerRole = user.Role ?? await GetOrCreateCustomerRoleAsync(ct);

@@ -29,6 +29,7 @@ export default function ProfilePage({
   onGoToStallsMap,
   onLogout,
 }) {
+  const { t } = useTranslation();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedNoti, setSelectedNoti] = useState(null);
@@ -80,13 +81,13 @@ export default function ProfilePage({
         />
         <main className="profile-page profile-page-empty">
           <section className="profile-empty-card">
-            <h2>User not found</h2>
+            <h2>{t("profilepage.user_not_found")}</h2>
             <button
               type="button"
               className="profile-empty-back"
               onClick={onBack}
             >
-              Back
+              {t("common.back")}
             </button>
           </section>
         </main>
@@ -112,105 +113,78 @@ export default function ProfilePage({
         <div className="profile-page-shell">
           <div className="profile-page-header">
             <div>
-              <p className="profile-page-tag">Smart Market</p>
-              <h1>Good morning, {firstName}!</h1>
+              <p className="profile-page-tag">{t("profilepage.smart_market")}</p>
+              <h1>{t("profilepage.greeting", { name: firstName })}</h1>
               <p className="profile-page-copy">
-                Check today&apos;s market updates and offers for you.
+                {t("profilepage.header_subtitle")}
               </p>
             </div>
+
             <button type="button" className="profile-back-btn" onClick={onBack}>
-              Back to homepage
+              {t("profilepage.back_to_home")}
             </button>
           </div>
 
-          <div className="profile-summary-grid">
-            <article className="summary-card wallet-card">
-              <div className="summary-card-top">
-                <span>STMM Wallet</span>
-                <strong>Available Balance</strong>
-              </div>
-              <div className="summary-card-value">12,850,000 VND</div>
-              <button type="button" className="summary-card-action">
-                Top Up
-              </button>
-            </article>
-
-            <article className="summary-card points-card">
-              <div className="summary-card-top">
-                <span>Reward Points</span>
-                <strong>Last 6 months</strong>
-              </div>
-              <div className="summary-card-value">2,450</div>
-              <p className="summary-card-note">+12% this month</p>
-            </article>
-
-            <article className="summary-card notification-card">
-              <div className="summary-card-top">
-                <span>Latest Notifications</span>
-                <strong>{notifications.filter(n => !n.isRead).length} new alerts</strong>
-              </div>
-              <p className="summary-card-note">
-                Review your recent activity and important messages.
-              </p>
-            </article>
-          </div>
-
           <div className="profile-page-grid">
+            {/* Left Column: User Profile Card */}
             <section className="profile-detail-card">
               <div className="profile-detail-head">
                 <div className="profile-avatar-large">{initials}</div>
-                <div>
-                  <span className="profile-role-badge">{user.roleName}</span>
+                <div className="profile-head-info">
+                  <div className="profile-badges-row">
+                    <span className="profile-role-badge">{user.roleName || "Customer"}</span>
+                    <span className="profile-status-badge">
+                      <span className="status-dot"></span>
+                      {user.status || t("profilepage.active")}
+                    </span>
+                  </div>
                   <h2>{user.name}</h2>
-                  <p>{user.email}</p>
+                  <p className="profile-email-text">{user.email}</p>
                 </div>
               </div>
 
               <div className="profile-detail-list">
                 <div className="profile-detail-item">
-                  <span>Phone number</span>
-                  <strong>{user.phone || "Not updated"}</strong>
+                  <div className="item-label-group">
+                    <span className="item-icon">📱</span>
+                    <span>{t("profilepage.phone_number")}</span>
+                  </div>
+                  <strong>{user.phone || t("profilepage.not_updated")}</strong>
                 </div>
+
                 <div className="profile-detail-item">
-                  <span>Account status</span>
-                  <strong>{user.status || "Active"}</strong>
-                </div>
-                <div className="profile-detail-item">
-                  <span>Member ID</span>
-                  <strong>{user.userId}</strong>
+                  <div className="item-label-group">
+                    <span className="item-icon">🪪</span>
+                    <span>{t("profilepage.member_id")}</span>
+                  </div>
+                  <strong>#{user.userId}</strong>
                 </div>
               </div>
 
               <div className="profile-detail-actions">
                 <button
                   type="button"
-                  onClick={onBack}
-                  className="profile-action-btn"
-                >
-                  Back to homepage
-                </button>
-                <button
-                  type="button"
                   onClick={onGoToEditProfile}
                   className="profile-action-btn profile-action-primary"
                 >
-                  Edit Profile
+                  ✏️ {t("profilepage.edit_profile")}
                 </button>
                 <button
                   type="button"
                   onClick={onGoToChangePassword}
                   className="profile-action-btn profile-action-secondary"
                 >
-                  Change Password
+                  🔒 {t("profilepage.change_password")}
                 </button>
               </div>
             </section>
 
+            {/* Right Column: Notifications & Activity Card */}
             <section className="profile-activity-card">
               <div className="activity-header">
                 <div>
-                  <h3>Latest Notifications</h3>
-                  <p>Recent events and reminders for your account.</p>
+                  <h3>🔔 {t("profilepage.latest_notifications")}</h3>
+                  <p>{t("profilepage.notifications_desc")}</p>
                 </div>
                 {notifications.length > 0 && (
                   <button
@@ -218,7 +192,7 @@ export default function ProfilePage({
                     className="link-button"
                     onClick={onGoToNotifications}
                   >
-                    View all
+                    {t("profilepage.view_all")} →
                   </button>
                 )}
               </div>
@@ -226,11 +200,11 @@ export default function ProfilePage({
               <ul className="activity-list">
                 {loading ? (
                   <li className="activity-item-empty">
-                    <span>Loading notifications...</span>
+                    <span>{t("profilepage.loading_notifications")}</span>
                   </li>
                 ) : notifications.length === 0 ? (
                   <li className="activity-item-empty">
-                    <span>No notifications available.</span>
+                    <span>{t("profilepage.no_notifications")}</span>
                   </li>
                 ) : (
                   displayedNotifications.map((item, index) => (
@@ -254,13 +228,7 @@ export default function ProfilePage({
                       <p className="activity-item-content">{item.content}</p>
                       <span className="activity-item-time">
                         {item.createdAt
-                          ? new Date(item.createdAt).toLocaleString("en-US", {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                            day: "2-digit",
-                            month: "2-digit",
-                            year: "numeric",
-                          })
+                          ? new Date(item.createdAt).toLocaleString()
                           : ""}
                       </span>
                     </li>
@@ -287,10 +255,10 @@ export default function ProfilePage({
             <p className="noti-modal-body">{selectedNoti.content}</p>
             <div className="noti-modal-footer">
               <span className="noti-modal-time">
-                Received at: {selectedNoti.createdAt ? new Date(selectedNoti.createdAt).toLocaleString("en-US") : ""}
+                {t("profilepage.received_at")} {selectedNoti.createdAt ? new Date(selectedNoti.createdAt).toLocaleString() : ""}
               </span>
               <button className="noti-modal-btn" onClick={() => setSelectedNoti(null)}>
-                Close
+                {t("common.close")}
               </button>
             </div>
           </div>
