@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { useRef, useState } from 'react';
 import { Camera, CheckCircle2, UploadCloud, X } from 'lucide-react';
+import { getAuthHeaders } from '../../../utils/authHeaders';
 import { TASK_TYPE } from '../../../constants/taskEnums';
 
 const readProblemDetail = async (response) => {
@@ -58,7 +59,11 @@ export default function CompleteTaskForm({ task, baseUrl, onRefreshTask, onShowN
     formData.append(t('completetaskform.file'), file);
 
     try {
-      const response = await fetch(`${baseUrl}/api/files/upload`, { method: 'POST', body: formData });
+      const response = await fetch(`${baseUrl}/api/files/upload`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: formData
+      });
       if (!response.ok) throw new Error(await readProblemDetail(response));
       const payload = await response.json();
       setImage(target, payload.imageUrl);
@@ -96,8 +101,11 @@ export default function CompleteTaskForm({ task, baseUrl, onRefreshTask, onShowN
     setLoading(true);
     try {
       const response = await fetch(`${baseUrl}/api/staff/tasks/${task.taskId}/complete`, {
-        method: t('completetaskform.patch'),
-        headers: { 'Content-Type': 'application/json' },
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(),
+        },
         body: JSON.stringify({
           imageBeforeUrl: imageBeforeUrl || task.imageBeforeUrl || null,
           imageAfterUrl: requiresPhotos ? imageAfterUrl : null,

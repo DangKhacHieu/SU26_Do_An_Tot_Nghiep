@@ -3,10 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useCallback } from 'react';
 import { TASK_STATUS } from '../../../constants/taskEnums';
 import readProblemDetail from '../../../utils/readProblemDetail';
-
-const getAuthHeaders = () => ({
-  Authorization: `Bearer ${localStorage.getItem(t('quotationpanel.accesstoken'))}`
-});
+import { getAuthHeaders } from '../../../utils/authHeaders';
 
 export default function QuotationPanel({ taskId, baseUrl, taskStatus, initialMaterials, onRefreshTask, onShowNotification }) {
   const { t } = useTranslation();

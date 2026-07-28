@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
+import { getAuthHeaders } from '../../utils/authHeaders';
 import readProblemDetail from '../../utils/readProblemDetail';
 import './ReceiveCashModal.css';
 
@@ -21,7 +22,7 @@ export default function ReceiveCashModal({ stallId, stallCode, invoiceId, baseUr
       setConfirmed(false);
 
       try {
-        const response = await fetch(`${baseUrl}/api/staff/billing/invoices/stall/${stallId}/unpaid`);
+        const response = await fetch(`${baseUrl}/api/staff/billing/invoices/stall/${stallId}/unpaid`, { headers: getAuthHeaders() });
         if (!response.ok) {
           throw new Error(await readProblemDetail(response, t('receivecashmodal.unable_to_load_the')));
         }
@@ -56,6 +57,7 @@ export default function ReceiveCashModal({ stallId, stallCode, invoiceId, baseUr
         method: t('receivecashmodal.post'),
         headers: {
           'Content-Type': 'application/json',
+          ...getAuthHeaders(),
         },
         body: JSON.stringify({ invoiceId: invoice.invoiceId }),
       });

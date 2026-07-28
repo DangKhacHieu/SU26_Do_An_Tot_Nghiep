@@ -67,10 +67,11 @@ namespace STMM.Business.Services
         {
             if (managerUserId.HasValue)
             {
-                var manager = await _userRepository.GetByIdAsync(managerUserId.Value, ct);
+                var manager = await _userRepository.GetUserByIdWithRoleAsync(managerUserId.Value, ct)
+                    ?? await _userRepository.GetByIdAsync(managerUserId.Value, ct);
                 if (manager != null && manager.MarketId == null)
                 {
-                    return new List<TaskSummaryDto>();
+                    throw new ForbiddenException("The account is not assigned to a market.");
                 }
                 if (manager?.MarketId != null)
                 {

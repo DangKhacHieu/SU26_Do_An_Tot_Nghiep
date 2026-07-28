@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useCallback } from 'react';
+import { getAuthHeaders } from '../../utils/authHeaders';
 import ReceiveCashModal from './ReceiveCashModal';
 import readProblemDetail from '../../utils/readProblemDetail';
 import './StallInvoiceDetail.css';
@@ -21,7 +22,7 @@ export default function StallInvoiceDetail({ stallId, stallCode, baseUrl, onBack
     setLoadingList(true);
     setListError(null);
     try {
-      const response = await fetch(`${baseUrl}/api/staff/billing/invoices/stall/${stallId}/unpaid`);
+      const response = await fetch(`${baseUrl}/api/staff/billing/invoices/stall/${stallId}/unpaid`, { headers: getAuthHeaders() });
       if (!response.ok) {
         throw new Error(await readProblemDetail(response, t('stallinvoicedetail.unable_to_load_unpaid')));
       }
@@ -45,7 +46,7 @@ export default function StallInvoiceDetail({ stallId, stallCode, baseUrl, onBack
     setLoadingDetail(true);
     setDetailError(null);
     try {
-      const response = await fetch(`${baseUrl}/api/staff/billing/invoices/${invoiceId}`);
+      const response = await fetch(`${baseUrl}/api/staff/billing/invoices/${invoiceId}`, { headers: getAuthHeaders() });
       if (!response.ok) {
         throw new Error(await readProblemDetail(response, t('stallinvoicedetail.unable_to_load_invoice')));
       }

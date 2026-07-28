@@ -83,9 +83,10 @@ export default function CreateIssueModal({ baseUrl, onClose, onSuccess, prefille
           throw new Error(t('createissuemodal.each_attachment_must_be'));
         }
         const formData = new FormData();
-        formData.append(t('createissuemodal.file'), file);
+        formData.append('file', file);
         const response = await fetch(`${baseUrl}/api/files/upload`, {
-          method: t('createissuemodal.post'),
+          method: 'POST',
+          headers: getAuthHeaders(),
           body: formData,
         });
         if (!response.ok) {

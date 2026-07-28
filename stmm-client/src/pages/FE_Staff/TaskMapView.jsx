@@ -23,20 +23,20 @@ export default function TaskMapView({ baseUrl, onBack, onViewDetails }) {
     document.title = t('taskmapview.stmm_staff_task_map');
 
     let metaDesc = document.querySelector('meta[name="description"]');
-    const originalDesc = metaDesc ? metaDesc.getAttribute(t('taskmapview.content')) : "";
+    const originalDesc = metaDesc ? metaDesc.getAttribute("content") : "";
 
     if (!metaDesc) {
       metaDesc = document.createElement("meta");
-      metaDesc.name = t('taskmapview.description');
+      metaDesc.name = "description";
       document.head.appendChild(metaDesc);
     }
-    metaDesc.setAttribute(t('taskmapview.content'), t('taskmapview.market_layout_showing_active'));
+    metaDesc.setAttribute("content", t('taskmapview.market_layout_showing_active'));
 
     return () => {
       document.title = originalTitle;
       if (metaDesc) {
         if (originalDesc) {
-          metaDesc.setAttribute(t('taskmapview.content'), originalDesc);
+          metaDesc.setAttribute("content", originalDesc);
         } else {
           metaDesc.remove();
         }
@@ -50,7 +50,7 @@ export default function TaskMapView({ baseUrl, onBack, onViewDetails }) {
         setLoading(true);
         setError("");
         
-        const token = localStorage.getItem(t('taskmapview.token'));
+        const token = localStorage.getItem("accessToken") || localStorage.getItem("token");
         const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
         const [mapData, tasksResponse] = await Promise.all([
@@ -331,18 +331,18 @@ export default function TaskMapView({ baseUrl, onBack, onViewDetails }) {
                                 key={stall.stallId}
                                 id={`map-stall-node-${stall.code}`}
                                 className={`map-stall-block ${stall.status.toLowerCase()} ${
-                                  isSelected ? t('taskmapview.selected') : ""
-                                } ${hasTasks ? t('taskmapview.hastasks') : ""}`}
+                                  isSelected ? "selected" : ""
+                                } ${hasTasks ? "has-tasks" : ""}`}
                                 style={{
                                   left: `${(stall.mapX ?? 0) * MAP_SCALE}px`,
                                   top: `${(stall.mapY ?? 0) * MAP_SCALE}px`,
                                   width: `${(stall.width || 45) * MAP_SCALE}px`,
                                   height: `${(stall.height || 45) * MAP_SCALE}px`,
-                                  transform: t('taskmapview.rotatestallrotation_0deg'),
+                                  transform: `rotate(${stall.rotation || 0}deg)`,
                                   borderLeft: `3px solid ${getStatusColor(stall.status)}`,
                                 }}
                                 onClick={() => handleStallClick(stall, area)}
-                                title={t('taskmapview.stall_stallcode_stalltaskslength_active')}
+                                title={`Stall ${stall.code} (${stallTasks.length} active tasks)`}
                               >
                                 <span className="stall-code-text">
                                   {stall.code}

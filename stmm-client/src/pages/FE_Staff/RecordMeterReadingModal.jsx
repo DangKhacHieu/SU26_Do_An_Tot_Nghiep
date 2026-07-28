@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useRef } from 'react';
+import { getAuthHeaders } from '../../utils/authHeaders';
 import readProblemDetail from '../../utils/readProblemDetail';
 import './RecordMeterReadingModal.css';
 
@@ -34,7 +35,7 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, onClose, onS
     const fetchMeters = async () => {
       setLoadingMeters(true);
       try {
-        const response = await fetch(`${baseUrl}/api/meters/stall/${stallId}`);
+        const response = await fetch(`${baseUrl}/api/meters/stall/${stallId}`, { headers: getAuthHeaders() });
         if (response.ok) {
           const data = await response.json();
           setMeters(data);
@@ -73,11 +74,12 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, onClose, onS
     setImageError(null);
 
     const formData = new FormData();
-    formData.append(t('recordmeterreadingmodal.file'), file);
+    formData.append('file', file);
 
     try {
       const response = await fetch(`${baseUrl}/api/files/upload`, {
-        method: t('recordmeterreadingmodal.post'),
+        method: 'POST',
+        headers: getAuthHeaders(),
         body: formData,
       });
 
@@ -189,6 +191,7 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, onClose, onS
         method: t('recordmeterreadingmodal.post'),
         headers: {
           'Content-Type': 'application/json',
+          ...getAuthHeaders(),
         },
         body: JSON.stringify(requestData)
       });

@@ -1,10 +1,11 @@
 import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useCallback } from 'react';
+import { getAuthHeaders } from '../../utils/authHeaders';
 import readProblemDetail from '../../utils/readProblemDetail';
 import './MeterReadingHistory.css';
 
 export default function MeterReadingHistory({ stallId, baseUrl, onViewMeterDetail, onOpenRecordModal, onBack }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const [readings, setReadings] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
@@ -24,7 +25,7 @@ export default function MeterReadingHistory({ stallId, baseUrl, onViewMeterDetai
         url += `&meterType=${meterType}`;
       }
 
-      const response = await fetch(url);
+      const response = await fetch(url, { headers: getAuthHeaders() });
       if (!response.ok) {
         throw new Error(await readProblemDetail(response, t('meterreadinghistory.unable_to_load_meter')));
       }
@@ -46,8 +47,9 @@ export default function MeterReadingHistory({ stallId, baseUrl, onViewMeterDetai
 
   const formatDate = (dateString) => {
     if (!dateString) return t('meterreadinghistory.na');
-    return new Date(dateString).toLocaleDateString(t('meterreadinghistory.enus'), {
-      year: t('meterreadinghistory.numeric'),
+    const locale = i18n?.language?.startsWith('vi') ? 'vi-VN' : 'en-US';
+    return new Date(dateString).toLocaleDateString(locale, {
+      year: 'numeric',
       month: '2-digit',
       day: '2-digit'
     });

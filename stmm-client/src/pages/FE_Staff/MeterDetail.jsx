@@ -1,10 +1,11 @@
 import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
+import { getAuthHeaders } from '../../utils/authHeaders';
 import readProblemDetail from '../../utils/readProblemDetail';
 import './MeterDetail.css';
 
 export default function MeterDetail({ meterId, baseUrl, onBack }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const [meter, setMeter] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -15,7 +16,7 @@ export default function MeterDetail({ meterId, baseUrl, onBack }) {
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch(`${baseUrl}/api/meters/${meterId}`);
+        const response = await fetch(`${baseUrl}/api/meters/${meterId}`, { headers: getAuthHeaders() });
         if (!response.ok) {
           throw new Error(await readProblemDetail(response, t('meterdetail.unable_to_load_meter')));
         }
@@ -33,10 +34,11 @@ export default function MeterDetail({ meterId, baseUrl, onBack }) {
 
   const formatDate = (dateString) => {
     if (!dateString) return t('meterdetail.na');
-    return new Date(dateString).toLocaleDateString(t('meterdetail.enus'), {
-      year: t('meterdetail.numeric'),
-      month: t('meterdetail.long'),
-      day: t('meterdetail.numeric')
+    const locale = i18n?.language?.startsWith('vi') ? 'vi-VN' : 'en-US';
+    return new Date(dateString).toLocaleDateString(locale, {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
     });
   };
 

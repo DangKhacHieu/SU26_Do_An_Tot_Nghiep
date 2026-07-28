@@ -4,7 +4,7 @@ import { getAuthHeaders } from '../../utils/authHeaders';
 import './IssueDetails.css';
 
 export default function IssueDetails({ issueId, baseUrl, onBack }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const [issue, setIssue] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -37,16 +37,18 @@ export default function IssueDetails({ issueId, baseUrl, onBack }) {
 
   const formatDate = (dateString) => {
     if (!dateString) return t('issuedetails.na');
-    return new Date(dateString).toLocaleDateString(t('issuedetails.enus'), {
-      year: t('issuedetails.numeric'),
-      month: t('issuedetails.long'),
-      day: t('issuedetails.numeric')
+    const locale = i18n?.language?.startsWith('vi') ? 'vi-VN' : 'en-US';
+    return new Date(dateString).toLocaleDateString(locale, {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
     });
   };
 
   const formatTime = (dateString) => {
     if (!dateString) return t('issuedetails.na');
-    return new Date(dateString).toLocaleTimeString(t('issuedetails.enus'), {
+    const locale = i18n?.language?.startsWith('vi') ? 'vi-VN' : 'en-US';
+    return new Date(dateString).toLocaleTimeString(locale, {
       hour: '2-digit',
       minute: '2-digit',
       second: '2-digit'
