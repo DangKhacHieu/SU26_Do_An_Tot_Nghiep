@@ -4,7 +4,7 @@ import { getAuthHeaders } from '../../utils/authHeaders';
 import './ViolationDetails.css';
 
 export default function ViolationDetails({ violationId, baseUrl, onBack }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const [violation, setViolation] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -15,7 +15,7 @@ export default function ViolationDetails({ violationId, baseUrl, onBack }) {
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch(`${baseUrl}/api/violations/${violationId}`, { headers: getAuthHeaders() });
+        const response = await fetch(`${baseUrl}/api/staff/violations/${violationId}`, { headers: getAuthHeaders() });
         if (!response.ok) {
           let problem = null;
           try { problem = await response.json(); } catch { problem = null; }
@@ -37,21 +37,23 @@ export default function ViolationDetails({ violationId, baseUrl, onBack }) {
 
   const formatVnd = (amount) => {
     if (amount === undefined || amount === null) return '0 VND';
-    return amount.toLocaleString(t('violationdetails.vivn')) + ' VND';
+    return amount.toLocaleString('vi-VN') + ' VND';
   };
 
   const formatDate = (dateString) => {
     if (!dateString) return t('violationdetails.na');
-    return new Date(dateString).toLocaleDateString(t('violationdetails.enus'), {
-      year: t('violationdetails.numeric'),
-      month: t('violationdetails.long'),
-      day: t('violationdetails.numeric')
+    const locale = i18n?.language?.startsWith('vi') ? 'vi-VN' : 'en-US';
+    return new Date(dateString).toLocaleDateString(locale, {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
     });
   };
 
   const formatTime = (dateString) => {
     if (!dateString) return t('violationdetails.na');
-    return new Date(dateString).toLocaleTimeString(t('violationdetails.enus'), {
+    const locale = i18n?.language?.startsWith('vi') ? 'vi-VN' : 'en-US';
+    return new Date(dateString).toLocaleTimeString(locale, {
       hour: '2-digit',
       minute: '2-digit',
       second: '2-digit'

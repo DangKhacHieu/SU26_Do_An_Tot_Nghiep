@@ -101,9 +101,10 @@ export default function CreateViolationModal({ baseUrl, onClose, onSuccess, pref
     setError('');
     try {
       const formData = new FormData();
-      formData.append(t('createviolationmodal.file'), file);
+      formData.append('file', file);
       const response = await fetch(`${baseUrl}/api/files/upload`, {
-        method: t('createviolationmodal.post'),
+        method: 'POST',
+        headers: getAuthHeaders(),
         body: formData,
       });
       if (!response.ok) {

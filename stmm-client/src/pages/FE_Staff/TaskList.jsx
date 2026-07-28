@@ -30,17 +30,18 @@ const readProblemDetail = async (response, t) => {
   }
 };
 
-const formatDate = (value, t) => {
+const formatDate = (value, t, lng) => {
   if (!value) return t('tasklist.date_not_available');
-  return new Date(value).toLocaleDateString(t('tasklist.enus'), {
-    year: t('tasklist.numeric'),
-    month: t('tasklist.short'),
-    day: t('tasklist.numeric'),
+  const locale = lng?.startsWith('vi') ? 'vi-VN' : 'en-US';
+  return new Date(value).toLocaleDateString(locale, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
   });
 };
 
 export default function TaskList({ baseUrl, onViewDetails, onMapView }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const STATUS_LABELS = useMemo(() => ({
     [TASK_STATUS.PENDING]: t('tasklist.pending'),
@@ -226,7 +227,7 @@ export default function TaskList({ baseUrl, onViewDetails, onMapView }) {
                   <div className="staff-task-card__body">
                     <h2>{task.title}</h2>
                     <p><MapPin size={16} aria-hidden="true" /> {location}</p>
-                    <p><CalendarDays size={16} aria-hidden="true" /> Assigned {formatDate(task.createdAt, t)}</p>
+                    <p><CalendarDays size={16} aria-hidden="true" /> Assigned {formatDate(task.createdAt, t, i18n?.language)}</p>
                   </div>
 
                   <footer className="staff-task-card__footer">

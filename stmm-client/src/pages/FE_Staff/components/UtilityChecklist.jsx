@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { useCallback, useEffect, useState } from 'react';
 import { ChevronDown, ChevronUp, Gauge, Lightbulb, Store } from 'lucide-react';
+import { getAuthHeaders } from '../../../utils/authHeaders';
 import RecordMeterReadingModal from '../RecordMeterReadingModal';
 
 export default function UtilityChecklist({ taskId, baseUrl, onShowNotification, onProgressChange }) {
@@ -18,7 +19,7 @@ export default function UtilityChecklist({ taskId, baseUrl, onShowNotification, 
     setError(null);
 
     try {
-      const response = await fetch(`${baseUrl}/api/staff/tasks/${taskId}/stalls`);
+      const response = await fetch(`${baseUrl}/api/staff/tasks/${taskId}/stalls`, { headers: getAuthHeaders() });
       if (!response.ok) {
         let problem = null;
         try { problem = await response.json(); } catch { problem = null; }

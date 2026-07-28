@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { useEffect, useMemo, useState } from 'react';
+import { getAuthHeaders } from '../../utils/authHeaders';
 import { TASK_STATUS } from '../../constants/taskEnums';
 
 export default function StaffDashboard({ baseUrl, staffName, onOpenTasks, onOpenTask }) {
@@ -20,7 +21,7 @@ export default function StaffDashboard({ baseUrl, staffName, onOpenTasks, onOpen
     let active = true;
     const loadTasks = async () => {
       try {
-        const response = await fetch(`${baseUrl}/api/staff/tasks`);
+        const response = await fetch(`${baseUrl}/api/staff/tasks`, { headers: getAuthHeaders() });
         if (!response.ok) {
           const problem = await response.json().catch(() => null);
           throw new Error(problem?.detail || problem?.title || t('staffdashboard.unable_to_load_your'));

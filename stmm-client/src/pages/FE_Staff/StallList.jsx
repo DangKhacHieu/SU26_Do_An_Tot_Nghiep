@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { getAuthHeaders } from '../../utils/authHeaders';
 import CreateViolationModal from './CreateViolationModal';
 import readProblemDetail from '../../utils/readProblemDetail';
 import './StallList.css';
@@ -25,7 +26,7 @@ export default function StallList({ baseUrl, onShowNotification, onViewMeterHist
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${baseUrl}/api/staff/stall-tasks`);
+      const response = await fetch(`${baseUrl}/api/staff/stall-tasks`, { headers: getAuthHeaders() });
       if (!response.ok) {
         throw new Error(await readProblemDetail(response, t('stalllist.unable_to_load_stalls')));
       }

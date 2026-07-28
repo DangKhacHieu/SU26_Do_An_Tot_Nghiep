@@ -2,12 +2,13 @@ import { useTranslation } from 'react-i18next';
 import { TASK_STATUS, TASK_TYPE } from '../../../constants/taskEnums';
 
 export default function TaskInfoCard({ task, onViewIssueDetails }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const formatDate = (dateString) => {
     if (!dateString) return t('taskinfocard.pending_completion');
-    return new Date(dateString).toLocaleDateString(t('taskinfocard.enus'), {
-      year: t('taskinfocard.numeric'),
+    const locale = i18n?.language?.startsWith('vi') ? 'vi-VN' : 'en-US';
+    return new Date(dateString).toLocaleDateString(locale, {
+      year: 'numeric',
       month: '2-digit',
       day: '2-digit',
       hour: '2-digit',
