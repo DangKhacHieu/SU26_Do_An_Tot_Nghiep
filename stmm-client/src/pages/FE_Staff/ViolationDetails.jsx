@@ -15,7 +15,7 @@ export default function ViolationDetails({ violationId, baseUrl, onBack }) {
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch(`${baseUrl}/api/staff/violations/${violationId}`, { headers: getAuthHeaders() });
+        const response = await fetch(`${baseUrl}/api/violations/${violationId}`, { headers: getAuthHeaders() });
         if (!response.ok) {
           let problem = null;
           try { problem = await response.json(); } catch { problem = null; }

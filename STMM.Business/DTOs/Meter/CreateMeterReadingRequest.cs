@@ -6,6 +6,5 @@ namespace STMM.Business.DTOs.Meter
         public double NewValue { get; set; }
         public string RecordedAt { get; set; } = string.Empty;
         public string ImageUrl { get; set; } = string.Empty;
-        public bool IsReplaced { get; set; } = false;
     }
 }

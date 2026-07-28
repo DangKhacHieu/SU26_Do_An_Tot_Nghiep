@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using STMM.Business.Interfaces;
@@ -10,6 +11,7 @@ namespace STMM.API.Controllers
 {
     [ApiController]
     [Route("api/files")]
+    [Authorize]
     public class FilesController : ControllerBase
     {
         private readonly IFileStorageService _fileStorage;

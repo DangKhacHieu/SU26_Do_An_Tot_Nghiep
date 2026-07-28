@@ -144,9 +144,9 @@ namespace STMM.Business.Services
                 throw new BadRequestException($"A reading already exists for meter {meter.SerialNumber} on {request.RecordedAt}.");
 
             var latest = await _readingRepo.GetLatestReadingByMeterIdAsync(request.MeterId, ct);
-            var oldValue = request.IsReplaced ? 0 : (latest?.NewValue ?? 0);
+            var oldValue = latest?.NewValue ?? 0;
 
-            if (!request.IsReplaced && request.NewValue < oldValue)
+            if (request.NewValue < oldValue)
                 throw new BadRequestException($"New value ({request.NewValue}) must be >= previous value ({oldValue}).");
 
             var reading = new MeterReading

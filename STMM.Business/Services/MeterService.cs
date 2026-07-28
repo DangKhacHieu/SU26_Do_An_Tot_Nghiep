@@ -66,27 +66,20 @@ namespace STMM.Business.Services
 
         public async Task<MeterDto?> GetMeterByIdAsync(int id, int? currentUserId = null, CancellationToken ct = default)
         {
-            User? currentUser = null;
-            if (currentUserId.HasValue)
+            if (!currentUserId.HasValue)
             {
-                currentUser = await _userRepo.GetUserByIdWithRoleAsync(currentUserId.Value, ct);
-                if (currentUser != null && string.Equals(currentUser.Role?.Name, "Manager", StringComparison.OrdinalIgnoreCase) && !currentUser.MarketId.HasValue)
-                {
-                    throw new NotFoundException($"Meter with ID {id} not found.");
-                }
+                throw new NotFoundException($"Meter with ID {id} not found.");
             }
 
-            var meter = await _meterRepo.GetMeterWithStallAsync(id, ct);
+            var currentUser = await _userRepo.GetUserByIdWithRoleAsync(currentUserId.Value, ct);
+            if (currentUser?.MarketId is null)
+            {
+                throw new NotFoundException($"Meter with ID {id} not found.");
+            }
+
+            var meter = await _meterRepo.GetMeterForMarketAsync(id, currentUser.MarketId.Value, ct);
             if (meter == null)
                 throw new NotFoundException($"Meter with ID {id} not found.");
-
-            if (currentUser != null && string.Equals(currentUser.Role?.Name, "Manager", StringComparison.OrdinalIgnoreCase))
-            {
-                if (meter.MarketId != currentUser.MarketId)
-                {
-                    throw new NotFoundException($"Meter with ID {id} not found.");
-                }
-            }
 
             var dto = _mapper.Map<MeterDto>(meter);
             var latest = await _readingRepo.GetLatestReadingByMeterIdAsync(id, ct);

@@ -20,7 +20,6 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, onClose, onS
     return `${yyyy}-${mm}-${dd}`;
   });
   const [imageUrl, setImageUrl] = useState('');
-  const [isReplaced, setIsReplaced] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [loadingMeters, setLoadingMeters] = useState(false);
@@ -149,7 +148,7 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, onClose, onS
 
     if (newValue === '' || isNaN(Number(newValue)) || Number(newValue) < 0) {
       errors.newValue = t('recordmeterreadingmodal.new_value_must_be');
-    } else if (!isReplaced && selectedMeter && selectedMeter.lastReadingValue !== null && Number(newValue) < selectedMeter.lastReadingValue) {
+    } else if (selectedMeter && selectedMeter.lastReadingValue !== null && Number(newValue) < selectedMeter.lastReadingValue) {
       errors.newValue = t('recordmeterreadingmodal.new_value_must_be');
     }
 
@@ -182,8 +181,7 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, onClose, onS
       meterId: parseInt(meterId),
       newValue: parseFloat(newValue),
       recordedAt: recordedAt,
-      imageUrl: imageUrl,
-      isReplaced: isReplaced
+      imageUrl: imageUrl
     };
 
     try {
@@ -265,19 +263,6 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, onClose, onS
               className={`form-input ${formErrors.newValue ? t('recordmeterreadingmodal.errorborder') : ''}`}
             />
             {formErrors.newValue && <span className="error-text">{formErrors.newValue}</span>}
-          </div>
-
-          <div className="form-group-checkbox">
-            <label className="checkbox-container">
-              <input
-                type="checkbox"
-                checked={isReplaced}
-                onChange={(e) => setIsReplaced(e.target.checked)}
-              />
-              <span className="checkbox-label">{t('recordmeterreadingmodal.meter_was_replaced_reset')}</span>
-            </label>
-            <p className="helper-text-checkbox">
-              {t('recordmeterreadingmodal.select_this_only_when')}</p>
           </div>
 
           <div className="form-group">

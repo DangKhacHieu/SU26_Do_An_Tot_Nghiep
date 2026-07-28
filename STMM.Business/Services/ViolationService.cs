@@ -83,7 +83,11 @@ namespace STMM.Business.Services
             var stall = await _stallRepository.GetStallForMarketAsync(request.StallId, marketId, ct)
                 ?? throw new NotFoundException($"Stall with ID {request.StallId} not found.");
 
-            var types = await _violationTypeRepository.FindAsync(vt => vt.ViolationTypeId == request.ViolationTypeId && vt.IsActive != false, ct);
+            var types = await _violationTypeRepository.FindAsync(
+                vt => vt.ViolationTypeId == request.ViolationTypeId &&
+                      vt.IsActive != false &&
+                      (vt.MarketId == null || vt.MarketId == marketId),
+                ct);
             var violationType = types.FirstOrDefault();
 
             if (violationType == null)
