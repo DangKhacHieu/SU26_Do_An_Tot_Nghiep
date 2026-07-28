@@ -1,12 +1,7 @@
+import { useTranslation } from 'react-i18next';
+import { useMemo } from 'react';
 import { Check, Circle, XCircle } from 'lucide-react';
 import { TASK_STATUS } from '../../../constants/taskEnums';
-
-const STEPS = [
-  { label: 'Assessment', description: 'Review the issue and prepare the work.' },
-  { label: 'Awaiting Approval', description: 'Quotation is waiting for approval.' },
-  { label: 'In Progress', description: 'Approved repair work is underway.' },
-  { label: 'Completed', description: 'Repair evidence and results are submitted.' },
-];
 
 const ACTIVE_STEP = {
   [TASK_STATUS.PENDING]: 0,
@@ -15,15 +10,24 @@ const ACTIVE_STEP = {
 };
 
 export default function RepairProgressStepper({ status }) {
+  const { t } = useTranslation();
+
+  const STEPS = useMemo(() => [
+    { label: t('repairprogressstepper.assessment'), description: t('repairprogressstepper.review_the_issue_and') },
+    { label: t('repairprogressstepper.awaiting_approval'), description: t('repairprogressstepper.quotation_is_waiting_for') },
+    { label: t('repairprogressstepper.in_progress'), description: t('repairprogressstepper.approved_repair_work_is') },
+    { label: t('repairprogressstepper.completed'), description: t('repairprogressstepper.repair_evidence_and_results') },
+  ], [t]);
+
   const isCompleted = status === TASK_STATUS.COMPLETED;
   const isCancelled = status === TASK_STATUS.CANCELLED;
   const activeStep = ACTIVE_STEP[status] ?? 0;
 
   return (
-    <section className="repair-stepper-panel" aria-label="Repair progress">
+    <section className="repair-stepper-panel" aria-label={t('repairprogressstepper.repair_progress')}>
       <div className="repair-stepper-panel__header">
-        <div><p>Repair Workflow</p><h3>Progress</h3></div>
-        {isCancelled ? <span className="repair-stepper__cancelled"><XCircle size={15} /> Cancelled</span> : null}
+        <div><p>{t('repairprogressstepper.repair_workflow')}</p><h3>{t('repairprogressstepper.progress')}</h3></div>
+        {isCancelled ? <span className="repair-stepper__cancelled"><XCircle size={15} /> {t('repairprogressstepper.cancelled')}</span> : null}
       </div>
       <ol className={`repair-stepper ${isCancelled ? 'repair-stepper--cancelled' : ''}`}>
         {STEPS.map((step, index) => {

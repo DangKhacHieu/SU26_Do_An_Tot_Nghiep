@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect } from 'react';
 import {
   Plus, Edit3, Trash2, ShieldAlert, Search, DollarSign,
@@ -35,6 +36,8 @@ const formatDate = (d) => {
 };
 
 export default function ViolationsPenalties() {
+  const { t } = useTranslation();
+
   const [activeTab, setActiveTab] = useState('violations');
   const [violations, setViolations] = useState([]);
   const [violationTypes, setViolationTypes] = useState([]);
@@ -94,17 +97,17 @@ export default function ViolationsPenalties() {
   }, [searchQuery, statusFilter, activeTab]);
 
   const getMockViolations = () => [
-    { violationId: 81, stallCode: 'Kiosk B-12', title: 'Lấn chiếm lối đi chung', description: 'Bày hàng hóa tràn ra ngoài vạch kẻ ranh giới 50cm.', penalty: 1500000, fineAmount: 1500000, status: 'Unpaid', date: '01/06/2026', imageUrl: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=600', violationType: { name: 'Lấn chiếm' } },
-    { violationId: 79, stallCode: 'Kiosk A-03', title: 'Mở cửa muộn quá quy định', description: 'Mở cửa kinh doanh sau 9:00 sáng không có lý do.', penalty: 500000, fineAmount: 500000, status: 'Paid', date: '28/05/2026', imageUrl: 'https://images.unsplash.com/photo-1534723452862-4c874018d66d?auto=format&fit=crop&q=80&w=600', violationType: { name: 'Giờ giấc' } },
-    { violationId: 75, stallCode: 'Kiosk C-10', title: 'Tự ý sửa đổi kết cấu sạp', description: 'Khoan đục tường công cộng và lắp biển quảng cáo quá khổ.', penalty: 5000000, fineAmount: 5000000, status: 'Unpaid', date: '20/05/2026', imageUrl: 'https://images.unsplash.com/photo-1581094288338-2314dddb7ecc?auto=format&fit=crop&q=80&w=600', violationType: { name: 'Xây dựng' } },
-    { violationId: 71, stallCode: 'Kiosk D-02', title: 'Không đảm bảo an toàn PCCC', description: 'Chất đống thùng các-tông chặn trước hộp vòi cứu hỏa.', penalty: 3000000, fineAmount: 3000000, status: 'Paid', date: '15/05/2026', imageUrl: 'https://images.unsplash.com/photo-1599740831666-4cf92c537d7a?auto=format&fit=crop&q=80&w=600', violationType: { name: 'PCCC' } },
+    { violationId: 81, stallCode: 'Kiosk B-12', title: t('violationspenalties.encroaching_the_common_path'), description: t('violationspenalties.display_goods_50cm_beyond'), penalty: 1500000, fineAmount: 1500000, status: 'Unpaid', date: '01/06/2026', imageUrl: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=600', violationType: { name: t('violationspenalties.encroachment') } },
+    { violationId: 79, stallCode: 'Kiosk A-03', title: t('violationspenalties.open_late_beyond_regulations'), description: t('violationspenalties.open_for_business_after'), penalty: 500000, fineAmount: 500000, status: 'Paid', date: '28/05/2026', imageUrl: 'https://images.unsplash.com/photo-1534723452862-4c874018d66d?auto=format&fit=crop&q=80&w=600', violationType: { name: t('violationspenalties.hours') } },
+    { violationId: 75, stallCode: 'Kiosk C-10', title: t('violationspenalties.arbitrarily_modify_the_structure'), description: t('violationspenalties.drilling_public_walls_and'), penalty: 5000000, fineAmount: 5000000, status: 'Unpaid', date: '20/05/2026', imageUrl: 'https://images.unsplash.com/photo-1581094288338-2314dddb7ecc?auto=format&fit=crop&q=80&w=600', violationType: { name: t('violationspenalties.build') } },
+    { violationId: 71, stallCode: 'Kiosk D-02', title: t('violationspenalties.fire_safety_is_not'), description: t('violationspenalties.pile_up_cardboard_boxes'), penalty: 3000000, fineAmount: 3000000, status: 'Paid', date: '15/05/2026', imageUrl: 'https://images.unsplash.com/photo-1599740831666-4cf92c537d7a?auto=format&fit=crop&q=80&w=600', violationType: { name: 'PCCC' } },
   ];
 
   const getMockTypes = () => [
-    { violationTypeId: 1, name: 'Lấn chiếm hành lang', description: 'Bày biện hàng hóa ngoài ranh giới sạp quy định', defaultFine: 1500000, isActive: true },
-    { violationTypeId: 2, name: 'Giờ giấc hoạt động', description: 'Mở cửa trễ sau 8:30 hoặc đóng cửa trước 21:00', defaultFine: 500000, isActive: true },
-    { violationTypeId: 3, name: 'Quy định xây dựng', description: 'Tự ý sửa kết cấu, lắp thêm thiết bị trái phép', defaultFine: 5000000, isActive: true },
-    { violationTypeId: 4, name: 'An toàn phòng chống cháy nổ', description: 'Chặn thiết bị cứu hỏa, tích trữ hóa chất dễ cháy', defaultFine: 3000000, isActive: true },
+    { violationTypeId: 1, name: t('violationspenalties.encroaching_the_hallway'), description: t('violationspenalties.displaying_goods_outside_the'), defaultFine: 1500000, isActive: true },
+    { violationTypeId: 2, name: t('violationspenalties.hours_of_operation'), description: t('violationspenalties.open_late_after_830'), defaultFine: 500000, isActive: true },
+    { violationTypeId: 3, name: t('violationspenalties.construction_regulations'), description: t('violationspenalties.arbitrarily_modifying_the_structure'), defaultFine: 5000000, isActive: true },
+    { violationTypeId: 4, name: t('violationspenalties.fire_and_explosion_safety'), description: t('violationspenalties.block_fire_equipment_and'), defaultFine: 3000000, isActive: true },
   ];
 
   const filteredViolations = violations.filter(v => {
@@ -123,7 +126,7 @@ export default function ViolationsPenalties() {
     if (isMock) {
       if (isEdit) setViolationTypes(violationTypes.map(t => t.violationTypeId === selectedItem.violationTypeId ? { ...t, ...typeForm } : t));
       else setViolationTypes([...violationTypes, { violationTypeId: Math.floor(Math.random() * 100) + 10, ...typeForm }]);
-      showNotification('success', `${isEdit ? 'Cập nhật' : 'Thêm'} loại vi phạm thành công!`);
+      showNotification('success', `${isEdit ? t('violationspenalties.update') : t('violationspenalties.more')} loại vi phạm thành công!`);
       setActiveModal(null);
     } else {
       setModalError(null);
@@ -132,9 +135,9 @@ export default function ViolationsPenalties() {
         .then(async r => { 
           if (!r.ok) {
             const errData = await r.json().catch(() => ({}));
-            throw new Error(errData.detail || errData.title || 'Không thể cập nhật loại vi phạm.');
+            throw new Error(errData.detail || errData.title || t('violationspenalties.unable_to_update_violation'));
           } 
-          showNotification('success', 'Cập nhật thành công!'); 
+          showNotification('success', t('violationspenalties.updated_successfully')); 
           setActiveModal(null); 
           loadAllData(); 
         })
@@ -145,7 +148,7 @@ export default function ViolationsPenalties() {
   const deleteViolationType = () => {
     if (isMock) {
       setViolationTypes(violationTypes.filter(t => t.violationTypeId !== selectedItem.violationTypeId));
-      showNotification('success', 'Đã xóa loại vi phạm!');
+      showNotification('success', t('violationspenalties.violation_type_removed'));
       setActiveModal(null);
     } else {
       setModalError(null);
@@ -154,9 +157,9 @@ export default function ViolationsPenalties() {
         .then(async r => { 
           if (!r.ok) {
             const errData = await r.json().catch(() => ({}));
-            throw new Error(errData.detail || errData.title || 'Thao tác xóa thất bại.');
+            throw new Error(errData.detail || errData.title || t('violationspenalties.the_deletion_operation_failed'));
           } 
-          showNotification('success', 'Xóa thành công!'); 
+          showNotification('success', t('violationspenalties.deleted_successfully')); 
           setActiveModal(null); 
           loadAllData(); 
         })
@@ -172,7 +175,7 @@ export default function ViolationsPenalties() {
     if (!invoiceConfirmVio) return;
     const violationId = invoiceConfirmVio.violationId;
     if (isMock) {
-      showNotification('success', 'Tạo hóa đơn phạt thành công (Mô phỏng)!');
+      showNotification('success', t('violationspenalties.successfully_created_penalty_invoice'));
       setInvoiceConfirmVio(null);
     } else {
       setModalError(null);
@@ -181,9 +184,9 @@ export default function ViolationsPenalties() {
         .then(async r => { 
           if (!r.ok) {
             const errData = await r.json().catch(() => ({}));
-            throw new Error(errData.message || errData.detail || errData.title || 'Không thể tạo hóa đơn.');
+            throw new Error(errData.message || errData.detail || errData.title || t('violationspenalties.unable_to_create_invoice'));
           } 
-          showNotification('success', 'Tạo hóa đơn phạt thành công!'); 
+          showNotification('success', t('violationspenalties.created_penalty_invoice_successfully')); 
           setInvoiceConfirmVio(null);
           loadAllData(); 
         })
@@ -199,14 +202,13 @@ export default function ViolationsPenalties() {
       {/* Header */}
       <div className="page-header">
         <div>
-          <h1 className="page-title">Vi Phạm &amp; Xử Phạt</h1>
-          <p className="page-subtitle">Quản lý biên bản vi phạm và danh mục chế tài xử phạt của tiểu thương.</p>
+          <h1 className="page-title">{t('violationspenalties.violations_sanctions')}</h1>
+          <p className="page-subtitle">{t('violationspenalties.manage_violation_records_and')}</p>
         </div>
         <div className="page-actions">
           {activeTab === 'types' && (
             <button className="btn btn-primary" onClick={() => { setSelectedItem(null); setTypeForm({ name: '', description: '', defaultFine: 500000, isActive: true }); setModalError(null); setActiveModal('type'); }}>
-              <Plus size={15} /> Thêm loại vi phạm
-            </button>
+              <Plus size={15} /> {t('violationspenalties.add_violation_type')}</button>
           )}
         </div>
       </div>
@@ -224,13 +226,13 @@ export default function ViolationsPenalties() {
       {isMock && (
         <div className="alert alert-warning">
           <AlertTriangle size={16} className="alert-icon" />
-          <span><strong>Chế độ mô phỏng:</strong> Không thể kết nối Backend. Đang hiển thị dữ liệu mô phỏng.</span>
+          <span><strong>{t('violationspenalties.simulation_mode')}</strong> {t('violationspenalties.unable_to_connect_backend')}</span>
         </div>
       )}
 
       {/* Tabs */}
       <div className="tab-bar">
-        {[{ id: 'violations', label: 'Biên bản Vi phạm', icon: ShieldAlert }, { id: 'types', label: 'Danh mục Lỗi phạt', icon: Info }].map(tab => {
+        {[{ id: 'violations', label: t('violationspenalties.violation_minutes'), icon: ShieldAlert }, { id: 'types', label: t('violationspenalties.list_of_penalty_errors'), icon: Info }].map(tab => {
           const Icon = tab.icon;
           return (
             <button key={tab.id} className={`tab-btn ${activeTab === tab.id ? 'active' : ''}`} onClick={() => setActiveTab(tab.id)}>
@@ -243,7 +245,7 @@ export default function ViolationsPenalties() {
       {loading ? (
         <div className="loading-container">
           <div className="loading-spinner" />
-          <p className="loading-text">Đang tải dữ liệu vi phạm...</p>
+          <p className="loading-text">{t('violationspenalties.ang_ti_d_liu')}</p>
         </div>
       ) : (
         <>
@@ -256,16 +258,16 @@ export default function ViolationsPenalties() {
                   <div className="search-wrapper" style={{ flex: '1 1 220px' }}>
                     <Search size={14} className="search-icon-inner" />
                     <input type="text" className="search-input" style={{ width: '100%' }}
-                      placeholder="Tìm Kiosk, hành vi vi phạm..."
+                      placeholder={t('violationspenalties.find_kiosks_violations')}
                       value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
                   </div>
                   <select className="filter-select" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
-                    <option value="all">Mọi trạng thái</option>
-                    <option value="Pending">Chờ duyệt</option>
-                    <option value="Notified">Đã thông báo</option>
-                    <option value="Appealed">Kháng nghị</option>
-                    <option value="Rejected">Bác bỏ KH (Cần nộp phạt)</option>
-                    <option value="Paid">Đã nộp phạt</option>
+                    <option value="all">{t('violationspenalties.mi_trng_thi')}</option>
+                    <option value="Pending">{t('violationspenalties.waiting_for_approval')}</option>
+                    <option value="Notified">{t('violationspenalties.notified')}</option>
+                    <option value="Appealed">{t('violationspenalties.appeal')}</option>
+                    <option value="Rejected">{t('violationspenalties.reject_kh_need_to')}</option>
+                    <option value="Paid">{t('violationspenalties.fine_paid')}</option>
                   </select>
                   <span className="badge badge-neutral">{filteredViolations.length} biên bản</span>
                 </div>
@@ -277,14 +279,14 @@ export default function ViolationsPenalties() {
                   <table className="data-table">
                     <thead>
                       <tr>
-                        <th>Mã BB</th>
-                        <th>Gian Hàng</th>
-                        <th>Hành Vi Vi Phạm</th>
-                        <th>Loại</th>
-                        <th>Ngày lập</th>
-                        <th className="text-right">Tiền Phạt</th>
-                        <th>Trạng Thái</th>
-                        <th className="text-right">Chi tiết</th>
+                        <th>{t('violationspenalties.m_bb')}</th>
+                        <th>{t('violationspenalties.booth')}</th>
+                        <th>{t('violationspenalties.violations')}</th>
+                        <th>{t('violationspenalties.type')}</th>
+                        <th>{t('violationspenalties.date_of_establishment')}</th>
+                        <th className="text-right">{t('violationspenalties.fine')}</th>
+                        <th>{t('violationspenalties.status')}</th>
+                        <th className="text-right">{t('violationspenalties.detail')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -305,10 +307,9 @@ export default function ViolationsPenalties() {
                                   <button 
                                     className="btn btn-primary btn-sm" 
                                     onClick={() => handleCreateInvoiceClick(vio)}
-                                    title="Tạo hóa đơn thu tiền phạt"
+                                    title={t('violationspenalties.create_fine_collection_invoices')}
                                   >
-                                    <FileText size={13} /> Hóa đơn
-                                  </button>
+                                    <FileText size={13} /> {t('violationspenalties.bill')}</button>
                                 )}
                                 <button className="btn btn-secondary btn-sm" onClick={() => { setSelectedItem(vio); setActiveModal('details'); }}>
                                   <Eye size={13} /> Xem
@@ -331,8 +332,7 @@ export default function ViolationsPenalties() {
                           onClick={() => setViolationsPage(prev => Math.max(prev - 1, 1))} 
                           disabled={violationsPage === 1}
                         >
-                          Trước
-                        </button>
+                          {t('violationspenalties.before')}</button>
                         {Array.from({ length: Math.ceil(filteredViolations.length / itemsPerPage) }, (_, i) => i + 1).map(page => (
                           <button 
                             key={page} 
@@ -357,8 +357,8 @@ export default function ViolationsPenalties() {
                 <div className="card-padded">
                   <div className="empty-state">
                     <div className="empty-state-icon"><ShieldOff size={24} /></div>
-                    <p className="empty-state-title">Không tìm thấy biên bản vi phạm</p>
-                    <p className="empty-state-desc">Không có biên bản vi phạm nào khớp với bộ lọc hiện tại.</p>
+                    <p className="empty-state-title">{t('violationspenalties.no_violation_records_found')}</p>
+                    <p className="empty-state-desc">{t('violationspenalties.there_are_no_violation')}</p>
                   </div>
                 </div>
               )}
@@ -371,11 +371,11 @@ export default function ViolationsPenalties() {
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th>Tên Loại Vi Phạm</th>
-                    <th>Mô tả</th>
-                    <th className="text-right">Tiền phạt mặc định</th>
-                    <th>Trạng thái</th>
-                    <th className="text-right">Thao tác</th>
+                    <th>{t('violationspenalties.violation_type_name')}</th>
+                    <th>{t('violationspenalties.describe')}</th>
+                    <th className="text-right">{t('violationspenalties.default_fine')}</th>
+                    <th>{t('violationspenalties.status')}</th>
+                    <th className="text-right">{t('violationspenalties.operation')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -386,22 +386,22 @@ export default function ViolationsPenalties() {
                       <td className="text-right"><strong style={{ color: 'var(--danger)' }}>{t.defaultFine.toLocaleString('vi-VN')} ₫</strong></td>
                       <td>
                         <span className={t.isActive ? 'badge badge-success' : 'badge badge-neutral'}>
-                          {t.isActive ? 'Đang áp dụng' : 'Ngừng áp dụng'}
+                          {t.isActive ? t('violationspenalties.applying') : t('violationspenalties.stop_applying')}
                         </span>
                       </td>
                       <td className="text-right">
                         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
-                          <button className="btn btn-ghost btn-sm btn-icon" title="Chỉnh sửa" onClick={() => { setSelectedItem(t); setTypeForm({ name: t.name, description: t.description, defaultFine: t.defaultFine, isActive: t.isActive }); setActiveModal('type'); }}>
+                          <button className="btn btn-ghost btn-sm btn-icon" title={t('violationspenalties.edit')} onClick={() => { setSelectedItem(t); setTypeForm({ name: t.name, description: t.description, defaultFine: t.defaultFine, isActive: t.isActive }); setActiveModal('type'); }}>
                             <Edit3 size={14} />
                           </button>
-                          <button className="btn btn-ghost btn-sm btn-icon" title="Xóa" style={{ color: 'var(--danger)' }} onClick={() => { setSelectedItem(t); setActiveModal('confirm_delete'); }}>
+                          <button className="btn btn-ghost btn-sm btn-icon" title={t('violationspenalties.erase')} style={{ color: 'var(--danger)' }} onClick={() => { setSelectedItem(t); setActiveModal('confirm_delete'); }}>
                             <Trash2 size={14} />
                           </button>
                         </div>
                       </td>
                     </tr>
                   )) : (
-                    <tr><td colSpan={5}><div className="empty-state"><p className="empty-state-title">Chưa có loại vi phạm nào</p></div></td></tr>
+                    <tr><td colSpan={5}><div className="empty-state"><p className="empty-state-title">{t('violationspenalties.there_have_been_no')}</p></div></td></tr>
                   )}
                 </tbody>
               </table>
@@ -416,8 +416,7 @@ export default function ViolationsPenalties() {
                       onClick={() => setTypesPage(prev => Math.max(prev - 1, 1))} 
                       disabled={typesPage === 1}
                     >
-                      Trước
-                    </button>
+                      {t('violationspenalties.before')}</button>
                     {Array.from({ length: Math.ceil(violationTypes.length / itemsPerPage) }, (_, i) => i + 1).map(page => (
                       <button 
                         key={page} 
@@ -452,32 +451,32 @@ export default function ViolationsPenalties() {
             </div>
             <div className="modal-body">
               {selectedItem.imageUrl && (
-                <img src={selectedItem.imageUrl} alt="Ảnh minh chứng" style={{ width: '100%', height: 200, objectFit: 'cover', borderRadius: 'var(--radius-md)' }} />
+                <img src={selectedItem.imageUrl} alt={t('violationspenalties.photo_proof')} style={{ width: '100%', height: 200, objectFit: 'cover', borderRadius: 'var(--radius-md)' }} />
               )}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, fontSize: 13.5, background: 'var(--bg-base)', padding: 14, borderRadius: 'var(--radius-md)' }}>
-                <div><span style={{ color: 'var(--text-muted)' }}>Gian hàng: </span><strong>{selectedItem.stallCode}</strong></div>
-                <div><span style={{ color: 'var(--text-muted)' }}>Ngày lập: </span>{selectedItem.createdAt ? formatDate(selectedItem.createdAt) : (selectedItem.date || '—')}</div>
-                <div><span style={{ color: 'var(--text-muted)' }}>Loại vi phạm: </span><strong>{selectedItem.violationTypeName || selectedItem.violationType?.name || '—'}</strong></div>
-                <div><span style={{ color: 'var(--text-muted)' }}>Người lập: </span><strong>{selectedItem.createdByName || '—'}</strong></div>
-                <div><span style={{ color: 'var(--text-muted)' }}>Ngày thông báo: </span>{formatDate(selectedItem.notifiedAt)}</div>
-                <div><span style={{ color: 'var(--text-muted)' }}>Ngày cập nhật: </span>{formatDate(selectedItem.updatedAt)}</div>
-                <div style={{ gridColumn: 'span 2' }}><span style={{ color: 'var(--text-muted)' }}>Trạng thái: </span><span className={getStatusBadge(selectedItem.status).cls}>{getStatusBadge(selectedItem.status).label}</span></div>
+                <div><span style={{ color: 'var(--text-muted)' }}>{t('violationspenalties.booth')}</span><strong>{selectedItem.stallCode}</strong></div>
+                <div><span style={{ color: 'var(--text-muted)' }}>{t('violationspenalties.date_of_establishment')}</span>{selectedItem.createdAt ? formatDate(selectedItem.createdAt) : (selectedItem.date || '—')}</div>
+                <div><span style={{ color: 'var(--text-muted)' }}>{t('violationspenalties.violation_type')}</span><strong>{selectedItem.violationTypeName || selectedItem.violationType?.name || '—'}</strong></div>
+                <div><span style={{ color: 'var(--text-muted)' }}>{t('violationspenalties.founder')}</span><strong>{selectedItem.createdByName || '—'}</strong></div>
+                <div><span style={{ color: 'var(--text-muted)' }}>{t('violationspenalties.announcement_date')}</span>{formatDate(selectedItem.notifiedAt)}</div>
+                <div><span style={{ color: 'var(--text-muted)' }}>{t('violationspenalties.update_date')}</span>{formatDate(selectedItem.updatedAt)}</div>
+                <div style={{ gridColumn: 'span 2' }}><span style={{ color: 'var(--text-muted)' }}>{t('violationspenalties.status')}</span><span className={getStatusBadge(selectedItem.status).cls}>{getStatusBadge(selectedItem.status).label}</span></div>
               </div>
               <div>
-                <label className="form-label">Hành vi vi phạm</label>
+                <label className="form-label">{t('violationspenalties.violations')}</label>
                 <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-title)' }}>{selectedItem.title}</p>
               </div>
               <div>
-                <label className="form-label">Mô tả chi tiết</label>
+                <label className="form-label">{t('violationspenalties.detailed_description')}</label>
                 <p style={{ fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{selectedItem.description}</p>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px', background: 'var(--danger-light)', borderRadius: 'var(--radius-md)', border: '1px solid var(--danger-border)' }}>
-                <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>Tiền phạt:</span>
+                <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>{t('violationspenalties.fine')}</span>
                 <strong style={{ color: 'var(--danger)', fontSize: 18 }}>{(selectedItem.fineAmount || selectedItem.penalty).toLocaleString('vi-VN')} ₫</strong>
               </div>
             </div>
             <div className="modal-footer">
-              <button className="btn btn-secondary" onClick={() => setActiveModal(null)}>Đóng</button>
+              <button className="btn btn-secondary" onClick={() => setActiveModal(null)}>{t('violationspenalties.close')}</button>
             </div>
           </div>
         </div>
@@ -488,7 +487,7 @@ export default function ViolationsPenalties() {
         <div className="modal-overlay" onClick={() => setActiveModal(null)}>
           <div className="modal-container" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <span className="modal-title">{selectedItem ? 'Chỉnh sửa' : 'Thêm'} Loại Vi Phạm</span>
+              <span className="modal-title">{selectedItem ? t('violationspenalties.edit') : t('violationspenalties.more')} Loại Vi Phạm</span>
               <button className="modal-close-btn" onClick={() => setActiveModal(null)}><X size={16} /></button>
             </div>
             <form onSubmit={handleTypeSubmit}>
@@ -500,24 +499,24 @@ export default function ViolationsPenalties() {
                   </div>
                 )}
                 <div>
-                  <label className="form-label">Tên loại vi phạm</label>
+                  <label className="form-label">{t('violationspenalties.violation_type_name')}</label>
                   <input type="text" className="form-input" required maxLength={100} value={typeForm.name}
-                    placeholder="Ví dụ: Lấn chiếm hành lang..." onChange={e => setTypeForm({ ...typeForm, name: e.target.value })} />
+                    placeholder={t('violationspenalties.for_example_encroaching_the')} onChange={e => setTypeForm({ ...typeForm, name: e.target.value })} />
                 </div>
                 <div>
-                  <label className="form-label">Tiền phạt mặc định (VNĐ)</label>
+                  <label className="form-label">{t('violationspenalties.default_fine_vnd')}</label>
                   <input type="number" className="form-input" required min={0} value={typeForm.defaultFine}
                     onChange={e => setTypeForm({ ...typeForm, defaultFine: parseFloat(e.target.value) || 0 })} />
                 </div>
                 <div>
-                  <label className="form-label">Mô tả ý nghĩa</label>
+                  <label className="form-label">{t('violationspenalties.describe_the_meaning')}</label>
                   <textarea className="form-textarea" rows={3} maxLength={500} value={typeForm.description}
                     onChange={e => setTypeForm({ ...typeForm, description: e.target.value })} />
                 </div>
               </div>
               <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={() => setActiveModal(null)}>Hủy</button>
-                <button type="submit" className="btn btn-primary">Lưu thay đổi</button>
+                <button type="button" className="btn btn-secondary" onClick={() => setActiveModal(null)}>{t('violationspenalties.cancel')}</button>
+                <button type="submit" className="btn btn-primary">{t('violationspenalties.save_changes')}</button>
               </div>
             </form>
           </div>
@@ -529,7 +528,7 @@ export default function ViolationsPenalties() {
         <div className="modal-overlay" onClick={() => setActiveModal(null)}>
           <div className="modal-container modal-container-sm" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <span className="modal-title">Xác nhận xóa</span>
+              <span className="modal-title">{t('violationspenalties.confirm_deletion')}</span>
               <button className="modal-close-btn" onClick={() => setActiveModal(null)}><X size={16} /></button>
             </div>
             <div className="modal-body">
@@ -541,12 +540,12 @@ export default function ViolationsPenalties() {
               )}
               <div className="alert alert-danger">
                 <AlertTriangle size={16} className="alert-icon" />
-                <span>Bạn sắp xóa loại vi phạm <strong>"{selectedItem.name}"</strong>. Hành động này không thể hoàn tác.</span>
+                <span>{t('violationspenalties.you_are_about_to')}<strong>"{selectedItem.name}"</strong>{t('violationspenalties.this_action_cannot_be')}</span>
               </div>
             </div>
             <div className="modal-footer">
-              <button className="btn btn-secondary" onClick={() => setActiveModal(null)}>Hủy</button>
-              <button className="btn btn-danger" onClick={deleteViolationType}>Xác nhận xóa</button>
+              <button className="btn btn-secondary" onClick={() => setActiveModal(null)}>{t('violationspenalties.cancel')}</button>
+              <button className="btn btn-danger" onClick={deleteViolationType}>{t('violationspenalties.confirm_deletion')}</button>
             </div>
           </div>
         </div>
@@ -557,18 +556,18 @@ export default function ViolationsPenalties() {
         <div className="modal-overlay" onClick={() => setInvoiceConfirmVio(null)}>
           <div className="modal-container modal-container-sm" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <span className="modal-title">Xác nhận lập hóa đơn</span>
+              <span className="modal-title">{t('violationspenalties.confirm_invoicing')}</span>
               <button className="modal-close-btn" onClick={() => setInvoiceConfirmVio(null)}><X size={16} /></button>
             </div>
             <div className="modal-body">
               <div className="alert alert-warning">
                 <AlertTriangle size={16} className="alert-icon" />
-                <span>Bạn có chắc chắn muốn lập hóa đơn tiền phạt <strong>{(invoiceConfirmVio.fineAmount || invoiceConfirmVio.penalty).toLocaleString('vi-VN')} ₫</strong> cho biên bản <strong>VIO-{invoiceConfirmVio.violationId}</strong>?<br/><br/>Hành động này không thể hoàn tác, tiểu thương sẽ nhận được thông báo nộp phạt, và trạng thái biên bản sẽ đổi thành Đã kết luận.</span>
+                <span>{t('violationspenalties.are_you_sure_you')}<strong>{(invoiceConfirmVio.fineAmount || invoiceConfirmVio.penalty).toLocaleString('vi-VN')} ₫</strong> {t('violationspenalties.for_minutes')}<strong>VIO-{invoiceConfirmVio.violationId}</strong>?<br/><br/>{t('violationspenalties.this_action_cannot_be')}</span>
               </div>
             </div>
             <div className="modal-footer">
-              <button className="btn btn-secondary" onClick={() => setInvoiceConfirmVio(null)}>Hủy</button>
-              <button className="btn btn-primary" onClick={confirmCreateInvoice}>Lập Hóa Đơn</button>
+              <button className="btn btn-secondary" onClick={() => setInvoiceConfirmVio(null)}>{t('violationspenalties.cancel')}</button>
+              <button className="btn btn-primary" onClick={confirmCreateInvoice}>{t('violationspenalties.invoicing')}</button>
             </div>
           </div>
         </div>

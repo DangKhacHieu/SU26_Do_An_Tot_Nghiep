@@ -1,8 +1,11 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { getAuthHeaders } from '../../utils/authHeaders';
 import './ViolationDetails.css';
 
 export default function ViolationDetails({ violationId, baseUrl, onBack }) {
+  const { t } = useTranslation();
+
   const [violation, setViolation] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -17,8 +20,8 @@ export default function ViolationDetails({ violationId, baseUrl, onBack }) {
           let problem = null;
           try { problem = await response.json(); } catch { problem = null; }
           throw new Error(response.status === 404
-            ? 'Violation not found or unavailable.'
-            : problem?.detail || problem?.title || 'Unable to load violation details.');
+            ? t('violationdetails.violation_not_found_or')
+            : problem?.detail || problem?.title || t('violationdetails.unable_to_load_violation'));
         }
         const data = await response.json();
         setViolation(data);
@@ -34,33 +37,33 @@ export default function ViolationDetails({ violationId, baseUrl, onBack }) {
 
   const formatVnd = (amount) => {
     if (amount === undefined || amount === null) return '0 VND';
-    return amount.toLocaleString('vi-VN') + ' VND';
+    return amount.toLocaleString(t('violationdetails.vivn')) + ' VND';
   };
 
   const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
+    if (!dateString) return t('violationdetails.na');
+    return new Date(dateString).toLocaleDateString(t('violationdetails.enus'), {
+      year: t('violationdetails.numeric'),
+      month: t('violationdetails.long'),
+      day: t('violationdetails.numeric')
     });
   };
 
   const formatTime = (dateString) => {
-    if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleTimeString('en-US', {
+    if (!dateString) return t('violationdetails.na');
+    return new Date(dateString).toLocaleTimeString(t('violationdetails.enus'), {
       hour: '2-digit',
       minute: '2-digit',
       second: '2-digit'
     });
   };
 
-  if (loading) return <div className="loading-state">Loading violation details...</div>;
+  if (loading) return <div className="loading-state">{t('violationdetails.loading_violation_details')}</div>;
   
   if (error) return (
     <div className="error-state">
       <p className="error-message">Error: {error}</p>
-      <button className="btn-secondary" onClick={onBack}>Back to List</button>
+      <button className="btn-secondary" onClick={onBack}>{t('violationdetails.back_to_list')}</button>
     </div>
   );
 
@@ -68,7 +71,7 @@ export default function ViolationDetails({ violationId, baseUrl, onBack }) {
 
   return (
     <div className="violation-details-container">
-      <div className="details-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+      <div className="details-header" style={{ display: 'flex', justifyContent: t('violationdetails.spacebetween'), alignItems: t('violationdetails.center'), marginBottom: '20px' }}>
         <h2 style={{ fontSize: '18px', fontWeight: '700', margin: 0, color: 'var(--text-main)' }}>VIOLATION DETAILS: {violation.violationId}</h2>
         <button className="btn-secondary" onClick={onBack}>
           &larr; Back to List
@@ -78,54 +81,54 @@ export default function ViolationDetails({ violationId, baseUrl, onBack }) {
       <div className="details-card">
         <div className="details-info-section">
           <div className="info-block">
-            <span className="info-label">STALL CODE</span>
+            <span className="info-label">{t('violationdetails.stall_code')}</span>
             <span className="info-value stall-code-highlight">{violation.stallCode || `Stall ID: ${violation.stallId}`}</span>
           </div>
 
           <div className="info-block">
-            <span className="info-label">VIOLATION TYPE</span>
+            <span className="info-label">{t('violationdetails.violation_type')}</span>
             <span className="info-value">{violation.title}</span>
           </div>
 
           <div className="info-block">
-            <span className="info-label">TITLE / VIOLATION SUMMARY</span>
+            <span className="info-label">{t('violationdetails.title_violation_summary')}</span>
             <span className="info-value title-val">{violation.title}</span>
           </div>
 
           <div className="info-block">
-            <span className="info-label">DESCRIPTION</span>
+            <span className="info-label">{t('violationdetails.description')}</span>
             <span className="info-value desc-val">{violation.description}</span>
           </div>
 
           <div className="info-row">
             <div className="info-block">
-              <span className="info-label">FINE AMOUNT</span>
+              <span className="info-label">{t('violationdetails.fine_amount')}</span>
               <span className="info-value fine-amount-highlight">{formatVnd(violation.fineAmount)}</span>
             </div>
 
             <div className="info-block">
-              <span className="info-label">DATE LOGGED</span>
+              <span className="info-label">{t('violationdetails.date_logged')}</span>
               <span className="info-value">{formatDate(violation.createdAt)}</span>
             </div>
           </div>
 
           <div className="info-block">
-            <span className="info-label">STATUS</span>
+            <span className="info-label">{t('violationdetails.status')}</span>
             <div className="status-container">
-              <span className={`status-badge-large ${violation.status?.toLowerCase() || 'pending'}`}>
-                [STATUS: {violation.status?.toUpperCase() || 'PENDING'}]
+              <span className={`status-badge-large ${violation.status?.toLowerCase() || t('violationdetails.pending')}`}>
+                [STATUS: {violation.status?.toUpperCase() || t('violationdetails.pending')}]
               </span>
             </div>
           </div>
         </div>
 
         <div className="details-evidence-section">
-          <span className="info-label">EVIDENCE PHOTO:</span>
+          <span className="info-label">{t('violationdetails.evidence_photo')}</span>
           <div className="evidence-photo-box">
             {violation.imageUrl ? (
               <img 
                 src={violation.imageUrl} 
-                alt="Violation Evidence" 
+                alt={t('violationdetails.violation_evidence')} 
                 className="evidence-img"
                 onError={(event) => { event.currentTarget.hidden = true; }}
               />
@@ -136,8 +139,7 @@ export default function ViolationDetails({ violationId, baseUrl, onBack }) {
             )}
           </div>
           <p className="evidence-note">
-            Note: This record is locked for auditing purposes. Evidence cannot be modified once the violation has been officially logged by the system.
-          </p>
+            {t('violationdetails.note_this_record_is')}</p>
         </div>
       </div>
 

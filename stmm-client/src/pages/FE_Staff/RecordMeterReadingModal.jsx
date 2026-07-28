@@ -1,8 +1,11 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useRef } from 'react';
 import readProblemDetail from '../../utils/readProblemDetail';
 import './RecordMeterReadingModal.css';
 
 export default function RecordMeterReadingModal({ stallId, baseUrl, onClose, onSuccess }) {
+  const { t } = useTranslation();
+
   const [meters, setMeters] = useState([]);
   const [meterId, setMeterId] = useState('');
   const [selectedMeter, setSelectedMeter] = useState(null);
@@ -36,10 +39,10 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, onClose, onS
           const data = await response.json();
           setMeters(data);
         } else {
-          setSubmitError(await readProblemDetail(response, 'Unable to load meters for this stall.'));
+          setSubmitError(await readProblemDetail(response, t('recordmeterreadingmodal.unable_to_load_meters')));
         }
       } catch (err) {
-        console.error("Error loading meters:", err);
+        console.error(t('recordmeterreadingmodal.error_loading_meters'), err);
       } finally {
         setLoadingMeters(false);
       }
@@ -62,7 +65,7 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, onClose, onS
   const uploadFile = async (file) => {
     if (!file) return;
     if (file.size > 5 * 1024 * 1024) {
-      setImageError("File size must not exceed 5MB.");
+      setImageError(t('recordmeterreadingmodal.file_size_must_not'));
       return;
     }
 
@@ -70,16 +73,16 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, onClose, onS
     setImageError(null);
 
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append(t('recordmeterreadingmodal.file'), file);
 
     try {
       const response = await fetch(`${baseUrl}/api/files/upload`, {
-        method: 'POST',
+        method: t('recordmeterreadingmodal.post'),
         body: formData,
       });
 
       if (!response.ok) {
-        throw new Error(await readProblemDetail(response, 'Unable to upload image.'));
+        throw new Error(await readProblemDetail(response, t('recordmeterreadingmodal.unable_to_upload_image')));
       }
 
       const result = await response.json();
@@ -112,7 +115,7 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, onClose, onS
       if (file.type.startsWith("image/")) {
         await uploadFile(file);
       } else {
-        setImageError("Only image files are supported.");
+        setImageError(t('recordmeterreadingmodal.only_image_files_are'));
       }
     }
   };
@@ -123,7 +126,7 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, onClose, onS
       if (file.type.startsWith("image/")) {
         await uploadFile(file);
       } else {
-        setImageError("Only image files are supported.");
+        setImageError(t('recordmeterreadingmodal.only_image_files_are'));
       }
     }
   };
@@ -139,26 +142,26 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, onClose, onS
   const validateForm = () => {
     const errors = {};
     if (!meterId) {
-      errors.meterId = "Please select a utility meter.";
+      errors.meterId = t('recordmeterreadingmodal.please_select_a_utility');
     }
 
     if (newValue === '' || isNaN(Number(newValue)) || Number(newValue) < 0) {
-      errors.newValue = "New value must be a non-negative number.";
+      errors.newValue = t('recordmeterreadingmodal.new_value_must_be');
     } else if (!isReplaced && selectedMeter && selectedMeter.lastReadingValue !== null && Number(newValue) < selectedMeter.lastReadingValue) {
-      errors.newValue = `New value must be greater than or equal to the previous value (${selectedMeter.lastReadingValue}).`;
+      errors.newValue = t('recordmeterreadingmodal.new_value_must_be');
     }
 
     if (!recordedAt) {
-      errors.recordedAt = "Recorded Date is required.";
+      errors.recordedAt = t('recordmeterreadingmodal.recorded_date_is_required');
     } else {
       const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
       if (!dateRegex.test(recordedAt)) {
-        errors.recordedAt = "Recorded Date must be in YYYY-MM-DD format.";
+        errors.recordedAt = t('recordmeterreadingmodal.recorded_date_must_be');
       }
     }
 
     if (!imageUrl) {
-      errors.imageUrl = "An evidence photo of the meter face is required.";
+      errors.imageUrl = t('recordmeterreadingmodal.an_evidence_photo_of');
     }
 
     setFormErrors(errors);
@@ -183,7 +186,7 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, onClose, onS
 
     try {
       const response = await fetch(`${baseUrl}/api/meter-readings`, {
-        method: 'POST',
+        method: t('recordmeterreadingmodal.post'),
         headers: {
           'Content-Type': 'application/json',
         },
@@ -191,7 +194,7 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, onClose, onS
       });
 
       if (!response.ok) {
-        throw new Error(await readProblemDetail(response, 'Unable to save meter reading.'));
+        throw new Error(await readProblemDetail(response, t('recordmeterreadingmodal.unable_to_save_meter')));
       }
 
       const result = await response.json();
@@ -214,31 +217,31 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, onClose, onS
         <form onSubmit={handleSubmit} className="modal-form">
           {submitError && (
             <div className="error-alert">
-              <strong>Error:</strong> {submitError}
+              <strong>{t('recordmeterreadingmodal.error')}</strong> {submitError}
             </div>
           )}
 
           <div className="form-group">
-            <label className="form-label required-field">SELECT UTILITY METER</label>
+            <label className="form-label required-field">{t('recordmeterreadingmodal.select_utility_meter')}</label>
             <select
               value={meterId}
               onChange={handleMeterChange}
-              className={`form-input ${formErrors.meterId ? 'error-border' : ''}`}
+              className={`form-input ${formErrors.meterId ? t('recordmeterreadingmodal.errorborder') : ''}`}
               disabled={loadingMeters}
             >
-              <option value="">Choose meter...</option>
+              <option value="">{t('recordmeterreadingmodal.choose_meter')}</option>
               {meters.map(m => (
                 <option key={m.meterId} value={m.meterId}>
                   {m.type === 'Electricity' ? '⚡ Electricity' : '💧 Water'} - Serial: {m.serialNumber}
                 </option>
               ))}
             </select>
-            {loadingMeters && <span className="helper-text">Loading meters...</span>}
+            {loadingMeters && <span className="helper-text">{t('recordmeterreadingmodal.loading_meters')}</span>}
             {formErrors.meterId && <span className="error-text">{formErrors.meterId}</span>}
           </div>
 
           <div className="form-group">
-            <label className="form-label">PREVIOUS READING VALUE (READ-ONLY)</label>
+            <label className="form-label">{t('recordmeterreadingmodal.previous_reading_value_readonly')}</label>
             <input
               type="text"
               value={selectedMeter && selectedMeter.lastReadingValue !== null ? selectedMeter.lastReadingValue : '0 (No previous readings found)'}
@@ -249,14 +252,14 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, onClose, onS
           </div>
 
           <div className="form-group">
-            <label className="form-label required-field">NEW READING VALUE</label>
+            <label className="form-label required-field">{t('recordmeterreadingmodal.new_reading_value')}</label>
             <input
               type="number"
-              step="any"
-              placeholder="Enter current meter digit value..."
+              step={t('recordmeterreadingmodal.any')}
+              placeholder={t('recordmeterreadingmodal.enter_current_meter_digit')}
               value={newValue}
               onChange={(e) => setNewValue(e.target.value)}
-              className={`form-input ${formErrors.newValue ? 'error-border' : ''}`}
+              className={`form-input ${formErrors.newValue ? t('recordmeterreadingmodal.errorborder') : ''}`}
             />
             {formErrors.newValue && <span className="error-text">{formErrors.newValue}</span>}
           </div>
@@ -268,37 +271,36 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, onClose, onS
                 checked={isReplaced}
                 onChange={(e) => setIsReplaced(e.target.checked)}
               />
-              <span className="checkbox-label">Meter was replaced (reset reading)</span>
+              <span className="checkbox-label">{t('recordmeterreadingmodal.meter_was_replaced_reset')}</span>
             </label>
             <p className="helper-text-checkbox">
-              Select this only when a physical meter was replaced and its reading restarted from zero.
-            </p>
+              {t('recordmeterreadingmodal.select_this_only_when')}</p>
           </div>
 
           <div className="form-group">
-            <label className="form-label required-field">RECORDED DATE</label>
+            <label className="form-label required-field">{t('recordmeterreadingmodal.recorded_date')}</label>
             <input
               type="date"
               value={recordedAt}
               onChange={(e) => setRecordedAt(e.target.value)}
-              className={`form-input ${formErrors.recordedAt ? 'error-border' : ''}`}
+              className={`form-input ${formErrors.recordedAt ? t('recordmeterreadingmodal.errorborder') : ''}`}
             />
             {formErrors.recordedAt && <span className="error-text">{formErrors.recordedAt}</span>}
           </div>
 
           <div className="form-group">
-            <label className="form-label required-field">PHOTO OF METER FACE (EVIDENCE)</label>
+            <label className="form-label required-field">{t('recordmeterreadingmodal.photo_of_meter_face')}</label>
             
             <input 
               ref={fileInputRef}
               type="file" 
-              accept="image/*"
+              accept={t('recordmeterreadingmodal.image')}
               onChange={handleFileChange}
               style={{ display: 'none' }}
             />
 
             <div 
-              className={`drag-drop-zone ${dragActive ? 'active' : ''} ${imageUrl ? 'disabled' : ''}`}
+              className={`drag-drop-zone ${dragActive ? t('recordmeterreadingmodal.active') : ''} ${imageUrl ? t('recordmeterreadingmodal.disabled') : ''}`}
               onDragEnter={handleDrag}
               onDragOver={handleDrag}
               onDragLeave={handleDrag}
@@ -308,27 +310,27 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, onClose, onS
               <div className="drag-drop-content">
                 <span className="upload-icon">📸</span>
                 {imageUrl ? (
-                  <p>Image uploaded. Remove the preview image to upload a new one.</p>
+                  <p>{t('recordmeterreadingmodal.image_uploaded_remove_the')}</p>
                 ) : (
-                  <p>Drag and drop image here, or <strong>click to select</strong></p>
+                  <p>{t('recordmeterreadingmodal.drag_and_drop_image')}<strong>{t('recordmeterreadingmodal.click_to_select')}</strong></p>
                 )}
-                <span className="helper-text">Supports JPG, PNG, WEBP (Max 5MB)</span>
+                <span className="helper-text">{t('recordmeterreadingmodal.supports_jpg_png_webp')}</span>
               </div>
             </div>
 
-            {imageUploading && <div className="helper-text" style={{ color: '#0066cc' }}>Uploading image to Cloudinary...</div>}
+            {imageUploading && <div className="helper-text" style={{ color: '#0066cc' }}>{t('recordmeterreadingmodal.uploading_image_to_cloudinary')}</div>}
             {imageError && <div className="error-text">Upload Error: {imageError}</div>}
             {formErrors.imageUrl && <span className="error-text">{formErrors.imageUrl}</span>}
 
             {imageUrl && (
               <div className="preview-images-grid">
                 <div className="preview-image-card">
-                  <img src={imageUrl} alt="Meter Evidence Preview" className="preview-image-thumb" />
+                  <img src={imageUrl} alt={t('recordmeterreadingmodal.meter_evidence_preview')} className="preview-image-thumb" />
                   <button 
                     type="button" 
                     className="preview-image-remove"
                     onClick={removeImage}
-                    title="Remove image"
+                    title={t('recordmeterreadingmodal.remove_image')}
                   >
                     &times;
                   </button>
@@ -344,14 +346,13 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, onClose, onS
               onClick={onClose}
               disabled={loading || imageUploading}
             >
-              CANCEL
-            </button>
+              {t('recordmeterreadingmodal.cancel')}</button>
             <button 
               type="submit" 
               className="btn-primary-dark"
               disabled={loading || imageUploading}
             >
-              {loading ? "SAVING..." : "SAVE READING"}
+              {loading ? t('recordmeterreadingmodal.saving') : t('recordmeterreadingmodal.save_reading')}
             </button>
           </div>
         </form>

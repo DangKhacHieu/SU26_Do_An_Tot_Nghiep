@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+import LanguageSwitcher from './components/layout/LanguageSwitcher';
 import { useState, useEffect, useCallback } from "react";
 import { BrowserRouter, Routes, Route, Navigate, Outlet, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Bell, UserRound } from "lucide-react";
@@ -342,7 +344,16 @@ function MarketMapWrapper({ user, onLogout, navigatePath }) {
   );
 }
 
+export default function App() {
+  return (
+    <BrowserRouter>
+      <AppContent />
+    </BrowserRouter>
+  );
+}
+
 function AppContent() {
+  const { t } = useTranslation();
   const routerNavigate = useNavigate();
   const [path, setPath] = useState(window.location.pathname);
   const [user, setUser] = useState(authService.getUser());
@@ -847,8 +858,61 @@ function AppContent() {
   };
 
   const renderStaffConsole = () => {
-    const staffPageInfo =
-      STAFF_PAGE_TITLES[currentStaffView] || STAFF_PAGE_TITLES["dashboard"];
+    const staffPageTitles = {
+      dashboard: {
+        title: t('sidebarstaff.dashboard_title'),
+        sub: t('sidebarstaff.dashboard_sub'),
+      },
+      tasks: {
+        title: t('sidebarstaff.tasks_title'),
+        sub: t('sidebarstaff.tasks_sub'),
+      },
+      'task-map': {
+        title: t('sidebarstaff.task_map_title'),
+        sub: t('sidebarstaff.task_map_sub'),
+      },
+      'task-details': {
+        title: t('sidebarstaff.task_details_title'),
+        sub: t('sidebarstaff.task_details_sub'),
+      },
+      meters: {
+        title: t('sidebarstaff.meters_title'),
+        sub: t('sidebarstaff.meters_sub'),
+      },
+      'meter-details': {
+        title: t('sidebarstaff.meter_details_title'),
+        sub: t('sidebarstaff.meter_details_sub'),
+      },
+      violations: {
+        title: t('sidebarstaff.violations_title'),
+        sub: t('sidebarstaff.violations_sub'),
+      },
+      'violation-details': {
+        title: t('sidebarstaff.violation_details_title'),
+        sub: t('sidebarstaff.violation_details_sub'),
+      },
+      issues: {
+        title: t('sidebarstaff.issues_title'),
+        sub: t('sidebarstaff.issues_sub'),
+      },
+      'issue-details': {
+        title: t('sidebarstaff.issue_details_title'),
+        sub: t('sidebarstaff.issue_details_sub'),
+      },
+      'stall-list': {
+        title: t('sidebarstaff.stall_list_title'),
+        sub: t('sidebarstaff.stall_list_sub'),
+      },
+      'stall-invoices': {
+        title: t('sidebarstaff.stall_invoices_title'),
+        sub: t('sidebarstaff.stall_invoices_sub'),
+      },
+      profile: {
+        title: t('sidebarstaff.profile_title'),
+        sub: t('sidebarstaff.profile_sub'),
+      },
+    };
+    const staffPageInfo = staffPageTitles[currentStaffView] || staffPageTitles['dashboard'];
 
     return (
       <div className="app-shell">
@@ -904,6 +968,7 @@ function AppContent() {
                 </p>
               </div>
               <div className="navbar-icons-placeholder">
+                <LanguageSwitcher />
                 <button
                   type="button"
                   className="nav-icon staff-notification-button"
@@ -1320,10 +1385,3 @@ function AppContent() {
   );
 }
 
-export default function App() {
-  return (
-    <BrowserRouter>
-      <AppContent />
-    </BrowserRouter>
-  );
-}

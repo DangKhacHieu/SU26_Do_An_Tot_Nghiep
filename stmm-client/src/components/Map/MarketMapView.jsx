@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { Stage, Layer, Line, Text } from 'react-konva';
 
@@ -11,13 +12,15 @@ const CATEGORY_COLORS = {
 };
 
 export default function MarketMapView({ market, onSelectArea, width = 900 }) {
+  const { t } = useTranslation();
+
   if (!market || !market.areas) return <div>Loading Map...</div>;
 
   const marketWidth = market.maxX - market.minX;
   const marketHeight = market.maxY - market.minY;
   
   if (!marketWidth || !marketHeight) {
-    return <div>Chưa có dữ liệu toạ độ cho mặt bằng này.</div>;
+    return <div>{t('marketmapview.there_is_no_coordinate')}</div>;
   }
 
   const scale = width / marketWidth; 

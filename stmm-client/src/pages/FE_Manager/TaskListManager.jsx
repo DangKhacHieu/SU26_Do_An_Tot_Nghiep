@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getAuthHeaders } from '../../utils/authHeaders';
 import './TaskListManager.css';
@@ -12,6 +13,8 @@ const IconEmpty = () => <svg width="48" height="48" viewBox="0 0 24 24" fill="no
 const PAGE_SIZE = 10;
 
 export default function TaskListManager({ baseUrl, navigate, addToast }) {
+  const { t } = useTranslation();
+
   // Filtering & Pagination State
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -114,7 +117,7 @@ export default function TaskListManager({ baseUrl, navigate, addToast }) {
   // SEO & metadata management
   useEffect(() => {
     const originalTitle = document.title;
-    document.title = "STMM - Quản lý Danh sách Tác vụ";
+    document.title = t('tasklistmanager.stmm_task_list_management');
 
     let metaDesc = document.querySelector('meta[name="description"]');
     const originalDesc = metaDesc ? metaDesc.getAttribute("content") : "";
@@ -124,7 +127,7 @@ export default function TaskListManager({ baseUrl, navigate, addToast }) {
       metaDesc.name = "description";
       document.head.appendChild(metaDesc);
     }
-    metaDesc.setAttribute("content", "Trang quản lý, phân công và giám sát các tác vụ vận hành của ban quản lý STMM.");
+    metaDesc.setAttribute("content", t('tasklistmanager.page_for_managing_assigning'));
 
     return () => {
       document.title = originalTitle;

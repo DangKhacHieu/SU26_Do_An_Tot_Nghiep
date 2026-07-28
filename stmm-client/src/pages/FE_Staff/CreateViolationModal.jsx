@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useEffect, useRef, useState } from 'react';
 import { getAuthHeaders } from '../../utils/authHeaders';
 import './CreateViolationModal.css';
@@ -12,6 +13,8 @@ const readProblemDetail = async (response, fallback) => {
 };
 
 export default function CreateViolationModal({ baseUrl, onClose, onSuccess, prefilledStallId }) {
+  const { t } = useTranslation();
+
   const [violationTypes, setViolationTypes] = useState([]);
   const [stalls, setStalls] = useState([]);
   const [violationTypeId, setViolationTypeId] = useState('');
@@ -61,7 +64,7 @@ export default function CreateViolationModal({ baseUrl, onClose, onSuccess, pref
           throw new Error(await readProblemDetail(typesResponse, 'Unable to load violation types.'));
         }
         if (!stallsResponse.ok) {
-          throw new Error(await readProblemDetail(stallsResponse, 'Unable to load stalls.'));
+          throw new Error(await readProblemDetail(stallsResponse, t('createviolationmodal.unable_to_load_stalls')));
         }
         if (!active) return;
         setViolationTypes(await typesResponse.json());
@@ -90,7 +93,7 @@ export default function CreateViolationModal({ baseUrl, onClose, onSuccess, pref
   const uploadImage = async (file) => {
     if (!file) return;
     if (!file.type.startsWith('image/') || file.size > 5 * 1024 * 1024) {
-      setError('Evidence must be an image no larger than 5 MB.');
+      setError(t('createviolationmodal.evidence_must_be_an'));
       return;
     }
 
@@ -98,13 +101,13 @@ export default function CreateViolationModal({ baseUrl, onClose, onSuccess, pref
     setError('');
     try {
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append(t('createviolationmodal.file'), file);
       const response = await fetch(`${baseUrl}/api/files/upload`, {
-        method: 'POST',
+        method: t('createviolationmodal.post'),
         body: formData,
       });
       if (!response.ok) {
-        throw new Error(await readProblemDetail(response, 'Unable to upload image.'));
+        throw new Error(await readProblemDetail(response, t('createviolationmodal.unable_to_upload_image')));
       }
       const result = await response.json();
       setImageUrl(result.imageUrl);
@@ -120,14 +123,14 @@ export default function CreateViolationModal({ baseUrl, onClose, onSuccess, pref
     setError('');
 
     if (!violationTypeId || !stallId || title.trim().length < 5 || description.trim().length < 10 || !imageUrl) {
-      setError('Complete all required fields and attach an evidence image.');
+      setError(t('createviolationmodal.complete_all_required_fields'));
       return;
     }
 
     setSubmitting(true);
     try {
       const response = await fetch(`${baseUrl}/api/violations`, {
-        method: 'POST',
+        method: t('createviolationmodal.post'),
         headers: {
           'Content-Type': 'application/json',
           ...getAuthHeaders(),
@@ -142,7 +145,7 @@ export default function CreateViolationModal({ baseUrl, onClose, onSuccess, pref
         }),
       });
       if (!response.ok) {
-        throw new Error(await readProblemDetail(response, 'Unable to submit violation report.'));
+        throw new Error(await readProblemDetail(response, t('createviolationmodal.unable_to_submit_violation')));
       }
       onSuccess(await response.json());
     } catch (submitError) {
@@ -156,50 +159,50 @@ export default function CreateViolationModal({ baseUrl, onClose, onSuccess, pref
     <div className="modal-overlay">
       <div className="modal-container">
         <div className="modal-header">
-          <h2 className="modal-title">Report Violation</h2>
-          <button type="button" className="modal-close-btn" onClick={onClose} aria-label="Close">&times;</button>
+          <h2 className="modal-title">{t('createviolationmodal.report_violation')}</h2>
+          <button type="button" className="modal-close-btn" onClick={onClose} aria-label={t('createviolationmodal.close')}>&times;</button>
         </div>
 
         <form onSubmit={handleSubmit} className="modal-form">
-          {error ? <div className="error-alert"><strong>Error:</strong> {error}</div> : null}
+          {error ? <div className="error-alert"><strong>{t('createviolationmodal.error')}</strong> {error}</div> : null}
 
           <div className="form-group">
-            <label className="form-label required-field" htmlFor="violation-type">VIOLATION TYPE</label>
+            <label className="form-label required-field" htmlFor={t('createviolationmodal.violationtype')}>{t('createviolationmodal.violation_type')}</label>
             <select id="violation-type" className="form-input" value={violationTypeId} onChange={handleTypeChange} disabled={loadingOptions}>
-              <option value="">Select a violation type</option>
+              <option value="">{t('createviolationmodal.select_a_violation_type')}</option>
               {violationTypes.map((type) => <option key={type.violationTypeId} value={type.violationTypeId}>{type.name}</option>)}
             </select>
           </div>
 
           <div className="form-group">
-            <label className="form-label required-field" htmlFor="violation-stall">LOCATION</label>
+            <label className="form-label required-field" htmlFor={t('createviolationmodal.violationstall')}>{t('createviolationmodal.location')}</label>
             <select id="violation-stall" className="form-input" value={stallId} onChange={(event) => setStallId(event.target.value)} disabled={loadingOptions || Boolean(prefilledStallId)}>
-              <option value="">Select a stall</option>
+              <option value="">{t('createviolationmodal.select_a_stall')}</option>
               {stalls.map((stall) => <option key={stall.stallId} value={stall.stallId}>{stall.stallCode} - {stall.areaName}</option>)}
             </select>
           </div>
 
           <div className="form-group">
-            <label className="form-label required-field" htmlFor="violation-title">TITLE</label>
+            <label className="form-label required-field" htmlFor={t('createviolationmodal.violationtitle')}>{t('createviolationmodal.title')}</label>
             <input id="violation-title" className="form-input" value={title} onChange={(event) => setTitle(event.target.value)} />
           </div>
 
           <div className="form-group">
-            <label className="form-label required-field" htmlFor="violation-description">DETAILED DESCRIPTION</label>
+            <label className="form-label required-field" htmlFor={t('createviolationmodal.violationdescription')}>{t('createviolationmodal.detailed_description')}</label>
             <textarea id="violation-description" className="form-input" rows="4" value={description} onChange={(event) => setDescription(event.target.value)} />
           </div>
 
           <div className="form-group">
-            <label className="form-label required-field" htmlFor="violation-fine">FINE AMOUNT (VND)</label>
+            <label className="form-label required-field" htmlFor={t('createviolationmodal.violationfine')}>{t('createviolationmodal.fine_amount_vnd')}</label>
             <input id="violation-fine" type="number" min="0" className="form-input" value={fineAmount} onChange={(event) => setFineAmount(event.target.value)} />
           </div>
 
           <div className="form-group">
-            <label className="form-label required-field">EVIDENCE IMAGE</label>
-            <input ref={fileInputRef} type="file" accept="image/*" hidden onChange={(event) => uploadImage(event.target.files?.[0])} />
+            <label className="form-label required-field">{t('createviolationmodal.evidence_image')}</label>
+            <input ref={fileInputRef} type="file" accept={t('createviolationmodal.image')} hidden onChange={(event) => uploadImage(event.target.files?.[0])} />
             
             <div 
-              className={`drag-drop-zone ${dragActive ? 'active' : ''} ${imageUrl ? 'disabled' : ''}`}
+              className={`drag-drop-zone ${dragActive ? t('createviolationmodal.active') : ''} ${imageUrl ? t('createviolationmodal.disabled') : ''}`}
               onDragEnter={handleDrag}
               onDragOver={handleDrag}
               onDragLeave={handleDrag}
@@ -209,20 +212,20 @@ export default function CreateViolationModal({ baseUrl, onClose, onSuccess, pref
               <div className="drag-drop-content">
                 <span className="upload-icon">📸</span>
                 {uploading ? (
-                  <p>Uploading image...</p>
+                  <p>{t('createviolationmodal.uploading_image')}</p>
                 ) : imageUrl ? (
-                  <p>Image uploaded. Remove the preview image to upload a new one.</p>
+                  <p>{t('createviolationmodal.image_uploaded_remove_the')}</p>
                 ) : (
-                  <p>Drag and drop image here, or <strong style={{ color: '#4f46e5' }}>click to select</strong></p>
+                  <p>{t('createviolationmodal.drag_and_drop_image')}<strong style={{ color: '#4f46e5' }}>{t('createviolationmodal.click_to_select')}</strong></p>
                 )}
-                <span className="helper-text">Supports JPG, PNG, WEBP (Max 5MB)</span>
+                <span className="helper-text">{t('createviolationmodal.supports_jpg_png_webp')}</span>
               </div>
             </div>
 
             {imageUrl ? (
               <div className="preview-images-grid">
                 <div className="preview-image-card">
-                  <img src={imageUrl} alt="Violation evidence" className="preview-image-thumb" />
+                  <img src={imageUrl} alt={t('createviolationmodal.violation_evidence')} className="preview-image-thumb" />
                   <button type="button" className="preview-image-remove" onClick={() => setImageUrl('')}>&times;</button>
                 </div>
               </div>
@@ -230,9 +233,9 @@ export default function CreateViolationModal({ baseUrl, onClose, onSuccess, pref
           </div>
 
           <div className="modal-actions">
-            <button type="button" className="btn-secondary" onClick={onClose} disabled={submitting}>Cancel</button>
+            <button type="button" className="btn-secondary" onClick={onClose} disabled={submitting}>{t('createviolationmodal.cancel')}</button>
             <button type="submit" className="btn-primary-dark" disabled={submitting || uploading || loadingOptions}>
-              {submitting ? 'Submitting...' : 'Submit Report'}
+              {submitting ? t('createviolationmodal.submitting') : t('createviolationmodal.submit_report')}
             </button>
           </div>
         </form>

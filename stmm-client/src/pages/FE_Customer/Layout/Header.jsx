@@ -1,4 +1,6 @@
+import { useTranslation } from 'react-i18next';
 import { useEffect, useState, useRef } from "react";
+import LanguageSwitcher from '../../../components/layout/LanguageSwitcher';
 import notificationService from "../../../services/notificationService";
 import { getAllMarkets } from "../../../services/marketApi";
 import "./Header.css";
@@ -11,6 +13,7 @@ export default function Header({
   onGoToStallsMap,
   onLogout,
 }) {
+  const { t, i18n } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -55,7 +58,7 @@ export default function Header({
         setLoading(false);
       })
       .catch((err) => {
-        console.error("Lỗi khi lấy thông báo:", err);
+        console.error(t('header.error_while_getting_notification'), err);
         setLoading(false);
       });
   }, [user, isOpen]);
@@ -135,7 +138,7 @@ export default function Header({
           ),
         );
       } catch (err) {
-        console.error("Lỗi khi đánh dấu đã đọc:", err);
+        console.error(t('header.error_when_marking_read'), err);
       }
     }
   };
@@ -189,7 +192,7 @@ export default function Header({
               }`}
               onClick={handleOverviewClick}
             >
-              Overview
+              {t('header.overview')}
             </button>
             <div className="market-dropdown-container" ref={marketDropdownRef}>
               <button
@@ -199,7 +202,7 @@ export default function Header({
                 }`}
                 onClick={() => setIsMarketDropdownOpen(!isMarketDropdownOpen)}
               >
-                Market Map
+                {t('header.market_map')}
                 <svg
                   width="10"
                   height="10"
@@ -217,7 +220,7 @@ export default function Header({
               {isMarketDropdownOpen && (
                 <ul className="market-dropdown-menu">
                   {activeMarkets.length === 0 ? (
-                    <li className="market-item-empty">No markets available</li>
+                    <li className="market-item-empty">{t('header.no_markets_available')}</li>
                   ) : (
                     activeMarkets.map((market) => (
                       <li
@@ -239,7 +242,7 @@ export default function Header({
               <div className="search-box">
                 <input
                   type="text"
-                  placeholder="Search markets..."
+                  placeholder={t('header.search_markets')}
                   value={searchQuery}
                   onChange={(e) => {
                     setSearchQuery(e.target.value);
@@ -264,6 +267,9 @@ export default function Header({
                 </ul>
               )}
             </div>
+
+            {/* Language Switcher */}
+            <LanguageSwitcher />
 
             {user && (
               <div className="notification-container" ref={dropdownRef}>
@@ -294,19 +300,19 @@ export default function Header({
                 {isOpen && (
                   <div className="notification-dropdown">
                     <div className="dropdown-header">
-                      <h4>Notifications</h4>
+                      <h4>{t('header.notifications')}</h4>
                       {unreadCount > 0 && (
                         <span className="unread-count-badge">
-                          {unreadCount} unread
+                          {unreadCount} {t('header.unread')}
                         </span>
                       )}
                     </div>
                     <ul className="dropdown-list">
                       {loading ? (
-                        <li className="dropdown-item-empty">Loading...</li>
+                        <li className="dropdown-item-empty">{t('header.loading')}</li>
                       ) : notifications.length === 0 ? (
                         <li className="dropdown-item-empty">
-                          No new notifications
+                          {t('header.no_new_notifications')}
                         </li>
                       ) : (
                         notifications.slice(0, 5).map((item, index) => (
@@ -325,7 +331,7 @@ export default function Header({
                             <span className="item-time">
                               {item.createdAt
                                 ? new Date(item.createdAt).toLocaleString(
-                                    "en-US",
+                                    i18n.language,
                                     {
                                       hour: "2-digit",
                                       minute: "2-digit",
@@ -345,7 +351,7 @@ export default function Header({
                         className="view-all-btn"
                         onClick={handleViewAll}
                       >
-                        View all notifications
+                        {t('header.view_all_notifications')}
                       </button>
                     </div>
                   </div>
@@ -359,8 +365,8 @@ export default function Header({
                   type="button"
                   className="avatar-btn"
                   onClick={onGoToProfile}
-                  aria-label="View profile"
-                  title="View profile"
+                  aria-label={t('header.view_profile')}
+                  title={t('header.view_profile')}
                 >
                   {user.name
                     .split(" ")
@@ -371,12 +377,12 @@ export default function Header({
                     .toUpperCase()}
                 </button>
                 <button type="button" className="logout-btn" onClick={handleLogoutClick}>
-                  Logout
+                  {t('header.logout')}
                 </button>
               </div>
             ) : (
               <button type="button" className="login-btn" onClick={onGoToLogin}>
-                Login
+                {t('header.login')}
               </button>
             )}
           </div>
@@ -400,7 +406,7 @@ export default function Header({
                     : "default"
                 }`}
               >
-                {selectedNoti.notiType || "Notification"}
+                {selectedNoti.notiType || t('header.notification_type')}
               </span>
               <button
                 className="noti-modal-close"
@@ -413,16 +419,16 @@ export default function Header({
             <p className="noti-modal-body">{selectedNoti.content}</p>
             <div className="noti-modal-footer">
               <span className="noti-modal-time">
-                Received at:{" "}
+                {t('header.received_at')}{" "}
                 {selectedNoti.createdAt
-                  ? new Date(selectedNoti.createdAt).toLocaleString("en-US")
+                  ? new Date(selectedNoti.createdAt).toLocaleString(i18n.language)
                   : ""}
               </span>
               <button
                 className="noti-modal-btn"
                 onClick={() => setSelectedNoti(null)}
               >
-                Close
+                {t('header.close')}
               </button>
             </div>
           </div>

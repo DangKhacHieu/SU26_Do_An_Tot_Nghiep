@@ -1,8 +1,11 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect } from 'react';
 import styles from './MarketAreaForm.module.css';
 import { getAllCategories } from '../api/categoryApi';
 
 const GridGeneratorModal = ({ onGenerate, onCancel, marketWidth, marketHeight }) => {
+  const { t } = useTranslation();
+
     const [rows, setRows] = useState(2);
     const [cols, setCols] = useState(2);
     const [count, setCount] = useState('');
@@ -78,7 +81,7 @@ const GridGeneratorModal = ({ onGenerate, onCancel, marketWidth, marketHeight })
                             min="1"
                             value={count}
                             onChange={(e) => setCount(e.target.value)}
-                            placeholder="Để trống để tạo tối đa theo dòng & cột..."
+                            placeholder={'Để trống để tạo tối đa theo dòng & cột...'}
                         />
                     </div>
 
@@ -110,7 +113,7 @@ const GridGeneratorModal = ({ onGenerate, onCancel, marketWidth, marketHeight })
                                 className={styles.input} 
                                 value={categoryName}
                                 onChange={(e) => setCategoryName(e.target.value)}>
-                                <option value="">Mặc định</option>
+                                <option value="">{'Mặc định'}</option>
                                 {categories.map(cat => (
                                     <option key={cat.categoryId} value={cat.name}>{cat.name}</option>
                                 ))}
@@ -126,7 +129,7 @@ const GridGeneratorModal = ({ onGenerate, onCancel, marketWidth, marketHeight })
                             onChange={(e) => setGenerateStalls(e.target.checked)}
                             style={{ width: '16px', height: '16px' }}
                         />
-                        <label htmlFor="genStalls" style={{ margin: 0, cursor: 'pointer', textTransform: 'none', fontWeight: 'bold' }}>Tự động sinh Sạp (Stalls) bên trong</label>
+                        <label htmlFor="genStalls" style={{ margin: 0, cursor: 'pointer', textTransform: 'none', fontWeight: 'bold' }}>{'Tự động sinh Sạp (Stalls) bên trong'}</label>
                     </div>
                 </div>
 

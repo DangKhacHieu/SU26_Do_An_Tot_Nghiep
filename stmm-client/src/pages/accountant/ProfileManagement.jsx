@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect } from 'react';
 import { 
   User as UserIcon, 
@@ -15,16 +16,18 @@ import {
 
 
 export default function ProfileManagement() {
+  const { t } = useTranslation();
+
   // Profile state
   const [profile, setProfile] = useState({
     userId: 1,
-    name: 'Lê Thanh Bình',
+    name: t('profilemanagement.le_thanh_binh'),
     email: 'binhlt.accountant@stmm.vn',
     phone: '0987 654 321',
     cccd: '001095009876',
-    roleName: 'Kế toán viên chuyên nghiệp',
-    department: 'Phòng Tài Chính - Kế Toán',
-    office: 'Tầng 3, Tòa nhà Điều Hành STMM',
+    roleName: t('profilemanagement.professional_accountant'),
+    department: t('profilemanagement.finance_accounting_department'),
+    office: t('profilemanagement.3rd_floor_stmm_executive'),
     avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=200'
   });
 
@@ -68,14 +71,14 @@ export default function ProfileManagement() {
         const parsed = JSON.parse(session);
         currentUserId = parsed.userId || 1;
       } catch (e) {
-        console.error('Lỗi phân tích session trong loadProfile:', e);
+        console.error(t('profilemanagement.error_parsing_session_in'), e);
       }
     }
 
     // Fetch profile of accountant dynamically using logged-in user id
     fetch(`http://localhost:5056/api/accountant/profile?userId=${currentUserId}`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` } })
       .then(res => {
-        if (!res.ok) throw new Error('Không thể tải hồ sơ người dùng');
+        if (!res.ok) throw new Error(t('profilemanagement.unable_to_load_user'));
         return res.json();
       })
       .then(data => {
@@ -86,14 +89,14 @@ export default function ProfileManagement() {
           email: data.email,
           phone: data.phone,
           cccd: data.cccd,
-          roleName: data.roleName === 'Accountant' ? 'Kế toán viên chuyên nghiệp' : data.roleName
+          roleName: data.roleName === 'Accountant' ? t('profilemanagement.professional_accountant') : data.roleName
         };
         setProfile(mergedProfile);
         setTempProfile(mergedProfile);
         setLoading(false);
       })
       .catch(err => {
-        console.warn('Lỗi kết nối tới API Backend. Sử dụng dữ liệu hồ sơ mặc định:', err);
+        console.warn(t('profilemanagement.error_connecting_to_backend'), err);
         
         // Use local storage profile if available
         if (session) {
@@ -104,7 +107,7 @@ export default function ProfileManagement() {
               userId: parsed.userId || 1,
               name: parsed.name,
               email: parsed.email,
-              roleName: parsed.roleName === 'Accountant' ? 'Kế toán viên chuyên nghiệp' : parsed.roleName
+              roleName: parsed.roleName === 'Accountant' ? t('profilemanagement.professional_accountant') : parsed.roleName
             };
             setProfile(fallbackProfile);
             setTempProfile(fallbackProfile);
@@ -145,11 +148,11 @@ export default function ProfileManagement() {
           localStorage.setItem('user', JSON.stringify(parsed));
           window.dispatchEvent(new Event('userSessionUpdated'));
         } catch (e) {
-          console.error('Lỗi cập nhật localStorage:', e);
+          console.error(t('profilemanagement.error_updating_localstorage'), e);
         }
       }
 
-      showNotification('success', 'Đã lưu thông tin hồ sơ thành công (Mock)!');
+      showNotification('success', t('profilemanagement.profile_information_saved_successfully'));
       setActiveModal(null);
     } else {
       fetch(`http://localhost:5056/api/accountant/profile?userId=${profile.userId}`, {
@@ -164,7 +167,7 @@ export default function ProfileManagement() {
       .then(async res => {
         if (!res.ok) {
           const errData = await res.json().catch(() => ({}));
-          throw new Error(errData.detail || errData.title || 'Không thể lưu hồ sơ');
+          throw new Error(errData.detail || errData.title || t('profilemanagement.unable_to_save_profile'));
         }
         return res.json();
       })
@@ -188,11 +191,11 @@ export default function ProfileManagement() {
             localStorage.setItem('user', JSON.stringify(parsed));
             window.dispatchEvent(new Event('userSessionUpdated'));
           } catch (e) {
-            console.error('Lỗi cập nhật localStorage:', e);
+            console.error(t('profilemanagement.error_updating_localstorage'), e);
           }
         }
 
-        showNotification('success', 'Cập nhật hồ sơ cá nhân thành công!');
+        showNotification('success', t('profilemanagement.updated_personal_profile_successfully'));
         setActiveModal(null);
       })
       .catch(err => {
@@ -210,7 +213,7 @@ export default function ProfileManagement() {
   // Perform actual password change
   const executePasswordChange = () => {
     if (isMock) {
-      showNotification('success', 'Đã thay đổi mật khẩu tài khoản thành công (Mock)!');
+      showNotification('success', t('profilemanagement.account_password_changed_successfully'));
       setPassword({ current: '', new: '', confirm: '' });
       setActiveModal(null);
     } else {
@@ -226,9 +229,9 @@ export default function ProfileManagement() {
       .then(async res => {
         if (!res.ok) {
           const errData = await res.json().catch(() => ({}));
-          throw new Error(errData.detail || errData.title || 'Thay đổi mật khẩu thất bại');
+          throw new Error(errData.detail || errData.title || t('profilemanagement.password_change_failed'));
         }
-        showNotification('success', 'Thay đổi mật khẩu thành công! Hãy nhớ mật khẩu mới của bạn.');
+        showNotification('success', t('profilemanagement.password_change_successful_remember'));
         setPassword({ current: '', new: '', confirm: '' });
         setActiveModal(null);
       })
@@ -243,17 +246,16 @@ export default function ProfileManagement() {
       {/* Title */}
       <div className="page-header" style={{ marginBottom: 0 }}>
         <div>
-          <h1 className="page-title">Quản Lý Hồ Sơ</h1>
+          <h1 className="page-title">{t('profilemanagement.records_management')}</h1>
           <p className="page-subtitle">
-            Cập nhật thông tin cá nhân liên hệ và thay đổi mật khẩu đăng nhập hệ thống của bạn.
-          </p>
+            {t('profilemanagement.update_your_personal_contact')}</p>
         </div>
         
         <div className="page-actions">
           <button 
             onClick={loadProfile}
             className="btn btn-secondary btn-icon"
-            title="Tải lại hồ sơ"
+            title={t('profilemanagement.reload_profile')}
             disabled={loading}
           >
             <RefreshCw size={16} className={loading ? "loading-spinner" : ""} />
@@ -279,15 +281,14 @@ export default function ProfileManagement() {
         <div className="alert alert-warning" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <AlertTriangle size={18} className="alert-icon" />
           <span>
-            <strong>Chế độ mô phỏng:</strong> Không thể kết nối tới Backend tại <code>http://localhost:5056</code>. Hệ thống đang hiển thị hồ sơ ngoại tuyến.
-          </span>
+            <strong>{t('profilemanagement.simulation_mode')}</strong> {t('profilemanagement.unable_to_connect_to')}<code>http://localhost:5056</code>{t('profilemanagement.the_system_is_displaying')}</span>
         </div>
       )}
 
       {loading ? (
         <div className="loading-container" style={{ minHeight: '300px' }}>
           <RefreshCw className="loading-spinner" size={24} style={{ color: 'var(--primary)' }} />
-          <span className="loading-text">Đang nạp hồ sơ kế toán viên...</span>
+          <span className="loading-text">{t('profilemanagement.loading_accountant_profile')}</span>
         </div>
       ) : (
         <div style={{
@@ -358,13 +359,12 @@ export default function ProfileManagement() {
             {/* Form 1: Edit Profile */}
             <div className="card-padded">
               <h3 style={{ fontSize: '18px', fontWeight: '700', color: 'var(--text-title)', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <UserIcon size={18} style={{ color: 'var(--primary)' }} /> Thông Tin Cá Nhân
-              </h3>
+                <UserIcon size={18} style={{ color: 'var(--primary)' }} /> {t('profilemanagement.personal_information')}</h3>
               
               <form onSubmit={handleProfileSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <label className="form-label">Mã nhân viên (ID)</label>
+                    <label className="form-label">{t('profilemanagement.employee_id_id')}</label>
                     <input
                       type="text"
                       disabled
@@ -378,7 +378,7 @@ export default function ProfileManagement() {
                     />
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <label className="form-label">Họ và tên</label>
+                    <label className="form-label">{t('profilemanagement.full_name')}</label>
                     <input
                       type="text"
                       required
@@ -392,7 +392,7 @@ export default function ProfileManagement() {
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <label className="form-label">Email liên hệ</label>
+                    <label className="form-label">{t('profilemanagement.contact_email')}</label>
                     <input
                       type="email"
                       required
@@ -403,7 +403,7 @@ export default function ProfileManagement() {
                     />
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <label className="form-label">Số điện thoại</label>
+                    <label className="form-label">{t('profilemanagement.phone_number')}</label>
                     <input
                       type="text"
                       required
@@ -416,34 +416,32 @@ export default function ProfileManagement() {
                 </div>
 
                 <button type="submit" className="btn btn-primary" style={{ alignSelf: 'flex-end', marginTop: '4px' }}>
-                  <Save size={16} /> Lưu Thay Đổi
-                </button>
+                  <Save size={16} /> {t('profilemanagement.save_changes')}</button>
               </form>
             </div>
 
             {/* Form 2: Change Password */}
             <div className="card-padded">
               <h3 style={{ fontSize: '18px', fontWeight: '700', color: 'var(--text-title)', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Lock size={18} style={{ color: 'var(--primary)' }} /> Đổi Mật Khẩu
-              </h3>
+                <Lock size={18} style={{ color: 'var(--primary)' }} /> {t('profilemanagement.change_password')}</h3>
               
               <form onSubmit={handlePasswordSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <label className="form-label">Mật khẩu hiện tại</label>
+                  <label className="form-label">{t('profilemanagement.current_password')}</label>
                   <input
                     type="password"
                     required
                     maxLength={100}
                     value={password.current}
                     onChange={(e) => setPassword({ ...password, current: e.target.value })}
-                    placeholder="Nhập mật khẩu đang sử dụng..."
+                    placeholder={t('profilemanagement.enter_your_current_password')}
                     className="form-input"
                   />
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <label className="form-label">Mật khẩu mới</label>
+                    <label className="form-label">{t('profilemanagement.new_password')}</label>
                     <input
                       type="password"
                       required
@@ -451,12 +449,12 @@ export default function ProfileManagement() {
                       minLength={6}
                       value={password.new}
                       onChange={(e) => setPassword({ ...password, new: e.target.value })}
-                      placeholder="Tối thiểu 6 ký tự..."
+                      placeholder={t('profilemanagement.minimum_6_characters')}
                       className="form-input"
                     />
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <label className="form-label">Xác nhận mật khẩu mới</label>
+                    <label className="form-label">{t('profilemanagement.confirm_new_password')}</label>
                     <input
                       type="password"
                       required
@@ -464,15 +462,14 @@ export default function ProfileManagement() {
                       minLength={6}
                       value={password.confirm}
                       onChange={(e) => setPassword({ ...password, confirm: e.target.value })}
-                      placeholder="Nhập lại mật khẩu mới..."
+                      placeholder={t('profilemanagement.reenter_new_password')}
                       className="form-input"
                     />
                   </div>
                 </div>
 
                 <button type="submit" className="btn btn-primary" style={{ alignSelf: 'flex-end', marginTop: '4px' }}>
-                  <Lock size={16} /> Cập Nhật Mật Khẩu
-                </button>
+                  <Lock size={16} /> {t('profilemanagement.update_password')}</button>
               </form>
             </div>
 
@@ -487,7 +484,7 @@ export default function ProfileManagement() {
         <div className="modal-overlay">
           <div className="modal-container modal-container-sm">
             <div className="modal-header">
-              <h3 className="modal-title">Xác Nhận Thay Đổi</h3>
+              <h3 className="modal-title">{t('profilemanagement.confirmation_of_changes')}</h3>
               <button onClick={() => setActiveModal(null)} className="modal-close-btn"><X size={16} /></button>
             </div>
             
@@ -502,18 +499,16 @@ export default function ProfileManagement() {
                 <AlertCircle size={24} style={{ color: 'var(--primary)', flexShrink: 0 }} />
                 <div>
                   <p style={{ fontSize: '14.5px', fontWeight: '600', color: 'var(--text-title)', marginBottom: '6px' }}>
-                    Bạn có chắc chắn muốn lưu thông tin mới?
-                  </p>
+                    {t('profilemanagement.are_you_sure_you')}</p>
                   <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
-                    Mọi hoạt động giao dịch hóa đơn và đối soát tài chính sau đó sẽ được gắn kèm với các thông tin định danh mới này.
-                  </p>
+                    {t('profilemanagement.all_subsequent_invoice_transaction')}</p>
                 </div>
               </div>
             </div>
             
             <div className="modal-footer">
-              <button type="button" onClick={() => setActiveModal(null)} className="btn btn-secondary">Hủy</button>
-              <button type="button" onClick={executeProfileSave} className="btn btn-primary">Xác nhận lưu</button>
+              <button type="button" onClick={() => setActiveModal(null)} className="btn btn-secondary">{t('profilemanagement.cancel')}</button>
+              <button type="button" onClick={executeProfileSave} className="btn btn-primary">{t('profilemanagement.confirm_save')}</button>
             </div>
           </div>
         </div>
@@ -524,7 +519,7 @@ export default function ProfileManagement() {
         <div className="modal-overlay">
           <div className="modal-container modal-container-sm">
             <div className="modal-header">
-              <h3 className="modal-title" style={{ color: 'var(--warning)' }}>Xác Nhận Đổi Mật Khẩu</h3>
+              <h3 className="modal-title" style={{ color: 'var(--warning)' }}>{t('profilemanagement.confirm_password_change')}</h3>
               <button onClick={() => setActiveModal(null)} className="modal-close-btn"><X size={16} /></button>
             </div>
             
@@ -539,18 +534,16 @@ export default function ProfileManagement() {
                 <AlertTriangle size={24} style={{ color: 'var(--warning)', flexShrink: 0 }} />
                 <div>
                   <p style={{ fontSize: '14.5px', fontWeight: '600', color: 'var(--text-title)', marginBottom: '6px' }}>
-                    Xác nhận đổi sang mật khẩu mới?
-                  </p>
+                    {t('profilemanagement.confirm_change_to_new')}</p>
                   <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
-                    Tài khoản của bạn sẽ đổi sang mật khẩu mới ngay lập tức. Bạn cần đăng nhập lại với mật khẩu mới cho các phiên làm việc tiếp theo.
-                  </p>
+                    {t('profilemanagement.your_account_will_change')}</p>
                 </div>
               </div>
             </div>
             
             <div className="modal-footer">
-              <button type="button" onClick={() => setActiveModal(null)} className="btn btn-secondary">Hủy</button>
-              <button type="button" onClick={executePasswordChange} className="btn btn-primary" style={{ backgroundColor: 'var(--warning)', borderColor: 'var(--warning)' }}>Đổi mật khẩu</button>
+              <button type="button" onClick={() => setActiveModal(null)} className="btn btn-secondary">{t('profilemanagement.cancel')}</button>
+              <button type="button" onClick={executePasswordChange} className="btn btn-primary" style={{ backgroundColor: 'var(--warning)', borderColor: 'var(--warning)' }}>{t('profilemanagement.change_password')}</button>
             </div>
           </div>
         </div>

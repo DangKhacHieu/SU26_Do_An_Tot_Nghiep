@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import axios from "axios";
 import { getAllMarkets } from "../../services/marketApi";
 import "./HomePage.css";
@@ -22,6 +23,7 @@ export default function HomePage({
   onGoToStallDetail,
   onLogout,
 }) {
+  const { t } = useTranslation();
   const [markets, setMarkets] = useState([]);
   const [loadingMarkets, setLoadingMarkets] = useState(true);
   const [featuredStall, setFeaturedStall] = useState(null);
@@ -117,17 +119,15 @@ export default function HomePage({
 
       <section className="hero-section">
         <div className="hero-copy">
-          <span className="hero-label">SMART MARKET MANAGEMENT SYSTEM</span>
+          <span className="hero-label">{t("homepage.system_label")}</span>
 
           <h1>
-            Fresh Produce, <br />
-            <span>Connected Heart</span>
+            {t("homepage.hero_title_1")} <br />
+            <span>{t("homepage.hero_title_2")}</span>
           </h1>
 
           <p>
-            Experience modern management and shopping at our digital Market Halls. 
-            Search market stalls, check food safety ratings, trace origins, and connect 
-            directly with local merchants.
+            {t("homepage.hero_desc")}
           </p>
 
           <div className="hero-buttons">
@@ -136,14 +136,14 @@ export default function HomePage({
               className="primary-btn" 
               onClick={handleScrollToMarkets}
             >
-              Find a stall →
+              {t("homepage.find_stall")}
             </button>
             <button
               type="button"
               className="secondary-btn"
               onClick={handleScrollToMarkets}
             >
-              View Stall Map
+              {t("homepage.view_stall_map")}
             </button>
           </div>
 
@@ -151,16 +151,16 @@ export default function HomePage({
             <div className="stat-card">
               <div className="stat-icon">📶</div>
               <div>
-                <strong>System Status</strong>
-                <span>Active ({totalMarketsCount} Markets)</span>
+                <strong>{t("homepage.system_status")}</strong>
+                <span>{t("homepage.active_markets", { count: totalMarketsCount })}</span>
               </div>
             </div>
 
             <div className="stat-card">
               <div className="stat-icon">🏪</div>
               <div>
-                <strong>Registered Stalls</strong>
-                <span>{totalStallsCount} Managed Stalls</span>
+                <strong>{t("homepage.registered_stalls")}</strong>
+                <span>{t("homepage.managed_stalls", { count: totalStallsCount })}</span>
               </div>
             </div>
           </div>
@@ -169,17 +169,17 @@ export default function HomePage({
         {loadingStall ? (
           <div className="hero-feature-card">
             <div className="feature-top">
-              <span className="feature-chip">FEATURED STALL</span>
+              <span className="feature-chip">{t("homepage.featured_stall")}</span>
             </div>
-            <h3 style={{ opacity: 0.5 }}>Loading...</h3>
+            <h3 style={{ opacity: 0.5 }}>{t("homepage.loading")}</h3>
             <div className="feature-details-container">
               <div className="feature-details-row">
-                <span className="feature-key">Location:</span>
-                <span>Loading...</span>
+                <span className="feature-key">{t("homepage.location")}:</span>
+                <span>{t("homepage.loading")}</span>
               </div>
               <div className="feature-details-row">
-                <span className="feature-key">Category:</span>
-                <span>Loading...</span>
+                <span className="feature-key">{t("homepage.category")}:</span>
+                <span>{t("homepage.loading")}</span>
               </div>
             </div>
           </div>
@@ -189,39 +189,39 @@ export default function HomePage({
             onClick={() => onGoToStallDetail && onGoToStallDetail(featuredStall.stallId)}
           >
             <div className="feature-top">
-              <span className="feature-chip">FEATURED STALL</span>
+              <span className="feature-chip">{t("homepage.featured_stall")}</span>
               <span className="feature-rating">★ {featuredStall.averageRating}</span>
             </div>
 
-            <h3>Stall {featuredStall.code}</h3>
+            <h3>{t("homepage.stalls").split(" ")[0]} {featuredStall.code}</h3>
 
             <div className="feature-details-container">
               <div className="feature-details-row">
-                <span className="feature-key">Location:</span>
-                <span>Area {featuredStall.areaName}</span>
+                <span className="feature-key">{t("homepage.location")}:</span>
+                <span>{t("homepage.sections").split(" ")[0]} {featuredStall.areaName}</span>
               </div>
 
               <div className="feature-details-row">
-                <span className="feature-key">Category:</span>
+                <span className="feature-key">{t("homepage.category")}:</span>
                 <span>{featuredStall.categoryName}</span>
               </div>
 
               <div className="feature-details-row">
-                <span className="feature-key">Size:</span>
+                <span className="feature-key">{t("homepage.size")}:</span>
                 <span>{featuredStall.size} m²</span>
               </div>
             </div>
 
             <div className="feature-action">
-              View stall details →
+              {t("homepage.view_stall_details")}
             </div>
           </div>
         ) : (
           <div className="hero-feature-card">
             <div className="feature-top">
-              <span className="feature-chip">FEATURED STALL</span>
+              <span className="feature-chip">{t("homepage.featured_stall")}</span>
             </div>
-            <h3>Stall not found</h3>
+            <h3>{t("homepage.stall_not_found")}</h3>
           </div>
         )}
       </section>
@@ -229,37 +229,37 @@ export default function HomePage({
       <section className="stats-strip">
         <div className="strip-item">
           <strong>{totalMarketsCount || 4}</strong>
-          <span>Member Markets</span>
+          <span>{t("homepage.member_markets")}</span>
         </div>
         <div className="strip-item">
           <strong>{totalAreasCount || 16}</strong>
-          <span>Market Sections</span>
+          <span>{t("homepage.market_sections")}</span>
         </div>
         <div className="strip-item">
           <strong>{totalStallsCount || 120}+</strong>
-          <span>Active Stalls</span>
+          <span>{t("homepage.active_stalls_stat")}</span>
         </div>
         <div className="strip-item">
           <strong>98%</strong>
-          <span>Merchant Satisfaction</span>
+          <span>{t("homepage.merchant_satisfaction")}</span>
         </div>
       </section>
 
       {/* Markets Directory Section */}
       <section id="markets-directory" className="markets-directory-section">
         <div className="section-heading center">
-          <h2>Our Market Halls</h2>
-          <p>Explore our network of smart traditional market halls. Click on a market to view its interactive stall map.</p>
+          <h2>{t("homepage.our_market_halls")}</h2>
+          <p>{t("homepage.market_halls_desc")}</p>
         </div>
 
         {loadingMarkets ? (
           <div className="markets-loading-container">
             <div className="loading-spinner"></div>
-            <p>Loading markets list...</p>
+            <p>{t("homepage.loading_markets")}</p>
           </div>
         ) : markets.length === 0 ? (
           <div className="markets-empty-container">
-            <p>No markets found in the system.</p>
+            <p>{t("homepage.no_markets")}</p>
           </div>
         ) : (
           <div className="markets-grid">
@@ -307,10 +307,10 @@ export default function HomePage({
 
                   <div className="market-card-stats-row">
                     <div className="stat-pill">
-                      <strong>{market.areasCount || 0}</strong> Sections
+                      <strong>{market.areasCount || 0}</strong> {t("homepage.sections")}
                     </div>
                     <div className="stat-pill">
-                      <strong>{market.stallsCount || 0}</strong> Stalls
+                      <strong>{market.stallsCount || 0}</strong> {t("homepage.stalls")}
                     </div>
                   </div>
                 </div>
@@ -321,7 +321,7 @@ export default function HomePage({
                     className="market-action-btn"
                     onClick={() => onGoToStallsMap && onGoToStallsMap(market.marketId)}
                   >
-                    View stall map →
+                    {t("homepage.view_stall_map")} →
                   </button>
                 </div>
               </div>
@@ -333,66 +333,66 @@ export default function HomePage({
       {/* Platform Portal Benefits */}
       <section className="portal-benefits-section">
         <div className="section-heading center">
-          <h2>Smart Market Solutions</h2>
-          <p>Powering daily shopping for customers and business operations for merchants.</p>
+          <h2>{t("homepage.solutions_title")}</h2>
+          <p>{t("homepage.solutions_desc")}</p>
         </div>
 
         <div className="benefits-grid">
           <div className="benefit-panel shopper-panel">
-            <div className="panel-badge shopper">FOR CUSTOMERS</div>
-            <h3>Market Shoppers</h3>
-            <p className="panel-desc">Modern, transparent, and convenient shopping experience.</p>
+            <div className="panel-badge shopper">{t("homepage.for_customers")}</div>
+            <h3>{t("homepage.market_shoppers")}</h3>
+            <p className="panel-desc">{t("homepage.shopper_desc")}</p>
             
             <ul className="benefit-list">
               <li>
                 <div className="benefit-icon">🗺️</div>
                 <div>
-                  <strong>Interactive Stall Map</strong>
-                  <span>Easily locate stalls and search directly by product category on the 2D layout.</span>
+                  <strong>{t("homepage.interactive_map_title")}</strong>
+                  <span>{t("homepage.interactive_map_desc")}</span>
                 </div>
               </li>
               <li>
                 <div className="benefit-icon">⭐</div>
                 <div>
-                  <strong>Stall Ratings & Reviews</strong>
-                  <span>Leave feedback about service quality and satisfaction to help improve the market.</span>
+                  <strong>{t("homepage.ratings_reviews_title")}</strong>
+                  <span>{t("homepage.ratings_reviews_desc")}</span>
                 </div>
               </li>
               <li>
                 <div className="benefit-icon">🔔</div>
                 <div>
-                  <strong>Real-time Market Updates</strong>
-                  <span>Receive daily price trends and food safety alerts from market management.</span>
+                  <strong>{t("homepage.realtime_updates_title")}</strong>
+                  <span>{t("homepage.realtime_updates_desc")}</span>
                 </div>
               </li>
             </ul>
           </div>
 
           <div className="benefit-panel merchant-panel">
-            <div className="panel-badge merchant">FOR MERCHANTS</div>
-            <h3>Market Merchants</h3>
-            <p className="panel-desc">Simplifying stall operations and financial management.</p>
+            <div className="panel-badge merchant">{t("homepage.for_merchants")}</div>
+            <h3>{t("homepage.market_merchants")}</h3>
+            <p className="panel-desc">{t("homepage.merchant_desc")}</p>
 
             <ul className="benefit-list">
               <li>
                 <div className="benefit-icon">⚡</div>
                 <div>
-                  <strong>Utility Tracking (Electricity/Water)</strong>
-                  <span>View meter readings history and receive detailed monthly utility consumption reports.</span>
+                  <strong>{t("homepage.utility_tracking_title")}</strong>
+                  <span>{t("homepage.utility_tracking_desc")}</span>
                 </div>
               </li>
               <li>
                 <div className="benefit-icon">🧾</div>
                 <div>
-                  <strong>Invoices & Contracts</strong>
-                  <span>Track stall rental contract duration and service payment invoices securely.</span>
+                  <strong>{t("homepage.invoices_contracts_title")}</strong>
+                  <span>{t("homepage.invoices_contracts_desc")}</span>
                 </div>
               </li>
               <li>
                 <div className="benefit-icon">⚠️</div>
                 <div>
-                  <strong>Requests & Violations</strong>
-                  <span>Report facility issues directly to management and track resolution progress.</span>
+                  <strong>{t("homepage.requests_violations_title")}</strong>
+                  <span>{t("homepage.requests_violations_desc")}</span>
                 </div>
               </li>
             </ul>
@@ -402,44 +402,44 @@ export default function HomePage({
 
       <section className="testimonials-section">
         <div className="section-heading center">
-          <h2>How It Works</h2>
-          <p>Discover your shopping and market exploration process in 3 simple steps.</p>
+          <h2>{t("homepage.how_it_works_title")}</h2>
+          <p>{t("homepage.how_it_works_desc")}</p>
         </div>
 
         <div className="testimonials-grid">
           <article className="testimonial-card">
             <div className="testimonial-avatar">1</div>
             <div className="testimonial-header">
-              <strong>Choose a Market</strong>
-              <span>Step 01</span>
+              <strong>{t("homepage.choose_market_title")}</strong>
+              <span>{t("homepage.choose_market_step")}</span>
             </div>
-            <div className="star-row">📍 Market Hall Directory</div>
+            <div className="star-row">{t("homepage.choose_market_badge")}</div>
             <p>
-              Select your local smart market hall from our verified member directory list on the homepage.
+              {t("homepage.choose_market_desc")}
             </p>
           </article>
 
           <article className="testimonial-card">
             <div className="testimonial-avatar">2</div>
             <div className="testimonial-header">
-              <strong>Locate Stalls</strong>
-              <span>Step 02</span>
+              <strong>{t("homepage.locate_stalls_title")}</strong>
+              <span>{t("homepage.locate_stalls_step")}</span>
             </div>
-            <div className="star-row">🗺️ Interactive 2D Map</div>
+            <div className="star-row">{t("homepage.locate_stalls_badge")}</div>
             <p>
-              Browse the live interactive 2D blueprint map to search for merchant stalls by product categories, names, or codes.
+              {t("homepage.locate_stalls_desc")}
             </p>
           </article>
 
           <article className="testimonial-card">
             <div className="testimonial-avatar">3</div>
             <div className="testimonial-header">
-              <strong>Connect & Rate</strong>
-              <span>Step 03</span>
+              <strong>{t("homepage.connect_rate_title")}</strong>
+              <span>{t("homepage.connect_rate_step")}</span>
             </div>
-            <div className="star-row">⭐ Customer Reviews</div>
+            <div className="star-row">{t("homepage.connect_rate_badge")}</div>
             <p>
-              Visit stalls in person, view their verified profiles, and rate your experience to help our community thrive.
+              {t("homepage.connect_rate_desc")}
             </p>
           </article>
         </div>

@@ -1,8 +1,11 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState } from 'react';
 import { Stage, Layer, Line, Image as KonvaImage, Circle, Text } from 'react-konva';
 import useImage from 'use-image'; // Tuỳ chọn, nếu muốn load ảnh background từ URL
 
 export default function AreaEditor({ market, onSave, width = 900 }) {
+  const { t } = useTranslation();
+
   const [points, setPoints] = useState([]); // toạ độ gốc trên DB
   const [drawing, setDrawing] = useState(true);
 
@@ -12,7 +15,7 @@ export default function AreaEditor({ market, onSave, width = 900 }) {
   const marketHeight = market.maxY - market.minY;
   
   if (!marketWidth || !marketHeight) {
-    return <div>Chưa có dữ liệu toạ độ tổng thể cho chợ này để làm chuẩn. Vui lòng cập nhật toạ độ chợ trước.</div>;
+    return <div>{t('areaeditor.there_is_no_overall')}</div>;
   }
 
   const scale = width / marketWidth;
@@ -68,9 +71,9 @@ export default function AreaEditor({ market, onSave, width = 900 }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <h3>Công cụ tạo Khu Vực</h3>
+          <h3>{t('areaeditor.area_creation_tool')}</h3>
           <p style={{ color: '#666', fontSize: '14px' }}>
-            {drawing ? "Click vào bản đồ để vẽ các đỉnh của khu vực. Double-click để hoàn thành." : "Đã vẽ xong đa giác. Bấm Lưu hoặc Vẽ lại."}
+            {drawing ? t('areaeditor.click_on_the_map') : t('areaeditor.finished_drawing_the_polygon')}
           </p>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
@@ -81,8 +84,7 @@ export default function AreaEditor({ market, onSave, width = 900 }) {
             disabled={points.length === 0}
             style={{ padding: '8px 16px', cursor: 'pointer' }}
           >
-            Vẽ lại
-          </button>
+            {t('areaeditor.redraw')}</button>
           <button 
             type="button" 
             className="btn btn-primary" 
@@ -90,8 +92,7 @@ export default function AreaEditor({ market, onSave, width = 900 }) {
             disabled={drawing || points.length < 3}
             style={{ padding: '8px 16px', backgroundColor: '#4CAF50', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
           >
-            Xác nhận Toạ Độ
-          </button>
+            {t('areaeditor.confirm_coordinates')}</button>
         </div>
       </div>
 

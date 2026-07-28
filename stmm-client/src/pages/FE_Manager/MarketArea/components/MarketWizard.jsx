@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import styles from './LayoutEditor.module.css';
 import { createMarketBulk } from '../../../../services/marketApi';
@@ -68,6 +69,8 @@ const scalePolygon = (points, scaleFactor) => {
 };
 
 const MarketWizard = ({ onCancel, onComplete }) => {
+  const { t } = useTranslation();
+
     const [step, setStep] = useState(1);
     const [loading, setLoading] = useState(false);
     const [zoom, setZoom] = useState(1);
@@ -323,7 +326,7 @@ const MarketWizard = ({ onCancel, onComplete }) => {
                             const sy = y + sGap + sr * (stH + sGap);
                             
                             stalls.push({
-                                code: `Sạp ${String.fromCharCode(65 + sr)}${sc + 1}`,
+                                code: 'Sạp ${String.fromCharCode(65 + sr)}${sc + 1}',
                                 width: stW,
                                 height: stH,
                                 mapX: sx - x,
@@ -371,7 +374,7 @@ const MarketWizard = ({ onCancel, onComplete }) => {
         const area = newAreas[selectedAreaIndex];
         
         let maxNum = 0;
-        let mostCommonPrefix = "Sạp ";
+        let mostCommonPrefix = 'Sạp';
         
         if (area.stalls.length > 0) {
             const firstCode = area.stalls[0].code;
@@ -469,7 +472,7 @@ const MarketWizard = ({ onCancel, onComplete }) => {
             return;
         }
         if (!marketInfo.isClosed) {
-            alert("Vui lòng vẽ ranh giới chợ và nhấn 'Khép kín' trước khi đi tiếp.");
+            alert("Vui lòng vẽ ranh giới chợ và nhấn t('marketwizard.closed') trước khi đi tiếp.");
             return;
         }
         
@@ -526,7 +529,7 @@ const MarketWizard = ({ onCancel, onComplete }) => {
                             overlapArea += getPolygonArea(ring.slice(0, -1));
                         }));
                         if (overlapArea > 500) {
-                            alert(`Lỗi chồng lấp: Khu vực "${a.name}" đang đè lên khu vực "${areas[j].name}"! Vui lòng tách chúng ra.`);
+                            alert(`Lỗi chồng lấp: Khu vực "${a.name}t('marketwizard.is_pressing_on_the')${areas[j].name}"! Vui lòng tách chúng ra.`);
                             return;
                         }
                     }
@@ -583,7 +586,7 @@ const MarketWizard = ({ onCancel, onComplete }) => {
         } catch (error) {
             console.error("Error creating market", error);
             const errorData = error.response?.data;
-            let errorMsg = "Có lỗi xảy ra khi lưu chợ.";
+            let errorMsg = 'Có lỗi xảy ra khi lưu chợ.';
             if (errorData) {
                 if (errorData.message) errorMsg = errorData.message;
                 else if (errorData.title) {
@@ -606,11 +609,11 @@ const MarketWizard = ({ onCancel, onComplete }) => {
             {/* SEO-correct top navigation */}
             <header className={styles.wizardNav}>
                 <div className={styles.wizardNavBrand}>
-                    🏪 Tạo <span>Chợ Mới</span>
+                    {'🏪 Tạo'}<span>{'Chợ Mới'}</span>
                 </div>
 
                 {/* Step indicator */}
-                <nav aria-label="Các bước tạo chợ" className={styles.stepsIndicator}>
+                <nav aria-label={'Các bước tạo chợ'} className={styles.stepsIndicator}>
                     {[
                         { num: 1, label: 'Thông tin & Bản đồ' },
                         { num: 2, label: 'Phân khu vực' },
@@ -628,9 +631,8 @@ const MarketWizard = ({ onCancel, onComplete }) => {
                     ))}
                 </nav>
 
-                <button className={styles.secondaryBtn} onClick={onCancel} aria-label="Hủy tạo chợ">
-                    ✕ Hủy bỏ
-                </button>
+                <button className={styles.secondaryBtn} onClick={onCancel} aria-label={'Hủy tạo chợ'}>
+                    {'← Hủy'}</button>
             </header>
 
             {/* Body */}
@@ -642,21 +644,21 @@ const MarketWizard = ({ onCancel, onComplete }) => {
                         {/* STEP 1 */}
                         {step === 1 && (
                             <>
-                                <h2 className={styles.sidebarTitle}>📋 Thông tin chung</h2>
+                                <h2 className={styles.sidebarTitle}>{'📋 Thông tin chung'}</h2>
                                 <div className={styles.formGroup}>
-                                    <label htmlFor="market-name">Tên chợ <span style={{color:'var(--mw-danger)'}}>*</span></label>
+                                    <label htmlFor="market-name">{'Tên chợ'}<span style={{color:'var(--mw-danger)'}}>*</span></label>
                                     <input id="market-name" className={styles.formInput} value={marketInfo.name}
                                         onChange={e => setMarketInfo({...marketInfo, name: e.target.value})}
-                                        placeholder="Vd: Chợ Bến Thành" autoComplete="off" />
+                                        placeholder={'Vd: Chợ Bến Thành'} autoComplete="off" />
                                 </div>
                                 <div className={styles.formGroup}>
-                                    <label htmlFor="market-address">Địa chỉ</label>
+                                    <label htmlFor="market-address">{'Địa chỉ'}</label>
                                     <input id="market-address" className={styles.formInput} value={marketInfo.address}
                                         onChange={e => setMarketInfo({...marketInfo, address: e.target.value})}
-                                        placeholder="Vd: Quận 1, TP.HCM" autoComplete="off" />
+                                        placeholder={'Vd: Quận 1, TP.HCM'} autoComplete="off" />
                                 </div>
                                 <div className={styles.formGroup}>
-                                    <label htmlFor="market-size">Tổng diện tích (m²)</label>
+                                    <label htmlFor="market-size">{'Tổng diện tích (m²)'}</label>
                                     <input id="market-size" className={styles.formInput} type="number" min="0"
                                         value={marketInfo.size}
                                         onChange={e => handleMarketSizeChange(e.target.value)}
@@ -665,9 +667,9 @@ const MarketWizard = ({ onCancel, onComplete }) => {
 
                                 <hr style={{border:'none', borderTop:'1.5px solid var(--mw-border)', margin:'4px 0'}} />
 
-                                <h2 className={styles.sidebarTitle}>🖊️ Vẽ ranh giới chợ</h2>
+                                <h2 className={styles.sidebarTitle}>{'Vẽ ranh giới chợ'}</h2>
                                 <div className={styles.infoBox}>
-                                    Click liên tiếp lên vùng bản đồ bên phải để đặt các điểm góc, sau đó nhấn <strong>Khép kín</strong>.
+                                    {'Click liên tiếp lên vùng bản đồ bên phải để đặt các điểm góc, sau đó nhấn'}<strong>{'Khép kín'}</strong>.
                                 </div>
 
                                 {marketInfo.points.length > 0 && !marketInfo.isClosed && (
@@ -677,8 +679,8 @@ const MarketWizard = ({ onCancel, onComplete }) => {
                                 )}
                                 {marketInfo.isClosed && (
                                     <>
-                                        <div className={`${styles.infoBox} ${styles.success}`}>✅ Đã hoàn thành hình dạng chợ!</div>
-                                        <button className={styles.secondaryBtn} onClick={resetMarketShape}>↺ Vẽ lại</button>
+                                        <div className={`${styles.infoBox} ${styles.success}`}>{'✅ Đã hoàn thành hình dạng chợ!'}</div>
+                                        <button className={styles.secondaryBtn} onClick={resetMarketShape}>{'↺ Vẽ lại'}</button>
                                     </>
                                 )}
                             </>
@@ -687,9 +689,9 @@ const MarketWizard = ({ onCancel, onComplete }) => {
                         {/* STEP 2 */}
                         {step === 2 && (
                             <>
-                                <h2 className={styles.sidebarTitle}>🗺️ Phân lô khu vực (Lưới)</h2>
+                                <h2 className={styles.sidebarTitle}>{'🗺️ Phân lô khu vực (Lưới)'}</h2>
 
-                                <div className={styles.infoBox}>Hệ thống sẽ tự động rải đều các khu vực lên mặt bằng chợ.</div>
+                                <div className={styles.infoBox}>{'Hệ thống sẽ tự động rải đều các khu vực lên mặt bằng chợ.'}</div>
 
                                 <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
                                     <div className={styles.formGroup} style={{ flex: 1, marginBottom: 0 }}>
@@ -708,7 +710,7 @@ const MarketWizard = ({ onCancel, onComplete }) => {
 
                                 <div className={styles.formGroup}>
                                     <label>SỐ LƯỢNG KHU VỰC CẦN TẠO</label>
-                                    <input className={styles.formInput} type="number" min="1" placeholder="Để trống để tạo tối đa theo dòng & cột..."
+                                    <input className={styles.formInput} type="number" min="1" placeholder={'Để trống để tạo tối đa theo dòng & cột...'}
                                         value={gridConfig.count}
                                         onChange={e => setGridConfig({...gridConfig, count: e.target.value})} />
                                 </div>
@@ -732,7 +734,7 @@ const MarketWizard = ({ onCancel, onComplete }) => {
                                         <select className={styles.formInput} 
                                             value={gridConfig.categoryName}
                                             onChange={e => setGridConfig({...gridConfig, categoryName: e.target.value})}>
-                                            <option value="">Chọn ngành hàng...</option>
+                                            <option value="">{'Chọn ngành hàng...'}</option>
                                             {categories.map(cat => (
                                                 <option key={cat.categoryId} value={cat.name}>{cat.name}</option>
                                             ))}
@@ -745,16 +747,14 @@ const MarketWizard = ({ onCancel, onComplete }) => {
                                         checked={gridConfig.generateStalls}
                                         onChange={e => setGridConfig({...gridConfig, generateStalls: e.target.checked})}
                                         style={{ width: '16px', height: '16px', cursor: 'pointer' }} />
-                                    <label htmlFor="genStallsStep2" style={{ margin: 0, cursor: 'pointer', textTransform: 'none', fontWeight: 'bold' }}>Tự động sinh Sạp (Stalls)</label>
+                                    <label htmlFor="genStallsStep2" style={{ margin: 0, cursor: 'pointer', textTransform: 'none', fontWeight: 'bold' }}>{'Tự động sinh Sạp (Stalls)'}</label>
                                 </div>
 
                                 <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
                                     <button className={styles.primaryBtn} style={{flex: 2, background: '#8b5cf6', borderColor: '#8b5cf6'}} onClick={generateGridAreas}>
-                                        🪄 Sinh lưới
-                                    </button>
+                                        {'🪄 Sinh lưới'}</button>
                                     <button className={styles.secondaryBtn} style={{flex: 1, color: 'var(--mw-danger)', borderColor: 'var(--mw-danger)'}} onClick={() => setAreas([])}>
-                                        🗑 Xóa hết
-                                    </button>
+                                        {'🗑 Xóa hết'}</button>
                                 </div>
 
                                 <hr style={{border:'none', borderTop:'1.5px solid var(--mw-border)', margin:'4px 0 16px 0'}} />
@@ -764,45 +764,45 @@ const MarketWizard = ({ onCancel, onComplete }) => {
                                         <article key={i} className={styles.areaItem} style={{display:'flex', justifyContent:'space-between', alignItems:'center', background: selectedAreaIndex === i ? 'rgba(139,92,246,.1)' : '#fff', border: selectedAreaIndex === i ? '1px solid #8b5cf6' : '1px solid var(--mw-border)'}}>
                                             <div onClick={() => setSelectedAreaIndex(i)} style={{ cursor: 'pointer', flex: 1 }}>
                                                 <h4>{a.name} {a.categoryName ? <span style={{fontSize: 12, fontWeight: 'normal', color: 'var(--text-secondary)'}}>({a.categoryName})</span> : ''}</h4>
-                                                <p>{a.size ? `${a.size} m² • ` : ''}{a.stalls?.length > 0 ? `${a.stalls.length} sạp bên trong` : 'Chưa có sạp'}</p>
+                                                <p>{a.size ? `${a.size} m² • ` : ''}{a.stalls?.length > 0 ? '${a.stalls.length} sạp bên trong' : 'Chưa có sạp'}</p>
                                             </div>
                                             <div>
                                                 <button onClick={() => {
                                                     setEditingAreaIndex(i);
                                                     setEditingAreaData({ name: a.name, size: a.size || '', categoryName: a.categoryName || '' });
                                                     setSelectedAreaIndex(i);
-                                                }} style={{background:'transparent', border:'none', color:'#3b82f6', cursor:'pointer', fontSize:16, marginRight: 8}} title="Sửa">✏️</button>
+                                                }} style={{background:'transparent', border:'none', color:'#3b82f6', cursor:'pointer', fontSize:16, marginRight: 8}} title={'Sửa'}>✏️</button>
                                                 <button onClick={() => {
                                                     const newAreas = [...areas];
                                                     newAreas.splice(i, 1);
                                                     setAreas(newAreas);
                                                     if (selectedAreaIndex === i) setSelectedAreaIndex(null);
                                                     if (editingAreaIndex === i) setEditingAreaIndex(null);
-                                                }} style={{background:'transparent', border:'none', color:'var(--mw-danger)', cursor:'pointer', fontSize:16}} title="Xóa">✕</button>
+                                                }} style={{background:'transparent', border:'none', color:'var(--mw-danger)', cursor:'pointer', fontSize:16}} title={'Xóa'}>✕</button>
                                             </div>
                                         </article>
                                     ))}
                                     {areas.length === 0 && (
-                                        <div style={{textAlign:'center', color:'var(--text-secondary)', fontSize: 13}}>Chưa có khu vực nào.</div>
+                                        <div style={{textAlign:'center', color:'var(--text-secondary)', fontSize: 13}}>{'Chưa có khu vực nào.'}</div>
                                     )}
                                 </div>
                                 {editingAreaIndex !== null && (
                                     <div style={{ padding: 12, border: '1px solid var(--mw-border)', borderRadius: 8, marginTop: 16, backgroundColor: '#f8fafc' }}>
-                                        <h4 style={{ margin: '0 0 12px 0', fontSize: 14 }}>✏️ Chỉnh sửa thông tin</h4>
+                                        <h4 style={{ margin: '0 0 12px 0', fontSize: 14 }}>{'✏️ Chỉnh sửa thông tin'}</h4>
                                         <div className={styles.formGroup}>
-                                            <label>Tên khu vực</label>
+                                            <label>{'Tên khu vực'}</label>
                                             <input className={styles.formInput} value={editingAreaData.name} onChange={e => setEditingAreaData({...editingAreaData, name: e.target.value})} />
                                         </div>
                                         <div className={styles.formGroup}>
-                                            <label>Diện tích (m²)</label>
+                                            <label>{'Diện tích (m²)'}</label>
                                             <input className={styles.formInput} type="number" min="0" value={editingAreaData.size} onChange={e => setEditingAreaData({...editingAreaData, size: e.target.value})} />
                                         </div>
                                         <div className={styles.formGroup}>
-                                            <label>Ngành hàng</label>
+                                            <label>{'Ngành hàng'}</label>
                                             <select className={styles.formInput} 
                                                 value={editingAreaData.categoryName}
                                                 onChange={e => setEditingAreaData({...editingAreaData, categoryName: e.target.value})}>
-                                                <option value="">Không có</option>
+                                                <option value="">{'Không có'}</option>
                                                 {categories.map(cat => (
                                                     <option key={cat.categoryId} value={cat.name}>{cat.name}</option>
                                                 ))}
@@ -913,8 +913,8 @@ const MarketWizard = ({ onCancel, onComplete }) => {
                                                     return updated.filter(a => a.points && a.points.length >= 3);
                                                 });
                                                 setEditingAreaIndex(null);
-                                            }}>Lưu</button>
-                                            <button className={styles.secondaryBtn} style={{ flex: 1, padding: '6px 12px', fontSize: 13 }} onClick={() => setEditingAreaIndex(null)}>Hủy</button>
+                                            }}>{'Lưu'}</button>
+                                            <button className={styles.secondaryBtn} style={{ flex: 1, padding: '6px 12px', fontSize: 13 }} onClick={() => setEditingAreaIndex(null)}>{'← Hủy'}</button>
                                         </div>
                                     </div>
                                 )}
@@ -924,13 +924,13 @@ const MarketWizard = ({ onCancel, onComplete }) => {
                         {/* STEP 3 */}
                         {step === 3 && (
                             <>
-                                <h2 className={styles.sidebarTitle}>🏬 Sinh sạp tự động</h2>
+                                <h2 className={styles.sidebarTitle}>{'Sinh sạp tự động'}</h2>
                                 <div className={styles.formGroup}>
-                                    <label htmlFor="stall-area">Chọn khu vực</label>
+                                    <label htmlFor="stall-area">{'-- Chọn khu vực --'}</label>
                                     <select id="stall-area" className={styles.formInput}
                                         value={selectedAreaIndex !== null ? selectedAreaIndex : ''}
                                         onChange={e => setSelectedAreaIndex(e.target.value === '' ? null : Number(e.target.value))}>
-                                        <option value="" disabled>-- Chọn khu vực --</option>
+                                        <option value="" disabled>{'-- Chọn khu vực --'}</option>
                                         {areas.map((a, i) => <option key={i} value={i}>{a.name}</option>)}
                                     </select>
                                 </div>
@@ -938,28 +938,28 @@ const MarketWizard = ({ onCancel, onComplete }) => {
                                 {selectedAreaIndex !== null && (
                                     <>
                                         <div className={styles.formGroup}>
-                                            <label htmlFor="stall-prefix">Tiền tố mã sạp</label>
+                                            <label htmlFor="stall-prefix">{'Tiền tố mã sạp'}</label>
                                             <input id="stall-prefix" className={styles.formInput} value={stallsConfig.prefix}
                                                 onChange={e => setStallsConfig({...stallsConfig, prefix: e.target.value})}
                                                 placeholder="Vd: S, A, KV1…" />
                                         </div>
                                         <div className={styles.formGroup}>
-                                            <label htmlFor="stall-count">Số lượng sạp</label>
+                                            <label htmlFor="stall-count">{'Số lượng sạp'}</label>
                                             <input id="stall-count" type="number" min="1" className={styles.formInput}
                                                 value={stallsConfig.count}
                                                 onChange={e => setStallsConfig({...stallsConfig, count: e.target.value})} />
                                         </div>
                                         <div className={styles.formGroup}>
-                                            <label htmlFor="stall-size">Diện tích mỗi sạp (m²)</label>
+                                            <label htmlFor="stall-size">{'Diện tích mỗi sạp (m²)'}</label>
                                             <input id="stall-size" type="number" min="0" className={styles.formInput}
                                                 value={stallsConfig.size}
                                                 readOnly
                                                 style={{backgroundColor: 'var(--mw-gray-50)', color: 'var(--mw-gray-500)'}}
-                                                placeholder="Tự động tính..." />
+                                                placeholder={'Tự động tính...'} />
                                         </div>
                                         <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:12}}>
                                             <div className={styles.formGroup}>
-                                                <label htmlFor="stall-w">Rộng (m)</label>
+                                                <label htmlFor="stall-w">{'Rộng (m)'}</label>
                                                 <input id="stall-w" type="number" min="1" className={styles.formInput}
                                                     value={stallsConfig.width}
                                                     onChange={e => {
@@ -983,15 +983,13 @@ const MarketWizard = ({ onCancel, onComplete }) => {
                                         </div>
                                         <div style={{display:'flex', gap: 8, marginTop: 4}}>
                                             <button className={styles.primaryBtn} style={{flex: 1}} onClick={generateStalls}>
-                                                ⚡ Sinh sạp ngay
-                                            </button>
+                                                {'⚡ Sinh sạp ngay'}</button>
                                             <button 
                                                 className={styles.secondaryBtn} 
                                                 style={{flex: 1, backgroundColor: '#f1f5f9', color: '#334155', border: '1px solid #cbd5e1'}}
                                                 onClick={() => setIsDrawingStall(true)}
                                             >
-                                                🖊️ Vẽ sạp thủ công
-                                            </button>
+                                                {'🖊️ Vẽ sạp thủ công'}</button>
                                         </div>
                                         {areas[selectedAreaIndex]?.stalls?.length > 0 && (
                                             <div className={`${styles.infoBox} ${styles.success}`}>
@@ -1008,21 +1006,21 @@ const MarketWizard = ({ onCancel, onComplete }) => {
                     <div className={styles.sidebarActions}>
                         {step === 1 && (
                             <>
-                                <button className={styles.secondaryBtn} style={{flex:1}} onClick={onCancel}>← Hủy</button>
+                                <button className={styles.secondaryBtn} style={{flex:1}} onClick={onCancel}>{'← Hủy'}</button>
                                 <button className={styles.primaryBtn} style={{flex:2}} onClick={handleNextStep1}
-                                    disabled={!marketInfo.name || !marketInfo.isClosed}>Tiếp theo →</button>
+                                    disabled={!marketInfo.name || !marketInfo.isClosed}>{'Tiếp theo →'}</button>
                             </>
                         )}
                         {step === 2 && (
                             <>
-                                <button className={styles.secondaryBtn} style={{flex:1}} onClick={() => setStep(1)}>← Quay lại</button>
+                                <button className={styles.secondaryBtn} style={{flex:1}} onClick={() => setStep(1)}>{'← Quay lại'}</button>
                                 <button className={styles.primaryBtn} style={{flex:2}} onClick={handleNextStep2}
-                                    disabled={areas.length === 0}>Tiếp theo →</button>
+                                    disabled={areas.length === 0}>{'Tiếp theo →'}</button>
                             </>
                         )}
                         {step === 3 && (
                             <>
-                                <button className={styles.secondaryBtn} style={{flex:1}} onClick={() => setStep(2)}>← Quay lại</button>
+                                <button className={styles.secondaryBtn} style={{flex:1}} onClick={() => setStep(2)}>{'← Quay lại'}</button>
                                 <button className={styles.successBtn} style={{flex:2}} onClick={handleSave} disabled={loading}>
                                     {loading ? '⏳ Đang lưu…' : '✅ Hoàn tất & Lưu'}
                                 </button>
@@ -1074,7 +1072,7 @@ const MarketWizard = ({ onCancel, onComplete }) => {
                                 display: 'block'
                             }}
                             viewBox="0 0 4000 4000"
-                            role="img" aria-label="Vùng vẽ bản đồ chợ tương tác">
+                            role="img" aria-label={'Vùng vẽ bản đồ chợ tương tác'}>
 
                         {/* Market outline */}
                         {marketInfo.points.length > 0 && (

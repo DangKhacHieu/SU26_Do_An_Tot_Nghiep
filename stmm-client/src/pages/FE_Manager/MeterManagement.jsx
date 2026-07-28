@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import meterService from '../../services/meterService';
 import './MeterManagement.css';
@@ -16,6 +17,8 @@ const IconChevronRight = () => <svg width="16" height="16" viewBox="0 0 24 24" f
 const DEFAULT_ASSIGNED_FILTER = 'false';
 
 export default function MeterManagement({ addToast }) {
+  const { t } = useTranslation();
+
   const [meters, setMeters] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -42,7 +45,7 @@ export default function MeterManagement({ addToast }) {
       const res = await meterService.getMeters();
       setMeters(Array.isArray(res) ? res : []);
     } catch (error) {
-      addToast(error.message || 'Không thể tải danh sách công tơ.', 'error');
+      addToast(error.message || t('metermanagement.unable_to_load_meter'), 'error');
     } finally {
       setLoading(false);
     }
@@ -98,9 +101,9 @@ export default function MeterManagement({ addToast }) {
   const validateForm = () => {
     const errors = {};
     if (!formValues.serialNumber.trim()) {
-      errors.serialNumber = 'Mã số seri không được để trống.';
+      errors.serialNumber = t('metermanagement.the_serial_number_cannot');
     } else if (formValues.serialNumber.trim().length < 3) {
-      errors.serialNumber = 'Mã số seri phải có ít nhất 3 ký tự.';
+      errors.serialNumber = t('metermanagement.the_serial_number_must');
     }
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
@@ -155,7 +158,7 @@ export default function MeterManagement({ addToast }) {
       setPageNumber(1);
       fetchMeters();
     } catch (error) {
-      addToast(error.message || 'Lỗi khi tạo công tơ.', 'error');
+      addToast(error.message || t('metermanagement.error_creating_meter'), 'error');
     } finally {
       setActionLoading(false);
     }
@@ -176,7 +179,7 @@ export default function MeterManagement({ addToast }) {
       handleCloseModal();
       fetchMeters();
     } catch (error) {
-      addToast(error.message || 'Lỗi khi cập nhật công tơ.', 'error');
+      addToast(error.message || t('metermanagement.error_updating_meter'), 'error');
     } finally {
       setActionLoading(false);
     }
@@ -237,12 +240,12 @@ export default function MeterManagement({ addToast }) {
             <input
               type="text"
               className="search-input"
-              placeholder="Tìm theo Serial Number..."
+              placeholder={t('metermanagement.search_by_serial_number')}
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPageNumber(1); }}
             />
             {search && (
-              <button className="search-clear" onClick={() => setSearch('')} title="Xóa">
+              <button className="search-clear" onClick={() => setSearch('')} title={t('metermanagement.erase')}>
                 <IconXCircle />
               </button>
             )}
@@ -253,9 +256,9 @@ export default function MeterManagement({ addToast }) {
             value={typeFilter}
             onChange={(e) => { setTypeFilter(e.target.value); setPageNumber(1); }}
           >
-            <option value="">Tất cả loại công tơ</option>
-            <option value="Electricity">Điện (Electricity)</option>
-            <option value="Water">Nước (Water)</option>
+            <option value="">{t('metermanagement.all_types_of_meters')}</option>
+            <option value="Electricity">{t('metermanagement.electricity')}</option>
+            <option value="Water">{t('metermanagement.water')}</option>
           </select>
 
           <select
@@ -263,9 +266,9 @@ export default function MeterManagement({ addToast }) {
             value={isAssignedFilter}
             onChange={(e) => { setIsAssignedFilter(e.target.value); setPageNumber(1); }}
           >
-            <option value="">Tất cả công tơ cùng chợ</option>
-            <option value="false">Trong kho - khả dụng</option>
-            <option value="true">Đã gán vào sạp</option>
+            <option value="">{t('metermanagement.all_meters_are_in')}</option>
+            <option value="false">{t('metermanagement.in_stock_available')}</option>
+            <option value="true">{t('metermanagement.assigned_to_the_stall')}</option>
           </select>
 
           <select
@@ -273,21 +276,19 @@ export default function MeterManagement({ addToast }) {
             value={isActiveFilter}
             onChange={(e) => { setIsActiveFilter(e.target.value); setPageNumber(1); }}
           >
-            <option value="">Tất cả trạng thái hoạt động</option>
-            <option value="true">Hoạt động (Active)</option>
-            <option value="false">Ngừng hoạt động (Inactive)</option>
+            <option value="">{t('metermanagement.all_active_status')}</option>
+            <option value="true">{t('metermanagement.active')}</option>
+            <option value="false">{t('metermanagement.inactive')}</option>
           </select>
 
           {hasFilters && (
             <button className="btn-filter-clear" onClick={handleClearFilters}>
-              Xóa bộ lọc
-            </button>
+              {t('metermanagement.clear_filter')}</button>
           )}
         </div>
 
         <button className="btn-primary" onClick={handleOpenCreateModal}>
-          <IconPlus /> Thêm công tơ vào kho
-        </button>
+          <IconPlus /> {t('metermanagement.add_meter_to_inventory')}</button>
       </div>
 
       {/* ── Bảng dữ liệu ── */}
@@ -295,7 +296,7 @@ export default function MeterManagement({ addToast }) {
         <div className="table-card-header">
           <div className="table-title-group">
             <span className="table-card-title">{tableTitle}</span>
-            <span className="table-card-subtitle">Nguồn công tơ sẵn có để nhóm tạo sạp chọn từ dropdown.</span>
+            <span className="table-card-subtitle">{t('metermanagement.available_meter_sources_for')}</span>
           </div>
           {!loading && (
             <span className="table-count-badge">{totalCount} công tơ</span>
@@ -305,18 +306,17 @@ export default function MeterManagement({ addToast }) {
         {loading ? (
           <div className="state-empty">
             <div className="spinner" />
-            <span className="state-empty-text">Đang tải kho công tơ cùng chợ...</span>
+            <span className="state-empty-text">{t('metermanagement.loading_meter_warehouse_with')}</span>
           </div>
         ) : visibleMeters.length === 0 ? (
           <div className="state-empty">
             <IconEmpty />
             <span className="state-empty-text">
-              {hasFilters ? 'Không tìm thấy công tơ nào phù hợp.' : 'Chưa có công tơ khả dụng trong kho để tạo sạp.'}
+              {hasFilters ? t('metermanagement.no_matching_meters_were') : t('metermanagement.there_are_no_available')}
             </span>
             {hasFilters && (
               <button className="btn-secondary" style={{ marginTop: 8 }} onClick={handleClearFilters}>
-                Về kho khả dụng
-              </button>
+                {t('metermanagement.about_available_inventory')}</button>
             )}
           </div>
         ) : (
@@ -326,13 +326,13 @@ export default function MeterManagement({ addToast }) {
                 <thead>
                   <tr>
                     <th style={{ width: 50, textAlign: 'center' }}>#</th>
-                    <th>Số Seri (Serial Number)</th>
-                    <th>Loại</th>
-                    <th>Trạng thái gán sạp</th>
-                    <th style={{ textAlign: 'right' }}>Chỉ số cuối</th>
-                    <th>Ngày lắp đặt</th>
-                    <th>Hoạt động</th>
-                    <th style={{ width: 140, textAlign: 'center' }}>Hành động</th>
+                    <th>{t('metermanagement.serial_number')}</th>
+                    <th>{t('metermanagement.type')}</th>
+                    <th>{t('metermanagement.stall_assignment_status')}</th>
+                    <th style={{ textAlign: 'right' }}>{t('metermanagement.last_index')}</th>
+                    <th>{t('metermanagement.installation_date')}</th>
+                    <th>{t('metermanagement.work')}</th>
+                    <th style={{ width: 140, textAlign: 'center' }}>{t('metermanagement.act')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -346,7 +346,7 @@ export default function MeterManagement({ addToast }) {
                         </td>
                         <td>
                           <span className={`badge-type ${meter.type?.toLowerCase()}`}>
-                            {meter.type === 'Electricity' ? 'Điện' : 'Nước'}
+                            {meter.type === 'Electricity' ? t('metermanagement.electricity') : t('metermanagement.water')}
                           </span>
                         </td>
                         <td>
@@ -371,14 +371,14 @@ export default function MeterManagement({ addToast }) {
                         <td>
                           <span className={`badge-status ${meter.isActive ? 'active' : 'inactive'}`}>
                             <span className="badge-dot" />
-                            {meter.isActive ? 'Hoạt động' : 'Ngừng hoạt động'}
+                            {meter.isActive ? t('metermanagement.work') : t('metermanagement.stop_working')}
                           </span>
                         </td>
                         <td>
                           <div className="actions-cell">
                             <button
                               className="btn-icon edit"
-                              title="Chỉnh sửa công tơ"
+                              title={t('metermanagement.edit_meters')}
                               onClick={() => handleOpenEditModal(meter)}
                             >
                               <IconEdit />
@@ -414,7 +414,7 @@ export default function MeterManagement({ addToast }) {
                   className="btn-pagination"
                   disabled={safePageNumber <= 1}
                   onClick={() => setPageNumber(p => Math.max(1, p - 1))}
-                  title="Trang trước"
+                  title={t('metermanagement.previous_page')}
                 >
                   <IconChevronLeft />
                 </button>
@@ -450,13 +450,13 @@ export default function MeterManagement({ addToast }) {
         <div className="modal-overlay" onClick={handleCloseModal}>
           <div className="modal-box" onClick={(e) => e.stopPropagation()}>
             <div className="modal-head">
-              <h3>Thêm công tơ vào kho khả dụng</h3>
+              <h3>{t('metermanagement.add_meters_to_availability')}</h3>
               <button className="modal-close" onClick={handleCloseModal}>×</button>
             </div>
             <form onSubmit={handleCreateMeter}>
               <div className="modal-body">
                 <div className="form-group">
-                  <label className="form-label">Loại công tơ <span className="text-danger">*</span></label>
+                  <label className="form-label">{t('metermanagement.meter_type')}<span className="text-danger">*</span></label>
                   <div className="radio-group">
                     <label className="radio-label">
                       <input
@@ -466,8 +466,7 @@ export default function MeterManagement({ addToast }) {
                         checked={formValues.type === 'Electricity'}
                         onChange={(e) => setFormValues(prev => ({ ...prev, type: e.target.value }))}
                       />
-                      Điện (Electricity)
-                    </label>
+                      {t('metermanagement.electricity')}</label>
                     <label className="radio-label">
                       <input
                         type="radio"
@@ -476,30 +475,29 @@ export default function MeterManagement({ addToast }) {
                         checked={formValues.type === 'Water'}
                         onChange={(e) => setFormValues(prev => ({ ...prev, type: e.target.value }))}
                       />
-                      Nước (Water)
-                    </label>
+                      {t('metermanagement.water')}</label>
                   </div>
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Mã số Seri (Serial Number) <span className="text-danger">*</span></label>
+                  <label className="form-label">{t('metermanagement.serial_number')}<span className="text-danger">*</span></label>
                   <input
                     type="text"
                     className={`form-input ${formErrors.serialNumber ? 'is-invalid' : ''}`}
-                    placeholder="Ví dụ: ELEC-99882, WAT-33291"
+                    placeholder={t('metermanagement.for_example_elec99882_wat33291')}
                     value={formValues.serialNumber}
                     onChange={(e) => setFormValues(prev => ({ ...prev, serialNumber: e.target.value }))}
                   />
                   {formErrors.serialNumber && (
                     <span className="invalid-feedback">{formErrors.serialNumber}</span>
                   )}
-                  <p className="form-help-text">Mã seri phải là duy nhất. Sau khi tạo, công tơ nằm trong kho cùng chợ để chọn khi tạo sạp.</p>
+                  <p className="form-help-text">{t('metermanagement.serial_code_must_be')}</p>
                 </div>
               </div>
               <div className="modal-foot">
-                <button type="button" className="btn-secondary" onClick={handleCloseModal} disabled={actionLoading}>Hủy</button>
+                <button type="button" className="btn-secondary" onClick={handleCloseModal} disabled={actionLoading}>{t('metermanagement.cancel')}</button>
                 <button type="submit" className="btn-primary" disabled={actionLoading}>
-                  {actionLoading ? 'Đang tạo...' : 'Tạo công tơ'}
+                  {actionLoading ? t('metermanagement.creating') : t('metermanagement.create_meters')}
                 </button>
               </div>
             </form>
@@ -512,29 +510,29 @@ export default function MeterManagement({ addToast }) {
         <div className="modal-overlay" onClick={handleCloseModal}>
           <div className="modal-box" onClick={(e) => e.stopPropagation()}>
             <div className="modal-head">
-              <h3>Chỉnh sửa thông tin công tơ</h3>
+              <h3>{t('metermanagement.edit_meter_information')}</h3>
               <button className="modal-close" onClick={handleCloseModal}>×</button>
             </div>
             <form onSubmit={handleUpdateMeter}>
               <div className="modal-body">
                 <div className="form-group">
-                  <label className="form-label">Loại công tơ</label>
+                  <label className="form-label">{t('metermanagement.meter_type')}</label>
                   <select
                     className="form-input"
                     value={formValues.type}
                     onChange={(e) => setFormValues(prev => ({ ...prev, type: e.target.value }))}
                     disabled={selectedMeter.stallId !== null}
                   >
-                    <option value="Electricity">Điện (Electricity)</option>
-                    <option value="Water">Nước (Water)</option>
+                    <option value="Electricity">{t('metermanagement.electricity')}</option>
+                    <option value="Water">{t('metermanagement.water')}</option>
                   </select>
                   {selectedMeter.stallId !== null && (
-                    <p className="form-help-text text-warning">Không thể đổi loại của công tơ đang được lắp tại sạp.</p>
+                    <p className="form-help-text text-warning">{t('metermanagement.it_is_not_possible')}</p>
                   )}
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Mã số Seri (Serial Number) <span className="text-danger">*</span></label>
+                  <label className="form-label">{t('metermanagement.serial_number')}<span className="text-danger">*</span></label>
                   <input
                     type="text"
                     className={`form-input ${formErrors.serialNumber ? 'is-invalid' : ''}`}
@@ -548,9 +546,9 @@ export default function MeterManagement({ addToast }) {
 
               </div>
               <div className="modal-foot">
-                <button type="button" className="btn-secondary" onClick={handleCloseModal} disabled={actionLoading}>Hủy</button>
+                <button type="button" className="btn-secondary" onClick={handleCloseModal} disabled={actionLoading}>{t('metermanagement.cancel')}</button>
                 <button type="submit" className="btn-primary" disabled={actionLoading}>
-                  {actionLoading ? 'Đang lưu...' : 'Lưu thay đổi'}
+                  {actionLoading ? t('metermanagement.saving') : t('metermanagement.save_changes')}
                 </button>
               </div>
             </form>

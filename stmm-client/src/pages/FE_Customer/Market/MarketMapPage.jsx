@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useRef } from "react";
 import Header from "../Layout/Header";
 import Footer from "../Layout/Footer";
@@ -16,6 +17,7 @@ export default function MarketMapPage({
   onGoToStallDetail,
   onLogout,
 }) {
+  const { t } = useTranslation();
   const MAP_SCALE = 0.65;
   const [marketMap, setMarketMap] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -54,7 +56,7 @@ export default function MarketMapPage({
           setError("Market map not found.");
         }
       } catch (err) {
-        console.error("Lỗi khi tải sơ đồ chợ:", err);
+        console.error(t('marketmappage.error_when_loading_market'), err);
         setError("Could not connect to the server to load the market map.");
       } finally {
         setLoading(false);
@@ -73,6 +75,7 @@ export default function MarketMapPage({
   // Click outside to close search suggestions
   useEffect(() => {
     const handleClickOutside = (e) => {
+
       if (searchRef.current && !searchRef.current.contains(e.target)) {
         setShowSuggestions(false);
       }
@@ -154,7 +157,7 @@ export default function MarketMapPage({
       const summary = await getStallReviews(stall.stallId);
       setRatingSummary(summary);
     } catch (err) {
-      console.error("Lỗi khi tải đánh giá sạp:", err);
+      console.error(t('marketmappage.error_loading_stall_reviews'), err);
       setRatingSummary(null);
     }
   };
@@ -173,7 +176,7 @@ export default function MarketMapPage({
       const summary = await getStallReviews(stall.stallId);
       setRatingSummary(summary);
     } catch (err) {
-      console.error("Lỗi khi tải đánh giá sạp:", err);
+      console.error(t('marketmappage.error_loading_stall_reviews'), err);
       setRatingSummary(null);
     }
   };

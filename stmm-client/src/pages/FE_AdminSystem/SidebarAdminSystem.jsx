@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+import LanguageSwitcher from '../../components/layout/LanguageSwitcher';
 import './SidebarAdminSystem.css';
 
 /**
@@ -40,32 +42,32 @@ const IconLogs = () => (
 
 const NAV_GROUPS = [
   {
-    label: 'Tổng quan',
+    label: "Tổng quan",
     items: [
       {
         key: 'admin-dashboard',
-        label: 'Trang tổng quan',
+        label: "Trang tổng quan",
         icon: <IconGrid />,
       },
     ],
   },
   {
-    label: 'Quản trị hệ thống',
+    label: "Quản trị hệ thống",
     items: [
       {
         key: 'admin-users',
-        label: 'Tài khoản toàn hệ thống',
+        label: "Tài khoản toàn hệ thống",
         icon: <IconUsers />,
         childKeys: ['admin-user-form', 'admin-user-detail'],
       },
       {
         key: 'admin-market-approval',
-        label: 'Phê duyệt Chợ',
+        label: "Phê duyệt Chợ",
         icon: <IconSettings />,
       },
       {
         key: 'admin-audit-logs',
-        label: 'Nhật ký hoạt động',
+        label: "Nhật ký hoạt động",
         icon: <IconLogs />,
       },
     ],
@@ -73,6 +75,22 @@ const NAV_GROUPS = [
 ];
 
 export default function SidebarAdminSystem({ currentPage, navigate, user, onLogout }) {
+  const { t } = useTranslation();
+
+  const getGroupLabel = (groupLabel) => {
+    if (groupLabel === "Tổng quan") return t('sidebaradminsystem.overview');
+    if (groupLabel === "Quản trị hệ thống") return t('sidebaradminsystem.system_administration');
+    return groupLabel;
+  };
+
+  const getItemLabel = (itemKey, itemLabel) => {
+    if (itemKey === 'admin-dashboard') return t('sidebaradminsystem.overview_page');
+    if (itemKey === 'admin-users') return t('sidebaradminsystem.systemwide_account');
+    if (itemKey === 'admin-market-approval') return t('sidebaradminsystem.market_approval');
+    if (itemKey === 'admin-audit-logs') return t('sidebaradminsystem.activity_log');
+    return itemLabel;
+  };
+
   const isActive = (item) =>
     item.key === currentPage ||
     (item.childKeys && item.childKeys.includes(currentPage));
@@ -91,7 +109,7 @@ export default function SidebarAdminSystem({ currentPage, navigate, user, onLogo
       {/* Navigation groups */}
       {NAV_GROUPS.map((group) => (
         <div key={group.label}>
-          <p className="sidebar-section-label">{group.label}</p>
+          <p className="sidebar-section-label">{getGroupLabel(group.label)}</p>
           <nav className="sidebar-menu">
             {group.items.map((item) => (
               <div
@@ -100,12 +118,17 @@ export default function SidebarAdminSystem({ currentPage, navigate, user, onLogo
                 onClick={() => navigate(item.key)}
               >
                 <span className="menu-icon">{item.icon}</span>
-                <span className="menu-label">{item.label}</span>
+                <span className="menu-label">{getItemLabel(item.key, item.label)}</span>
               </div>
             ))}
           </nav>
         </div>
       ))}
+
+      {/* Language Switcher */}
+      <div style={{ padding: '8px 12px' }}>
+        <LanguageSwitcher />
+      </div>
 
       {/* Footer: current user info */}
       <div className="sidebar-footer">
@@ -114,13 +137,13 @@ export default function SidebarAdminSystem({ currentPage, navigate, user, onLogo
         </div>
         <div className="user-info" style={{ flexGrow: 1 }}>
           <span className="user-name">{user?.name || 'System Admin'}</span>
-          <span className="user-role">{user?.roleName || 'Quản trị tối cao'}</span>
+          <span className="user-role">{user?.roleName || t('sidebaradminsystem.qun_tr_ti_cao')}</span>
         </div>
         {onLogout && (
           <button 
             onClick={onLogout}
             className="logout-icon-btn"
-            title="Đăng xuất"
+            title={t('sidebaradminsystem.sign_out')}
             style={{
               background: 'none',
               border: 'none',

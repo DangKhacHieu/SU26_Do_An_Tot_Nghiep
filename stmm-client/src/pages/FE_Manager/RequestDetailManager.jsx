@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 
 import { useState, useEffect, useCallback } from 'react';
 import './RequestDetailManager.css';
@@ -83,6 +84,8 @@ const IconCalendar = () => (
 );
 
 export default function RequestDetailManager({ requestId, baseUrl, navigate, addToast }) {
+  const { t } = useTranslation();
+
   const requestApiBase = `${baseUrl}/api/manager/requests`;
   const [request, setRequest] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -119,7 +122,7 @@ export default function RequestDetailManager({ requestId, baseUrl, navigate, add
         headers: getAuthHeaders()
       });
       if (!res.ok) throw new Error();
-      addToast(approve ? 'Đã phê duyệt chấp nhận kháng nghị.' : 'Đã bác bỏ kháng nghị.', 'success');
+      addToast(approve ? t('requestdetailmanager.approved_to_accept_the') : t('requestdetailmanager.the_appeal_was_dismissed'), 'success');
       await fetchRequestDetail();
     } catch {
       addToast('Thao tác thất bại. Vui lòng thử lại.', 'error');
@@ -134,18 +137,18 @@ export default function RequestDetailManager({ requestId, baseUrl, navigate, add
 
   const validateDecision = () => {
     if (!decision.action) {
-      return 'Vui lòng chọn quyết định xử lý báo giá.';
+      return t('requestdetailmanager.please_select_the_quote');
     }
 
     if (actionRequiresContractClause(decision.action) && !decision.contractClause) {
-      return 'Vui lòng chọn điều khoản hợp đồng.';
+      return t('requestdetailmanager.please_select_contract_terms');
     }
 
     if (
       actionRequiresDecisionNote(decision.action, decision.contractClause)
       && decision.decisionNote.trim().length < 10
     ) {
-      return 'Ghi chú quyết định phải có ít nhất 10 ký tự.';
+      return t('requestdetailmanager.decision_notes_must_be');
     }
 
     return null;
@@ -175,7 +178,7 @@ export default function RequestDetailManager({ requestId, baseUrl, navigate, add
 
       if (!res.ok) {
         const errorText = await res.text();
-        let errorMessage = errorText || 'Thao tác thất bại.';
+        let errorMessage = errorText || t('requestdetailmanager.operation_failed');
         try {
           const problem = JSON.parse(errorText);
           errorMessage = problem.detail || problem.message || errorMessage;
@@ -192,7 +195,7 @@ export default function RequestDetailManager({ requestId, baseUrl, navigate, add
       setDecision({ action: '', contractClause: '', decisionNote: '' });
       await fetchRequestDetail();
     } catch (err) {
-      addToast(err.message || 'Thao tác thất bại. Vui lòng thử lại.', 'error');
+      addToast(err.message || t('requestdetailmanager.operation_failed_please_try'), 'error');
     } finally {
       setSubmitting(false);
     }
@@ -218,7 +221,7 @@ export default function RequestDetailManager({ requestId, baseUrl, navigate, add
     return (
       <div className="rd-loading">
         <div className="rd-spinner" />
-        <span>Đang tải thông tin chi tiết...</span>
+        <span>{t('requestdetailmanager.loading_details')}</span>
       </div>
     );
   }
@@ -227,11 +230,10 @@ export default function RequestDetailManager({ requestId, baseUrl, navigate, add
   if (!request) {
     return (
       <div className="rd-not-found">
-        <h3>Không tìm thấy yêu cầu</h3>
-        <p>Yêu cầu không tồn tại hoặc đã bị xóa.</p>
+        <h3>{t('requestdetailmanager.no_request_found')}</h3>
+        <p>{t('requestdetailmanager.the_request_does_not')}</p>
         <button className="rd-back-btn" onClick={() => navigate('requests')}>
-          <IconArrowLeft /> Quay lại danh sách
-        </button>
+          <IconArrowLeft /> {t('requestdetailmanager.back_to_the_list')}</button>
       </div>
     );
   }
@@ -257,8 +259,7 @@ export default function RequestDetailManager({ requestId, baseUrl, navigate, add
 
         <div className="rd-header-top">
           <button className="rd-back-btn" onClick={() => navigate('requests')}>
-            <IconArrowLeft /> Danh sách yêu cầu
-          </button>
+            <IconArrowLeft /> {t('requestdetailmanager.list_of_requests')}</button>
 
           <div className="rd-header-badges">
             <span className={`rd-type-badge ${tm.cls}`}>{tm.label}</span>
@@ -275,12 +276,12 @@ export default function RequestDetailManager({ requestId, baseUrl, navigate, add
           <div className="rd-header-meta">
             <div className="rd-meta-item">
               <IconCalendar />
-              <span>Tạo lúc: <strong>{formatDate(request.createdAt)}</strong></span>
+              <span>{t('requestdetailmanager.created_at')}<strong>{formatDate(request.createdAt)}</strong></span>
             </div>
             {request.updatedAt && request.updatedAt !== request.createdAt && (
               <div className="rd-meta-item">
                 <IconCalendar />
-                <span>Cập nhật: <strong>{formatDate(request.updatedAt)}</strong></span>
+                <span>{t('requestdetailmanager.update')}<strong>{formatDate(request.updatedAt)}</strong></span>
               </div>
             )}
           </div>
@@ -296,10 +297,10 @@ export default function RequestDetailManager({ requestId, baseUrl, navigate, add
           <div className="rd-card">
             <div className="rd-card-header">
               <IconInfo />
-              <span>Nội dung yêu cầu</span>
+              <span>{t('requestdetailmanager.request_content')}</span>
             </div>
             <div className="rd-desc-box">
-              {request.description || '(Không có mô tả)'}
+              {request.description || t('requestdetailmanager.no_description')}
             </div>
           </div>
 
@@ -308,18 +309,18 @@ export default function RequestDetailManager({ requestId, baseUrl, navigate, add
             <div className="rd-card">
               <div className="rd-card-header">
                 <IconLink />
-                <span>Thông tin liên quan</span>
+                <span>{t('requestdetailmanager.related_information')}</span>
               </div>
               <div className="rd-refs">
                 {request.violationId && (
                   <div className="rd-ref-item rd-ref-violation">
-                    <span className="rd-ref-label">Biên bản vi phạm</span>
+                    <span className="rd-ref-label">{t('requestdetailmanager.violation_record')}</span>
                     <span className="rd-ref-code">#VIO-{request.violationId}</span>
                   </div>
                 )}
                 {request.invoiceId && (
                   <div className="rd-ref-item rd-ref-invoice">
-                    <span className="rd-ref-label">Hóa đơn thanh toán</span>
+                    <span className="rd-ref-label">{t('requestdetailmanager.payment_invoice')}</span>
                     <span className="rd-ref-code">#INV-{request.invoiceId}</span>
                   </div>
                 )}
@@ -332,33 +333,33 @@ export default function RequestDetailManager({ requestId, baseUrl, navigate, add
             <div className="rd-card rd-quote-card">
               <div className="rd-card-header">
                 <IconTool />
-                <span>Báo giá & Chi phí dự kiến</span>
+                <span>{t('requestdetailmanager.quote_estimated_cost')}</span>
               </div>
 
               <div className="rd-quote-amount-row">
                 <div>
-                  <p className="rd-field-label">Tổng chi phí dự kiến</p>
+                  <p className="rd-field-label">{t('requestdetailmanager.total_expected_cost')}</p>
                   <p className="rd-quote-amount">{formatCurrency(request.quotationAmount)}</p>
                 </div>
                 <div className="rd-quote-meta-grid">
                   <div>
-                    <p className="rd-field-label">Đối tượng chi trả</p>
+                    <p className="rd-field-label">{t('requestdetailmanager.paying_object')}</p>
                     <p className="rd-field-value">
-                      {request.paidBy === 'Vendor' ? 'Tiểu thương chịu'
-                        : request.paidBy === 'Market' ? 'Chợ chịu'
-                        : 'Chưa quyết định'}
+                      {request.paidBy === 'Vendor' ? t('requestdetailmanager.small_businesses_accept')
+                        : request.paidBy === 'Market' ? t('requestdetailmanager.the_market_accepts')
+                        : t('requestdetailmanager.havent_decided_yet')}
                     </p>
                   </div>
                   <div>
-                    <p className="rd-field-label">Trạng thái duyệt</p>
+                    <p className="rd-field-label">{t('requestdetailmanager.browsing_status')}</p>
                     <span className={`rd-approval-badge ${
                       request.isQuoteApproved === true  ? 'approved'
                         : request.isQuoteApproved === false ? 'rejected'
                         : 'pending'
                     }`}>
-                      {request.isQuoteApproved === true  ? 'Đã duyệt'
-                        : request.isQuoteApproved === false ? 'Từ chối'
-                        : 'Đang chờ'}
+                      {request.isQuoteApproved === true  ? t('requestdetailmanager.approved')
+                        : request.isQuoteApproved === false ? t('requestdetailmanager.refuse')
+                        : t('requestdetailmanager.waiting')}
                     </span>
                   </div>
                 </div>
@@ -366,7 +367,7 @@ export default function RequestDetailManager({ requestId, baseUrl, navigate, add
 
               {request.quotationText && (
                 <div className="rd-quote-text-wrap">
-                  <p className="rd-field-label">Chi tiết hạng mục & vật tư</p>
+                  <p className="rd-field-label">{t('requestdetailmanager.details_of_items_materials')}</p>
                   <div className="rd-quote-text">{request.quotationText}</div>
                 </div>
               )}
@@ -374,10 +375,10 @@ export default function RequestDetailManager({ requestId, baseUrl, navigate, add
               {(request.payerContractClause || request.payerDecisionNote) && (
                 <div className="rd-decision-summary">
                   {request.payerContractClause && (
-                    <p><strong>Điều khoản:</strong> {request.payerContractClause}</p>
+                    <p><strong>{t('requestdetailmanager.clause')}</strong> {request.payerContractClause}</p>
                   )}
                   {request.payerDecisionNote && (
-                    <p><strong>Ghi chú Manager:</strong> {request.payerDecisionNote}</p>
+                    <p><strong>{t('requestdetailmanager.manager_notes')}</strong> {request.payerDecisionNote}</p>
                   )}
                 </div>
               )}
@@ -389,7 +390,7 @@ export default function RequestDetailManager({ requestId, baseUrl, navigate, add
             <div className="rd-card rd-action-card" style={{ borderLeft: '4px solid #8b5cf6', background: '#faf5ff' }}>
               <div className="rd-card-header" style={{ color: '#7c3aed', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <IconInfo />
-                <span style={{ fontWeight: '700' }}>Xử lý Kháng nghị Vi phạm</span>
+                <span style={{ fontWeight: '700' }}>{t('requestdetailmanager.handling_violation_appeals')}</span>
               </div>
               <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
                 <button
@@ -415,8 +416,7 @@ export default function RequestDetailManager({ requestId, baseUrl, navigate, add
                   onMouseEnter={(e) => { if(!submitting) e.currentTarget.style.backgroundColor = '#059669'; }}
                   onMouseLeave={(e) => { if(!submitting) e.currentTarget.style.backgroundColor = '#10b981'; }}
                 >
-                  <IconCheck /> Chấp nhận kháng nghị
-                </button>
+                  <IconCheck /> {t('requestdetailmanager.accept_the_appeal')}</button>
                 <button
                   disabled={submitting}
                   onClick={() => handleResolveAppeal(false)}
@@ -440,8 +440,7 @@ export default function RequestDetailManager({ requestId, baseUrl, navigate, add
                   onMouseEnter={(e) => { if(!submitting) e.currentTarget.style.backgroundColor = '#dc2626'; }}
                   onMouseLeave={(e) => { if(!submitting) e.currentTarget.style.backgroundColor = '#ef4444'; }}
                 >
-                  <IconX /> Bác bỏ kháng nghị
-                </button>
+                  <IconX /> {t('requestdetailmanager.rejected_the_appeal')}</button>
               </div>
             </div>
           )}
@@ -450,19 +449,19 @@ export default function RequestDetailManager({ requestId, baseUrl, navigate, add
             <div className="rd-card rd-decision-card">
               <div className="rd-card-header rd-decision-card-header">
                 <IconTool />
-                <span>Quyết định báo giá sửa chữa</span>
+                <span>{t('requestdetailmanager.decide_on_a_repair')}</span>
               </div>
 
               {request.vendorRejectReason && (
                 <div className="rd-vendor-reject-reason">
-                  <strong>Lý do Vendor từ chối:</strong>
+                  <strong>{t('requestdetailmanager.reason_for_vendor_refusal')}</strong>
                   <span>{request.vendorRejectReason}</span>
                 </div>
               )}
 
               <div className="rd-decision-form">
                 <label className="rd-decision-field">
-                  <span>Hướng xử lý</span>
+                  <span>{t('requestdetailmanager.processing_direction')}</span>
                   <select
                     value={decision.action}
                     onChange={event => {
@@ -477,27 +476,44 @@ export default function RequestDetailManager({ requestId, baseUrl, navigate, add
                     }}
                     disabled={submitting}
                   >
-                    <option value="">-- Chọn quyết định --</option>
-                    {MANAGER_QUOTATION_ACTION_OPTIONS.map(option => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
+                    <option value="">{t('requestdetailmanager.choose_a_decision')}</option>
+                    {MANAGER_QUOTATION_ACTION_OPTIONS.map(option => {
+                      let label = option.label;
+                      if (option.value === 'ApproveAsMarket') label = t('repairresponsibilityguide.the_market_pays_the');
+                      else if (option.value === 'SendToVendor') label = t('repairresponsibilityguide.small_businesses_pay_the');
+                      else if (option.value === 'ReturnForRevision') label = t('repairresponsibilityguide.pay_staff_to_edit');
+                      else if (option.value === 'Reject') label = t('repairresponsibilityguide.refuse_repair_request');
+                      return (
+                        <option key={option.value} value={option.value}>
+                          {label}
+                        </option>
+                      );
+                    })}
                   </select>
                 </label>
 
                 {requiresContractClause && (
                   <label className="rd-decision-field">
-                    <span>Điều khoản hợp đồng</span>
+                    <span>{t('requestdetailmanager.contract_terms')}</span>
                     <select
                       value={decision.contractClause}
                       onChange={event => updateDecisionField('contractClause', event.target.value)}
                       disabled={submitting}
                     >
-                      <option value="">-- Chọn điều khoản --</option>
-                      {REPAIR_RESPONSIBILITY_CLAUSES.map(clause => (
-                        <option key={clause} value={clause}>{clause}</option>
-                      ))}
+                      <option value="">{t('requestdetailmanager.select_terms')}</option>
+                      {REPAIR_RESPONSIBILITY_CLAUSES.map(clause => {
+                        let label = clause;
+                        if (clause === 'Khác / Không áp dụng điều khoản cụ thể') {
+                          label = t('repairresponsibilityguide.khc_khng_p_dng');
+                        } else if (clause === 'Hư hỏng do hao mòn tự nhiên hoặc tài sản chung của chợ') {
+                          label = t('repairresponsibilityguide.damage_due_to_natural');
+                        } else if (clause === 'Hư hỏng phát sinh trong quá trình sử dụng của tiểu thương') {
+                          label = t('repairresponsibilityguide.damage_arising_during_use');
+                        } else if (clause === 'Sửa chữa hoặc cải tạo theo yêu cầu riêng của tiểu thương') {
+                          label = t('repairresponsibilityguide.repair_or_renovate_according');
+                        }
+                        return <option key={clause} value={clause}>{label}</option>;
+                      })}
                     </select>
                   </label>
                 )}
@@ -505,7 +521,7 @@ export default function RequestDetailManager({ requestId, baseUrl, navigate, add
                 <label className="rd-decision-field">
                   <span>
                     Ghi chú quyết định
-                    {requiresDecisionNote ? ' (bắt buộc, tối thiểu 10 ký tự)' : ' (tùy chọn)'}
+                    {requiresDecisionNote ? t('requestdetailmanager.required_minimum_10_characters') : t('requestdetailmanager.optional')}
                   </span>
                   <textarea
                     rows="4"
@@ -514,8 +530,8 @@ export default function RequestDetailManager({ requestId, baseUrl, navigate, add
                     onChange={event => updateDecisionField('decisionNote', event.target.value)}
                     placeholder={
                       decision.contractClause === OTHER_CONTRACT_CLAUSE
-                        ? 'Nêu rõ căn cứ quyết định...'
-                        : 'Nhập ghi chú cho Staff hoặc Vendor...'
+                        ? t('requestdetailmanager.clearly_state_the_basis')
+                        : t('requestdetailmanager.enter_notes_for_staff')
                     }
                     disabled={submitting}
                   />
@@ -527,7 +543,7 @@ export default function RequestDetailManager({ requestId, baseUrl, navigate, add
                   onClick={handleResolveQuotation}
                   disabled={submitting || !decision.action}
                 >
-                  {submitting ? 'Đang xử lý...' : 'Xác nhận quyết định'}
+                  {submitting ? t('requestdetailmanager.processing') : t('requestdetailmanager.confirm_the_decision')}
                 </button>
               </div>
             </div>
@@ -540,7 +556,7 @@ export default function RequestDetailManager({ requestId, baseUrl, navigate, add
               <div className="rd-card rd-vendor-waiting-card">
                 <div className="rd-card-header">
                   <IconInfo />
-                  <span>Đang chờ Tiểu thương xác nhận báo giá</span>
+                  <span>{t('requestdetailmanager.waiting_for_merchant_to')}</span>
                 </div>
               </div>
             )}
@@ -553,7 +569,7 @@ export default function RequestDetailManager({ requestId, baseUrl, navigate, add
           <div className="rd-card">
             <div className="rd-card-header">
               <IconUser />
-              <span>Thông tin đối tác</span>
+              <span>{t('requestdetailmanager.partner_information')}</span>
             </div>
 
             <div className="rd-vendor-block">
@@ -568,7 +584,7 @@ export default function RequestDetailManager({ requestId, baseUrl, navigate, add
 
             <div className="rd-fields">
               <div className="rd-field-row">
-                <p className="rd-field-label">Mã quầy sạp</p>
+                <p className="rd-field-label">{t('requestdetailmanager.stall_code')}</p>
                 <span className="rd-stall-badge">{request.stallCode || '—'}</span>
               </div>
             </div>
@@ -578,15 +594,15 @@ export default function RequestDetailManager({ requestId, baseUrl, navigate, add
           <div className="rd-card">
             <div className="rd-card-header">
               <IconCalendar />
-              <span>Thời gian</span>
+              <span>{t('requestdetailmanager.time')}</span>
             </div>
             <div className="rd-fields">
               <div className="rd-field-row">
-                <p className="rd-field-label">Ngày tạo yêu cầu</p>
+                <p className="rd-field-label">{t('requestdetailmanager.request_creation_date')}</p>
                 <p className="rd-field-value">{formatDate(request.createdAt)}</p>
               </div>
               <div className="rd-field-row">
-                <p className="rd-field-label">Cập nhật cuối</p>
+                <p className="rd-field-label">{t('requestdetailmanager.last_updated')}</p>
                 <p className="rd-field-value">{formatDate(request.updatedAt)}</p>
               </div>
             </div>
@@ -597,7 +613,7 @@ export default function RequestDetailManager({ requestId, baseUrl, navigate, add
             <div className="rd-card rd-rating-card">
               <div className="rd-card-header">
                 <IconStar filled={true} />
-                <span>Đánh giá của tiểu thương</span>
+                <span>{t('requestdetailmanager.reviews_from_small_businesses')}</span>
               </div>
 
               {request.repairRating !== null && (
@@ -611,7 +627,7 @@ export default function RequestDetailManager({ requestId, baseUrl, navigate, add
 
               {request.repairComment && (
                 <div className="rd-comment-box">
-                  <p className="rd-field-label">Nhận xét</p>
+                  <p className="rd-field-label">{t('requestdetailmanager.comment')}</p>
                   <p className="rd-comment-text">"{request.repairComment}"</p>
                 </div>
               )}

@@ -1,9 +1,12 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { showSuccess, showError, showConfirm } from '../../../utils/alert';
 import '../../../AppDashboard.css';
 
-const VendorMyServices = ({ vendorId, searchTerm = '', setSearchTerm, onAddService }) => {
+export default function VendorMyServices({ vendorId, searchTerm = '', setSearchTerm, onAddService }) {
+  const { t } = useTranslation();
+
     const [myServices, setMyServices] = useState([]);
     const [loading, setLoading] = useState(true);
     const [viewMyService, setViewMyService] = useState(null);
@@ -18,7 +21,7 @@ const VendorMyServices = ({ vendorId, searchTerm = '', setSearchTerm, onAddServi
             });
             setMyServices(response.data);
         } catch (err) {
-            showError('Thất bại', 'Không thể tải danh sách dịch vụ của bạn.');
+            showError(t('vendormyservices.failure'), t('vendormyservices.unable_to_load_your'));
             console.error(err);
         } finally {
             setLoading(false);
@@ -31,10 +34,10 @@ const VendorMyServices = ({ vendorId, searchTerm = '', setSearchTerm, onAddServi
 
     const handleCancelClick = async (service) => {
         const text = service.status === 'Pending' 
-            ? 'Bạn có chắc chắn muốn rút lại yêu cầu đăng ký dịch vụ này không?' 
-            : `Dịch vụ này sẽ không được gia hạn vào tháng tới, nhưng bạn vẫn có thể sử dụng đến hết ngày ${service.endDate ? new Date(service.endDate).toLocaleDateString('vi-VN') : 'cuối kỳ'}. Bạn có chắc chắn muốn hủy?`;
+            ? t('vendormyservices.are_you_sure_you') 
+            : `Dịch vụ này sẽ không được gia hạn vào tháng tới, nhưng bạn vẫn có thể sử dụng đến hết ngày ${service.endDate ? new Date(service.endDate).toLocaleDateString('vi-VN') : t('vendormyservices.end_of_term')}. Bạn có chắc chắn muốn hủy?`;
         
-        const result = await showConfirm('Xác nhận Hủy', text);
+        const result = await showConfirm(t('vendormyservices.confirm_cancel'), text);
         if (result.isConfirmed) {
             handleConfirmCancel(service);
         }
@@ -49,7 +52,7 @@ const VendorMyServices = ({ vendorId, searchTerm = '', setSearchTerm, onAddServi
             });
             setViewMyService(response.data);
         } catch (err) {
-            showError('Thất bại', err.response?.data?.message || 'Không thể lấy thông tin chi tiết dịch vụ.');
+            showError(t('vendormyservices.failure'), err.response?.data?.message || t('vendormyservices.unable_to_get_service'));
         } finally {
             setLoadingDetailId(null);
         }
@@ -61,15 +64,15 @@ const VendorMyServices = ({ vendorId, searchTerm = '', setSearchTerm, onAddServi
             const response = await axios.post(`http://localhost:5056/api/vendor/services/${service.registrationId}/cancel`, {}, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            await showSuccess('Thành công', response.data.message);
+            await showSuccess(t('vendormyservices.success'), response.data.message);
             fetchMyServices(); // Refresh list
         } catch (err) {
-            const msg = err.response?.data?.message || 'Có lỗi xảy ra khi hủy dịch vụ.';
-            showError('Thất bại', msg);
+            const msg = err.response?.data?.message || t('vendormyservices.an_error_occurred_while');
+            showError(t('vendormyservices.failure'), msg);
         }
     };
 
-    if (loading) return <div style={{ padding: '24px' }}>Đang tải dữ liệu...</div>;
+    if (loading) return <div style={{ padding: '24px' }}>{t('vendormyservices.loading_data')}</div>;
 
     const filteredMyServices = myServices.filter(s => 
         ((s?.serviceName?.toLowerCase() || s?.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) || 
@@ -129,7 +132,7 @@ const VendorMyServices = ({ vendorId, searchTerm = '', setSearchTerm, onAddServi
                         {filteredMyServices.length === 0 ? (
                             <tr>
                                 <td colSpan="6" style={{ padding: '32px', textAlign: 'center', color: '#888' }}>
-                                    Không tìm thấy dữ liệu phù hợp.
+                                    {t('vendormyservices.no_matching_data_found')}
                                 </td>
                             </tr>
                         ) : (
@@ -137,7 +140,7 @@ const VendorMyServices = ({ vendorId, searchTerm = '', setSearchTerm, onAddServi
                                 <tr key={service.registrationId} style={{ borderBottom: '1px solid #e5e7eb' }}>
                                     <td style={{ padding: '16px', color: '#555', fontWeight: 'bold' }}>{index + 1}</td>
                                     <td style={{ padding: '16px', fontWeight: '600', color: '#111' }}>{service.serviceName}</td>
-                                    <td style={{ padding: '16px', color: '#555' }}>{service.isMandatory ? 'Bắt buộc' : 'Tự chọn'}</td>
+                                    <td style={{ padding: '16px', color: '#555' }}>{service.isMandatory ? t('vendormyservices.obligatory') : t('vendormyservices.selfselect')}</td>
                                     <td style={{ padding: '16px', color: '#555' }}>{new Date(service.registeredAt).toLocaleDateString('vi-VN')}</td>
                                     <td style={{ padding: '16px' }}>
                                         <span style={{ 
@@ -145,7 +148,7 @@ const VendorMyServices = ({ vendorId, searchTerm = '', setSearchTerm, onAddServi
                                             color: service.status === 'Active' && service.isAutoRenew !== false ? '#065f46' : service.status === 'Active' && service.isAutoRenew === false ? '#92400e' : service.status === 'Pending' ? '#92400e' : '#991b1b',
                                             padding: '4px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold'
                                         }}>
-                                            {service.status === 'Active' && service.isAutoRenew === false ? 'Đã hủy gia hạn' : service.status === 'Active' ? 'Đang hoạt động' : service.status === 'Pending' ? 'Chờ duyệt' : 'Đã hủy'}
+                                            {service.status === 'Active' && service.isAutoRenew === false ? t('vendormyservices.renewal_canceled') : service.status === 'Active' ? t('vendormyservices.active') : service.status === 'Pending' ? t('vendormyservices.waiting_for_approval') : t('vendormyservices.canceled')}
                                         </span>
                                     </td>
                                     <td style={{ padding: '16px', textAlign: 'center' }}>
@@ -154,13 +157,13 @@ const VendorMyServices = ({ vendorId, searchTerm = '', setSearchTerm, onAddServi
                                                 onClick={() => handleViewDetailClick(service)}
                                                 disabled={loadingDetailId === service.registrationId}
                                                 style={{ background: 'transparent', border: '1px solid #e5e7eb', color: '#333', padding: '6px 12px', borderRadius: '4px', cursor: loadingDetailId === service.registrationId ? 'wait' : 'pointer', fontSize: '12px', fontWeight: 'bold' }}>
-                                                {loadingDetailId === service.registrationId ? 'Đang tải...' : 'Chi tiết'}
+                                                {loadingDetailId === service.registrationId ? t('vendormyservices.loading') : t('vendormyservices.detail')}
                                             </button>
                                             {service.status !== 'Cancelled' && !(service.status === 'Active' && service.isAutoRenew === false) && (
                                                 <button 
                                                     onClick={() => handleCancelClick(service)}
                                                     style={{ background: '#fef2f2', border: '1px solid #fca5a5', color: '#ef4444', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}>
-                                                    Hủy
+                                                    {t('vendormyservices.cancel')}
                                                 </button>
                                             )}
                                         </div>
@@ -198,7 +201,7 @@ const VendorMyServices = ({ vendorId, searchTerm = '', setSearchTerm, onAddServi
                                     background: viewMyService.status === 'Active' && viewMyService.isAutoRenew !== false ? '#059669' : viewMyService.status === 'Active' && viewMyService.isAutoRenew === false ? '#d97706' : viewMyService.status === 'Pending' ? '#d97706' : '#dc2626', 
                                     padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: '600', color: 'white' 
                                 }}>
-                                    {viewMyService.status === 'Active' && viewMyService.isAutoRenew === false ? 'Đã hủy gia hạn' : viewMyService.status === 'Active' ? 'Đang hoạt động' : viewMyService.status === 'Pending' ? 'Chờ duyệt' : 'Đã hủy'}
+                                    {viewMyService.status === 'Active' && viewMyService.isAutoRenew === false ? t('vendormyservices.renewal_canceled') : viewMyService.status === 'Active' ? t('vendormyservices.active') : viewMyService.status === 'Pending' ? t('vendormyservices.waiting_for_approval') : t('vendormyservices.canceled')}
                                 </span>
                                 <span style={{ background: 'rgba(255,255,255,0.2)', padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: '600' }}>
                                     Sạp: {viewMyService.stallCode}
@@ -211,27 +214,27 @@ const VendorMyServices = ({ vendorId, searchTerm = '', setSearchTerm, onAddServi
                         <div style={{ padding: '24px' }}>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
                                 <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                                    <span style={{ color: '#64748b', fontSize: '12px', display: 'block', marginBottom: '4px', fontWeight: '600', textTransform: 'uppercase' }}>Ngày đăng ký</span>
+                                    <span style={{ color: '#64748b', fontSize: '12px', display: 'block', marginBottom: '4px', fontWeight: '600', textTransform: 'uppercase' }}>{t('vendormyservices.registration_date')}</span>
                                     <strong style={{ fontSize: '15px', color: '#0f172a' }}>{new Date(viewMyService.registeredAt).toLocaleDateString('vi-VN')}</strong>
                                 </div>
                                 <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                                    <span style={{ color: '#64748b', fontSize: '12px', display: 'block', marginBottom: '4px', fontWeight: '600', textTransform: 'uppercase' }}>Gia hạn tự động</span>
+                                    <span style={{ color: '#64748b', fontSize: '12px', display: 'block', marginBottom: '4px', fontWeight: '600', textTransform: 'uppercase' }}>{t('vendormyservices.automatic_renewal')}</span>
                                     <strong style={{ fontSize: '15px', color: viewMyService.isAutoRenew ? '#059669' : '#64748b' }}>
-                                        {viewMyService.isAutoRenew ? 'Có bật' : 'Tắt'}
+                                        {viewMyService.isAutoRenew ? t('vendormyservices.yes_on') : t('vendormyservices.turn_off')}
                                     </strong>
                                 </div>
                             </div>
 
                             <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                                 <div>
-                                    <span style={{ color: '#64748b', fontSize: '13px', display: 'block', marginBottom: '4px', fontWeight: '600' }}>Chi phí dịch vụ</span>
+                                    <span style={{ color: '#64748b', fontSize: '13px', display: 'block', marginBottom: '4px', fontWeight: '600' }}>{t('vendormyservices.service_costs')}</span>
                                     <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
                                         <strong style={{ fontSize: '24px', color: '#0f172a', fontWeight: '800' }}>{viewMyService.price.toLocaleString()}đ</strong>
-                                        <span style={{ color: '#64748b', fontSize: '14px' }}>/ {viewMyService.billingCycle === 'Monthly' ? 'tháng' : 'kỳ'}</span>
+                                        <span style={{ color: '#64748b', fontSize: '14px' }}>/ {viewMyService.billingCycle === 'Monthly' ? t('vendormyservices.month') : t('vendormyservices.period')}</span>
                                     </div>
                                 </div>
                                 <div style={{ textAlign: 'right' }}>
-                                    <span style={{ color: '#64748b', fontSize: '13px', display: 'block', marginBottom: '4px', fontWeight: '600' }}>Ngày hết hạn/Gia hạn</span>
+                                    <span style={{ color: '#64748b', fontSize: '13px', display: 'block', marginBottom: '4px', fontWeight: '600' }}>{t('vendormyservices.expiration_daterenewal')}</span>
                                     <strong style={{ fontSize: '15px', color: '#0f172a' }}>
                                         {viewMyService.endDate ? new Date(viewMyService.endDate).toLocaleDateString('vi-VN') : 'N/A'}
                                     </strong>
@@ -240,10 +243,10 @@ const VendorMyServices = ({ vendorId, searchTerm = '', setSearchTerm, onAddServi
 
                             {/* Actions */}
                             <div style={{ display: 'flex', gap: '12px' }}>
-                                <button onClick={() => setViewMyService(null)} style={{ flex: 1, padding: '12px', border: '1px solid #cbd5e1', background: 'white', color: '#475569', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s' }}>Đóng lại</button>
+                                <button onClick={() => setViewMyService(null)} style={{ flex: 1, padding: '12px', border: '1px solid #cbd5e1', background: 'white', color: '#475569', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s' }}>{t('vendormyservices.close')}</button>
                                 {viewMyService.status !== 'Cancelled' && !(viewMyService.status === 'Active' && viewMyService.isAutoRenew === false) && (
                                     <button onClick={() => { setViewMyService(null); handleCancelClick(viewMyService); }} style={{ flex: 1, padding: '12px', border: 'none', background: '#fee2e2', color: '#dc2626', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', transition: 'background 0.2s' }}>
-                                        Hủy dịch vụ này
+                                        {t('vendormyservices.cancel_this_service')}
                                     </button>
                                 )}
                             </div>
@@ -254,5 +257,3 @@ const VendorMyServices = ({ vendorId, searchTerm = '', setSearchTerm, onAddServi
         </div>
     );
 };
-
-export default VendorMyServices;

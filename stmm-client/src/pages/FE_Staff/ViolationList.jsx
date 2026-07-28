@@ -1,19 +1,22 @@
+import { useTranslation } from 'react-i18next';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getAuthHeaders } from '../../utils/authHeaders';
 import './ViolationList.css';
 
 const PAGE_SIZE = 8;
 
-const readProblemDetail = async (response) => {
+const readProblemDetail = async (response, t) => {
   try {
     const problem = await response.json();
-    return problem.detail || problem.title || 'Unable to load violations.';
+    return problem.detail || problem.title || t('violationlist.unable_to_load_violations');
   } catch {
-    return 'Unable to load violations.';
+    return t('violationlist.unable_to_load_violations');
   }
 };
 
 export default function ViolationList({ baseUrl, onViewDetails, onOpenCreateModal }) {
+  const { t } = useTranslation();
+
   const [violations, setViolations] = useState([]);
   const [pageNumber, setPageNumber] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
@@ -26,7 +29,7 @@ export default function ViolationList({ baseUrl, onViewDetails, onOpenCreateModa
     setError('');
     try {
       const response = await fetch(`${baseUrl}/api/violations`, { headers: getAuthHeaders() });
-      if (!response.ok) throw new Error(await readProblemDetail(response));
+      if (!response.ok) throw new Error(await readProblemDetail(response, t));
       const data = await response.json();
       setViolations(Array.isArray(data) ? data : []);
     } catch (fetchError) {
@@ -35,7 +38,7 @@ export default function ViolationList({ baseUrl, onViewDetails, onOpenCreateModa
     } finally {
       setLoading(false);
     }
-  }, [baseUrl]);
+  }, [baseUrl, t]);
 
   useEffect(() => { fetchViolations(); }, [fetchViolations]);
 
@@ -73,33 +76,33 @@ export default function ViolationList({ baseUrl, onViewDetails, onOpenCreateModa
     <main className="violation-list-container">
       <div className="toolbar">
         <form onSubmit={applySearch} className="search-wrap">
-          <input type="search" className="search-input" placeholder="Search violations by ID, title, description, or stall" value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} />
-          <button type="submit" className="btn-secondary">Search</button>
-          {appliedSearch ? <button type="button" className="btn-filter-clear" onClick={() => { setSearchQuery(''); setAppliedSearch(''); setPageNumber(1); }}>Clear</button> : null}
+          <input type="search" className="search-input" placeholder={t('violationlist.search_violations_by_id')} value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} />
+          <button type="submit" className="btn-secondary">{t('violationlist.search')}</button>
+          {appliedSearch ? <button type="button" className="btn-filter-clear" onClick={() => { setSearchQuery(''); setAppliedSearch(''); setPageNumber(1); }}>{t('violationlist.clear')}</button> : null}
         </form>
         <button type="button" className="btn-primary" onClick={onOpenCreateModal}>+ Report Violation</button>
       </div>
 
-      {loading ? <div className="loading-state">Loading violations...</div> : null}
-      {!loading && error ? <div className="error-state"><p className="error-message">{error}</p><button className="btn-secondary" onClick={fetchViolations}>Retry</button></div> : null}
-      {!loading && !error && visibleViolations.length === 0 ? <div className="empty-state"><p>No violations found.</p></div> : null}
+      {loading ? <div className="loading-state">{t('violationlist.loading_violations')}</div> : null}
+      {!loading && error ? <div className="error-state"><p className="error-message">{error}</p><button className="btn-secondary" onClick={fetchViolations}>{t('violationlist.retry')}</button></div> : null}
+      {!loading && !error && visibleViolations.length === 0 ? <div className="empty-state"><p>{t('violationlist.no_violations_found')}</p></div> : null}
       {!loading && !error && visibleViolations.length > 0 ? (
         <>
           <div className="table-card">
-            <div className="table-card-header"><span className="table-card-title">Violations</span><span className="table-count-badge">{totalCount} violations</span></div>
+            <div className="table-card-header"><span className="table-card-title">{t('violationlist.violations')}</span><span className="table-count-badge">{totalCount} violations</span></div>
             <div className="table-responsive">
               <table className="staff-table">
-                <thead><tr><th>ID</th><th>Violation</th><th>Location</th><th>Fine</th><th>Status</th><th>Reported</th><th>Action</th></tr></thead>
+                <thead><tr><th>{t('violationlist.id')}</th><th>{t('violationlist.violation')}</th><th>{t('violationlist.location')}</th><th>{t('violationlist.fine')}</th><th>{t('violationlist.status')}</th><th>{t('violationlist.reported')}</th><th>{t('violationlist.action')}</th></tr></thead>
                 <tbody>
                   {visibleViolations.map((violation) => (
                     <tr key={violation.violationId}>
                       <td><strong>#{violation.violationId}</strong></td>
                       <td>{violation.title}</td>
-                      <td><span className="badge-stall">{violation.stallCode || 'Unknown stall'}</span></td>
-                      <td>{Number(violation.fineAmount || 0).toLocaleString('en-US')} VND</td>
-                      <td><span className={`status-badge ${violation.status?.toLowerCase() || 'pending'}`}>{violation.status || 'Pending'}</span></td>
-                      <td>{violation.createdAt ? new Date(violation.createdAt).toLocaleDateString('en-US') : 'N/A'}</td>
-                      <td><button type="button" className="btn-link" onClick={() => onViewDetails(violation.violationId)}>View Details</button></td>
+                      <td><span className="badge-stall">{violation.stallCode || t('violationlist.unknown_stall')}</span></td>
+                      <td>{Number(violation.fineAmount || 0).toLocaleString(t('violationlist.enus'))} VND</td>
+                      <td><span className={`status-badge ${violation.status?.toLowerCase() || t('violationlist.pending')}`}>{violation.status || t('violationlist.pending')}</span></td>
+                      <td>{violation.createdAt ? new Date(violation.createdAt).toLocaleDateString(t('violationlist.enus')) : t('violationlist.na')}</td>
+                      <td><button type="button" className="btn-link" onClick={() => onViewDetails(violation.violationId)}>{t('violationlist.view_details')}</button></td>
                     </tr>
                   ))}
                 </tbody>
@@ -110,8 +113,8 @@ export default function ViolationList({ baseUrl, onViewDetails, onOpenCreateModa
             <div className="pagination-wrapper">
               <span className="pagination-info">Page {safePageNumber} of {totalPages}</span>
               <div className="pagination-buttons">
-                <button className="btn-page" onClick={() => setPageNumber((page) => Math.max(1, page - 1))} disabled={safePageNumber === 1}>Prev</button>
-                <button className="btn-page" onClick={() => setPageNumber((page) => Math.min(totalPages, page + 1))} disabled={safePageNumber === totalPages}>Next</button>
+                <button className="btn-page" onClick={() => setPageNumber((page) => Math.max(1, page - 1))} disabled={safePageNumber === 1}>{t('violationlist.prev')}</button>
+                <button className="btn-page" onClick={() => setPageNumber((page) => Math.min(totalPages, page + 1))} disabled={safePageNumber === totalPages}>{t('violationlist.next')}</button>
               </div>
             </div>
           ) : null}

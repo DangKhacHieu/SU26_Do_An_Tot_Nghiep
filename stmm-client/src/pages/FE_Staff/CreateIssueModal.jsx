@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useEffect, useRef, useState } from 'react';
 import { getAuthHeaders } from '../../utils/authHeaders';
 import './CreateIssueModal.css';
@@ -12,6 +13,8 @@ const readProblemDetail = async (response, fallback) => {
 };
 
 export default function CreateIssueModal({ baseUrl, onClose, onSuccess, prefilledStallId }) {
+  const { t } = useTranslation();
+
   const [stalls, setStalls] = useState([]);
   const [stallId, setStallId] = useState(prefilledStallId ? String(prefilledStallId) : '');
   const [title, setTitle] = useState('');
@@ -51,7 +54,7 @@ export default function CreateIssueModal({ baseUrl, onClose, onSuccess, prefille
       try {
         const response = await fetch(`${baseUrl}/api/staff/stalls/lookup`, { headers: getAuthHeaders() });
         if (!response.ok) {
-          throw new Error(await readProblemDetail(response, 'Unable to load stalls.'));
+          throw new Error(await readProblemDetail(response, t('createissuemodal.unable_to_load_stalls')));
         }
         const items = await response.json();
         if (active) setStalls(Array.isArray(items) ? items : []);
@@ -77,16 +80,16 @@ export default function CreateIssueModal({ baseUrl, onClose, onSuccess, prefille
       const urls = [];
       for (const file of selectedFiles) {
         if (!file.type.startsWith('image/') || file.size > 5 * 1024 * 1024) {
-          throw new Error('Each attachment must be an image no larger than 5 MB.');
+          throw new Error(t('createissuemodal.each_attachment_must_be'));
         }
         const formData = new FormData();
-        formData.append('file', file);
+        formData.append(t('createissuemodal.file'), file);
         const response = await fetch(`${baseUrl}/api/files/upload`, {
-          method: 'POST',
+          method: t('createissuemodal.post'),
           body: formData,
         });
         if (!response.ok) {
-          throw new Error(await readProblemDetail(response, 'Unable to upload image.'));
+          throw new Error(await readProblemDetail(response, t('createissuemodal.unable_to_upload_image')));
         }
         const result = await response.json();
         urls.push(result.imageUrl);
@@ -104,14 +107,14 @@ export default function CreateIssueModal({ baseUrl, onClose, onSuccess, prefille
     setError('');
 
     if (!stallId || title.trim().length < 5 || description.trim().length < 10) {
-      setError('Select a stall and provide a title and description with enough detail.');
+      setError(t('createissuemodal.select_a_stall_and'));
       return;
     }
 
     setSubmitting(true);
     try {
       const response = await fetch(`${baseUrl}/api/staff/issues`, {
-        method: 'POST',
+        method: t('createissuemodal.post'),
         headers: {
           'Content-Type': 'application/json',
           ...getAuthHeaders(),
@@ -124,7 +127,7 @@ export default function CreateIssueModal({ baseUrl, onClose, onSuccess, prefille
         }),
       });
       if (!response.ok) {
-        throw new Error(await readProblemDetail(response, 'Unable to submit issue report.'));
+        throw new Error(await readProblemDetail(response, t('createissuemodal.unable_to_submit_issue')));
       }
       onSuccess(await response.json());
     } catch (submitError) {
@@ -138,15 +141,15 @@ export default function CreateIssueModal({ baseUrl, onClose, onSuccess, prefille
     <div className="modal-overlay">
       <div className="modal-container">
         <div className="modal-header">
-          <h2 className="modal-title">Report Infrastructure Issue</h2>
-          <button type="button" className="modal-close-btn" onClick={onClose} aria-label="Close">&times;</button>
+          <h2 className="modal-title">{t('createissuemodal.report_infrastructure_issue')}</h2>
+          <button type="button" className="modal-close-btn" onClick={onClose} aria-label={t('createissuemodal.close')}>&times;</button>
         </div>
 
         <form onSubmit={handleSubmit} className="modal-form">
-          {error ? <div className="error-alert"><strong>Error:</strong> {error}</div> : null}
+          {error ? <div className="error-alert"><strong>{t('createissuemodal.error')}</strong> {error}</div> : null}
 
           <div className="form-group">
-            <label className="form-label required-field" htmlFor="issue-stall">LOCATION</label>
+            <label className="form-label required-field" htmlFor={t('createissuemodal.issuestall')}>{t('createissuemodal.location')}</label>
             <select
               id="issue-stall"
               className="form-input"
@@ -154,7 +157,7 @@ export default function CreateIssueModal({ baseUrl, onClose, onSuccess, prefille
               onChange={(event) => setStallId(event.target.value)}
               disabled={loadingStalls}
             >
-              <option value="">{loadingStalls ? 'Loading stalls...' : 'Select a stall'}</option>
+              <option value="">{loadingStalls ? t('createissuemodal.loading_stalls') : t('createissuemodal.select_a_stall')}</option>
               {stalls.map((stall) => (
                 <option key={stall.stallId} value={stall.stallId}>
                   {stall.stallCode} - {stall.areaName}
@@ -164,27 +167,27 @@ export default function CreateIssueModal({ baseUrl, onClose, onSuccess, prefille
           </div>
 
           <div className="form-group">
-            <label className="form-label required-field" htmlFor="issue-title">ISSUE TITLE</label>
+            <label className="form-label required-field" htmlFor={t('createissuemodal.issuetitle')}>{t('createissuemodal.issue_title')}</label>
             <input id="issue-title" className="form-input" value={title} onChange={(event) => setTitle(event.target.value)} maxLength={500} />
           </div>
 
           <div className="form-group">
-            <label className="form-label required-field" htmlFor="issue-description">DETAILED DESCRIPTION</label>
+            <label className="form-label required-field" htmlFor={t('createissuemodal.issuedescription')}>{t('createissuemodal.detailed_description')}</label>
             <textarea id="issue-description" className="form-input" rows="4" value={description} onChange={(event) => setDescription(event.target.value)} />
           </div>
 
           <div className="form-group">
-            <label className="form-label">EVIDENCE IMAGES (OPTIONAL, MAX 3)</label>
+            <label className="form-label">{t('createissuemodal.evidence_images_optional_max')}</label>
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/*"
+              accept={t('createissuemodal.image')}
               multiple
               hidden
               onChange={(event) => uploadFiles(event.target.files)}
             />
             <div 
-              className={`drag-drop-zone ${dragActive ? 'active' : ''} ${uploadedImages.length >= 3 ? 'disabled' : ''}`}
+              className={`drag-drop-zone ${dragActive ? t('createissuemodal.active') : ''} ${uploadedImages.length >= 3 ? t('createissuemodal.disabled') : ''}`}
               onDragEnter={handleDrag}
               onDragOver={handleDrag}
               onDragLeave={handleDrag}
@@ -194,13 +197,13 @@ export default function CreateIssueModal({ baseUrl, onClose, onSuccess, prefille
               <div className="drag-drop-content">
                 <span className="upload-icon">📸</span>
                 {uploading ? (
-                  <p>Uploading images...</p>
+                  <p>{t('createissuemodal.uploading_images')}</p>
                 ) : uploadedImages.length >= 3 ? (
-                  <p>Maximum 3 evidence images reached.</p>
+                  <p>{t('createissuemodal.maximum_3_evidence_images')}</p>
                 ) : (
-                  <p>Drag and drop images here, or <strong style={{ color: '#4f46e5' }}>click to select</strong></p>
+                  <p>{t('createissuemodal.drag_and_drop_images')}<strong style={{ color: '#4f46e5' }}>{t('createissuemodal.click_to_select')}</strong></p>
                 )}
-                <span className="helper-text">Supports JPG, PNG, WEBP (Max 5MB each, up to 3 images)</span>
+                <span className="helper-text">{t('createissuemodal.supports_jpg_png_webp')}</span>
               </div>
             </div>
             {uploadedImages.length > 0 ? (
@@ -216,9 +219,9 @@ export default function CreateIssueModal({ baseUrl, onClose, onSuccess, prefille
           </div>
 
           <div className="modal-actions">
-            <button type="button" className="btn-secondary" onClick={onClose} disabled={submitting}>Cancel</button>
+            <button type="button" className="btn-secondary" onClick={onClose} disabled={submitting}>{t('createissuemodal.cancel')}</button>
             <button type="submit" className="btn-primary-dark" disabled={submitting || uploading || loadingStalls}>
-              {submitting ? 'Submitting...' : 'Submit Report'}
+              {submitting ? t('createissuemodal.submitting') : t('createissuemodal.submit_report')}
             </button>
           </div>
         </form>

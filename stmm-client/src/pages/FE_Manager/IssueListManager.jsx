@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { getAuthHeaders } from '../../utils/authHeaders';
 import './IssueListManager.css';
@@ -43,6 +44,8 @@ const IconFilter = () => (
 );
 
 export default function IssueListManager({ userId, baseUrl, navigate, addToast }) {
+  const { t } = useTranslation();
+
   const [issues, setIssues] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -109,7 +112,7 @@ export default function IssueListManager({ userId, baseUrl, navigate, addToast }
             ref={searchRef}
             className="il-search-input"
             type="text"
-            placeholder="Tìm theo tiêu đề, sạp, mã sự cố..."
+            placeholder={t('issuelistmanager.search_by_title_store')}
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
           />
@@ -122,7 +125,7 @@ export default function IssueListManager({ userId, baseUrl, navigate, addToast }
           <div className="il-select-wrap">
             <IconFilter />
             <select className="il-select" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
-              <option value="">Tất cả trạng thái</option>
+              <option value="">{t('issuelistmanager.all_status')}</option>
               {Object.entries(STATUS_META).map(([k,v]) => <option key={k} value={k}>{v.label}</option>)}
             </select>
           </div>
@@ -137,17 +140,16 @@ export default function IssueListManager({ userId, baseUrl, navigate, addToast }
       {loading ? (
         <div className="il-loading">
           <div className="il-spinner" />
-          <span>Đang tải danh sách sự cố...</span>
+          <span>{t('issuelistmanager.loading_problem_list')}</span>
         </div>
       ) : issues.length === 0 ? (
         <div className="il-empty">
           <div className="il-empty-icon"><IconInbox /></div>
-          <h3>Không tìm thấy sự cố nào</h3>
-          <p>{hasFilters ? 'Không có kết quả phù hợp với bộ lọc hiện tại.' : 'Chưa có sự cố hạ tầng nào được báo cáo.'}</p>
+          <h3>{t('issuelistmanager.no_problems_found')}</h3>
+          <p>{hasFilters ? t('issuelistmanager.there_are_no_matches') : t('issuelistmanager.no_infrastructure_problems_have')}</p>
           {hasFilters && (
             <button className="il-clear-filters" onClick={() => { setSearchQuery(''); setStatusFilter(''); }}>
-              Xóa bộ lọc
-            </button>
+              {t('issuelistmanager.clear_filter')}</button>
           )}
         </div>
       ) : (
@@ -156,12 +158,12 @@ export default function IssueListManager({ userId, baseUrl, navigate, addToast }
             <table className="il-table">
               <thead>
                 <tr>
-                  <th>Mã Sự Cố</th>
-                  <th>Sạp</th>
-                  <th>Tiêu đề sự cố</th>
-                  <th>Người báo cáo</th>
-                  <th>Ngày báo cáo</th>
-                  <th>Trạng thái</th>
+                  <th>{t('issuelistmanager.trouble_code')}</th>
+                  <th>{t('issuelistmanager.stall')}</th>
+                  <th>{t('issuelistmanager.incident_title')}</th>
+                  <th>{t('issuelistmanager.annunciator')}</th>
+                  <th>{t('issuelistmanager.report_date')}</th>
+                  <th>{t('issuelistmanager.status')}</th>
                   <th style={{textAlign:'center'}}>Xem</th>
                 </tr>
               </thead>
@@ -174,7 +176,7 @@ export default function IssueListManager({ userId, baseUrl, navigate, addToast }
                         <span className="il-id-badge">#ISSUE-{item.issueId}</span>
                       </td>
                       <td>
-                        <span className="il-stall-badge">{item.stallCode || `Sạp ID: ${item.stallId}`}</span>
+                        <span className="il-stall-badge">{item.stallCode || t('issuelistmanager.stall_id_itemstallid')}</span>
                       </td>
                       <td>
                         <div className="il-title-cell">
@@ -192,7 +194,7 @@ export default function IssueListManager({ userId, baseUrl, navigate, addToast }
                         <span className={`il-status-badge ${sm.cls}`}>{sm.label}</span>
                       </td>
                       <td style={{textAlign:'center'}} onClick={e => e.stopPropagation()}>
-                        <button className="il-view-btn" onClick={() => navigate('issue-details', item.issueId)} title="Xem chi tiết sự cố">
+                        <button className="il-view-btn" onClick={() => navigate('issue-details', item.issueId)} title={t('issuelistmanager.view_incident_details')}>
                           <IconEye />
                         </button>
                       </td>
@@ -211,8 +213,7 @@ export default function IssueListManager({ userId, baseUrl, navigate, addToast }
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={page === 1}
               >
-                <IconChevronLeft /> Trước
-              </button>
+                <IconChevronLeft /> {t('issuelistmanager.before')}</button>
 
               <div className="il-page-nums">
                 {Array.from({ length: totalPages }, (_, i) => i + 1).map(num => (

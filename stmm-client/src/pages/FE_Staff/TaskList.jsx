@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getAuthHeaders } from '../../utils/authHeaders';
 import {
@@ -20,46 +21,48 @@ import './TaskList.css';
 const PAGE_SIZE = 9;
 const FINISHED_STATUSES = new Set([TASK_STATUS.COMPLETED, TASK_STATUS.CANCELLED]);
 
-const STATUS_LABELS = {
-  [TASK_STATUS.PENDING]: 'Pending',
-  [TASK_STATUS.PENDING_APPROVAL]: 'Pending Approval',
-  [TASK_STATUS.IN_PROGRESS]: 'In Progress',
-  [TASK_STATUS.COMPLETED]: 'Completed',
-  [TASK_STATUS.CANCELLED]: 'Cancelled',
-};
-
-const TYPE_LABELS = {
-  [TASK_TYPE.REPAIR]: 'Repair',
-  [TASK_TYPE.MAINTENANCE]: 'Maintenance',
-  [TASK_TYPE.UTILITY_READING]: 'Utility Reading',
-};
-
-const STAT_CARDS = [
-  { status: TASK_STATUS.PENDING, label: 'Pending', icon: Clock3, tone: 'warning' },
-  { status: TASK_STATUS.PENDING_APPROVAL, label: 'Pending Approval', icon: ShieldCheck, tone: 'approval' },
-  { status: TASK_STATUS.IN_PROGRESS, label: 'In Progress', icon: Wrench, tone: 'progress' },
-  { status: TASK_STATUS.COMPLETED, label: 'Completed', icon: CheckCircle2, tone: 'success' },
-];
-
-const readProblemDetail = async (response) => {
+const readProblemDetail = async (response, t) => {
   try {
     const payload = await response.json();
-    return payload.detail || payload.title || 'Unable to load assigned tasks.';
+    return payload.detail || payload.title || t('tasklist.unable_to_load_assigned');
   } catch {
-    return 'Unable to load assigned tasks.';
+    return t('tasklist.unable_to_load_assigned');
   }
 };
 
-const formatDate = (value) => {
-  if (!value) return 'Date not available';
-  return new Date(value).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
+const formatDate = (value, t) => {
+  if (!value) return t('tasklist.date_not_available');
+  return new Date(value).toLocaleDateString(t('tasklist.enus'), {
+    year: t('tasklist.numeric'),
+    month: t('tasklist.short'),
+    day: t('tasklist.numeric'),
   });
 };
 
 export default function TaskList({ baseUrl, onViewDetails, onMapView }) {
+  const { t } = useTranslation();
+
+  const STATUS_LABELS = useMemo(() => ({
+    [TASK_STATUS.PENDING]: t('tasklist.pending'),
+    [TASK_STATUS.PENDING_APPROVAL]: t('tasklist.pending_approval'),
+    [TASK_STATUS.IN_PROGRESS]: t('tasklist.in_progress'),
+    [TASK_STATUS.COMPLETED]: t('tasklist.completed'),
+    [TASK_STATUS.CANCELLED]: t('tasklist.cancelled'),
+  }), [t]);
+
+  const TYPE_LABELS = useMemo(() => ({
+    [TASK_TYPE.REPAIR]: t('tasklist.repair'),
+    [TASK_TYPE.MAINTENANCE]: t('tasklist.maintenance'),
+    [TASK_TYPE.UTILITY_READING]: t('tasklist.utility_reading'),
+  }), [t]);
+
+  const STAT_CARDS = useMemo(() => [
+    { status: TASK_STATUS.PENDING, label: t('tasklist.pending'), icon: Clock3, tone: t('tasklist.warning') },
+    { status: TASK_STATUS.PENDING_APPROVAL, label: t('tasklist.pending_approval'), icon: ShieldCheck, tone: t('tasklist.approval') },
+    { status: TASK_STATUS.IN_PROGRESS, label: t('tasklist.in_progress'), icon: Wrench, tone: t('tasklist.progress') },
+    { status: TASK_STATUS.COMPLETED, label: t('tasklist.completed'), icon: CheckCircle2, tone: t('tasklist.success') },
+  ], [t]);
+
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -73,19 +76,19 @@ export default function TaskList({ baseUrl, onViewDetails, onMapView }) {
     try {
       const response = await fetch(`${baseUrl}/api/staff/tasks`, { headers: getAuthHeaders() });
       if (!response.ok) {
-        throw new Error(await readProblemDetail(response));
+        throw new Error(await readProblemDetail(response, t));
       }
 
       const payload = await response.json();
       setTasks(Array.isArray(payload) ? payload : []);
     } catch (fetchError) {
-      console.error('Error loading staff tasks:', fetchError);
+      console.error(t('tasklist.error_loading_staff_tasks'), fetchError);
       setError(fetchError.message);
       setTasks([]);
     } finally {
       setLoading(false);
     }
-  }, [baseUrl]);
+  }, [baseUrl, t]);
 
   useEffect(() => {
     fetchTasks();
@@ -97,7 +100,7 @@ export default function TaskList({ baseUrl, onViewDetails, onMapView }) {
       if (Object.hasOwn(counts, task.status)) counts[task.status] += 1;
     }
     return counts;
-  }, [tasks]);
+  }, [tasks, STAT_CARDS]);
 
   const filteredTasks = useMemo(() => {
     const term = searchQuery.trim().toLocaleLowerCase();
@@ -137,14 +140,13 @@ export default function TaskList({ baseUrl, onViewDetails, onMapView }) {
     <main className="staff-task-list">
       <header className="staff-task-list__header">
         <div>
-          <p className="staff-task-list__eyebrow">Field Operations</p>
-          <h1>Assigned Tasks</h1>
-          <p>Review and complete the work assigned to you.</p>
+          <p className="staff-task-list__eyebrow">{t('tasklist.field_operations')}</p>
+          <h1>{t('tasklist.assigned_tasks')}</h1>
+          <p>{t('tasklist.review_and_complete_the')}</p>
         </div>
         <div className="staff-task-list__header-actions">
           <button type="button" className="staff-task-map-button" onClick={onMapView}>
-            <Map size={16} aria-hidden="true" /> Map View
-          </button>
+            <Map size={16} aria-hidden="true" /> {t('tasklist.map_view')}</button>
           <span className="staff-task-list__total">
             <ClipboardList size={16} aria-hidden="true" />
             {tasks.length} assigned
@@ -152,7 +154,7 @@ export default function TaskList({ baseUrl, onViewDetails, onMapView }) {
         </div>
       </header>
 
-      <section className="staff-task-stats" aria-label="Task statistics">
+      <section className="staff-task-stats" aria-label={t('tasklist.task_statistics')}>
         {STAT_CARDS.map(({ status, label, icon: Icon, tone }) => (
           <article className={`staff-task-stat staff-task-stat--${tone}`} key={status}>
             <div className="staff-task-stat__icon"><Icon size={20} aria-hidden="true" /></div>
@@ -164,49 +166,49 @@ export default function TaskList({ baseUrl, onViewDetails, onMapView }) {
         ))}
       </section>
 
-      <section className="staff-task-list__toolbar" aria-label="Search assigned tasks">
+      <section className="staff-task-list__toolbar" aria-label={t('tasklist.search_assigned_tasks')}>
         <div className="staff-task-search">
           <Search size={18} aria-hidden="true" />
           <input
             type="search"
             value={searchQuery}
             onChange={handleSearchChange}
-            placeholder="Search by ID, title, location, type, or status"
-            aria-label="Search assigned tasks"
+            placeholder={t('tasklist.search_by_id_title')}
+            aria-label={t('tasklist.search_assigned_tasks')}
           />
           {searchQuery ? (
-            <button type="button" onClick={() => { setSearchQuery(''); setPageNumber(1); }} aria-label="Clear search">
+            <button type="button" onClick={() => { setSearchQuery(''); setPageNumber(1); }} aria-label={t('tasklist.clear_search')}>
               <X size={17} aria-hidden="true" />
             </button>
           ) : null}
         </div>
         <span className="staff-task-list__result-count">
-          {filteredTasks.length} {filteredTasks.length === 1 ? 'result' : 'results'}
+          {filteredTasks.length} {filteredTasks.length === 1 ? t('tasklist.result') : t('tasklist.results')}
         </span>
       </section>
 
       {loading ? (
-        <div className="staff-task-state" role="status">
+        <div className="staff-task-state" role={t('tasklist.status')}>
           <span className="staff-task-spinner" />
-          <p>Loading assigned tasks...</p>
+          <p>{t('tasklist.loading_assigned_tasks')}</p>
         </div>
       ) : error ? (
-        <div className="staff-task-state staff-task-state--error" role="alert">
-          <h2>Tasks could not be loaded</h2>
+        <div className="staff-task-state staff-task-state--error" role={t('tasklist.alert')}>
+          <h2>{t('tasklist.tasks_could_not_be')}</h2>
           <p>{error}</p>
-          <button type="button" onClick={fetchTasks}>Try Again</button>
+          <button type="button" onClick={fetchTasks}>{t('tasklist.try_again')}</button>
         </div>
       ) : visibleTasks.length === 0 ? (
         <div className="staff-task-state">
           <ClipboardList size={42} aria-hidden="true" />
-          <h2>{tasks.length === 0 ? 'No assigned tasks' : 'No matching tasks'}</h2>
-          <p>{tasks.length === 0 ? 'New work will appear here when it is assigned to you.' : 'Try a different search term.'}</p>
+          <h2>{tasks.length === 0 ? t('tasklist.no_assigned_tasks') : t('tasklist.no_matching_tasks')}</h2>
+          <p>{tasks.length === 0 ? t('tasklist.new_work_will_appear') : t('tasklist.try_a_different_search')}</p>
         </div>
       ) : (
         <>
-          <section className="staff-task-grid" aria-label="Assigned task cards">
+          <section className="staff-task-grid" aria-label={t('tasklist.assigned_task_cards')}>
             {visibleTasks.map((task) => {
-              const location = task.stallCode || task.areaName || 'Location not specified';
+              const location = task.stallCode || task.areaName || t('tasklist.location_not_specified');
               return (
                 <article className="staff-task-card" key={task.taskId}>
                   <div className="staff-task-card__topline">
@@ -224,12 +226,12 @@ export default function TaskList({ baseUrl, onViewDetails, onMapView }) {
                   <div className="staff-task-card__body">
                     <h2>{task.title}</h2>
                     <p><MapPin size={16} aria-hidden="true" /> {location}</p>
-                    <p><CalendarDays size={16} aria-hidden="true" /> Assigned {formatDate(task.createdAt)}</p>
+                    <p><CalendarDays size={16} aria-hidden="true" /> Assigned {formatDate(task.createdAt, t)}</p>
                   </div>
 
                   <footer className="staff-task-card__footer">
                     <button type="button" onClick={() => onViewDetails(task.taskId)}>
-                      View Details <ChevronRight size={16} aria-hidden="true" />
+                      {t('tasklist.view_details')}<ChevronRight size={16} aria-hidden="true" />
                     </button>
                   </footer>
                 </article>
@@ -238,7 +240,7 @@ export default function TaskList({ baseUrl, onViewDetails, onMapView }) {
           </section>
 
           {totalPages > 1 ? (
-            <nav className="staff-task-pagination" aria-label="Task list pagination">
+            <nav className="staff-task-pagination" aria-label={t('tasklist.task_list_pagination')}>
               <span>
                 Showing {(safePageNumber - 1) * PAGE_SIZE + 1}–{Math.min(safePageNumber * PAGE_SIZE, filteredTasks.length)} of {filteredTasks.length}
               </span>
@@ -247,7 +249,7 @@ export default function TaskList({ baseUrl, onViewDetails, onMapView }) {
                   type="button"
                   disabled={safePageNumber === 1}
                   onClick={() => setPageNumber((current) => Math.max(1, current - 1))}
-                  aria-label="Previous page"
+                  aria-label={t('tasklist.previous_page')}
                 >
                   <ChevronLeft size={17} aria-hidden="true" />
                 </button>
@@ -256,7 +258,7 @@ export default function TaskList({ baseUrl, onViewDetails, onMapView }) {
                   type="button"
                   disabled={safePageNumber === totalPages}
                   onClick={() => setPageNumber((current) => Math.min(totalPages, current + 1))}
-                  aria-label="Next page"
+                  aria-label={t('tasklist.next_page')}
                 >
                   <ChevronRight size={17} aria-hidden="true" />
                 </button>

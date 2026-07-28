@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import './AuditLogListAdminSystem.css';
 
@@ -23,6 +24,8 @@ const ROLE_COLORS = {
 };
 
 export default function AuditLogListAdminSystem({ navigate, addToast }) {
+  const { t } = useTranslation();
+
   const [logs, setLogs]               = useState([]);
   const [loading, setLoading]         = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -183,17 +186,17 @@ export default function AuditLogListAdminSystem({ navigate, addToast }) {
     const text = actionText.toLowerCase();
     
     // Critical risk keywords (e.g. deletion, account locking, rejection, deactivation, failure)
-    if (text.includes('xóa') || text.includes('khóa') || text.includes('từ chối') || text.includes('hủy kích hoạt') || text.includes('thất bại')) {
+    if (text.includes(t('auditloglistadminsystem.erase')) || text.includes(t('auditloglistadminsystem.lock')) || text.includes(t('auditloglistadminsystem.refuse')) || text.includes(t('auditloglistadminsystem.deactivate')) || text.includes(t('auditloglistadminsystem.failure'))) {
       return 'danger'; 
     }
     
     // Medium risk/noteworthy keywords (e.g. unlocks, password resets, modifications)
-    if (text.includes('mở khóa') || text.includes('đặt lại mật khẩu') || text.includes('thay đổi mật khẩu') || text.includes('reset') || text.includes('cập nhật')) {
+    if (text.includes(t('auditloglistadminsystem.unlock')) || text.includes(t('auditloglistadminsystem.reset_password')) || text.includes(t('auditloglistadminsystem.change_password')) || text.includes('reset') || text.includes(t('auditloglistadminsystem.update'))) {
       return 'warning'; 
     }
 
     // Normal successful creations/approvals
-    if (text.includes('tạo') || text.includes('phê duyệt') || text.includes('đăng ký') || text.includes('đăng nhập')) {
+    if (text.includes(t('auditloglistadminsystem.create')) || text.includes(t('auditloglistadminsystem.approve')) || text.includes(t('auditloglistadminsystem.register')) || text.includes(t('auditloglistadminsystem.log_in'))) {
       return 'success'; 
     }
 
@@ -222,10 +225,9 @@ export default function AuditLogListAdminSystem({ navigate, addToast }) {
       {/* ── Page Header ── */}
       <div className="list-header">
         <div>
-          <h2>Nhật ký hoạt động hệ thống</h2>
+          <h2>{t('auditloglistadminsystem.system_activity_log')}</h2>
           <p className="header-subtitle">
-            Giám sát thao tác thời gian thực của mọi tài khoản người dùng trên toàn hệ thống
-          </p>
+            {t('auditloglistadminsystem.monitor_realtime_operations_of')}</p>
         </div>
       </div>
 
@@ -238,12 +240,12 @@ export default function AuditLogListAdminSystem({ navigate, addToast }) {
             <input
               type="text"
               className="form-control"
-              placeholder="Tìm theo tên, email User..."
+              placeholder={t('auditloglistadminsystem.search_by_name_user')}
               value={searchQuery}
               onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
             />
             {searchQuery && (
-              <button className="search-clear" onClick={() => { setSearchQuery(''); setPage(1); }} title="Xóa">
+              <button className="search-clear" onClick={() => { setSearchQuery(''); setPage(1); }} title={t('auditloglistadminsystem.erase')}>
                 <IconXCircle />
               </button>
             )}
@@ -255,12 +257,12 @@ export default function AuditLogListAdminSystem({ navigate, addToast }) {
             <input
               type="text"
               className="form-control"
-              placeholder="Lọc hành động (Khóa, Duyệt, Tạo)..."
+              placeholder={t('auditloglistadminsystem.filter_actions_lock_browse')}
               value={actionFilter}
               onChange={(e) => { setActionFilter(e.target.value); setPage(1); }}
             />
             {actionFilter && (
-              <button className="search-clear" onClick={() => { setActionFilter(''); setPage(1); }} title="Xóa">
+              <button className="search-clear" onClick={() => { setActionFilter(''); setPage(1); }} title={t('auditloglistadminsystem.erase')}>
                 <IconXCircle />
               </button>
             )}
@@ -274,7 +276,7 @@ export default function AuditLogListAdminSystem({ navigate, addToast }) {
               className="form-control date-control"
               value={startDate}
               onChange={(e) => { setStartDate(e.target.value); setPage(1); }}
-              title="Từ ngày"
+              title={t('auditloglistadminsystem.from_date')}
             />
           </div>
 
@@ -286,7 +288,7 @@ export default function AuditLogListAdminSystem({ navigate, addToast }) {
               className="form-control date-control"
               value={endDate}
               onChange={(e) => { setEndDate(e.target.value); setPage(1); }}
-              title="Đến ngày"
+              title={t('auditloglistadminsystem.come_day')}
             />
           </div>
         </div>
@@ -294,8 +296,7 @@ export default function AuditLogListAdminSystem({ navigate, addToast }) {
         {hasFilters && (
           <div className="filter-actions" style={{ marginTop: '12px', textAlign: 'right' }}>
             <button className="btn-filter-clear" onClick={clearFilters}>
-              Xóa bộ lọc
-            </button>
+              {t('auditloglistadminsystem.clear_filter')}</button>
           </div>
         )}
       </div>
@@ -304,9 +305,9 @@ export default function AuditLogListAdminSystem({ navigate, addToast }) {
       <div className="table-card">
         <div className="table-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span className="table-card-title">Lịch sử tác vụ hệ thống</span>
+            <span className="table-card-title">{t('auditloglistadminsystem.system_task_history')}</span>
             {hubConnected && (
-              <span className="live-indicator" title="Đang kết nối thời gian thực qua WebSockets">
+              <span className="live-indicator" title={t('auditloglistadminsystem.realtime_connection_via_websockets')}>
                 <span className="live-dot" />
                 <span className="live-text">Real-time</span>
               </span>
@@ -320,18 +321,17 @@ export default function AuditLogListAdminSystem({ navigate, addToast }) {
         {loading ? (
           <div className="state-empty">
             <div className="spinner" />
-            <span className="state-empty-text">Đang tải nhật ký hệ thống...</span>
+            <span className="state-empty-text">{t('auditloglistadminsystem.loading_system_log')}</span>
           </div>
         ) : logs.length === 0 ? (
           <div className="state-empty">
             <IconEmpty />
             <span className="state-empty-text">
-              {hasFilters ? 'Không tìm thấy nhật ký phù hợp với bộ lọc.' : 'Chưa ghi nhận bất kỳ thao tác nào.'}
+              {hasFilters ? t('auditloglistadminsystem.no_logs_matching_the') : t('auditloglistadminsystem.no_operations_have_been')}
             </span>
             {hasFilters && (
               <button className="btn-secondary" style={{ marginTop: 8 }} onClick={clearFilters}>
-                Xóa bộ lọc
-              </button>
+                {t('auditloglistadminsystem.clear_filter')}</button>
             )}
           </div>
         ) : (
@@ -341,11 +341,11 @@ export default function AuditLogListAdminSystem({ navigate, addToast }) {
                 <thead>
                   <tr>
                     <th style={{ width: 60, textAlign: 'center' }}>ID</th>
-                    <th>Người thực hiện</th>
-                    <th>Hành động</th>
-                    <th>Địa chỉ IP</th>
-                    <th>Thời gian</th>
-                    <th style={{ width: 100, textAlign: 'center' }}>Chi tiết</th>
+                    <th>{t('auditloglistadminsystem.implementer')}</th>
+                    <th>{t('auditloglistadminsystem.act')}</th>
+                    <th>{t('auditloglistadminsystem.ip_address')}</th>
+                    <th>{t('auditloglistadminsystem.time')}</th>
+                    <th style={{ width: 100, textAlign: 'center' }}>{t('auditloglistadminsystem.detail')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -376,14 +376,12 @@ export default function AuditLogListAdminSystem({ navigate, addToast }) {
                         <td>
                           <div className="action-cell-content">
                             {severity === 'danger' && (
-                              <span className="critical-badge badge-danger-alert" title="Hành động rủi ro cao / Bất thường">
-                                <IconShieldAlert /> Cảnh báo
-                              </span>
+                              <span className="critical-badge badge-danger-alert" title={t('auditloglistadminsystem.high_risk_unusual_action')}>
+                                <IconShieldAlert /> {t('auditloglistadminsystem.warning')}</span>
                             )}
                             {severity === 'warning' && (
-                              <span className="critical-badge badge-warning-alert" title="Hành động cần lưu ý">
-                                <IconAlertTriangle /> Lưu ý
-                              </span>
+                              <span className="critical-badge badge-warning-alert" title={t('auditloglistadminsystem.action_to_take_note')}>
+                                <IconAlertTriangle /> {t('auditloglistadminsystem.note')}</span>
                             )}
                             <span className={`action-text severity-${severity}`}>
                               {log.action}
@@ -399,7 +397,7 @@ export default function AuditLogListAdminSystem({ navigate, addToast }) {
                         <td style={{ textAlign: 'center' }}>
                           <button 
                             className="btn-icon view-details" 
-                            title="Xem chi tiết dòng log"
+                            title={t('auditloglistadminsystem.view_log_line_details')}
                             onClick={() => setSelectedLog(log)}
                           >
                             <IconInfo />
@@ -424,8 +422,7 @@ export default function AuditLogListAdminSystem({ navigate, addToast }) {
                     onClick={() => setPage(p => Math.max(p - 1, 1))} 
                     disabled={page === 1}
                   >
-                    Trước
-                  </button>
+                    {t('auditloglistadminsystem.before')}</button>
                   <button 
                     className="btn-pagination" 
                     onClick={() => setPage(p => Math.min(p + 1, totalPages))} 
@@ -451,14 +448,14 @@ export default function AuditLogListAdminSystem({ navigate, addToast }) {
             <div className="modal-body">
               <div className="audit-detail-grid">
                 <div className="detail-item full-width">
-                  <label>Mô tả hành động</label>
+                  <label>{t('auditloglistadminsystem.action_description')}</label>
                   <div className={`detail-value action-value-box severity-${getActionSeverity(selectedLog.action)}`}>
                     {selectedLog.action}
                   </div>
                 </div>
 
                 <div className="detail-item">
-                  <label>Người thực hiện</label>
+                  <label>{t('auditloglistadminsystem.implementer')}</label>
                   <div className="detail-value text-bold">{selectedLog.userName}</div>
                 </div>
 
@@ -468,7 +465,7 @@ export default function AuditLogListAdminSystem({ navigate, addToast }) {
                 </div>
 
                 <div className="detail-item">
-                  <label>Vai trò hệ thống</label>
+                  <label>{t('auditloglistadminsystem.system_role')}</label>
                   <div className="detail-value">
                     <span 
                       className="badge-role" 
@@ -488,17 +485,17 @@ export default function AuditLogListAdminSystem({ navigate, addToast }) {
                 </div>
 
                 <div className="detail-item">
-                  <label>Mã tài khoản (User ID)</label>
+                  <label>{t('auditloglistadminsystem.account_code_user_id')}</label>
                   <div className="detail-value">#{selectedLog.userId}</div>
                 </div>
 
                 <div className="detail-item">
-                  <label>Địa chỉ IP</label>
-                  <div className="detail-value"><code>{selectedLog.ipAddress || 'Không rõ'}</code></div>
+                  <label>{t('auditloglistadminsystem.ip_address')}</label>
+                  <div className="detail-value"><code>{selectedLog.ipAddress || t('auditloglistadminsystem.hollow')}</code></div>
                 </div>
 
                 <div className="detail-item">
-                  <label>Thời điểm ghi nhận (GMT+7)</label>
+                  <label>{t('auditloglistadminsystem.recording_time_gmt7')}</label>
                   <div className="detail-value">{formatDateTime(selectedLog.createdAt)}</div>
                 </div>
               </div>
@@ -507,16 +504,15 @@ export default function AuditLogListAdminSystem({ navigate, addToast }) {
                 <div className="critical-warning-box">
                   <div className="warning-icon-wrapper">⚠️</div>
                   <div>
-                    <p className="warning-title">Tác vụ nhạy cảm / Rủi ro cao</p>
+                    <p className="warning-title">{t('auditloglistadminsystem.sensitive_high_risk_task')}</p>
                     <p className="warning-desc">
-                      Tác vụ này làm thay đổi quyền lực, trạng thái hoặc xóa thông tin người dùng/dữ liệu sạp. Yêu cầu kiểm tra kỹ nếu thao tác này không phải do quản trị viên chủ động thực hiện.
-                    </p>
+                      {t('auditloglistadminsystem.this_action_changes_power')}</p>
                   </div>
                 </div>
               )}
             </div>
             <div className="modal-foot">
-              <button className="btn-secondary" onClick={() => setSelectedLog(null)}>Đóng</button>
+              <button className="btn-secondary" onClick={() => setSelectedLog(null)}>{t('auditloglistadminsystem.close')}</button>
             </div>
           </div>
         </div>

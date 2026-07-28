@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useCallback } from 'react';
 import './TaskDetailManager.css';
 import AssignStaffModal from './AssignStaffModal';
@@ -13,6 +14,8 @@ const IconUser = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="non
 const IconCancel = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>;
 
 export default function TaskDetailManager({ taskId, baseUrl, onBack, addToast, navigate }) {
+  const { t } = useTranslation();
+
   const [task, setTask] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -103,9 +106,9 @@ export default function TaskDetailManager({ taskId, baseUrl, onBack, addToast, n
   useEffect(() => {
     const originalTitle = document.title;
     if (task) {
-      document.title = `STMM - Chi tiết Tác vụ #${task.taskId}`;
+      document.title = t('taskdetailmanager.stmm_task_details_tasktaskid');
     } else {
-      document.title = `STMM - Chi tiết Tác vụ`;
+      document.title = t('taskdetailmanager.stmm_task_details');
     }
 
     let metaDesc = document.querySelector('meta[name="description"]');
@@ -118,9 +121,9 @@ export default function TaskDetailManager({ taskId, baseUrl, onBack, addToast, n
     }
     
     if (task) {
-      metaDesc.setAttribute("content", `Chi tiết kỹ thuật, tiến độ thực hiện và lịch sử hoạt động của tác vụ vận hành số #${task.taskId} tại hệ thống STMM.`);
+      metaDesc.setAttribute("content", t('taskdetailmanager.technical_details_implementation_progress'));
     } else {
-      metaDesc.setAttribute("content", "Trang xem chi tiết kỹ thuật và cập nhật phân công, trạng thái tác vụ vận hành STMM.");
+      metaDesc.setAttribute("content", t('taskdetailmanager.page_to_view_technical'));
     }
 
     return () => {

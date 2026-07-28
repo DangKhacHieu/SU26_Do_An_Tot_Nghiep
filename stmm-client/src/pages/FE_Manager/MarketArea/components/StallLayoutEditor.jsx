@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Rnd } from 'react-rnd';
@@ -12,6 +13,8 @@ import PolygonDrawer from './PolygonDrawer';
 import styles from './StallLayoutEditor.module.css';
 
 const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, areaHeight, areaSize, polygonClipPath, svgPath, validateStallBounds }) => {
+  const { t } = useTranslation();
+
     const [stalls, setStalls] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedStall, setSelectedStall] = useState(null);
@@ -80,7 +83,7 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
             await updateStallLocation(id, { mapX: d.x, mapY: d.y });
         } catch (error) {
             console.error('Failed to update stall location:', error);
-            setErrorMessage('Có lỗi xảy ra khi lưu vị trí sạp.');
+            setErrorMessage('Có lỗi xảy ra khi lưu kích thước sạp.');
             fetchStalls(); // revert on fail
         }
     };
@@ -121,7 +124,7 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
             
             // Check if error is due to size validation limit
             if (error.response?.data?.message) {
-                setErrorMessage(`Không thể thay đổi kích thước sạp: ${error.response.data.message}`);
+                setErrorMessage('Không thể thay đổi kích thước sạp: ${error.response.data.message}');
             } else {
                 setErrorMessage('Có lỗi xảy ra khi lưu kích thước sạp.');
             }
@@ -214,32 +217,32 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
             <div style={{position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 9999, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
                 <div style={{background: 'var(--bg-panel)', padding: '32px', borderRadius: '16px', minWidth: '400px', maxWidth: '500px', boxShadow: '0 10px 30px rgba(0,0,0,0.2)', position: 'relative'}}>
                     <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '16px'}}>
-                        <h3 style={{margin: 0, color: 'var(--color-primary)', fontSize: '20px'}}>ℹ️ Thông tin Sạp</h3>
+                        <h3 style={{margin: 0, color: 'var(--color-primary)', fontSize: '20px'}}>{'Thông tin Sạp'}</h3>
                         <button onClick={() => setViewingStall(null)} style={{background: 'transparent', border: 'none', fontSize: '24px', cursor: 'pointer', color: 'var(--text-secondary)'}}>&times;</button>
                     </div>
                     <div style={{marginTop: '24px', display: 'flex', flexDirection: 'column', gap: '16px'}}>
-                        <div style={{fontSize: '15px'}}><strong>Mã sạp:</strong> {viewingStall.code}</div>
-                        <div style={{fontSize: '15px'}}><strong>Ngành hàng:</strong> {viewingStall.categoryName || 'Không có'}</div>
-                        <div style={{fontSize: '15px'}}><strong>Tình trạng:</strong> <span style={{backgroundColor: getStatusColor(viewingStall.status), color: 'white', padding: '4px 12px', borderRadius: '12px', fontSize: '13px', marginLeft: '8px', fontWeight: 'bold'}}>{viewingStall.status}</span></div>
-                        <div style={{fontSize: '15px'}}><strong>Người thuê:</strong> {viewingStall.tenantName || viewingStall.description || 'Trống'}</div>
-                        <div style={{fontSize: '15px'}}><strong>Kích thước (WxH):</strong> {viewingStall.width} x {viewingStall.height}</div>
+                        <div style={{fontSize: '15px'}}><strong>{'Mã sạp:'}</strong> {viewingStall.code}</div>
+                        <div style={{fontSize: '15px'}}><strong>{'Ngành hàng:'}</strong> {viewingStall.categoryName || 'Không có'}</div>
+                        <div style={{fontSize: '15px'}}><strong>{'Tình trạng:'}</strong> <span style={{backgroundColor: getStatusColor(viewingStall.status), color: 'white', padding: '4px 12px', borderRadius: '12px', fontSize: '13px', marginLeft: '8px', fontWeight: 'bold'}}>{viewingStall.status}</span></div>
+                        <div style={{fontSize: '15px'}}><strong>{'Người thuê:'}</strong> {viewingStall.tenantName || viewingStall.description || 'Trống'}</div>
+                        <div style={{fontSize: '15px'}}><strong>{'Kích thước (WxH):'}</strong> {viewingStall.width} x {viewingStall.height}</div>
                         
                         <div style={{marginTop: '8px', padding: '12px', background: 'var(--bg-card)', borderRadius: '8px', border: '1px solid var(--border-color)'}}>
-                            <h4 style={{margin: '0 0 8px 0', fontSize: '14px', color: 'var(--text-secondary)'}}>⚡ Tiện ích (Điện / Nước)</h4>
+                            <h4 style={{margin: '0 0 8px 0', fontSize: '14px', color: 'var(--text-secondary)'}}>{'⚡ Tiện ích (Điện / Nước)'}</h4>
                             <div style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
                                 <div style={{fontSize: '14px', display: 'flex', justifyContent: 'space-between'}}>
-                                    <span>Mã đồng hồ điện: <strong>{viewingStall.electricityMeterSerial || 'Chưa lắp'}</strong></span>
-                                    <span>Chỉ số: <strong>{viewingStall.currentElectricityIndex ?? 0} kWh</strong></span>
+                                    <span>{'Mã đồng hồ điện:'}<strong>{viewingStall.electricityMeterSerial || 'Chưa lắp'}</strong></span>
+                                    <span>{'Chỉ số:'}<strong>{viewingStall.currentElectricityIndex ?? 0} kWh</strong></span>
                                 </div>
                                 <div style={{fontSize: '14px', display: 'flex', justifyContent: 'space-between'}}>
-                                    <span>Mã đồng hồ nước: <strong>{viewingStall.waterMeterSerial || 'Chưa lắp'}</strong></span>
-                                    <span>Chỉ số: <strong>{viewingStall.currentWaterIndex ?? 0} m³</strong></span>
+                                    <span>{'Mã đồng hồ nước:'}<strong>{viewingStall.waterMeterSerial || 'Chưa lắp'}</strong></span>
+                                    <span>{'Chỉ số:'}<strong>{viewingStall.currentWaterIndex ?? 0} m³</strong></span>
                                 </div>
                             </div>
                         </div>
                     </div>
                     <div style={{display: 'flex', justifyContent: 'flex-end', marginTop: '32px'}}>
-                        <button onClick={() => setViewingStall(null)} style={{padding: '10px 24px', background: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold'}}>Đóng lại</button>
+                        <button onClick={() => setViewingStall(null)} style={{padding: '10px 24px', background: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold'}}>{'Đóng'}</button>
                     </div>
                 </div>
             </div>
@@ -254,11 +257,11 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
                 <div key="confirm" style={{position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 9999, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
                     <div style={{background: 'var(--bg-panel)', padding: '32px', borderRadius: '16px', minWidth: '400px', boxShadow: '0 10px 30px rgba(0,0,0,0.2)', textAlign: 'center'}}>
                         <div style={{fontSize: '48px', marginBottom: '16px'}}>🗑️</div>
-                        <h3 style={{marginTop: 0, color: 'var(--text-primary)', fontSize: '24px'}}>Xác nhận xóa Sạp</h3>
-                        <p style={{color: 'var(--text-secondary)', fontSize: '15px', lineHeight: '1.5'}}>Bạn có chắc chắn muốn xóa sạp này không?<br/>Hành động này không thể hoàn tác.</p>
+                        <h3 style={{marginTop: 0, color: 'var(--text-primary)', fontSize: '24px'}}>{'Xác nhận xóa Sạp'}</h3>
+                        <p style={{color: 'var(--text-secondary)', fontSize: '15px', lineHeight: '1.5'}}>{'Bạn có chắc chắn muốn xóa sạp này không?'}<br/>{'Hành động này không thể hoàn tác.'}</p>
                         <div style={{marginTop: 32, display: 'flex', justifyContent: 'center', gap: 16}}>
-                            <button onClick={() => setDeleteConfirmId(null)} style={{padding: '10px 24px', background: 'transparent', border: '1px solid var(--border-color)', borderRadius: '8px', cursor: 'pointer', color: 'var(--text-primary)', fontWeight: 'bold', fontSize: '14px', transition: 'all 0.2s'}}>Hủy</button>
-                            <button onClick={confirmDelete} style={{padding: '10px 24px', background: 'var(--danger, #ff4d4f)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px', boxShadow: '0 4px 12px rgba(255, 77, 79, 0.3)', transition: 'all 0.2s'}}>Xóa Sạp</button>
+                            <button onClick={() => setDeleteConfirmId(null)} style={{padding: '10px 24px', background: 'transparent', border: '1px solid var(--border-color)', borderRadius: '8px', cursor: 'pointer', color: 'var(--text-primary)', fontWeight: 'bold', fontSize: '14px', transition: 'all 0.2s'}}>{'Hủy'}</button>
+                            <button onClick={confirmDelete} style={{padding: '10px 24px', background: 'var(--danger, #ff4d4f)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px', boxShadow: '0 4px 12px rgba(255, 77, 79, 0.3)', transition: 'all 0.2s'}}>{'Xóa Sạp'}</button>
                         </div>
                     </div>
                 </div>
@@ -269,10 +272,10 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
                 <div key="error" style={{position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 9999, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
                     <div style={{background: 'var(--bg-panel)', padding: '32px', borderRadius: '16px', minWidth: '400px', maxWidth: '500px', boxShadow: '0 10px 30px rgba(0,0,0,0.2)', textAlign: 'center'}}>
                         <div style={{fontSize: '48px', marginBottom: '16px'}}>⚠️</div>
-                        <h3 style={{marginTop: 0, color: 'var(--danger, #ff4d4f)', fontSize: '24px'}}>Lỗi</h3>
+                        <h3 style={{marginTop: 0, color: 'var(--danger, #ff4d4f)', fontSize: '24px'}}>{'Lỗi'}</h3>
                         <p style={{color: 'var(--text-secondary)', fontSize: '15px', lineHeight: '1.5'}}>{errorMessage}</p>
                         <div style={{marginTop: 32}}>
-                            <button onClick={() => setErrorMessage(null)} style={{padding: '10px 32px', background: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px', transition: 'all 0.2s'}}>Đóng</button>
+                            <button onClick={() => setErrorMessage(null)} style={{padding: '10px 32px', background: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px', transition: 'all 0.2s'}}>{'Đóng'}</button>
                         </div>
                     </div>
                 </div>
@@ -283,7 +286,7 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
                 <div key="success" style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', zIndex: 9999, display: 'flex', justifyContent: 'center', alignItems: 'center'}}>
                     <div style={{background: 'var(--bg-panel)', padding: '32px', borderRadius: '16px', minWidth: '400px', boxShadow: '0 10px 30px rgba(0,0,0,0.2)', textAlign: 'center', animation: 'popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)'}}>
                         <div style={{fontSize: '48px', marginBottom: '16px'}}>✅</div>
-                        <h3 style={{marginTop: 0, color: 'var(--success, #4caf50)', fontSize: '24px'}}>Thành công!</h3>
+                        <h3 style={{marginTop: 0, color: 'var(--success, #4caf50)', fontSize: '24px'}}>{'Thành công!'}</h3>
                         <p style={{color: 'var(--text-secondary)', fontSize: '15px'}}>{deleteSuccess}</p>
                     </div>
                 </div>
@@ -393,14 +396,14 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
                                             <button 
                                                 className={styles.iconBtn} 
                                                 onClick={(e) => { e.stopPropagation(); setSelectedStall(stall); setIsFormOpen(true); }}
-                                                title="Sửa Sạp"
+                                                title={'Sửa Sạp'}
                                             >
                                                 ✎
                                             </button>
                                             <button 
                                                 className={styles.iconBtnDanger} 
                                                 onClick={(e) => { e.stopPropagation(); requestDelete(stall.stallId); }}
-                                                title="Xóa Sạp"
+                                                title={'Xóa Sạp'}
                                             >
                                                 ✕
                                             </button>
@@ -409,7 +412,7 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
                                         <button 
                                             className={styles.iconBtn} 
                                             onClick={(e) => { e.stopPropagation(); setViewingStall(stall); }}
-                                            title="Thông tin Sạp"
+                                            title={'Thông tin Sạp'}
                                         >
                                             ℹ
                                         </button>

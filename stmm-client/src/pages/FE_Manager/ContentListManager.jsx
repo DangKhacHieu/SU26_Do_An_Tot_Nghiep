@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import './ContentListManager.css';
 
@@ -30,6 +31,8 @@ const IconWarn    = () => <svg width="22" height="22" viewBox="0 0 24 24" fill="
 const IconXCircle = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>;
 
 export default function ContentListManager({ navigate, addToast }) {
+  const { t } = useTranslation();
+
   const [contents, setContents]       = useState([]);
   const [loading, setLoading]         = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -129,19 +132,19 @@ export default function ContentListManager({ navigate, addToast }) {
             <input
               type="text"
               className="search-input"
-              placeholder="Tìm theo tiêu đề, nội dung..."
+              placeholder={t('contentlistmanager.search_by_title_content')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
             {searchQuery && (
-              <button className="search-clear" onClick={() => setSearchQuery('')} title="Xóa">
+              <button className="search-clear" onClick={() => setSearchQuery('')} title={t('contentlistmanager.erase')}>
                 <IconXCircle />
               </button>
             )}
           </div>
 
           <select className="filter-select" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
-            <option value="">Tất cả phân loại</option>
+            <option value="">{t('contentlistmanager.all_categories')}</option>
             <option value="Article">Homepage Article</option>
             <option value="Announcement">Role Announcement</option>
             <option value="System">System Notification</option>
@@ -151,30 +154,28 @@ export default function ContentListManager({ navigate, addToast }) {
           </select>
 
           <select className="filter-select" value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
-            <option value="">Tất cả đối tượng nhận</option>
-            <option value="Public">Public (Trang chủ)</option>
-            <option value="Staff">Staff (Nhân viên)</option>
-            <option value="Accountant">Accountant (Kế toán)</option>
-            <option value="Vendor">Vendor (Tiểu thương)</option>
-            <option value="Customer">Customer (Khách hàng)</option>
+            <option value="">{t('contentlistmanager.all_recipients')}</option>
+            <option value="Public">{t('contentlistmanager.public_home')}</option>
+            <option value="Staff">{t('contentlistmanager.staff')}</option>
+            <option value="Accountant">{t('contentlistmanager.accountant')}</option>
+            <option value="Vendor">{t('contentlistmanager.vendor_small_business')}</option>
+            <option value="Customer">{t('contentlistmanager.customer')}</option>
           </select>
 
           {hasFilters && (
             <button className="btn-filter-clear" onClick={clearFilters}>
-              Xóa bộ lọc
-            </button>
+              {t('contentlistmanager.clear_filter')}</button>
           )}
         </div>
 
         <button className="btn-primary" onClick={() => navigate('content-form')}>
-          <IconPlus /> Đăng tin & Thông báo
-        </button>
+          <IconPlus /> {t('contentlistmanager.posting_news_announcements')}</button>
       </div>
 
       {/* ── Table Card ── */}
       <div className="table-card">
         <div className="table-card-header">
-          <span className="table-card-title">Danh sách bài viết & thông báo đã tạo</span>
+          <span className="table-card-title">{t('contentlistmanager.list_of_created_posts')}</span>
           {!loading && (
             <span className="table-count-badge">{filteredContents.length} kết quả</span>
           )}
@@ -183,18 +184,17 @@ export default function ContentListManager({ navigate, addToast }) {
         {loading ? (
           <div className="state-empty">
             <div className="spinner" />
-            <span className="state-empty-text">Đang tải dữ liệu...</span>
+            <span className="state-empty-text">{t('contentlistmanager.loading_data')}</span>
           </div>
         ) : filteredContents.length === 0 ? (
           <div className="state-empty">
             <IconEmpty />
             <span className="state-empty-text">
-              {hasFilters ? 'Không tìm thấy bài viết nào phù hợp bộ lọc.' : 'Chưa có bài viết hay thông báo nào được tạo.'}
+              {hasFilters ? t('contentlistmanager.no_articles_found_matching') : t('contentlistmanager.no_posts_or_announcements')}
             </span>
             {hasFilters && (
               <button className="btn-secondary" style={{ marginTop: 8 }} onClick={clearFilters}>
-                Xóa bộ lọc
-              </button>
+                {t('contentlistmanager.clear_filter')}</button>
             )}
           </div>
         ) : (
@@ -203,11 +203,11 @@ export default function ContentListManager({ navigate, addToast }) {
               <thead>
                 <tr>
                   <th style={{ width: 44, textAlign: 'center' }}>#</th>
-                  <th>Tiêu đề</th>
-                  <th>Phân loại</th>
-                  <th>Đối tượng nhận</th>
-                  <th>Ngày tạo</th>
-                  <th style={{ textAlign: 'center' }}>Hành động</th>
+                  <th>{t('contentlistmanager.title')}</th>
+                  <th>{t('contentlistmanager.classify')}</th>
+                  <th>{t('contentlistmanager.receiving_object')}</th>
+                  <th>{t('contentlistmanager.creation_date')}</th>
+                  <th style={{ textAlign: 'center' }}>{t('contentlistmanager.act')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -242,16 +242,16 @@ export default function ContentListManager({ navigate, addToast }) {
                           </div>
                         ) : (
                           <span className="badge-role-target" style={{ borderColor: roleColor, color: roleColor, backgroundColor: `${roleColor}0a` }}>
-                            {TARGET_ROLE_LABELS[item.targetRole] || item.targetRole || 'Mọi đối tượng'}
+                            {TARGET_ROLE_LABELS[item.targetRole] || item.targetRole || t('contentlistmanager.every_object')}
                           </span>
                         )}
                       </td>
                       <td><span className="mono">{formatDate(item.createdAt)}</span></td>
                       <td>
                         <div className="actions-cell" style={{ justifyContent: 'center' }}>
-                          <button className="btn-icon view" title="Xem chi tiết" onClick={() => navigate('content-detail', item.notiId)}><IconEye /></button>
-                          <button className="btn-icon edit" title="Chỉnh sửa" onClick={() => navigate('content-form', item.notiId)}><IconEdit /></button>
-                          <button className="btn-icon delete" title="Xóa bài viết" onClick={() => openDeleteModal(item)}><IconTrash /></button>
+                          <button className="btn-icon view" title={t('contentlistmanager.see_details')} onClick={() => navigate('content-detail', item.notiId)}><IconEye /></button>
+                          <button className="btn-icon edit" title={t('contentlistmanager.edit')} onClick={() => navigate('content-form', item.notiId)}><IconEdit /></button>
+                          <button className="btn-icon delete" title={t('contentlistmanager.delete_posts')} onClick={() => openDeleteModal(item)}><IconTrash /></button>
                         </div>
                       </td>
                     </tr>
@@ -268,22 +268,20 @@ export default function ContentListManager({ navigate, addToast }) {
         <div className="modal-overlay" onClick={closeDeleteModal}>
           <div className="modal-box" onClick={(e) => e.stopPropagation()}>
             <div className="modal-head">
-              <h3>Xóa bài viết / thông báo</h3>
+              <h3>{t('contentlistmanager.delete_postsnotifications')}</h3>
               <button className="modal-close" onClick={closeDeleteModal}>×</button>
             </div>
             <div className="modal-body text-center">
               <div className="modal-icon-wrap danger"><IconWarn /></div>
               <p className="modal-desc" style={{ marginTop: 16 }}>
-                Bạn có chắc chắn muốn xóa bài viết <strong>"{targetContent.title}"</strong> không?
-              </p>
+                {t('contentlistmanager.are_you_sure_you')}<strong>"{targetContent.title}"</strong> {t('contentlistmanager.are_not')}</p>
               <p className="text-secondary" style={{ fontSize: '13px', marginTop: 8 }}>
-                Hành động này không thể hoàn tác. Bài viết hoặc thông báo này sẽ biến mất khỏi bảng tin.
-              </p>
+                {t('contentlistmanager.this_action_cannot_be')}</p>
             </div>
             <div className="modal-foot">
-              <button className="btn-secondary" onClick={closeDeleteModal} disabled={actionLoading}>Hủy</button>
+              <button className="btn-secondary" onClick={closeDeleteModal} disabled={actionLoading}>{t('contentlistmanager.cancel')}</button>
               <button className="btn-danger" onClick={handleDelete} disabled={actionLoading}>
-                {actionLoading ? 'Đang xóa...' : 'Xác nhận xóa'}
+                {actionLoading ? t('contentlistmanager.deleting') : t('contentlistmanager.confirm_deletion')}
               </button>
             </div>
           </div>

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from "react";
 import Header from "../Layout/Header";
 import Footer from "../Layout/Footer";
@@ -15,6 +16,7 @@ export default function StallDetailPage({
   onGoToStallsMap,
   onLogout,
 }) {
+  const { t } = useTranslation();
   const [stall, setStall] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -36,6 +38,7 @@ export default function StallDetailPage({
   const [editError, setEditError] = useState("");
 
   const handleStartEdit = (review) => {
+
     setEditingReviewId(review.reviewId);
     setEditRating(review.rating);
     setEditComment(review.comment || "");
@@ -63,7 +66,7 @@ export default function StallDetailPage({
       setEditingReviewId(null);
       await fetchReviews();
     } catch (err) {
-      console.error("Lỗi khi cập nhật đánh giá:", err);
+      console.error(t('stalldetailpage.error_updating_review'), err);
       setEditError(
         err.response?.data || "Could not update review. Please try again."
       );
@@ -81,7 +84,7 @@ export default function StallDetailPage({
         setReviewsData(data);
       }
     } catch (err) {
-      console.error("Lỗi khi tải đánh giá sạp hàng:", err);
+      console.error(t('stalldetailpage.error_when_loading_store'), err);
       setReviewsError("Could not load reviews from server.");
     } finally {
       setReviewsLoading(false);
@@ -135,7 +138,7 @@ export default function StallDetailPage({
       setNewRating(5);
       await fetchReviews();
     } catch (err) {
-      console.error("Lỗi khi gửi đánh giá:", err);
+      console.error(t('stalldetailpage.error_when_submitting_review'), err);
       setSubmitError(
         err.response?.data || "Could not submit review to the server. Please try again."
       );
@@ -151,7 +154,6 @@ export default function StallDetailPage({
     }
     return stars.join("");
   };
-
 
   const getStatusLabel = (status) => {
     switch (status) {

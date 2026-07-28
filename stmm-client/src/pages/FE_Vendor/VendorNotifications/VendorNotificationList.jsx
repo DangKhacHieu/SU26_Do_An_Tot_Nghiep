@@ -1,9 +1,12 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect } from 'react';
 import notificationService from '../../../services/notificationService';
 import { showConfirm, showSuccess, showError } from '../../../utils/alert';
 import './VendorNotificationList.css';
 
 export default function VendorNotificationList({ onUpdateUnreadCount }) {
+  const { t } = useTranslation();
+
     const [notifications, setNotifications] = useState([]);
     const [loading, setLoading] = useState(false);
     const [filter, setFilter] = useState('ALL'); // 'ALL' or 'UNREAD'
@@ -60,7 +63,7 @@ export default function VendorNotificationList({ onUpdateUnreadCount }) {
     const handleDeleteNotification = async (notiId, e) => {
         e.stopPropagation(); // Ngăn không cho click truyền lên item để mở modal
         
-        const result = await showConfirm('Xác nhận xóa', 'Bạn có chắc chắn muốn xóa thông báo này?');
+        const result = await showConfirm(t('vendornotificationlist.confirm_deletion'), t('vendornotificationlist.are_you_sure_you'));
         if (!result.isConfirmed) return;
         
         try {
@@ -68,10 +71,10 @@ export default function VendorNotificationList({ onUpdateUnreadCount }) {
             const updated = notifications.filter(n => n.notiId !== notiId);
             setNotifications(updated);
             updateGlobalCount(updated);
-            await showSuccess('Thành công', 'Đã xóa thông báo.');
+            await showSuccess(t('vendornotificationlist.success'), t('vendornotificationlist.notification_removed'));
         } catch (error) {
             console.error('Failed to delete notification', error);
-            showError('Thất bại', 'Có lỗi xảy ra khi xóa thông báo.');
+            showError(t('vendornotificationlist.failure'), t('vendornotificationlist.an_error_occurred_while'));
         }
     };
 
@@ -111,11 +114,11 @@ export default function VendorNotificationList({ onUpdateUnreadCount }) {
         <div className="vendor-noti-container fade-in">
             <div className="noti-header">
                 <div>
-                    <h2>Thông báo</h2>
-                    <p>Cập nhật thông tin mới nhất từ Ban quản lý chợ.</p>
+                    <h2>{t('vendornotificationlist.notification')}</h2>
+                    <p>{t('vendornotificationlist.update_the_latest_information')}</p>
                 </div>
                 <button className="btn-mark-all" onClick={handleMarkAllAsRead}>
-                    Đánh dấu tất cả đã đọc
+                    {t('vendornotificationlist.mark_all_as_read')}
                 </button>
             </div>
 
@@ -124,23 +127,23 @@ export default function VendorNotificationList({ onUpdateUnreadCount }) {
                     className={`noti-tab ${filter === 'ALL' ? 'active' : ''}`}
                     onClick={() => setFilter('ALL')}
                 >
-                    Tất cả
+                    {t('vendornotificationlist.all')}
                 </button>
                 <button 
                     className={`noti-tab ${filter === 'UNREAD' ? 'active' : ''}`}
                     onClick={() => setFilter('UNREAD')}
                 >
-                    Chưa đọc
+                    {t('vendornotificationlist.havent_read_yet')}
                 </button>
             </div>
 
             <div className="noti-list">
                 {loading ? (
-                    <div className="noti-loading">Đang tải thông báo...</div>
+                    <div className="noti-loading">{t('vendornotificationlist.ang_ti_thng_bo')}</div>
                 ) : filteredNotifications.length === 0 ? (
                     <div className="noti-empty">
                         <div className="empty-icon">📭</div>
-                        <p>Không có thông báo nào.</p>
+                        <p>{t('vendornotificationlist.there_are_no_announcements')}</p>
                     </div>
                 ) : (
                     filteredNotifications.map(noti => (
@@ -160,7 +163,7 @@ export default function VendorNotificationList({ onUpdateUnreadCount }) {
                                 <button 
                                     className="btn-delete-noti"
                                     onClick={(e) => handleDeleteNotification(noti.notiId, e)}
-                                    title="Xóa thông báo"
+                                    title={t('vendornotificationlist.delete_notification')}
                                     style={{
                                         background: 'transparent',
                                         border: 'none',
@@ -200,7 +203,7 @@ export default function VendorNotificationList({ onUpdateUnreadCount }) {
                             </div>
                         </div>
                         <div className="noti-modal-footer">
-                            <button className="btn-cancel" onClick={() => setSelectedNotification(null)}>Đóng</button>
+                            <button className="btn-cancel" onClick={() => setSelectedNotification(null)}>{t('vendornotificationlist.close')}</button>
                         </div>
                     </div>
                 </div>

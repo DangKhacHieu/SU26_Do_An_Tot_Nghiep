@@ -1,9 +1,12 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useCallback } from 'react';
 import ReceiveCashModal from './ReceiveCashModal';
 import readProblemDetail from '../../utils/readProblemDetail';
 import './StallInvoiceDetail.css';
 
 export default function StallInvoiceDetail({ stallId, stallCode, baseUrl, onBack, onShowNotification }) {
+  const { t } = useTranslation();
+
   const [unpaidInvoices, setUnpaidInvoices] = useState([]);
   const [selectedInvoiceId, setSelectedInvoiceId] = useState(null);
   const [invoiceDetail, setInvoiceDetail] = useState(null);
@@ -20,7 +23,7 @@ export default function StallInvoiceDetail({ stallId, stallCode, baseUrl, onBack
     try {
       const response = await fetch(`${baseUrl}/api/staff/billing/invoices/stall/${stallId}/unpaid`);
       if (!response.ok) {
-        throw new Error(await readProblemDetail(response, 'Unable to load unpaid invoices.'));
+        throw new Error(await readProblemDetail(response, t('stallinvoicedetail.unable_to_load_unpaid')));
       }
       const data = await response.json();
       setUnpaidInvoices(data);
@@ -31,7 +34,7 @@ export default function StallInvoiceDetail({ stallId, stallCode, baseUrl, onBack
         setInvoiceDetail(null);
       }
     } catch (err) {
-      console.error("Error loading unpaid invoices:", err);
+      console.error(t('stallinvoicedetail.error_loading_unpaid_invoices'), err);
       setListError(err.message);
     } finally {
       setLoadingList(false);
@@ -44,12 +47,12 @@ export default function StallInvoiceDetail({ stallId, stallCode, baseUrl, onBack
     try {
       const response = await fetch(`${baseUrl}/api/staff/billing/invoices/${invoiceId}`);
       if (!response.ok) {
-        throw new Error(await readProblemDetail(response, 'Unable to load invoice details.'));
+        throw new Error(await readProblemDetail(response, t('stallinvoicedetail.unable_to_load_invoice')));
       }
       const data = await response.json();
       setInvoiceDetail(data);
     } catch (err) {
-      console.error("Error loading invoice detail:", err);
+      console.error(t('stallinvoicedetail.error_loading_invoice_detail'), err);
       setDetailError(err.message);
       setInvoiceDetail(null);
     } finally {
@@ -70,20 +73,20 @@ export default function StallInvoiceDetail({ stallId, stallCode, baseUrl, onBack
   const handlePaymentSuccess = (result) => {
     setShowCashModal(false);
     onShowNotification(
-      `Invoice payment recorded successfully. Amount: ${result.amount.toLocaleString('vi-VN')} VND`, 
-      'success'
+      `Invoice payment recorded successfully. Amount: ${result.amount.toLocaleString(t('stallinvoicedetail.vivn'))} VND`, 
+      t('stallinvoicedetail.success')
     );
     fetchUnpaidInvoices();
   };
 
   const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString('en-US');
+    if (!dateString) return t('stallinvoicedetail.na');
+    return new Date(dateString).toLocaleDateString(t('stallinvoicedetail.enus'));
   };
 
   return (
     <div className="stall-invoice-detail-page">
-      <div className="details-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+      <div className="details-header" style={{ display: 'flex', justifyContent: t('stallinvoicedetail.spacebetween'), alignItems: t('stallinvoicedetail.center'), marginBottom: '20px' }}>
         <h2 style={{ fontSize: '18px', fontWeight: '700', margin: 0, color: 'var(--text-main)' }}>📄 INVOICES - STALL {stallCode}</h2>
         <button className="btn-secondary-outline" onClick={onBack}>
           &larr; Back
@@ -95,11 +98,11 @@ export default function StallInvoiceDetail({ stallId, stallCode, baseUrl, onBack
           <h3 className="column-title">Unpaid Invoices ({unpaidInvoices.length})</h3>
 
           {loadingList ? (
-            <div className="loading-state">Loading invoices...</div>
+            <div className="loading-state">{t('stallinvoicedetail.loading_invoices')}</div>
           ) : listError ? (
             <div className="error-state">
               <span className="warning-text">⚠️ Error: {listError}</span>
-              <button className="btn-secondary font-sm mt-2" onClick={fetchUnpaidInvoices}>Retry</button>
+              <button className="btn-secondary font-sm mt-2" onClick={fetchUnpaidInvoices}>{t('stallinvoicedetail.retry')}</button>
             </div>
           ) : unpaidInvoices.length === 0 ? (
             <div className="invoice-empty-notice">
@@ -110,12 +113,12 @@ export default function StallInvoiceDetail({ stallId, stallCode, baseUrl, onBack
               {unpaidInvoices.map((inv) => (
                 <div 
                   key={inv.invoiceId}
-                  className={`invoice-summary-card ${selectedInvoiceId === inv.invoiceId ? 'active' : ''}`}
+                  className={`invoice-summary-card ${selectedInvoiceId === inv.invoiceId ? t('stallinvoicedetail.active') : ''}`}
                   onClick={() => setSelectedInvoiceId(inv.invoiceId)}
                 >
                   <div className="inv-summary-header">
                     <span className="inv-label">Month {inv.month}/{inv.year}</span>
-                    <span className="inv-amount">{inv.totalAmount.toLocaleString('vi-VN')} VND</span>
+                    <span className="inv-amount">{inv.totalAmount.toLocaleString(t('stallinvoicedetail.vivn'))} VND</span>
                   </div>
                   <div className="inv-summary-body">
                     <span className="inv-fees text-truncate">{inv.feeTypeSummary}</span>
@@ -132,7 +135,7 @@ export default function StallInvoiceDetail({ stallId, stallCode, baseUrl, onBack
         <div className="invoice-detail-column">
           {selectedInvoiceId ? (
             loadingDetail ? (
-              <div className="loading-state">Loading invoice details...</div>
+              <div className="loading-state">{t('stallinvoicedetail.loading_invoice_details')}</div>
             ) : detailError ? (
               <div className="error-state">Error loading details: {detailError}</div>
             ) : invoiceDetail ? (
@@ -141,12 +144,12 @@ export default function StallInvoiceDetail({ stallId, stallCode, baseUrl, onBack
                   <div className="header-meta">
                     <h2 className="invoice-title">Invoice Month {invoiceDetail.month}/{invoiceDetail.year}</h2>
                     <span className={`status-badge ${invoiceDetail.status.toLowerCase().replace(' ', '-')}`}>
-                      {invoiceDetail.status === 'Unpaid' ? 'Unpaid' : invoiceDetail.status}
+                      {invoiceDetail.status === t('stallinvoicedetail.unpaid') ? 'Unpaid' : invoiceDetail.status}
                     </span>
                   </div>
                   <div className="header-total">
-                    <span className="total-label">Total Amount</span>
-                    <h1 className="total-val">{invoiceDetail.totalAmount.toLocaleString('vi-VN')} VND</h1>
+                    <span className="total-label">{t('stallinvoicedetail.total_amount')}</span>
+                    <h1 className="total-val">{invoiceDetail.totalAmount.toLocaleString(t('stallinvoicedetail.vivn'))} VND</h1>
                   </div>
                 </div>
 
@@ -154,32 +157,32 @@ export default function StallInvoiceDetail({ stallId, stallCode, baseUrl, onBack
 
                 <div className="invoice-relations-info">
                   <div className="relation-col">
-                    <span className="info-label">Vendor Name</span>
+                    <span className="info-label">{t('stallinvoicedetail.vendor_name')}</span>
                     <span className="info-value">{invoiceDetail.vendorName}</span>
                     <span className="info-sub">{invoiceDetail.vendorPhone}</span>
                   </div>
                   <div className="relation-col">
-                    <span className="info-label">Associated Stall</span>
+                    <span className="info-label">{t('stallinvoicedetail.associated_stall')}</span>
                     <span className="info-value">{invoiceDetail.stallCode}</span>
-                    <span className="info-sub">Category: {invoiceDetail.stallCategory || 'N/A'}</span>
+                    <span className="info-sub">Category: {invoiceDetail.stallCategory || t('stallinvoicedetail.na')}</span>
                   </div>
                   <div className="relation-col">
-                    <span className="info-label">Due Date</span>
+                    <span className="info-label">{t('stallinvoicedetail.due_date')}</span>
                     <span className="info-value text-danger">{formatDate(invoiceDetail.dueDate)}</span>
                     <span className="info-sub">Issued Date: {formatDate(invoiceDetail.createdAt)}</span>
                   </div>
                 </div>
 
                 <div className="fee-breakdown-section">
-                  <h4 className="section-title">Fees Breakdown</h4>
+                  <h4 className="section-title">{t('stallinvoicedetail.fees_breakdown')}</h4>
                   <table className="fees-table">
                     <thead>
                       <tr>
-                        <th>Fee Name</th>
-                        <th>Description</th>
-                        <th className="text-right">Qty</th>
-                        <th className="text-right">Unit Price (VND)</th>
-                        <th className="text-right">Amount (VND)</th>
+                        <th>{t('stallinvoicedetail.fee_name')}</th>
+                        <th>{t('stallinvoicedetail.description')}</th>
+                        <th className="text-right">{t('stallinvoicedetail.qty')}</th>
+                        <th className="text-right">{t('stallinvoicedetail.unit_price_vnd')}</th>
+                        <th className="text-right">{t('stallinvoicedetail.amount_vnd')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -188,19 +191,19 @@ export default function StallInvoiceDetail({ stallId, stallCode, baseUrl, onBack
                           <td><strong>{detail.feeTypeName}</strong></td>
                           <td className="text-muted text-sm">{detail.description || '-'}</td>
                           <td className="text-right">{detail.quantity}</td>
-                          <td className="text-right">{detail.unitPrice.toLocaleString('vi-VN')}</td>
-                          <td className="text-right font-semibold">{detail.amount.toLocaleString('vi-VN')}</td>
+                          <td className="text-right">{detail.unitPrice.toLocaleString(t('stallinvoicedetail.vivn'))}</td>
+                          <td className="text-right font-semibold">{detail.amount.toLocaleString(t('stallinvoicedetail.vivn'))}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
 
-                {invoiceDetail.status === 'Unpaid' && (
+                {invoiceDetail.status === t('stallinvoicedetail.unpaid') && (
                   <div className="invoice-action-panel">
                     <div className="action-text">
                       <span className="info-icon">💡</span>
-                      <p>Are you collecting cash directly from the vendor on-site? Click the button on the right to record this payment.</p>
+                      <p>{t('stallinvoicedetail.are_you_collecting_cash')}</p>
                     </div>
                     <button 
                       className="btn-primary-dark action-pay-btn"

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect } from 'react';
 import './MarketApprovalListAdminSystem.css';
 import { getAllMarkets, changeMarketStatus } from '../../services/marketApi';
@@ -13,6 +14,8 @@ const IconEmpty   = () => <svg width="48" height="48" viewBox="0 0 24 24" fill="
 const IconWarning = () => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>;
 
 export default function MarketApprovalListAdminSystem({ navigate, addToast }) {
+  const { t } = useTranslation();
+
   const [markets, setMarkets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [viewingMarketId, setViewingMarketId] = useState(null);
@@ -48,7 +51,7 @@ export default function MarketApprovalListAdminSystem({ navigate, addToast }) {
     setActionLoading(true);
     try {
       await changeMarketStatus(targetMarket.marketId, 'Active');
-      addToast(modalType === 'reactivate' ? 'Mở lại hoạt động chợ thành công!' : 'Phê duyệt chợ thành công!', 'success');
+      addToast(modalType === 'reactivate' ? t('marketapprovallistadminsystem.reopening_market_operations_successfully') : t('marketapprovallistadminsystem.market_approval_successful'), 'success');
       closeModal();
       fetchMarkets();
     } catch (error) {
@@ -130,10 +133,9 @@ export default function MarketApprovalListAdminSystem({ navigate, addToast }) {
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', minHeight: 'calc(100vh - 80px)' }}>
         <div className="map-preview-panel">
           <div className="map-preview-header">
-            <h3 className="map-preview-title">Sơ đồ mặt bằng: {activeMarket?.name || activeMarket?.marketName || 'Chợ'}</h3>
+            <h3 className="map-preview-title">Sơ đồ mặt bằng: {activeMarket?.name || activeMarket?.marketName || t('marketapprovallistadminsystem.market')}</h3>
             <button className="btn-back-secondary" onClick={() => setViewingMarketId(null)}>
-              &larr; Quay lại danh sách
-            </button>
+              {t('marketapprovallistadminsystem.back_to_list')}</button>
           </div>
           <div style={{ flex: 1, border: '1px solid var(--border-color)', borderRadius: '8px', overflow: 'hidden', minHeight: 600 }}>
             <MarketMapViewer marketId={viewingMarketId} onBack={() => setViewingMarketId(null)} hideBackBtn={true} />
@@ -150,7 +152,7 @@ export default function MarketApprovalListAdminSystem({ navigate, addToast }) {
         {/* Card Total */}
         <div className="stat-card" style={{ '--accent-color': '#8b5cf6', '--icon-bg': '#f3e8ff' }}>
           <div className="stat-header">
-            <span className="stat-title">Tổng số yêu cầu</span>
+            <span className="stat-title">{t('marketapprovallistadminsystem.total_number_of_requests')}</span>
             <div className="stat-icon-wrap">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
@@ -164,7 +166,7 @@ export default function MarketApprovalListAdminSystem({ navigate, addToast }) {
         {/* Card Pending */}
         <div className="stat-card" style={{ '--accent-color': '#d97706', '--icon-bg': '#fef9c3' }}>
           <div className="stat-header">
-            <span className="stat-title">Chờ phê duyệt</span>
+            <span className="stat-title">{t('marketapprovallistadminsystem.wait_for_approval')}</span>
             <div className="stat-icon-wrap">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="10"/>
@@ -178,7 +180,7 @@ export default function MarketApprovalListAdminSystem({ navigate, addToast }) {
         {/* Card Active */}
         <div className="stat-card" style={{ '--accent-color': '#10b981', '--icon-bg': '#dcfce7' }}>
           <div className="stat-header">
-            <span className="stat-title">Đã phê duyệt</span>
+            <span className="stat-title">{t('marketapprovallistadminsystem.approved')}</span>
             <div className="stat-icon-wrap">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
@@ -192,7 +194,7 @@ export default function MarketApprovalListAdminSystem({ navigate, addToast }) {
         {/* Card Rejected */}
         <div className="stat-card" style={{ '--accent-color': '#dc2626', '--icon-bg': '#fee2e2' }}>
           <div className="stat-header">
-            <span className="stat-title">Đã từ chối / Khóa</span>
+            <span className="stat-title">{t('marketapprovallistadminsystem.rejectedlocked')}</span>
             <div className="stat-icon-wrap">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="10"/>
@@ -213,12 +215,12 @@ export default function MarketApprovalListAdminSystem({ navigate, addToast }) {
             <input
               type="text"
               className="search-input"
-              placeholder="Tìm kiếm chợ theo tên, địa chỉ..."
+              placeholder={t('marketapprovallistadminsystem.search_markets_by_name')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
             {searchQuery && (
-              <button className="search-clear" onClick={() => setSearchQuery('')} title="Xóa">
+              <button className="search-clear" onClick={() => setSearchQuery('')} title={t('marketapprovallistadminsystem.erase')}>
                 <IconXCircle />
               </button>
             )}
@@ -229,17 +231,16 @@ export default function MarketApprovalListAdminSystem({ navigate, addToast }) {
             value={statusFilter} 
             onChange={(e) => setStatusFilter(e.target.value)}
           >
-            <option value="">Tất cả trạng thái</option>
-            <option value="Pending">Chờ phê duyệt</option>
-            <option value="Active">Hoạt động</option>
-            <option value="Rejected">Đã từ chối</option>
-            <option value="Inactive">Ngưng hoạt động</option>
+            <option value="">{t('marketapprovallistadminsystem.all_status')}</option>
+            <option value="Pending">{t('marketapprovallistadminsystem.wait_for_approval')}</option>
+            <option value="Active">{t('marketapprovallistadminsystem.work')}</option>
+            <option value="Rejected">{t('marketapprovallistadminsystem.refused')}</option>
+            <option value="Inactive">{t('marketapprovallistadminsystem.shut_down')}</option>
           </select>
 
           {hasFilters && (
             <button className="btn-filter-clear" onClick={clearFilters}>
-              Xóa bộ lọc
-            </button>
+              {t('marketapprovallistadminsystem.clear_filter')}</button>
           )}
         </div>
       </div>
@@ -247,7 +248,7 @@ export default function MarketApprovalListAdminSystem({ navigate, addToast }) {
       {/* ── Table List Card ── */}
       <div className="table-card">
         <div className="table-card-header">
-          <span className="table-card-title">Danh sách sơ đồ mặt bằng chợ cần xử lý</span>
+          <span className="table-card-title">{t('marketapprovallistadminsystem.list_of_market_floor')}</span>
           {!loading && (
             <span className="table-count-badge badge-admin">{filteredMarkets.length} kết quả</span>
           )}
@@ -256,18 +257,17 @@ export default function MarketApprovalListAdminSystem({ navigate, addToast }) {
         {loading ? (
           <div className="state-empty">
             <div className="spinner" />
-            <span className="state-empty-text">Đang tải dữ liệu sơ đồ chợ...</span>
+            <span className="state-empty-text">{t('marketapprovallistadminsystem.loading_market_map_data')}</span>
           </div>
         ) : filteredMarkets.length === 0 ? (
           <div className="state-empty">
             <IconEmpty />
             <span className="state-empty-text">
-              {hasFilters ? 'Không tìm thấy kết quả phù hợp với bộ lọc.' : 'Không có yêu cầu phê duyệt chợ nào hiện tại.'}
+              {hasFilters ? t('marketapprovallistadminsystem.no_results_were_found') : t('marketapprovallistadminsystem.there_are_no_current')}
             </span>
             {hasFilters && (
               <button className="btn-secondary" style={{ marginTop: 8 }} onClick={clearFilters}>
-                Xóa bộ lọc
-              </button>
+                {t('marketapprovallistadminsystem.clear_filter')}</button>
             )}
           </div>
         ) : (
@@ -276,13 +276,13 @@ export default function MarketApprovalListAdminSystem({ navigate, addToast }) {
               <thead>
                 <tr>
                   <th style={{ width: 44, textAlign: 'center' }}>#</th>
-                  <th>Tên Chợ</th>
-                  <th>Địa chỉ</th>
-                  <th>Kích thước (m²)</th>
-                  <th>Số khu vực</th>
-                  <th>Tổng số Sạp</th>
-                  <th>Trạng thái</th>
-                  <th style={{ width: 140, textAlign: 'center' }}>Thao tác</th>
+                  <th>{t('marketapprovallistadminsystem.market_name')}</th>
+                  <th>{t('marketapprovallistadminsystem.address')}</th>
+                  <th>{t('marketapprovallistadminsystem.size_m')}</th>
+                  <th>{t('marketapprovallistadminsystem.area_number')}</th>
+                  <th>{t('marketapprovallistadminsystem.total_number_of_stalls')}</th>
+                  <th>{t('marketapprovallistadminsystem.status')}</th>
+                  <th style={{ width: 140, textAlign: 'center' }}>{t('marketapprovallistadminsystem.operation')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -306,17 +306,17 @@ export default function MarketApprovalListAdminSystem({ navigate, addToast }) {
                     <td>
                       <span className={`badge-status ${m.status?.toLowerCase() || 'pending'}`}>
                         <span className="badge-dot" />
-                        {m.status === 'Pending' ? 'Đợi phê duyệt' : 
-                         m.status === 'Active' ? 'Hoạt động' : 
-                         m.status === 'Rejected' ? 'Đã từ chối' : 
-                         m.status === 'Inactive' ? 'Ngưng hoạt động' : m.status}
+                        {m.status === 'Pending' ? t('marketapprovallistadminsystem.wait_for_approval') : 
+                         m.status === 'Active' ? t('marketapprovallistadminsystem.work') : 
+                         m.status === 'Rejected' ? t('marketapprovallistadminsystem.refused') : 
+                         m.status === 'Inactive' ? t('marketapprovallistadminsystem.shut_down') : m.status}
                       </span>
                     </td>
                     <td>
                       <div className="actions-cell" style={{ justifyContent: 'center' }}>
                         <button 
                           className="btn-icon view view-map-btn" 
-                          title="Xem chi tiết sơ đồ" 
+                          title={t('marketapprovallistadminsystem.see_detailed_diagram')} 
                           onClick={() => setViewingMarketId(m.marketId)}
                           disabled={actionLoading}
                         >
@@ -327,7 +327,7 @@ export default function MarketApprovalListAdminSystem({ navigate, addToast }) {
                           <>
                             <button 
                               className="btn-icon unlock approve-btn" 
-                              title="Phê duyệt"
+                              title={t('marketapprovallistadminsystem.approve')}
                               onClick={() => openModal('approve', m)}
                               disabled={actionLoading}
                             >
@@ -335,7 +335,7 @@ export default function MarketApprovalListAdminSystem({ navigate, addToast }) {
                             </button>
                             <button 
                               className="btn-icon lock reject-btn" 
-                              title="Từ chối"
+                              title={t('marketapprovallistadminsystem.refuse')}
                               onClick={() => openModal('reject', m)}
                               disabled={actionLoading}
                             >
@@ -346,7 +346,7 @@ export default function MarketApprovalListAdminSystem({ navigate, addToast }) {
                         {m.status === 'Active' && (
                           <button 
                             className="btn-icon lock reject-btn" 
-                            title="Ngừng hoạt động"
+                            title={t('marketapprovallistadminsystem.stop_working')}
                             onClick={() => openModal('inactive', m)}
                             disabled={actionLoading}
                           >
@@ -356,7 +356,7 @@ export default function MarketApprovalListAdminSystem({ navigate, addToast }) {
                         {m.status === 'Inactive' && (
                           <button 
                             className="btn-icon unlock approve-btn" 
-                            title="Mở lại hoạt động"
+                            title={t('marketapprovallistadminsystem.reopen_operations')}
                             onClick={() => openModal('reactivate', m)}
                             disabled={actionLoading}
                           >
@@ -379,10 +379,10 @@ export default function MarketApprovalListAdminSystem({ navigate, addToast }) {
           <div className="modal-box" onClick={(e) => e.stopPropagation()}>
             <div className="modal-head">
               <h3>{
-                modalType === 'approve' ? 'Phê duyệt Sơ đồ Chợ' : 
-                modalType === 'reject' ? 'Từ chối Sơ đồ Chợ' :
-                modalType === 'inactive' ? 'Ngừng hoạt động Chợ' :
-                'Mở lại hoạt động Chợ'
+                modalType === 'approve' ? t('marketapprovallistadminsystem.approve_the_market_plan') : 
+                modalType === 'reject' ? t('marketapprovallistadminsystem.reject_the_market_plan') :
+                modalType === 'inactive' ? t('marketapprovallistadminsystem.stop_operating_the_market') :
+                t('marketapprovallistadminsystem.reopen_market_operations')
               }</h3>
               <button className="modal-close" onClick={closeModal}>&times;</button>
             </div>
@@ -393,12 +393,12 @@ export default function MarketApprovalListAdminSystem({ navigate, addToast }) {
 
               <p className="modal-desc">
                 {modalType === 'approve' 
-                  ? 'Bạn có chắc chắn muốn PHÊ DUYỆT sơ đồ mặt bằng chợ này? Sau khi phê duyệt, Manager có thể thiết kế sạp và quản lý trực tiếp.'
+                  ? t('marketapprovallistadminsystem.are_you_sure_you')
                   : modalType === 'reject'
-                  ? 'Bạn có chắc chắn muốn TỪ CHỐI yêu cầu tạo chợ này? Manager sẽ cần sửa đổi thông tin thiết lập hoặc liên hệ quản trị.'
+                  ? t('marketapprovallistadminsystem.are_you_sure_you')
                   : modalType === 'inactive'
-                  ? 'Bạn có chắc chắn muốn NGỪNG HOẠT ĐỘNG chợ này? Chợ sẽ bị khóa.'
-                  : 'Bạn có chắc chắn muốn MỞ LẠI HOẠT ĐỘNG chợ này?'}
+                  ? t('marketapprovallistadminsystem.bn_c_chc_chn')
+                  : t('marketapprovallistadminsystem.are_you_sure_you')}
               </p>
 
               {/* Market Summary Card inside Modal */}
@@ -408,39 +408,38 @@ export default function MarketApprovalListAdminSystem({ navigate, addToast }) {
                 </div>
                 <div>
                   <h4 className="modal-user-name">{targetMarket.name || targetMarket.marketName}</h4>
-                  <p className="modal-user-meta">{targetMarket.address || 'Không có địa chỉ'}</p>
+                  <p className="modal-user-meta">{targetMarket.address || t('marketapprovallistadminsystem.no_address_available')}</p>
                 </div>
               </div>
 
               {/* Detail Info Grid inside Modal */}
               <div className="modal-market-info-grid">
                 <div className="modal-market-info-item">
-                  <label>Kích thước</label>
+                  <label>{t('marketapprovallistadminsystem.size')}</label>
                   <span>{targetMarket.size || '—'} m²</span>
                 </div>
                 <div className="modal-market-info-item">
-                  <label>Khu vực</label>
+                  <label>{t('marketapprovallistadminsystem.area')}</label>
                   <span>{targetMarket.areasCount || 0} khu vực</span>
                 </div>
                 <div className="modal-market-info-item">
-                  <label>Số lượng sạp</label>
+                  <label>{t('marketapprovallistadminsystem.number_of_stalls')}</label>
                   <span>{targetMarket.stallsCount || 0} sạp</span>
                 </div>
                 <div className="modal-market-info-item">
-                  <label>Trạng thái</label>
-                  <span style={{ color: 'var(--warning)', fontWeight: 600 }}>Chờ phê duyệt</span>
+                  <label>{t('marketapprovallistadminsystem.status')}</label>
+                  <span style={{ color: 'var(--warning)', fontWeight: 600 }}>{t('marketapprovallistadminsystem.wait_for_approval')}</span>
                 </div>
               </div>
 
               {/* Warning Alert Box */}
               {modalType === 'reject' && (
                 <div className="modal-rule-warn danger">
-                  <IconWarning /> Thao tác từ chối sẽ chuyển trạng thái chợ về "Rejected".
-                </div>
+                  <IconWarning /> {t('marketapprovallistadminsystem.rejecting_will_change_the')}</div>
               )}
             </div>
             <div className="modal-foot">
-              <button className="btn-secondary" onClick={closeModal} disabled={actionLoading}>Hủy bỏ</button>
+              <button className="btn-secondary" onClick={closeModal} disabled={actionLoading}>{t('marketapprovallistadminsystem.cancel')}</button>
               <button 
                 className={modalType === 'approve' || modalType === 'reactivate' ? 'btn-success' : 'btn-danger'} 
                 onClick={
@@ -450,7 +449,7 @@ export default function MarketApprovalListAdminSystem({ navigate, addToast }) {
                 }
                 disabled={actionLoading}
               >
-                {actionLoading ? 'Đang xử lý...' : 'Xác nhận'}
+                {actionLoading ? t('marketapprovallistadminsystem.processing') : t('marketapprovallistadminsystem.confirm')}
               </button>
             </div>
           </div>

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import './BusinessCategoryListManager.css';
 
@@ -13,6 +14,8 @@ const IconInfo    = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="
 const IconXCircle = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>;
 
 export default function BusinessCategoryListManager({ navigate, addToast }) {
+  const { t } = useTranslation();
+
   const [categories, setCategories]   = useState([]);
   const [loading, setLoading]         = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -100,22 +103,22 @@ export default function BusinessCategoryListManager({ navigate, addToast }) {
     const errors = {};
     if (!isEditMode) {
       if (!formData.code.trim()) {
-        errors.code = 'Mã ngành hàng không được để trống.';
+        errors.code = t('businesscategorylistmanager.aviation_industry_code_cannot');
       } else if (!/^[A-Z0-9_]+$/.test(formData.code.trim())) {
-        errors.code = 'Mã ngành hàng chỉ được chứa chữ in hoa, số và dấu gạch dưới.';
+        errors.code = t('businesscategorylistmanager.industry_codes_must_only');
       } else if (formData.code.trim().length > 50) {
-        errors.code = 'Mã ngành hàng không được dài quá 50 ký tự.';
+        errors.code = t('businesscategorylistmanager.aviation_codes_cannot_exceed');
       }
     }
 
     if (!formData.name.trim()) {
-      errors.name = 'Tên ngành hàng không được để trống.';
+      errors.name = t('businesscategorylistmanager.aviation_industry_name_cannot');
     } else if (formData.name.trim().length > 100) {
-      errors.name = 'Tên ngành hàng không được dài quá 100 ký tự.';
+      errors.name = t('businesscategorylistmanager.the_industry_name_cannot');
     }
 
     if (formData.description && formData.description.length > 500) {
-      errors.description = 'Mô tả không được vượt quá 500 ký tự.';
+      errors.description = t('businesscategorylistmanager.description_must_not_exceed');
     }
 
     setFormErrors(errors);
@@ -154,12 +157,12 @@ export default function BusinessCategoryListManager({ navigate, addToast }) {
       });
 
       if (res.ok) {
-        addToast(isEditMode ? 'Cập nhật danh mục thành công!' : 'Tạo mới danh mục thành công!', 'success');
+        addToast(isEditMode ? t('businesscategorylistmanager.updated_directory_successfully') : t('businesscategorylistmanager.new_category_created_successfully'), 'success');
         handleCloseForm();
         fetchCategories();
       } else {
         const err = await res.json().catch(() => ({}));
-        addToast(err.message || 'Lỗi khi lưu danh mục.', 'error');
+        addToast(err.message || t('businesscategorylistmanager.error_while_saving_directory'), 'error');
       }
     } catch {
       addToast('Lỗi kết nối. Vui lòng thử lại.', 'error');
@@ -202,7 +205,7 @@ export default function BusinessCategoryListManager({ navigate, addToast }) {
         fetchCategories();
       } else {
         const err = await res.json().catch(() => ({}));
-        addToast(err.message || 'Lỗi máy chủ khi xóa danh mục.', 'error');
+        addToast(err.message || t('businesscategorylistmanager.server_error_while_deleting'), 'error');
       }
     } catch {
       addToast('Lỗi kết nối. Vui lòng thử lại.', 'error');
@@ -227,12 +230,10 @@ export default function BusinessCategoryListManager({ navigate, addToast }) {
           <IconInfo />
         </div>
         <div className="banner-content">
-          <h4>Phân biệt giữa Market Area (Khu vực chợ) & Business Category (Danh mục kinh doanh)</h4>
+          <h4>{t('businesscategorylistmanager.distinguishing_between_market_area')}</h4>
           <p>
-            1. <strong>Market Area (Không gian vật lý):</strong> Trả lời câu hỏi <em>"Sạp nằm ở đâu?"</em>. Dùng để phân chia mặt bằng chợ phục vụ quản lý hạ tầng (Ví dụ: Khu A ngoài trời, Khu B tầng trệt).
-            <br />
-            2. <strong>Business Category (Tính chất hàng hóa):</strong> Trả lời câu hỏi <em>"Sạp đó bán gì?"</em>. Phân loại loại hình kinh doanh của tiểu thương (Ví dụ: Thực phẩm tươi sống, Quần áo thời trang). Tiểu thương có thể thuê sạp tại bất kỳ khu vực nào, nhưng hệ thống cần nắm rõ ngành hàng kinh doanh của họ.
-          </p>
+            1. <strong>{t('businesscategorylistmanager.market_area_physical_space')}</strong> {t('businesscategorylistmanager.answer_the_question')}<em>{t('businesscategorylistmanager.where_is_the_stall')}</em>{t('businesscategorylistmanager.used_to_divide_market')}<br />
+            2. <strong>{t('businesscategorylistmanager.business_category_characteristics_of')}</strong> {t('businesscategorylistmanager.answer_the_question')}<em>{t('businesscategorylistmanager.what_does_that_stall')}</em>{t('businesscategorylistmanager.classify_the_type_of')}</p>
         </div>
       </div>
 
@@ -244,39 +245,37 @@ export default function BusinessCategoryListManager({ navigate, addToast }) {
             <input
               type="text"
               className="search-input"
-              placeholder="Tìm theo mã code, tên ngành hàng..."
+              placeholder={t('businesscategorylistmanager.search_by_code_industry')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
             {searchQuery && (
-              <button className="search-clear" onClick={() => setSearchQuery('')} title="Xóa">
+              <button className="search-clear" onClick={() => setSearchQuery('')} title={t('businesscategorylistmanager.erase')}>
                 <IconXCircle />
               </button>
             )}
           </div>
 
           <select className="filter-select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-            <option value="">Tất cả trạng thái</option>
-            <option value="true">Hoạt động (Active)</option>
-            <option value="false">Ngừng hoạt động (Inactive)</option>
+            <option value="">{t('businesscategorylistmanager.all_status')}</option>
+            <option value="true">{t('businesscategorylistmanager.active')}</option>
+            <option value="false">{t('businesscategorylistmanager.inactive')}</option>
           </select>
 
           {hasFilters && (
             <button className="btn-filter-clear" onClick={clearFilters}>
-              Xóa bộ lọc
-            </button>
+              {t('businesscategorylistmanager.clear_filter')}</button>
           )}
         </div>
 
         <button className="btn-primary" onClick={handleOpenCreate}>
-          <IconPlus /> Thêm danh mục ngành hàng
-        </button>
+          <IconPlus /> {t('businesscategorylistmanager.add_industry_category')}</button>
       </div>
 
       {/* ── Table Card ── */}
       <div className="table-card">
         <div className="table-card-header">
-          <span className="table-card-title">Danh sách danh mục kinh doanh</span>
+          <span className="table-card-title">{t('businesscategorylistmanager.list_of_business_categories')}</span>
           {!loading && (
             <span className="table-count-badge">{categories.length} danh mục</span>
           )}
@@ -285,18 +284,17 @@ export default function BusinessCategoryListManager({ navigate, addToast }) {
         {loading ? (
           <div className="state-empty">
             <div className="spinner" />
-            <span className="state-empty-text">Đang tải dữ liệu...</span>
+            <span className="state-empty-text">{t('businesscategorylistmanager.loading_data')}</span>
           </div>
         ) : categories.length === 0 ? (
           <div className="state-empty">
             <IconEmpty />
             <span className="state-empty-text">
-              {hasFilters ? 'Không tìm thấy danh mục nào phù hợp.' : 'Chưa có danh mục kinh doanh nào được cấu hình.'}
+              {hasFilters ? t('businesscategorylistmanager.no_matching_categories_were') : t('businesscategorylistmanager.there_are_no_business')}
             </span>
             {hasFilters && (
               <button className="btn-secondary" style={{ marginTop: 8 }} onClick={clearFilters}>
-                Xóa bộ lọc
-              </button>
+                {t('businesscategorylistmanager.clear_filter')}</button>
             )}
           </div>
         ) : (
@@ -305,13 +303,13 @@ export default function BusinessCategoryListManager({ navigate, addToast }) {
               <thead>
                 <tr>
                   <th style={{ width: 60, textAlign: 'center' }}>#</th>
-                  <th style={{ width: 120 }}>Mã Code</th>
-                  <th style={{ width: 220 }}>Tên ngành hàng</th>
-                  <th>Mô tả chi tiết</th>
-                  <th style={{ width: 100, textAlign: 'center' }}>Số sạp</th>
-                  <th style={{ width: 100, textAlign: 'center' }}>Số khu vực</th>
-                  <th style={{ width: 140, textAlign: 'center' }}>Trạng thái</th>
-                  <th style={{ width: 120, textAlign: 'center' }}>Hành động</th>
+                  <th style={{ width: 120 }}>{t('businesscategorylistmanager.code_code')}</th>
+                  <th style={{ width: 220 }}>{t('businesscategorylistmanager.industry_name')}</th>
+                  <th>{t('businesscategorylistmanager.detailed_description')}</th>
+                  <th style={{ width: 100, textAlign: 'center' }}>{t('businesscategorylistmanager.number_of_stalls')}</th>
+                  <th style={{ width: 100, textAlign: 'center' }}>{t('businesscategorylistmanager.area_number')}</th>
+                  <th style={{ width: 140, textAlign: 'center' }}>{t('businesscategorylistmanager.status')}</th>
+                  <th style={{ width: 120, textAlign: 'center' }}>{t('businesscategorylistmanager.act')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -334,13 +332,13 @@ export default function BusinessCategoryListManager({ navigate, addToast }) {
                     <td style={{ textAlign: 'center' }}>
                       <span className={`badge-status ${cat.isActive ? 'active' : 'inactive'}`}>
                         <span className="badge-dot" />
-                        {cat.isActive ? 'Hoạt động' : 'Tạm khóa'}
+                        {cat.isActive ? t('businesscategorylistmanager.work') : t('businesscategorylistmanager.temporarily_locked')}
                       </span>
                     </td>
                     <td>
                       <div className="actions-cell" style={{ justifyContent: 'center' }}>
-                        <button className="btn-icon edit" title="Chỉnh sửa danh mục" onClick={() => handleOpenEdit(cat)}><IconEdit /></button>
-                        <button className="btn-icon delete" title="Xóa danh mục" onClick={() => handleOpenDelete(cat)}><IconTrash /></button>
+                        <button className="btn-icon edit" title={t('businesscategorylistmanager.edit_categories')} onClick={() => handleOpenEdit(cat)}><IconEdit /></button>
+                        <button className="btn-icon delete" title={t('businesscategorylistmanager.delete_category')} onClick={() => handleOpenDelete(cat)}><IconTrash /></button>
                       </div>
                     </td>
                   </tr>
@@ -356,18 +354,18 @@ export default function BusinessCategoryListManager({ navigate, addToast }) {
         <div className="modal-overlay" onClick={handleCloseForm}>
           <div className="modal-box" onClick={(e) => e.stopPropagation()}>
             <div className="modal-head">
-              <h3>{isEditMode ? 'Chỉnh sửa ngành hàng kinh doanh' : 'Tạo mới ngành hàng kinh doanh'}</h3>
+              <h3>{isEditMode ? t('businesscategorylistmanager.edit_business_lines') : t('businesscategorylistmanager.create_new_business_lines')}</h3>
               <button className="modal-close" onClick={handleCloseForm}>×</button>
             </div>
             <form onSubmit={handleSave}>
               <div className="modal-body">
                 
                 <div className="form-group">
-                  <label className="form-label required">Mã ngành hàng (Code)</label>
+                  <label className="form-label required">{t('businesscategorylistmanager.product_code_code')}</label>
                   <input
                     type="text"
                     className={`form-control ${formErrors.code ? 'is-invalid' : ''}`}
-                    placeholder="Ví dụ: FOOD, FASHION, JEWELRY"
+                    placeholder={t('businesscategorylistmanager.for_example_food_fashion')}
                     value={formData.code}
                     onChange={(e) => setFormData({ ...formData, code: e.target.value })}
                     disabled={isEditMode}
@@ -375,16 +373,16 @@ export default function BusinessCategoryListManager({ navigate, addToast }) {
                   />
                   {formErrors.code && <div className="invalid-feedback">{formErrors.code}</div>}
                   <small className="form-text">
-                    {isEditMode ? 'Không thể thay đổi mã Code sau khi tạo.' : 'Mã code viết liền, không dấu, viết hoa (chữ, số và dấu gạch dưới).'}
+                    {isEditMode ? t('businesscategorylistmanager.code_cannot_be_changed') : t('businesscategorylistmanager.the_code_is_written')}
                   </small>
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label required">Tên ngành hàng</label>
+                  <label className="form-label required">{t('businesscategorylistmanager.industry_name')}</label>
                   <input
                     type="text"
                     className={`form-control ${formErrors.name ? 'is-invalid' : ''}`}
-                    placeholder="Ví dụ: Thực phẩm tươi sống, Quần áo thời trang"
+                    placeholder={t('businesscategorylistmanager.for_example_fresh_food')}
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     maxLength={100}
@@ -393,10 +391,10 @@ export default function BusinessCategoryListManager({ navigate, addToast }) {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Mô tả và quy định riêng</label>
+                  <label className="form-label">{t('businesscategorylistmanager.separate_description_and_regulations')}</label>
                   <textarea
                     className={`form-control ${formErrors.description ? 'is-invalid' : ''}`}
-                    placeholder="Các quy định đặc thù về an toàn vệ sinh, phòng cháy chữa cháy đối với ngành hàng này..."
+                    placeholder={t('businesscategorylistmanager.specific_regulations_on_hygiene')}
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     rows={4}
@@ -412,15 +410,14 @@ export default function BusinessCategoryListManager({ navigate, addToast }) {
                       checked={formData.isActive}
                       onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
                     />
-                    Hoạt động (Cho phép các sạp hàng và khu vực gán danh mục này)
-                  </label>
+                    {t('businesscategorylistmanager.active_allow_stores_and')}</label>
                 </div>
 
               </div>
               <div className="modal-foot">
-                <button type="button" className="btn-secondary" onClick={handleCloseForm} disabled={actionLoading}>Hủy</button>
+                <button type="button" className="btn-secondary" onClick={handleCloseForm} disabled={actionLoading}>{t('businesscategorylistmanager.cancel')}</button>
                 <button type="submit" className="btn-primary" disabled={actionLoading}>
-                  {actionLoading ? 'Đang lưu...' : 'Lưu lại'}
+                  {actionLoading ? t('businesscategorylistmanager.saving') : t('businesscategorylistmanager.stay')}
                 </button>
               </div>
             </form>
@@ -433,7 +430,7 @@ export default function BusinessCategoryListManager({ navigate, addToast }) {
         <div className="modal-overlay" onClick={handleCloseDelete}>
           <div className="modal-box" onClick={(e) => e.stopPropagation()}>
             <div className="modal-head">
-              <h3>Xóa danh mục ngành hàng</h3>
+              <h3>{t('businesscategorylistmanager.delete_industry_category')}</h3>
               <button className="modal-close" onClick={handleCloseDelete}>×</button>
             </div>
             <div className="modal-body">
@@ -442,8 +439,7 @@ export default function BusinessCategoryListManager({ navigate, addToast }) {
               </div>
               
               <p className="modal-desc text-center" style={{ margin: '8px 0 16px' }}>
-                Xác nhận hành động xóa danh mục ngành hàng dưới đây:
-              </p>
+                {t('businesscategorylistmanager.confirm_the_action_to')}</p>
 
               {/* Category Card Detail */}
               <div className="modal-cat-card">
@@ -452,42 +448,41 @@ export default function BusinessCategoryListManager({ navigate, addToast }) {
                 </div>
                 <div className="modal-cat-details">
                   <p className="modal-cat-name">{targetCat.name}</p>
-                  <p className="modal-cat-meta">Mã ngành hàng: <span className="mono-code">{targetCat.code}</span></p>
+                  <p className="modal-cat-meta">{t('businesscategorylistmanager.industry_code')}<span className="mono-code">{targetCat.code}</span></p>
                 </div>
               </div>
 
               {/* Safety Constraint Warnings */}
               {(targetCat.stallsCount > 0 || targetCat.areasCount > 0) ? (
                 <div className="modal-rule-warn danger">
-                  <div className="warn-title">⚠️ Không thể xóa danh mục này!</div>
+                  <div className="warn-title">{t('businesscategorylistmanager.this_category_cannot_be')}</div>
                   <div className="warn-grid">
                     <div className="warn-item">
                       <span className="warn-value">{targetCat.stallsCount}</span>
-                      <span className="warn-label">Sạp hàng đang gán</span>
+                      <span className="warn-label">{t('businesscategorylistmanager.stores_are_assigned')}</span>
                     </div>
                     <div className="warn-item">
                       <span className="warn-value">{targetCat.areasCount}</span>
-                      <span className="warn-label">Khu vực đang gán</span>
+                      <span className="warn-label">{t('businesscategorylistmanager.area_being_assigned')}</span>
                     </div>
                   </div>
                   <p className="warn-solution">
-                    <strong>Giải pháp:</strong> Bạn cần thay đổi hoặc gán lại ngành hàng của các sạp và khu vực trên sang một danh mục khác trước khi thực hiện xóa. Hoặc có thể tạm dừng hoạt động bằng cách đổi trạng thái sang <strong>"Tạm khóa"</strong>.
+                    <strong>{t('businesscategorylistmanager.solution')}</strong> {t('businesscategorylistmanager.you_need_to_change')}<strong>{t('businesscategorylistmanager.temporarily_locked')}</strong>.
                   </p>
                 </div>
               ) : (
                 <p className="text-secondary text-center" style={{ fontSize: '13px', margin: '16px 0 8px' }}>
-                  Hành động này sẽ xóa vĩnh viễn danh mục kinh doanh khỏi hệ thống.
-                </p>
+                  {t('businesscategorylistmanager.this_action_will_permanently')}</p>
               )}
             </div>
             <div className="modal-foot">
-              <button className="btn-secondary" onClick={handleCloseDelete} disabled={actionLoading}>Hủy</button>
+              <button className="btn-secondary" onClick={handleCloseDelete} disabled={actionLoading}>{t('businesscategorylistmanager.cancel')}</button>
               <button
                 className="btn-danger"
                 onClick={handleDelete}
                 disabled={actionLoading || targetCat.stallsCount > 0 || targetCat.areasCount > 0}
               >
-                {actionLoading ? 'Đang xóa...' : 'Xác nhận xóa'}
+                {actionLoading ? t('businesscategorylistmanager.deleting') : t('businesscategorylistmanager.confirm_deletion')}
               </button>
             </div>
           </div>

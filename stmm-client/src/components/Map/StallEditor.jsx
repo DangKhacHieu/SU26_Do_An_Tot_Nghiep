@@ -1,7 +1,10 @@
+import { useTranslation } from 'react-i18next';
 import React, { useEffect, useRef, useState } from 'react';
 import { Stage, Layer, Rect, Transformer, Text, Group } from 'react-konva';
 
 export default function StallEditor({ area, onSave, width = 700 }) {
+  const { t } = useTranslation();
+
   const rectRef = useRef();
   const trRef = useRef();
   
@@ -84,10 +87,9 @@ export default function StallEditor({ area, onSave, width = 700 }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <h3>Công cụ tạo/chỉnh sửa Sạp</h3>
+          <h3>{t('stalleditor.tools_to_createedit_stores')}</h3>
           <p style={{ color: '#666', fontSize: '14px' }}>
-            Kéo thả, xoay và thay đổi kích thước sạp. Bấm "Lưu Toạ Độ Sạp" khi hoàn tất.
-          </p>
+            {t('stalleditor.drag_drop_rotate_and')}</p>
         </div>
         <div>
           <button 
@@ -96,8 +98,7 @@ export default function StallEditor({ area, onSave, width = 700 }) {
             onClick={handleSave} 
             style={{ padding: '8px 16px', backgroundColor: '#4CAF50', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
           >
-            Lưu Toạ Độ Sạp
-          </button>
+            {t('stalleditor.save_stall_coordinates')}</button>
         </div>
       </div>
 
