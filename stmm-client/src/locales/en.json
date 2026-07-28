@@ -3169,6 +3169,7 @@
     "saving": "SAVING..."
   },
   "vendorviolationlist": {
+    "0": "0 đ",
     "management_of_violation_records": "Management of Violation Records",
     "monitor_violation_records_and": "Monitor violation records and manage fine payments",
     "search_for_violations": "Search for violations",
@@ -3222,8 +3223,7 @@
     "khng_th_ti_danh": "Không thể tải danh sách biên bản vi phạm.",
     "gi_thng_bo": "Đã gửi thông báo",
     "khng_ngh_thnh_cng": "Kháng nghị thành công",
-    "khng_ngh_b_t": "Kháng nghị bị từ chối",
-    "0": "0 đ"
+    "khng_ngh_b_t": "Kháng nghị bị từ chối"
   },
   "vendorviolationdetail": {
     "created_at": "Created date",
@@ -4666,5 +4666,45 @@
     "try_a_different_search": "Try a different search term.",
     "location_not_specified": "Location not specified",
     "alert": "alert"
+  },
+  "marketAreaList": {
+    "market_floor_plan": "MARKET FLOOR PLAN",
+    "edit_mode_desc": "EDIT MODE: Drag and drop areas and stalls. Resize as needed.",
+    "view_mode_desc": "VIEW MODE: View only, click (ℹ) on stall to view details.",
+    "add_area": "+ ADD AREA",
+    "edit_plan": "EDIT PLAN",
+    "cancel_edit": "CANCEL EDIT",
+    "save_changes": "SAVE CHANGES",
+    "deactivate_market": "DEACTIVATE MARKET",
+    "category_legend": "CATEGORY LEGEND",
+    "manage_market_area": "Manage Market Area",
+    "design_market_floor_plan": "Design market floor plan and manage stalls.",
+    "no_areas": "You do not have any markets yet",
+    "create_market_first": "Create a new market in Market Registration to get started.",
+    "hide": "Hide",
+    "show_stall": "Show Stalls",
+    "edit": "Edit",
+    "delete": "Delete",
+    "detail": "Details",
+    "no_areas_found": "No areas found. Click NEW AREA to create one!",
+    "confirm_delete_area": "Confirm Delete Area",
+    "confirm_delete_area_desc": "Are you sure you want to delete this area? All stalls inside will be deleted if they are not rented.",
+    "cannot_undo": "This action cannot be undone.",
+    "cancel": "Cancel",
+    "delete_area": "Delete Area",
+    "error": "Error",
+    "close": "Close",
+    "success": "Success!",
+    "area_info": "Area Information",
+    "area_name_label": "Area Name:",
+    "description_label": "Description:",
+    "no_description": "No description",
+    "category_label": "Category:",
+    "none": "None",
+    "stall_count_label": "Number of Stalls:",
+    "loading": "Loading...",
+    "stalls": "stalls",
+    "area_size_label": "Area Size:",
+    "updating": "Updating"
   }
 }

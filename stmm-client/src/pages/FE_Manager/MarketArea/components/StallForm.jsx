@@ -5,7 +5,7 @@ import { createStall, updateStall, updateStallStatus, updateStallLocation, getUn
 import { getAllCategories } from '../api/categoryApi';
 import styles from './MarketAreaForm.module.css';
 
-const StallForm = ({ initialData, drawnData, areaId, areaWidth, areaHeight, areaSize, getValidPosition, onSave, onCancel }) => {
+const StallForm = ({ initialData, drawnData, areaId, areaWidth, areaHeight, areaSize, existingStalls = [], getValidPosition, onSave, onCancel, marketCategories }) => {
   const { t } = useTranslation();
 
     const [formData, setFormData] = useState({
@@ -20,21 +20,12 @@ const StallForm = ({ initialData, drawnData, areaId, areaWidth, areaHeight, area
         electricityMeterId: '',
         waterMeterId: ''
     });
-    const [categories, setCategories] = useState([]);
     const [unassignedElectricityMeters, setUnassignedElectricityMeters] = useState([]);
     const [unassignedWaterMeters, setUnassignedWaterMeters] = useState([]);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
-        const fetchCats = async () => {
-            try {
-                const data = await getAllCategories();
-                setCategories(data);
-            } catch (err) {
-                console.error("Failed to fetch categories", err);
-            }
-        };
         const fetchMeters = async () => {
             try {
                 if (!initialData) {
@@ -47,7 +38,6 @@ const StallForm = ({ initialData, drawnData, areaId, areaWidth, areaHeight, area
                 console.error("Failed to fetch unassigned meters", err);
             }
         };
-        fetchCats();
         fetchMeters();
     }, [initialData]);
 
@@ -106,6 +96,21 @@ const StallForm = ({ initialData, drawnData, areaId, areaWidth, areaHeight, area
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
+        
+        // Validate Area Size Limit
+        if (formData.size) {
+            const requestedSize = parseFloat(formData.size);
+            const currentTotal = existingStalls.reduce((sum, s) => {
+                if (initialData && s.stallId === initialData.stallId) return sum;
+                return sum + (parseFloat(s.size) || 0);
+            }, 0);
+            
+            if (areaSize && requestedSize + currentTotal > parseFloat(areaSize)) {
+                setError(`Diện tích sạp (${requestedSize} m²) làm tổng diện tích vượt quá Khu vực! (còn trống ${Math.max(0, Math.round((parseFloat(areaSize) - currentTotal) * 100) / 100)} m²)`);
+                return;
+            }
+        }
+        
         setLoading(true);
 
         try {
@@ -124,8 +129,8 @@ const StallForm = ({ initialData, drawnData, areaId, areaWidth, areaHeight, area
                 await updateStallLocation(initialData.stallId, {
                     width: Number(formData.width),
                     height: Number(formData.height),
-                    mapX: initialData.mapX,
-                    mapY: initialData.mapY,
+                    mapX: initialData.mapX !== undefined ? initialData.mapX : initialData.xAxis,
+                    mapY: initialData.mapY !== undefined ? initialData.mapY : initialData.yAxis,
                     svgPath: formData.svgPath
                 });
                 
@@ -233,8 +238,10 @@ const StallForm = ({ initialData, drawnData, areaId, areaWidth, areaHeight, area
                             required
                         >
                             <option value="">{'-- Chọn ngành hàng --'}</option>
-                            {categories.map(c => (
-                                <option key={c.categoryId} value={c.name}>{c.name}</option>
+                            {(marketCategories || []).map(c => (
+                                <option key={c.categoryId || c.id} value={c.name}>
+                                    {c.name}
+                                </option>
                             ))}
                         </select>
                     </div>

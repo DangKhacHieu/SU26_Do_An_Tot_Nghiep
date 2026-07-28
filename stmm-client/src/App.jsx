@@ -828,8 +828,8 @@ function AppContent() {
         <main className="app-main">
           <header className="app-header">
             <div className="header-title-section">
-              <h1>{pageInfo.title}</h1>
-              <p>{pageInfo.sub}</p>
+              <h1>{t(currentPage, { defaultValue: pageInfo.title })}</h1>
+              <p>{t(`${currentPage}_sub`, { defaultValue: pageInfo.sub })}</p>
             </div>
             <div className="header-actions-section" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
               <LanguageSwitcher />

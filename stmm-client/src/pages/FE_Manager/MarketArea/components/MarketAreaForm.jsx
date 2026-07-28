@@ -1,7 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect } from 'react';
 import styles from './MarketAreaForm.module.css';
-import { getAllCategories } from '../api/categoryApi';
 import PolygonDrawer from './PolygonDrawer';
 
 const MarketAreaForm = ({ 
@@ -15,7 +14,8 @@ const MarketAreaForm = ({
   svgOffsetX,
   svgOffsetY,
   cWidth,
-  cHeight
+  cHeight,
+  marketCategories
 }) => {
   const { t } = useTranslation();
   const [formData, setFormData] = useState({
@@ -27,21 +27,8 @@ const MarketAreaForm = ({
     height: 150,
     svgPath: ''
   });
-  const [categories, setCategories] = useState([]);
   const [error, setError] = useState(null);
   const [isDrawing, setIsDrawing] = useState(false);
-
-  useEffect(() => {
-    const fetchCats = async () => {
-        try {
-            const data = await getAllCategories();
-            setCategories(data);
-        } catch (err) {
-            console.error("Failed to fetch categories", err);
-        }
-    };
-    fetchCats();
-  }, []);
 
   useEffect(() => {
     if (initialData) {
@@ -156,7 +143,7 @@ const MarketAreaForm = ({
     }
 
     if (formData.size && parseFloat(formData.size) > maxAllowedAreaSize) {
-        setError('Diện tích khu vực (${formData.size} m²) vượt quá diện tích còn trống của chợ (còn lại khoảng ${Math.round(maxAllowedAreaSize * 100) / 100} m²).');
+        setError(`Diện tích khu vực (${formData.size} m²) vượt quá diện tích còn trống của chợ (còn lại khoảng ${Math.round(maxAllowedAreaSize * 100) / 100} m²).`);
         return;
     }
 
@@ -292,8 +279,8 @@ const MarketAreaForm = ({
               onChange={handleChange}
             >
               <option value="">{'-- Chọn ngành hàng --'}</option>
-              {categories.map(c => (
-                <option key={c.categoryId} value={c.name}>
+              {(marketCategories || []).map(c => (
+                <option key={c.categoryId || c.id} value={c.name}>
                   {c.name}
                 </option>
               ))}

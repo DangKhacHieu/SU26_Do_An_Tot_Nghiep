@@ -3169,6 +3169,7 @@
     "saving": "ĐANG LƯU..."
   },
   "vendorviolationlist": {
+    "0": "0 đ",
     "management_of_violation_records": "Quản lý Biên Bản Vi Phạm",
     "monitor_violation_records_and": "Theo dõi các biên bản vi phạm và quản lý nộp phạt",
     "search_for_violations": "Tìm kiếm vi phạm",
@@ -3222,8 +3223,7 @@
     "khng_th_ti_danh": "Không thể tải danh sách biên bản vi phạm.",
     "gi_thng_bo": "Đã gửi thông báo",
     "khng_ngh_thnh_cng": "Kháng nghị thành công",
-    "khng_ngh_b_t": "Kháng nghị bị từ chối",
-    "0": "0 đ"
+    "khng_ngh_b_t": "Kháng nghị bị từ chối"
   },
   "vendorviolationdetail": {
     "created_at": "Ngày lập",
@@ -4666,5 +4666,45 @@
     "try_a_different_search": "Hãy thử một cụm từ tìm kiếm khác.",
     "location_not_specified": "Vị trí không được chỉ định",
     "alert": "báo động"
+  },
+  "marketAreaList": {
+    "market_floor_plan": "SƠ ĐỒ MẶT BẰNG CHỢ",
+    "edit_mode_desc": "CHẾ ĐỘ CHỈNH SỬA: Kéo thả khu vực và sạp. Thay đổi kích thước tùy ý.",
+    "view_mode_desc": "CHẾ ĐỘ XEM: Chỉ xem sơ đồ, click vào nút (ℹ) trên sạp để xem thông tin chi tiết.",
+    "add_area": "+ THÊM KHU VỰC",
+    "edit_plan": "CHỈNH SỬA SƠ ĐỒ",
+    "cancel_edit": "HỦY CHỈNH SỬA",
+    "save_changes": "LƯU THAY ĐỔI",
+    "deactivate_market": "NGƯNG HOẠT ĐỘNG CHỢ",
+    "category_legend": "CHÚ THÍCH DANH MỤC",
+    "manage_market_area": "Quản lý Mặt bằng",
+    "design_market_floor_plan": "Thiết kế sơ đồ mặt bằng và quản lý các sạp hàng.",
+    "no_areas": "Bạn chưa có chợ nào",
+    "create_market_first": "Hãy tạo một chợ mới ở mục Đăng ký Chợ để bắt đầu.",
+    "hide": "Ẩn",
+    "show_stall": "Hiện Sạp",
+    "edit": "Sửa",
+    "delete": "Xóa",
+    "detail": "Chi tiết",
+    "no_areas_found": "Không tìm thấy khu vực nào. Hãy nhấn THÊM KHU VỰC để tạo mới!",
+    "confirm_delete_area": "Xác nhận xóa Khu vực",
+    "confirm_delete_area_desc": "Bạn có chắc chắn muốn xóa khu vực này? Tất cả sạp bên trong sẽ bị xóa theo nếu chưa được thuê.",
+    "cannot_undo": "Hành động này không thể hoàn tác.",
+    "cancel": "Hủy",
+    "delete_area": "Xóa Khu vực",
+    "error": "Lỗi",
+    "close": "Đóng lại",
+    "success": "Thành công!",
+    "area_info": "Thông tin Khu vực",
+    "area_name_label": "Tên khu vực:",
+    "description_label": "Mô tả:",
+    "no_description": "Không có mô tả",
+    "category_label": "Thể loại hàng hóa:",
+    "none": "Không có",
+    "stall_count_label": "Số lượng sạp hiện có:",
+    "loading": "Đang tải...",
+    "stalls": "sạp",
+    "area_size_label": "Diện tích:",
+    "updating": "Đang cập nhật"
   }
 }

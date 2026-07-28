@@ -4,8 +4,6 @@ import { createPortal } from 'react-dom';
 import polygonClipping from 'polygon-clipping';
 
 const getPolygonArea = (points) => {
-  const { t } = useTranslation();
-
     let area = 0;
     for (let i = 0; i < points.length; i++) {
         let j = (i + 1) % points.length;
@@ -98,7 +96,7 @@ const PolygonDrawer = ({
         const areaPx = getPolygonArea(dbPoints);
         const areaM2 = areaPx / 900;
         if (maxAllowedAreaSize > 0 && areaM2 > maxAllowedAreaSize) {
-            setErrorMsg('Diện tích vượt quá giới hạn cho phép! (Vẽ: ${Math.round(areaM2)} m², Tối đa: ${Math.round(maxAllowedAreaSize)} m²)');
+            setErrorMsg(`Diện tích vượt quá giới hạn cho phép! (Vẽ: ${Math.round(areaM2)} m², Tối đa: ${Math.round(maxAllowedAreaSize)} m²)`);
             setIsClosed(false);
             return;
         }

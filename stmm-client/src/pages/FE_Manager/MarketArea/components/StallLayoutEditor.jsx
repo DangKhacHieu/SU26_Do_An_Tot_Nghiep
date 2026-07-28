@@ -12,7 +12,7 @@ import StallForm from './StallForm';
 import PolygonDrawer from './PolygonDrawer';
 import styles from './StallLayoutEditor.module.css';
 
-const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, areaHeight, areaSize, polygonClipPath, svgPath, validateStallBounds }) => {
+const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, areaHeight, areaSize, polygonClipPath, svgPath, validateStallBounds, marketCategories }) => {
   const { t } = useTranslation();
 
     const [stalls, setStalls] = useState([]);
@@ -70,6 +70,12 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
         const width = stall.width || 100;
         const height = stall.height || 100;
 
+        if (validateStallBounds && !validateStallBounds(d.x, d.y, d.x + width, d.y + height)) {
+            setErrorMessage('Không thể di chuyển: Sạp phải nằm hoàn toàn trong Khu vực!');
+            setRenderKey(prev => prev + 1); // Force Rnd to revert
+            return;
+        }
+
         if (checkStallOverlap(id, d.x, d.y, d.x + width, d.y + height)) {
             setErrorMessage('Không thể di chuyển: Sạp này bị chồng lấp lên Sạp khác!');
             setRenderKey(prev => prev + 1); // Force Rnd to revert
@@ -95,9 +101,22 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
         const PX_PER_M2 = 900;
         const newSize = Math.round((newWidth * newHeight) / PX_PER_M2 * 100) / 100;
 
+        if (validateStallBounds && !validateStallBounds(position.x, position.y, position.x + newWidth, position.y + newHeight)) {
+            setErrorMessage('Không thể thay đổi kích thước: Sạp phải nằm hoàn toàn trong Khu vực!');
+            setRenderKey(prev => prev + 1); // Force Rnd to revert
+            return;
+        }
+
         if (checkStallOverlap(id, position.x, position.y, position.x + newWidth, position.y + newHeight)) {
             setErrorMessage('Không thể thay đổi kích thước: Sạp này bị chồng lấp lên Sạp khác!');
             setRenderKey(prev => prev + 1); // Force Rnd to revert
+            return;
+        }
+
+        const currentSum = stalls.reduce((sum, s) => s.stallId === id ? sum : sum + (parseFloat(s.size) || 0), 0);
+        if (areaSize && newSize + currentSum > parseFloat(areaSize)) {
+            setErrorMessage(`Không thể thay đổi kích thước: Tổng diện tích sạp vượt quá Khu vực! (còn trống ${Math.max(0, Math.round((parseFloat(areaSize) - currentSum) * 100) / 100)} m²)`);
+            setRenderKey(prev => prev + 1);
             return;
         }
 
@@ -307,9 +326,31 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
         return createPortal(<>{modals}</>, document.body);
     };
 
+    const totalUsedStallArea = stalls.reduce((sum, s) => sum + (parseFloat(s.size) || 0), 0);
+    const remainingStallArea = Math.max(0, Math.round(((parseFloat(areaSize) || 0) - totalUsedStallArea) * 100) / 100);
+
     return (
-        <div className={styles.editorContainer}>
-            {isEditMode && (
+        <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+            <div style={{ position: 'absolute', top: '-50px', left: 0, zIndex: 101, padding: '8px 16px', backgroundColor: 'var(--bg-panel)', border: '1px solid var(--border-color)', borderRadius: '8px', display: 'flex', gap: '24px', alignItems: 'center', flexWrap: 'wrap', fontSize: '13px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)' }}>
+               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#3b82f6' }}></div>
+                  <span style={{ color: 'var(--text-secondary)' }}>Diện tích Khu vực:</span>
+                  <strong style={{ color: 'var(--text-primary)' }}>{areaSize || 0} m²</strong>
+               </div>
+               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10b981' }}></div>
+                  <span style={{ color: 'var(--text-secondary)' }}>Đã sử dụng:</span>
+                  <strong style={{ color: 'var(--text-primary)' }}>{Math.round(totalUsedStallArea * 100) / 100} m²</strong>
+               </div>
+               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: remainingStallArea > 0 ? '#eab308' : '#ef4444' }}></div>
+                  <span style={{ color: 'var(--text-secondary)' }}>Còn trống:</span>
+                  <strong style={{ color: remainingStallArea > 0 ? 'var(--text-primary)' : '#ef4444' }}>{remainingStallArea} m²</strong>
+               </div>
+            </div>
+
+            <div className={styles.editorContainer} style={{ width: '100%', height: '100%' }}>
+                {isEditMode && (
               <div style={{position: 'absolute', bottom: 8, right: 8, zIndex: 100, display: 'flex', gap: 8}}>
                   <button 
                       onClick={() => setIsDrawingStall(true)} 
@@ -357,13 +398,14 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
                             bounds="parent"
                             scale={zoom}
                             size={{ width: stall.width || 100, height: stall.height || 100 }}
-                            position={{ x: stall.mapX || 0, y: stall.mapY || 0 }}
-                            onDragStop={(e, d) => handleDragStop(stall.stallId, e, d)}
-                            onResizeStop={(e, direction, ref, delta, position) => handleResizeStop(stall.stallId, e, direction, ref, delta, position)}
-                            disableDragging={!isEditMode}
-                            enableResizing={isEditMode}
+                            position={{ x: (stall.mapX !== undefined && stall.mapX !== null) ? parseFloat(stall.mapX) : 0, y: (stall.mapY !== undefined && stall.mapY !== null) ? parseFloat(stall.mapY) : 0 }}
+                            onDragStop={(e, d) => handleDragStop(e, d, stall)}
+                            onResizeStop={(e, direction, ref, delta, position) => handleResizeStop(e, direction, ref, delta, position, stall)}
+                            disableDragging={!isEditMode || !!stall.svgPath}
+                            enableResizing={isEditMode && !stall.svgPath}
                             className={`${styles.stallNode} stall-node-prevent-drag`}
                             style={{ 
+                                position: 'absolute',
                                 borderLeftColor: stall.svgPath ? 'transparent' : getStatusColor(stall.status),
                                 cursor: isEditMode ? 'move' : 'default',
                                 zIndex: isEditMode ? 10 : 1,
@@ -460,7 +502,9 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
                     areaId={areaId}
                     areaWidth={areaWidth}
                     areaHeight={areaHeight}
-                    areaSize={1000} // Temporary fallback if areaSize isn't passed
+                    areaSize={areaSize || 1000} // Temporary fallback if areaSize isn't passed
+                    existingStalls={stalls}
+                    marketCategories={marketCategories}
                     onSave={() => {
                         setIsFormOpen(false);
                         setDrawnStallData(null);
@@ -515,6 +559,7 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
             
             {renderViewModal()}
             {renderDeleteModals()}
+        </div>
         </div>
     );
 };
