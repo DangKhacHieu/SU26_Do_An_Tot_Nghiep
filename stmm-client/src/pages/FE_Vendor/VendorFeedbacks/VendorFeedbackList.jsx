@@ -5,7 +5,7 @@ import { showError, showSuccess } from '../../../utils/alert';
 import './VendorFeedbackList.css';
 
 export default function VendorFeedbackList({ stallId, rentedStalls }) {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
 
     const [summary, setSummary] = useState({ reviews: [], totalReviews: 0, averageRating: 0 });
     const [loading, setLoading] = useState(false);
@@ -60,19 +60,19 @@ export default function VendorFeedbackList({ stallId, rentedStalls }) {
     // ── Gửi câu trả lời lên API ─────────────────────────────────────────────
     const handleSubmitReply = async () => {
         if (!replyText.trim()) {
-            showError('Lỗi', 'Nội dung phản hồi không được để trống.');
+            showError(t('vendorfeedbacklist.error'), t('vendorfeedbacklist.feedback_cannot_be_empty'));
             return;
         }
 
         setReplyLoading(true);
         try {
             await vendorFeedbackApi.respondToFeedback(replyModal.review.reviewId, replyText.trim());
-            showSuccess('Thành công', 'Phản hồi của bạn đã được gửi thành công!');
+            showSuccess(t('vendorfeedbacklist.success'), t('vendorfeedbacklist.feedback_sent_successfully'));
             closeReplyModal();
             await fetchFeedbacks();
         } catch (error) {
-            const msg = error?.response?.data?.message || 'Không thể gửi phản hồi. Vui lòng thử lại.';
-            showError('Thất bại', msg);
+            const msg = error?.response?.data?.message || t('vendorfeedbacklist.cannot_send_feedback');
+            showError(t('vendorfeedbacklist.failure'), msg);
         } finally {
             setReplyLoading(false);
         }
@@ -201,7 +201,7 @@ export default function VendorFeedbackList({ stallId, rentedStalls }) {
                                             <div className="customer-meta">
                                                 <h2 className="customer-name">{rev.userName || t('vendorfeedbacklist.anonymous_customer')}</h2>
                                                 <time className="review-date" dateTime={rev.createdAt}>
-                                                    {new Date(rev.createdAt).toLocaleDateString('vi-VN', {
+                                                    {new Date(rev.createdAt).toLocaleDateString(i18n.language === 'en' ? 'en-US' : 'vi-VN', {
                                                         year: 'numeric',
                                                         month: 'long',
                                                         day: 'numeric',
@@ -224,10 +224,10 @@ export default function VendorFeedbackList({ stallId, rentedStalls }) {
                                     {rev.response && (
                                         <div className="vendor-response-box">
                                             <div className="vendor-response-header">
-                                                <span className="vendor-badge">🏪 Phản hồi của chủ sạp</span>
+                                                <span className="vendor-badge">🏪 {i18n.language === 'en' ? "Vendor's Response" : "Phản hồi của chủ sạp"}</span>
                                                 {rev.respondedAt && (
                                                     <time className="responded-at">
-                                                        {new Date(rev.respondedAt).toLocaleDateString('vi-VN', {
+                                                        {new Date(rev.respondedAt).toLocaleDateString(i18n.language === 'en' ? 'en-US' : 'vi-VN', {
                                                             year: 'numeric', month: 'long', day: 'numeric'
                                                         })}
                                                     </time>

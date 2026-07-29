@@ -2,6 +2,9 @@ import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect } from "react";
 import axios from 'axios';
 import "./VendorDashboard.css";
+import { vendorInvoiceApi } from '../../services/vendorInvoiceApi';
+import { vendorFeedbackApi } from '../../services/vendorFeedbackApi';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import LanguageSwitcher from '../../components/layout/LanguageSwitcher';
 import VendorServiceList from "../FE_Vendor/VendorServices/VendorServiceList";
 import VendorMyServices from "../FE_Vendor/VendorServices/VendorMyServices";
@@ -87,8 +90,7 @@ const IconSetting = () => (
 );
 
 export default function VendorDashboard({ user, onBack, onLogout }) {
-  const { t } = useTranslation();
-
+  const { t, i18n } = useTranslation();
   const vendorId = user?.userId;
   const [activeMenu, setActiveMenu] = useState('DASHBOARD');
   const [searchTerm, setSearchTerm] = useState('');
@@ -96,6 +98,14 @@ export default function VendorDashboard({ user, onBack, onLogout }) {
   const [rentedStalls, setRentedStalls] = useState([]);
   const [selectedStallId, setSelectedStallId] = useState('ALL');
   const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
+  const [dashboardStats, setDashboardStats] = useState({
+    activeServices: 0,
+    pendingRequests: 0,
+    unpaidBills: 0,
+    violations: 0
+  });
+  const [recentFeedbacks, setRecentFeedbacks] = useState([]);
+  const [invoiceChartData, setInvoiceChartData] = useState([]);
 
   useEffect(() => {
     const fetchStalls = async () => {
@@ -124,6 +134,135 @@ export default function VendorDashboard({ user, onBack, onLogout }) {
     };
     if (user) fetchUnreadCount();
   }, [user]);
+
+  useEffect(() => {
+    const fetchDashboardStats = async () => {
+      try {
+        const token = localStorage.getItem('accessToken');
+        const headers = { Authorization: `Bearer ${token}` };
+        const stallParam = selectedStallId === 'ALL' ? null : selectedStallId;
+        
+        // 0. Active Services
+        let activeServ = 0;
+        try {
+          const servRes = await axios.get('http://localhost:5056/api/vendor/services/my-services', { headers });
+          if (servRes.data) {
+            let myServs = servRes.data;
+            if (stallParam) {
+               // Find the stall code to filter
+               const stallCode = rentedStalls.find(s => String(s.stallId) === String(stallParam))?.code;
+               if (stallCode) {
+                 myServs = myServs.filter(s => s.stallCode === stallCode);
+               }
+            }
+            // Count active ones
+            activeServ = myServs.filter(s => s.status === 'Active').length;
+          }
+        } catch(e) { console.error(e); }
+
+        // 1. Pending requests
+        const reqRes = await axios.get('http://localhost:5056/api/vendor/requests', {
+          headers,
+          params: { searchTerm: '', status: 'Pending', stallId: stallParam, pageNumber: 1, pageSize: 1 }
+        });
+        const pendingReqs = reqRes.data.totalCount || 0;
+
+        // 2. Unpaid Bills
+        let unpaidCount = 0;
+        try {
+          const invRes = await vendorInvoiceApi.getVendorInvoices(stallParam, null, null, 1, 1000);
+          if (invRes && invRes.items) {
+            unpaidCount = invRes.items.filter(i => i.status?.toLowerCase() === 'unpaid' || i.status?.toLowerCase() === 'overdue').length;
+          } else if (Array.isArray(invRes)) {
+            unpaidCount = invRes.filter(i => i.status?.toLowerCase() === 'unpaid' || i.status?.toLowerCase() === 'overdue').length;
+          }
+        } catch (e) {
+          console.error(e);
+        }
+
+        // 3. Violations (All violations for now)
+        const vioRes = await axios.get('http://localhost:5056/api/vendor/violations', {
+          headers,
+          params: { status: null, stallId: stallParam, pageNumber: 1, pageSize: 1 }
+        });
+        const totalViolations = vioRes.data.totalCount || 0;
+
+        setDashboardStats({
+          activeServices: activeServ,
+          pendingRequests: pendingReqs,
+          unpaidBills: unpaidCount,
+          violations: totalViolations
+        });
+      } catch (err) {
+        console.error("Failed to fetch dashboard stats", err);
+      }
+    };
+
+    if (user) {
+      fetchDashboardStats();
+    }
+  }, [user, selectedStallId]);
+
+  useEffect(() => {
+    const fetchChartsAndFeedbacks = async () => {
+      const token = localStorage.getItem('accessToken');
+      const headers = { Authorization: `Bearer ${token}` };
+      const stallParam = selectedStallId === 'ALL' ? null : selectedStallId;
+
+      // Fetch Invoices for Bar Chart
+      try {
+        const invsRes = await vendorInvoiceApi.getVendorInvoices(stallParam, null, null, 1, 100);
+        const invList = invsRes.items || (Array.isArray(invsRes) ? invsRes : []);
+        
+        const monthCosts = {};
+        invList.forEach(inv => {
+           // We might have multiple invoices in a month, sum them up
+           const key = `T${inv.month}/${inv.year.toString().slice(-2)}`;
+           monthCosts[key] = (monthCosts[key] || 0) + inv.totalAmount;
+        });
+        
+        // Generate last 6 months
+        const last6Months = [];
+        const now = new Date();
+        for (let i = 5; i >= 0; i--) {
+           const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+           const m = d.getMonth() + 1;
+           const y = d.getFullYear().toString().slice(-2);
+           last6Months.push(`T${m}/${y}`);
+        }
+        
+        const invData = last6Months.map(key => ({
+          name: key,
+          amount: monthCosts[key] || 0
+        }));
+        
+        setInvoiceChartData(invData);
+      } catch (e) {
+        console.error("Failed to fetch invoices for bar chart", e);
+      }
+
+      // Fetch feedbacks
+      try {
+        let fbData = [];
+        if (stallParam) {
+           const fbRes = await vendorFeedbackApi.getReviewsByStall(stallParam);
+           if (fbRes && fbRes.reviews) fbData = fbRes.reviews;
+        } else if (rentedStalls.length > 0) {
+           const stallIds = rentedStalls.map(s => s.stallId);
+           const fbRes = await vendorFeedbackApi.getAllReviewsForStalls(stallIds);
+           if (fbRes && fbRes.reviews) fbData = fbRes.reviews;
+        }
+        
+        // Sort by date desc and take top 3
+        fbData.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        setRecentFeedbacks(fbData.slice(0, 3));
+      } catch (e) {
+        console.error("Failed to fetch feedbacks", e);
+      }
+    };
+    
+    if (user) fetchChartsAndFeedbacks();
+  }, [user, selectedStallId, rentedStalls, t]);
 
   // Handle URL Params for Redirects (e.g., from MoMo Payment)
   useEffect(() => {
@@ -180,36 +319,36 @@ export default function VendorDashboard({ user, onBack, onLogout }) {
   return (
     <div className="vendor-portal-container">
       {/* Sidebar */}
-      <aside className="vendor-sidebar">
-        <div className="vendor-sidebar-header">
-          <div className="vendor-sidebar-avatar">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-              <polyline points="9 22 9 12 15 12 15 22" />
-            </svg>
+      <aside className="vendor-sidebar" aria-label="Main Navigation">
+        <div className="brand-section">
+          <div className="brand-logo">
+            ST
           </div>
-          <div className="vendor-sidebar-title">
-            <h2>VendorPortal</h2>
-            <span>{t('vendordashboard.management_console')}</span>
+          <div className="brand-name">
+            <h2 className="brand-title">VendorPortal</h2>
+            <span className="brand-subtitle">{t('vendordashboard.management_console')}</span>
           </div>
         </div>
 
-        <nav className="vendor-sidebar-nav">
+        <nav className="sidebar-menu" aria-label="Vendor Menu">
+          <h3 className="sidebar-section-label">Main Menu</h3>
           {MENU_ITEMS.map((item) => (
-            <div 
+            <a 
               key={item.id} 
-              className={`vendor-nav-item ${activeMenu === item.id ? 'active' : ''}`}
-              onClick={() => setActiveMenu(item.id)}
+              href="#"
+              className={`menu-item ${activeMenu === item.id ? 'active' : ''}`}
+              onClick={(e) => { e.preventDefault(); setActiveMenu(item.id); }}
+              aria-current={activeMenu === item.id ? 'page' : undefined}
             >
-              {item.icon}
-              <span>{item.label}</span>
-            </div>
+              <div className="menu-icon">{item.icon}</div>
+              <span className="menu-label">{item.label}</span>
+            </a>
           ))}
         </nav>
 
 
-        <div className="vendor-sidebar-footer">
-          <button className="vendor-logout-btn" onClick={onLogout}>
+        <div className="sidebar-footer">
+          <button className="vendor-logout-btn" onClick={onLogout} aria-label={t('vendordashboard.logout')}>
             <IconLogout />
             <span>{t('vendordashboard.logout')}</span>
           </button>
@@ -271,7 +410,6 @@ export default function VendorDashboard({ user, onBack, onLogout }) {
               <div style={{ cursor: 'pointer' }} onClick={() => setActiveMenu('PROFILE')}>
                   <IconUser />
               </div>
-              <IconSetting />
             </div>
           </div>
         </header>
@@ -279,60 +417,146 @@ export default function VendorDashboard({ user, onBack, onLogout }) {
         {/* Content */}
         <main className="vendor-content">
           {activeMenu === 'DASHBOARD' && (
-            <div className="vendor-overview-container" style={{ animation: 'fadeIn 0.4s ease-out' }}>
+            <section className="manager-dashboard-container" aria-label="Dashboard Overview" style={{ animation: 'fadeIn 0.4s ease-out' }}>
               
+              <header className="dashboard-welcome-header">
+                <div className="welcome-profile-section">
+                  <div className="profile-badge-glow">
+                    V
+                  </div>
+                  <div className="welcome-text-wrap">
+                    <h1>VendorPortal</h1>
+                    <p className="welcome-subtitle">{t('vendordashboard.management_console')}</p>
+                  </div>
+                </div>
+              </header>
+
               {/* Row 1: 4 small cards */}
-              <div className="vendor-overview-top-row">
-                <div className="dashboard-card">
-                  <h3 style={{ fontSize: '14px', color: '#64748b', margin: 0, marginBottom: '8px' }}>{t('vendordashboard.active_stalls')}</h3>
-                  <div style={{ fontSize: '28px', fontWeight: 700, color: '#0f172a' }}>2</div>
-                </div>
-                <div className="dashboard-card">
-                  <h3 style={{ fontSize: '14px', color: '#64748b', margin: 0, marginBottom: '8px' }}>{t('vendordashboard.pending_requests')}</h3>
-                  <div style={{ fontSize: '28px', fontWeight: 700, color: '#3b82f6' }}>5</div>
-                </div>
-                <div className="dashboard-card">
-                  <h3 style={{ fontSize: '14px', color: '#64748b', margin: 0, marginBottom: '8px' }}>{t('vendordashboard.unpaid_bills')}</h3>
-                  <div style={{ fontSize: '28px', fontWeight: 700, color: '#ef4444' }}>1</div>
-                </div>
-                <div className="dashboard-card">
-                  <h3 style={{ fontSize: '14px', color: '#64748b', margin: 0, marginBottom: '8px' }}>{t('vendordashboard.violations')}</h3>
-                  <div style={{ fontSize: '28px', fontWeight: 700, color: '#d97706' }}>0</div>
-                </div>
+              <div className="dashboard-stats-grid">
+                <article className="stat-summary-card clickable-card" onClick={() => setActiveMenu('SERVICES')}>
+                  <div className="card-top">
+                    <h3 className="card-title">{t('vendordashboard.services')} {i18n.language === 'en' ? 'in use' : 'đang dùng'}</h3>
+                    <div className="icon-badge" style={{ background: '#eff6ff', color: '#3b82f6' }}>
+                      <IconServices />
+                    </div>
+                  </div>
+                  <div className="card-middle">
+                    <span className="main-stat">{dashboardStats.activeServices}</span>
+                  </div>
+                </article>
+                <article className="stat-summary-card clickable-card" onClick={() => setActiveMenu('REQUESTS')}>
+                  <div className="card-top">
+                    <h3 className="card-title">{t('vendordashboard.pending_requests')}</h3>
+                    <div className="icon-badge" style={{ background: '#f0fdf4', color: '#22c55e' }}>
+                      <IconRequests />
+                    </div>
+                  </div>
+                  <div className="card-middle">
+                    <span className="main-stat" style={{ color: '#22c55e' }}>{dashboardStats.pendingRequests}</span>
+                  </div>
+                </article>
+                <article className="stat-summary-card clickable-card" onClick={() => setActiveMenu('BILLS')}>
+                  <div className="card-top">
+                    <h3 className="card-title">{t('vendordashboard.unpaid_bills')}</h3>
+                    <div className="icon-badge" style={{ background: '#fef2f2', color: '#ef4444' }}>
+                      <IconBills />
+                    </div>
+                  </div>
+                  <div className="card-middle">
+                    <span className="main-stat" style={{ color: '#ef4444' }}>{dashboardStats.unpaidBills}</span>
+                  </div>
+                </article>
+                <article className="stat-summary-card clickable-card" onClick={() => setActiveMenu('VIOLATIONS')}>
+                  <div className="card-top">
+                    <h3 className="card-title">{t('vendordashboard.violations')}</h3>
+                    <div className="icon-badge" style={{ background: '#fffbeb', color: '#f59e0b' }}>
+                      <IconViolations />
+                    </div>
+                  </div>
+                  <div className="card-middle">
+                    <span className="main-stat" style={{ color: '#f59e0b' }}>{dashboardStats.violations}</span>
+                  </div>
+                </article>
               </div>
 
-              {/* Bottom Area: 2 Columns */}
-              <div className="vendor-overview-bottom-area">
-                {/* Left Column (2 large blocks) */}
-                <div className="vendor-overview-left-col">
-                  <div className="dashboard-card large-panel" style={{ flex: 1.5 }}>
-                    <h3 style={{ fontSize: '16px', color: '#0f172a', margin: 0, marginBottom: '16px' }}>{t('vendordashboard.overview_chart')}</h3>
-                    <div style={{ flex: 1, background: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>{t('vendordashboard.chart_placeholder')}</div>
+              {/* Analytics Area */}
+              <div className="vendor-overview-bottom-area" style={{ display: 'flex', gap: '24px', marginTop: '24px' }}>
+                {/* Left Column (Bar Chart) */}
+                <article className="premium-panel" style={{ flex: 1, padding: '24px', display: 'flex', flexDirection: 'column' }}>
+                  <h3 className="premium-panel-title">{i18n.language === 'en' ? 'RECENT INVOICE COSTS' : 'CHI PHÍ HÓA ĐƠN GẦN ĐÂY'}</h3>
+                  <div style={{ flex: 1, minHeight: '280px', width: '100%' }}>
+                    {invoiceChartData.length > 0 ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={invoiceChartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                          <defs>
+                            <linearGradient id="colorAmount" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.9}/>
+                              <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.3}/>
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                          <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dy={10} />
+                          <YAxis 
+                            axisLine={false} 
+                            tickLine={false} 
+                            tick={{ fontSize: 12, fill: '#64748b' }}
+                            tickFormatter={(value) => value >= 1000000 ? `${(value / 1000000).toFixed(1)}M` : `${value / 1000}k`}
+                          />
+                          <RechartsTooltip 
+                            cursor={{ fill: '#f8fafc' }}
+                            contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
+                            formatter={(value) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value)}
+                            labelStyle={{ color: '#0f172a', fontWeight: '800', marginBottom: '8px' }}
+                          />
+                          <Bar dataKey="amount" fill="url(#colorAmount)" radius={[8, 8, 0, 0]} barSize={48} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#9ca3af' }}>
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ marginBottom: '12px', opacity: 0.5 }}>
+                          <rect x="2" y="4" width="20" height="16" rx="2" />
+                          <line x1="2" y1="10" x2="22" y2="10" />
+                        </svg>
+                        <span>Chưa có dữ liệu hóa đơn</span>
+                      </div>
+                    )}
                   </div>
-                  <div className="dashboard-card large-panel" style={{ flex: 1 }}>
-                    <h3 style={{ fontSize: '16px', color: '#0f172a', margin: 0, marginBottom: '16px' }}>{t('vendordashboard.recent_activity')}</h3>
-                    <div style={{ flex: 1, background: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>{t('vendordashboard.table_placeholder')}</div>
+                </article>
+
+                {/* Right Column (Recent Feedbacks) */}
+                <article className="premium-panel" style={{ flex: 1, padding: '24px', display: 'flex', flexDirection: 'column' }}>
+                  <h3 className="premium-panel-title">{i18n.language === 'en' ? 'RECENT FEEDBACK' : 'ĐÁNH GIÁ GẦN ĐÂY'}</h3>
+                  <div className="recent-feedbacks-list" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px', overflowY: 'auto', paddingRight: '8px' }}>
+                    {recentFeedbacks.length > 0 ? (
+                      recentFeedbacks.map((fb, idx) => (
+                        <div key={idx} className="premium-feedback-card">
+                          <div className="feedback-header">
+                            <div className="avatar">
+                                {fb.userName ? fb.userName.charAt(0).toUpperCase() : '?'}
+                            </div>
+                            <div className="feedback-info">
+                              <span className="customer-name">{fb.userName || 'Khách hàng'}</span>
+                              <div className="stars" style={{ color: '#fbbf24', fontSize: '14px', letterSpacing: '2px' }}>
+                                {'★'.repeat(fb.rating)}{'☆'.repeat(5 - fb.rating)}
+                              </div>
+                            </div>
+                          </div>
+                          <p className="feedback-comment">"{fb.comment || 'Không có bình luận'}"</p>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="empty-alert-state" style={{ margin: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center', color: '#9ca3af' }}>
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ marginBottom: '12px', opacity: 0.5 }}>
+                          <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                        </svg>
+                        <span>Chưa có đánh giá nào</span>
+                      </div>
+                    )}
                   </div>
-                </div>
-                
-                {/* Right Column (3 smaller stacked blocks) */}
-                <div className="vendor-overview-right-col">
-                  <div className="dashboard-card" style={{ flex: 1 }}>
-                    <h3 style={{ fontSize: '16px', color: '#0f172a', margin: 0, marginBottom: '16px' }}>{t('vendordashboard.notifications')}</h3>
-                    <div style={{ flex: 1, background: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1' }}></div>
-                  </div>
-                  <div className="dashboard-card" style={{ flex: 1 }}>
-                    <h3 style={{ fontSize: '16px', color: '#0f172a', margin: 0, marginBottom: '16px' }}>{t('vendordashboard.upcoming_payments')}</h3>
-                    <div style={{ flex: 1, background: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1' }}></div>
-                  </div>
-                  <div className="dashboard-card" style={{ flex: 1 }}>
-                    <h3 style={{ fontSize: '16px', color: '#0f172a', margin: 0, marginBottom: '16px' }}>{t('vendordashboard.quick_actions')}</h3>
-                    <div style={{ flex: 1, background: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1' }}></div>
-                  </div>
-                </div>
+                </article>
               </div>
 
-            </div>
+            </section>
           )}
 
           {activeMenu === 'SERVICES' && serviceTab === 'AVAILABLE' && (

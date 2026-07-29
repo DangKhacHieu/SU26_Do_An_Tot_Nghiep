@@ -108,78 +108,84 @@ export default function VendorRequestList({ vendorId, searchTerm, setSearchTerm,
     }
 
     return (
-        <div style={{ background: 'white', minHeight: '100%', padding: '32px', borderRadius: '12px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
+        <div className="premium-page-container">
+            <div className="premium-page-header">
                 <div>
-                    <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 'bold' }}>{t('vendorrequestlist.service_repair_requests')}</h2>
-                    <span style={{ color: '#888', fontSize: '13px' }}>{t('vendorrequestlist.manage_support_and_repair')}</span>
+                    <h2 className="premium-page-title">{t('vendorrequestlist.service_repair_requests') || 'Yêu cầu hỗ trợ'}</h2>
+                    <span className="premium-page-subtitle">{t('vendorrequestlist.manage_support_and_repair') || 'Quản lý các yêu cầu sửa chữa, khiếu nại'}</span>
                 </div>
                 <button 
                     onClick={handleCreateClick}
-                    style={{ background: '#000', color: '#fff', border: 'none', padding: '10px 16px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span>+</span> {t('vendorrequestlist.create_a_new_request')}
+                    className="premium-btn premium-btn-primary">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    {t('vendorrequestlist.create_a_new_request') || 'Tạo yêu cầu mới'}
                 </button>
             </div>
 
-            <div style={{ display: 'flex', gap: '16px', marginBottom: '24px', alignItems: 'flex-end' }}>
-                <div style={{ flex: 2 }}>
-                    <label style={{ display: 'block', fontSize: '11px', color: '#888', fontWeight: 'bold', marginBottom: '8px', textTransform: 'uppercase' }}>{t('vendorrequestlist.search_for_requests')}</label>
-                    <div style={{ position: 'relative' }}>
-                        <svg style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#aaa', width: '14px', height: '14px' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                        <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder={t('vendorrequestlist.enter_request_name_stall')} style={{ width: '100%', padding: '10px 12px 10px 36px', border: '1px solid #e5e7eb', borderRadius: '6px', outline: 'none' }} />
+            <div className="premium-filter-bar">
+                <div className="premium-filter-group" style={{ flex: 2 }}>
+                    <label className="premium-filter-label">{t('vendorrequestlist.search_for_requests') || 'Tìm kiếm yêu cầu'}</label>
+                    <div className="premium-input-wrapper">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                        <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder={t('vendorrequestlist.enter_request_name_stall') || 'Nhập tên yêu cầu hoặc sạp...'} className="premium-input has-icon" />
                     </div>
                 </div>
-                <div style={{ flex: 1 }}>
-                    <label style={{ display: 'block', fontSize: '11px', color: '#888', fontWeight: 'bold', marginBottom: '8px', textTransform: 'uppercase' }}>{t('vendorrequestlist.status')}</label>
-                    <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e7eb', borderRadius: '6px', outline: 'none', background: 'white' }}>
-                        <option value="All">{t('vendorrequestlist.all')}</option>
-                        <option value="Pending">{t('vendorrequestlist.ch_x_l_pending')}</option>
-                        <option value="Quoted">{t('vendorrequestlist.quoted_quoted')}</option>
-                        <option value="Approved">{t('vendorrequestlist.approved')}</option>
-                        <option value="Completed">{t('vendorrequestlist.completed')}</option>
-                        <option value="Cancelled">{t('vendorrequestlist.cancelled')}</option>
+                <div className="premium-filter-group" style={{ flex: 1 }}>
+                    <label className="premium-filter-label">{t('vendorrequestlist.status') || 'Trạng thái'}</label>
+                    <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="premium-select">
+                        <option value="All">{t('vendorrequestlist.all') || 'Tất cả'}</option>
+                        <option value="Pending">{t('vendorrequestlist.ch_x_l_pending') || 'Đang chờ xử lý'}</option>
+                        <option value="Quoted">{t('vendorrequestlist.quoted_quoted') || 'Đã báo giá'}</option>
+                        <option value="Approved">{t('vendorrequestlist.approved') || 'Đã duyệt'}</option>
+                        <option value="Completed">{t('vendorrequestlist.completed') || 'Đã hoàn thành'}</option>
+                        <option value="Cancelled">{t('vendorrequestlist.cancelled') || 'Đã hủy'}</option>
                     </select>
                 </div>
             </div>
 
-            <div style={{ border: '1px solid #e5e7eb', borderRadius: '8px', overflow: 'hidden' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
-                    <thead style={{ background: '#f9fafb' }}>
+            <div className="premium-table-wrapper">
+                <table className="premium-table">
+                    <thead>
                         <tr>
-                            <th style={{ padding: '12px 16px', color: '#888', fontWeight: 'bold', fontSize: '11px', borderBottom: '1px solid #e5e7eb', textTransform: 'uppercase' }}>{t('vendorrequestlist.code_yc')}</th>
-                            <th style={{ padding: '12px 16px', color: '#888', fontWeight: 'bold', fontSize: '11px', borderBottom: '1px solid #e5e7eb', textTransform: 'uppercase' }}>{t('vendorrequestlist.stall')}</th>
-                            <th style={{ padding: '12px 16px', color: '#888', fontWeight: 'bold', fontSize: '11px', borderBottom: '1px solid #e5e7eb', textTransform: 'uppercase' }}>{t('vendorrequestlist.type')}</th>
-                            <th style={{ padding: '12px 16px', color: '#888', fontWeight: 'bold', fontSize: '11px', borderBottom: '1px solid #e5e7eb', textTransform: 'uppercase' }}>{t('vendorrequestlist.title')}</th>
-                            <th style={{ padding: '12px 16px', color: '#888', fontWeight: 'bold', fontSize: '11px', borderBottom: '1px solid #e5e7eb', textTransform: 'uppercase' }}>{t('vendorrequestlist.creation_date')}</th>
-                            <th style={{ padding: '12px 16px', color: '#888', fontWeight: 'bold', fontSize: '11px', borderBottom: '1px solid #e5e7eb', textTransform: 'uppercase' }}>{t('vendorrequestlist.status')}</th>
-                            <th style={{ padding: '12px 16px', color: '#888', fontWeight: 'bold', fontSize: '11px', borderBottom: '1px solid #e5e7eb', textTransform: 'uppercase', textAlign: 'center' }}>{t('vendorrequestlist.operation')}</th>
+                            <th>{t('vendorrequestlist.code_yc') || 'Mã YC'}</th>
+                            <th>{t('vendorrequestlist.stall') || 'Sạp'}</th>
+                            <th>{t('vendorrequestlist.type') || 'Loại YC'}</th>
+                            <th>{t('vendorrequestlist.title') || 'Tiêu đề'}</th>
+                            <th>{t('vendorrequestlist.creation_date') || 'Ngày tạo'}</th>
+                            <th>{t('vendorrequestlist.status') || 'Trạng thái'}</th>
+                            <th style={{ textAlign: 'center' }}>{t('vendorrequestlist.operation') || 'Thao tác'}</th>
                         </tr>
                     </thead>
                     <tbody>
                         {loading ? (
-                            <tr><td colSpan="7" style={{ padding: '32px', textAlign: 'center', color: '#888' }}>{t('vendorrequestlist.loading')}</td></tr>
+                            <tr><td colSpan="7" style={{ padding: '32px', textAlign: 'center', color: '#94a3b8' }}>{t('vendorrequestlist.loading') || 'Đang tải...'}</td></tr>
                         ) : requests.length === 0 ? (
-                            <tr><td colSpan="7" style={{ padding: '32px', textAlign: 'center', color: '#888' }}>{t('vendorrequestlist.no_requests_found')}</td></tr>
+                            <tr><td colSpan="7" style={{ padding: '32px', textAlign: 'center', color: '#94a3b8' }}>{t('vendorrequestlist.no_requests_found') || 'Không tìm thấy yêu cầu nào'}</td></tr>
                         ) : (
                             requests.map((req, index) => {
-                                const statusStyle = getStatusStyle(req.status);
+                                let badgeClass = 'premium-badge-neutral';
+                                if (req.status === 'Pending') badgeClass = 'premium-badge-warning';
+                                else if (req.status === 'Quoted') badgeClass = 'premium-badge-info';
+                                else if (req.status === 'Approved' || req.status === 'Completed') badgeClass = 'premium-badge-success';
+                                else if (req.status === 'Rejected' || req.status === 'Cancelled') badgeClass = 'premium-badge-danger';
+
                                 return (
-                                    <tr key={req.requestId} style={{ borderBottom: '1px solid #e5e7eb' }}>
-                                        <td style={{ padding: '16px', color: '#555', fontWeight: 'bold' }}>#{(pageNumber - 1) * pageSize + index + 1}</td>
-                                        <td style={{ padding: '16px', fontWeight: '600', color: '#111' }}>{req.stallCode}</td>
-                                        <td style={{ padding: '16px', color: '#555' }}>{getRequestTypeLabel(req.requestType)}</td>
-                                        <td style={{ padding: '16px', color: '#111' }}>{req.title}</td>
-                                        <td style={{ padding: '16px', color: '#555' }}>{new Date(req.createdAt).toLocaleDateString('vi-VN')}</td>
-                                        <td style={{ padding: '16px' }}>
-                                            <span style={{ background: statusStyle.bg, color: statusStyle.color, padding: '4px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold' }}>
+                                    <tr key={req.requestId}>
+                                        <td className="fw-bold">#{(pageNumber - 1) * pageSize + index + 1}</td>
+                                        <td className="fw-bold">{req.stallCode}</td>
+                                        <td>{getRequestTypeLabel(req.requestType)}</td>
+                                        <td>{req.title}</td>
+                                        <td>{new Date(req.createdAt).toLocaleDateString('vi-VN')}</td>
+                                        <td>
+                                            <span className={`premium-badge ${badgeClass}`}>
                                                 {getStatusLabel(req.status)}
                                             </span>
                                         </td>
-                                        <td style={{ padding: '16px', textAlign: 'center' }}>
+                                        <td style={{ textAlign: 'center' }}>
                                             <button 
                                                 onClick={() => handleViewDetail(req.requestId)}
-                                                style={{ background: 'transparent', border: '1px solid #ccc', color: '#333', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}>
-                                                {t('vendorrequestlist.view')}
+                                                className="premium-btn-action">
+                                                {t('vendorrequestlist.view') || 'Chi tiết'}
                                             </button>
                                         </td>
                                     </tr>
@@ -188,28 +194,28 @@ export default function VendorRequestList({ vendorId, searchTerm, setSearchTerm,
                         )}
                     </tbody>
                 </table>
+                {Math.ceil(totalCount / pageSize) > 1 && (
+                    <div className="premium-pagination">
+                        <span className="premium-pagination-info">
+                            Trang {pageNumber} / {Math.ceil(totalCount / pageSize)}
+                        </span>
+                        <div className="premium-pagination-buttons">
+                            <button 
+                                onClick={() => setPageNumber(prev => Math.max(1, prev - 1))}
+                                disabled={pageNumber === 1}
+                                className="premium-page-btn">
+                                {t('vendorrequestlist.before') || 'Trước'}
+                            </button>
+                            <button 
+                                onClick={() => setPageNumber(prev => Math.min(Math.ceil(totalCount / pageSize), prev + 1))}
+                                disabled={pageNumber === Math.ceil(totalCount / pageSize)}
+                                className="premium-page-btn">
+                                Sau
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
-
-            {/* Pagination Controls */}
-            {Math.ceil(totalCount / pageSize) > 1 && (
-                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '16px', marginTop: '24px' }}>
-                    <button 
-                        onClick={() => setPageNumber(prev => Math.max(1, prev - 1))}
-                        disabled={pageNumber === 1}
-                        style={{ padding: '8px 16px', border: '1px solid #e5e7eb', borderRadius: '6px', background: pageNumber === 1 ? '#f9fafb' : 'white', cursor: pageNumber === 1 ? 'not-allowed' : 'pointer', color: pageNumber === 1 ? '#ccc' : '#333', fontWeight: 'bold' }}>
-                        {t('vendorrequestlist.before')}
-                    </button>
-                    <span style={{ fontSize: '13px', color: '#555', fontWeight: '500' }}>
-                        Trang {pageNumber} / {Math.ceil(totalCount / pageSize)}
-                    </span>
-                    <button 
-                        onClick={() => setPageNumber(prev => Math.min(Math.ceil(totalCount / pageSize), prev + 1))}
-                        disabled={pageNumber === Math.ceil(totalCount / pageSize)}
-                        style={{ padding: '8px 16px', border: '1px solid #e5e7eb', borderRadius: '6px', background: pageNumber === Math.ceil(totalCount / pageSize) ? '#f9fafb' : 'white', cursor: pageNumber === Math.ceil(totalCount / pageSize) ? 'not-allowed' : 'pointer', color: pageNumber === Math.ceil(totalCount / pageSize) ? '#ccc' : '#333', fontWeight: 'bold' }}>
-                        Sau
-                    </button>
-                </div>
-            )}
         </div>
     );
-};
+}
