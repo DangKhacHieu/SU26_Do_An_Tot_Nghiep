@@ -62,13 +62,15 @@ namespace STMM.Business.Services
             CancellationToken ct = default)
         {
             var marketId = await GetStaffMarketIdAsync(staffUserId, ct);
-            var stalls = await _stallRepository.GetStaffStallLookupAsync(marketId, search, 100, ct);
+            var effectiveDate = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
+            var stalls = await _stallRepository.GetStaffStallLookupAsync(marketId, search, 100, effectiveDate, ct);
 
             return stalls.Select(s => new StaffStallLookupDto
             {
                 StallId = s.StallId,
                 StallCode = s.StallCode,
-                AreaName = s.AreaName
+                AreaName = s.AreaName,
+                VendorName = s.VendorName
             });
         }
 

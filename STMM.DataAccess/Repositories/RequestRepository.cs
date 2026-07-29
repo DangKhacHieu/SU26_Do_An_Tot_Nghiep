@@ -79,14 +79,18 @@ namespace STMM.DataAccess.Repositories
             return (items, totalCount);
         }
 
-        public async Task<Request?> GetRequestWithRelationsAsync(int requestId, CancellationToken ct = default)
+        public Task<Request?> GetRequestWithRelationsAsync(int requestId, CancellationToken ct = default)
+            => GetRequestWithRelationsAsync(requestId, tracking: false, ct);
+
+        public async Task<Request?> GetRequestWithRelationsAsync(int requestId, bool tracking, CancellationToken ct = default)
         {
-            return await _context.Requests
+            var query = _context.Requests
                 .Include(r => r.Stall)
                 .Include(r => r.Vendor)
                     .ThenInclude(v => v.User)
-                .AsNoTracking()
-                .FirstOrDefaultAsync(r => r.RequestId == requestId, ct);
+                .AsQueryable();
+            if (!tracking) query = query.AsNoTracking();
+            return await query.FirstOrDefaultAsync(r => r.RequestId == requestId, ct);
         }
 
         public Task<Request?> GetRequestWithRelationsForMarketAsync(

@@ -136,32 +136,45 @@ namespace STMM.Business.Services
             }
 
             var marketId = await GetUserMarketIdAsync(staffUserId, ct);
-            var invoice = await _invoiceRepository.GetInvoiceWithRelationsForPaymentAsync(request.InvoiceId, marketId, ct);
+            Invoice invoice;
+            Payment payment;
 
-            if (invoice == null)
+            await using (var transaction = await _invoiceRepository.BeginTransactionAsync(ct))
             {
-                throw new NotFoundException($"Invoice with ID {request.InvoiceId} not found.");
+                try
+                {
+                    if (!await _invoiceRepository.LockInvoiceForPaymentAsync(request.InvoiceId, marketId, ct))
+                        throw new NotFoundException($"Invoice with ID {request.InvoiceId} not found.");
+
+                    invoice = await _invoiceRepository.GetInvoiceWithRelationsForPaymentAsync(request.InvoiceId, marketId, ct)
+                        ?? throw new NotFoundException($"Invoice with ID {request.InvoiceId} not found.");
+
+                    if (invoice.Status != "Unpaid")
+                    {
+                        throw new BadRequestException(
+                            $"Invoice is in status '{invoice.Status}'. Payment can only be collected for 'Unpaid' invoices.");
+                    }
+
+                    payment = new Payment
+                    {
+                        InvoiceId = invoice.InvoiceId,
+                        Amount = invoice.TotalAmount,
+                        Method = "Cash",
+                        TransactionCode = $"CASH-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..8].ToUpper()}",
+                        PaidAt = DateTime.UtcNow
+                    };
+
+                    await _paymentRepository.AddAsync(payment, ct);
+                    invoice.Status = "Pending Confirmation";
+                    await _invoiceRepository.SaveChangesAsync(ct);
+                    await transaction.CommitAsync(ct);
+                }
+                catch
+                {
+                    await transaction.RollbackAsync(ct);
+                    throw;
+                }
             }
-
-            if (invoice.Status != "Unpaid")
-            {
-                throw new BadRequestException(
-                    $"Invoice is in status '{invoice.Status}'. Payment can only be collected for 'Unpaid' invoices.");
-            }
-
-            var transactionCode = $"CASH-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..8].ToUpper()}";
-            var payment = new Payment
-            {
-                InvoiceId = invoice.InvoiceId,
-                Amount = invoice.TotalAmount,
-                Method = "Cash",
-                TransactionCode = transactionCode,
-                PaidAt = DateTime.UtcNow
-            };
-
-            await _paymentRepository.AddAsync(payment, ct);
-
-            invoice.Status = "Pending Confirmation";
 
             var vendor = invoice.Contract.Vendor;
             var stall = invoice.Contract.Stall;
@@ -187,8 +200,6 @@ namespace STMM.Business.Services
                     vendor.UserId,
                     invoice.InvoiceId);
             }
-
-            await _invoiceRepository.SaveChangesAsync(ct);
 
             return new PaymentResultDto
             {

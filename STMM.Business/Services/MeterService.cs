@@ -51,17 +51,14 @@ namespace STMM.Business.Services
             }
 
             var marketId = user?.MarketId;
-            var items = await _meterRepo.GetMetersForMarketAsync(marketId, ct);
+            var itemsWithLatest = await _meterRepo.GetMetersWithLatestReadingForMarketAsync(marketId, ct);
 
-            var dtos = _mapper.Map<IEnumerable<MeterDto>>(items).ToList();
-            foreach (var dto in dtos)
-            {
-                var latest = await _readingRepo.GetLatestReadingByMeterIdAsync(dto.MeterId, ct);
-                dto.LastReadingValue = latest?.NewValue;
-                dto.LastReadingImageUrl = latest?.ImageUrl;
-            }
-
-            return dtos;
+            return itemsWithLatest.Select(x => {
+                var dto = _mapper.Map<MeterDto>(x.Meter);
+                dto.LastReadingValue = x.LatestReading?.NewValue;
+                dto.LastReadingImageUrl = x.LatestReading?.ImageUrl;
+                return dto;
+            }).ToList();
         }
 
         public async Task<MeterDto?> GetMeterByIdAsync(int id, int? currentUserId = null, CancellationToken ct = default)
@@ -77,27 +74,15 @@ namespace STMM.Business.Services
                 throw new NotFoundException($"Meter with ID {id} not found.");
             }
 
-            var meter = await _meterRepo.GetMeterForMarketAsync(id, currentUser.MarketId.Value, ct);
-            if (meter == null)
+            var result = await _meterRepo.GetMeterWithLatestReadingForMarketAsync(id, currentUser.MarketId.Value, ct);
+            if (result == null)
                 throw new NotFoundException($"Meter with ID {id} not found.");
 
-            var dto = _mapper.Map<MeterDto>(meter);
-            var latest = await _readingRepo.GetLatestReadingByMeterIdAsync(id, ct);
-            dto.LastReadingValue = latest?.NewValue;
-            dto.LastReadingImageUrl = latest?.ImageUrl;
+            var dto = _mapper.Map<MeterDto>(result.Value.Meter);
+            dto.LastReadingValue = result.Value.LatestReading?.NewValue;
+            dto.LastReadingImageUrl = result.Value.LatestReading?.ImageUrl;
 
             return dto;
-        }
-
-        private async Task<int> GetUserMarketIdAsync(int userId, CancellationToken ct)
-        {
-            var user = await _userRepo.GetUserByIdWithRoleAsync(userId, ct);
-            if (user?.MarketId == null)
-            {
-                throw new ForbiddenException("The account is not assigned to a market.");
-            }
-
-            return user.MarketId.Value;
         }
 
         public async Task<MeterDto> CreateMeterAsync(CreateMeterRequest request, int userId, CancellationToken ct = default)

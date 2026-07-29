@@ -25,6 +25,14 @@ namespace STMM.DataAccess.Repositories
                 .AnyAsync(t => t.IssueId == issueId && t.AssignedToUserId == staffUserId, ct);
         }
 
+        public Task<bool> HasActiveTaskForIssueAsync(int issueId, CancellationToken ct = default) =>
+            _context.StaffTasks.AnyAsync(t => t.IssueId == issueId &&
+                                              (t.Status == null || (t.Status != "Completed" && t.Status != "Cancelled")), ct);
+
+        public Task<bool> HasActiveTaskForRequestAsync(int requestId, CancellationToken ct = default) =>
+            _context.StaffTasks.AnyAsync(t => t.RequestId == requestId &&
+                                              (t.Status == null || (t.Status != "Completed" && t.Status != "Cancelled")), ct);
+
         public Task<bool> HasActiveUtilityTaskForStallAsync(
             int staffUserId,
             int stallId,
@@ -109,7 +117,7 @@ namespace STMM.DataAccess.Repositories
 
         public async Task<StaffTask?> GetTaskByIdForStaffAsync(int taskId, int staffUserId, CancellationToken ct = default)
         {
-            return await BuildTaskQuery(includeMaterials: true)
+            return await BuildTaskQuery()
                 .FirstOrDefaultAsync(t => t.TaskId == taskId && t.AssignedToUserId == staffUserId, ct);
         }
 

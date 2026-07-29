@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using STMM.Business.DTOs.Task;
 using STMM.Business.Interfaces;
 using System.Security.Claims;
@@ -15,11 +16,13 @@ namespace STMM.API.Controllers
     {
         private readonly IStaffTaskService _staffTaskService;
         private readonly IAuditLogService _auditLogService;
+        private readonly ILogger<StaffTasksController> _logger;
 
-        public StaffTasksController(IStaffTaskService staffTaskService, IAuditLogService auditLogService)
+        public StaffTasksController(IStaffTaskService staffTaskService, IAuditLogService auditLogService, ILogger<StaffTasksController> logger)
         {
             _staffTaskService = staffTaskService;
             _auditLogService = auditLogService;
+            _logger = logger;
         }
 
         private int GetUserId()
@@ -70,7 +73,14 @@ namespace STMM.API.Controllers
             var result = await _staffTaskService.CompleteTaskAsync(userId, id, request, ct);
 
             var ipAddress = Request.HttpContext.Connection.RemoteIpAddress?.ToString();
-            await _auditLogService.LogAsync(userId, $"Completed staff task (Task ID: {id})", ipAddress, ct);
+            try
+            {
+                await _auditLogService.LogAsync(userId, $"Completed staff task (Task ID: {id})", ipAddress, ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Could not write audit log for completed staff task {TaskId}.", id);
+            }
 
             return Ok(result);
         }

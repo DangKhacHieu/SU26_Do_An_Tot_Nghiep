@@ -1,16 +1,9 @@
 import { useTranslation } from 'react-i18next';
 import { useEffect, useRef, useState } from 'react';
 import { getAuthHeaders } from '../../utils/authHeaders';
+import readProblemDetail from '../../utils/readProblemDetail';
+import { showToast } from '../../utils/alert';
 import './CreateIssueModal.css';
-
-const readProblemDetail = async (response, fallback) => {
-  try {
-    const problem = await response.json();
-    return problem.detail || problem.title || fallback;
-  } catch {
-    return fallback;
-  }
-};
 
 export default function CreateIssueModal({ baseUrl, onClose, onSuccess, prefilledStallId }) {
   const { t } = useTranslation();
@@ -130,7 +123,9 @@ export default function CreateIssueModal({ baseUrl, onClose, onSuccess, prefille
       if (!response.ok) {
         throw new Error(await readProblemDetail(response, t('createissuemodal.unable_to_submit_issue')));
       }
-      onSuccess(await response.json());
+      const createdIssue = await response.json();
+      showToast(t('createissuemodal.issue_created_success', 'Báo cáo sự cố đã được gửi thành công!'), 'success');
+      onSuccess(createdIssue);
     } catch (submitError) {
       setError(submitError.message);
     } finally {
@@ -161,7 +156,7 @@ export default function CreateIssueModal({ baseUrl, onClose, onSuccess, prefille
               <option value="">{loadingStalls ? t('createissuemodal.loading_stalls') : t('createissuemodal.select_a_stall')}</option>
               {stalls.map((stall) => (
                 <option key={stall.stallId} value={stall.stallId}>
-                  {stall.stallCode} - {stall.areaName}
+                  {stall.stallCode} - {stall.areaName}{stall.vendorName ? ` (${stall.vendorName})` : ''}
                 </option>
               ))}
             </select>

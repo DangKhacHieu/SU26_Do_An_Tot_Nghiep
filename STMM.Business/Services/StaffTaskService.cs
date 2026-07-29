@@ -1,6 +1,8 @@
 using AutoMapper;
 using FluentValidation;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Npgsql;
 using STMM.Business.DTOs.Notification;
 using STMM.Business.DTOs.Task;
 using STMM.Business.Exceptions;
@@ -181,25 +183,31 @@ namespace STMM.Business.Services
             }
 
             string? imageBeforeUrl = null;
+            Issue? linkedIssue = null;
 
             if (req.IssueId.HasValue)
             {
-                var issue = await _issueRepository.GetIssueWithRelationsAsync(req.IssueId.Value, ct: ct);
+                var issue = await _issueRepository.GetIssueWithRelationsAsync(req.IssueId.Value, tracking: true, ct: ct);
                 if (issue == null)
                 {
                     throw new NotFoundException($"Issue with ID {req.IssueId.Value} not found.");
                 }
                 await EnsureAreaInMarketAsync(issue.Stall.AreaId, marketId, "Issue", ct);
                 imageBeforeUrl = issue.ImageUrl;
+                linkedIssue = issue;
+                if (await _staffTaskRepository.HasActiveTaskForIssueAsync(issue.IssueId, ct))
+                    throw new BadRequestException("An active task already exists for this issue.");
             }
             else if (req.RequestId.HasValue)
             {
-                var request = await _requestRepository.GetRequestWithRelationsAsync(req.RequestId.Value, ct);
+                var request = await _requestRepository.GetRequestWithRelationsAsync(req.RequestId.Value, tracking: true, ct: ct);
                 if (request == null)
                 {
                     throw new NotFoundException($"Request with ID {req.RequestId.Value} not found.");
                 }
                 await EnsureAreaInMarketAsync(request.Stall.AreaId, marketId, "Request", ct);
+                if (await _staffTaskRepository.HasActiveTaskForRequestAsync(request.RequestId, ct))
+                    throw new BadRequestException("An active task already exists for this request.");
                 if (request.RequestType == "ViolationAppeal" && request.ViolationId.HasValue)
                 {
                     var violation = await _violationRepository.GetByIdAsync(request.ViolationId.Value, ct);
@@ -222,7 +230,19 @@ namespace STMM.Business.Services
             };
 
             await _staffTaskRepository.AddAsync(task, ct);
-            await _staffTaskRepository.SaveChangesAsync(ct);
+            if (linkedIssue?.Status == "Reported")
+                linkedIssue.Status = "InProgress";
+            try
+            {
+                await _staffTaskRepository.SaveChangesAsync(ct);
+            }
+            catch (DbUpdateException ex) when (IsActiveSourceUniqueViolation(ex))
+            {
+                throw new BadRequestException(
+                    req.IssueId.HasValue
+                        ? "An active task already exists for this issue."
+                        : "An active task already exists for this request.");
+            }
 
             await NotifyStaffAsync(
                 req.AssignedToUserId,
@@ -423,28 +443,29 @@ namespace STMM.Business.Services
 
             if (task.IssueId.HasValue)
             {
-                var issue = await _issueRepository.GetByIdAsync(task.IssueId.Value, ct);
-                if (issue != null)
+                if (task.Issue == null)
                 {
-                    issue.Status = "Resolved";
-                    _issueRepository.Update(issue);
+                    _logger.LogError("Task {TaskId} references missing issue {IssueId}.", task.TaskId, task.IssueId.Value);
+                    throw new InvalidOperationException($"Task {task.TaskId} has a missing linked issue.");
                 }
+
+                task.Issue.Status = "Resolved";
             }
             else if (task.RequestId.HasValue)
             {
-                var request = await _requestRepository.GetByIdAsync(task.RequestId.Value, ct);
-                if (request != null)
+                if (task.Request == null)
                 {
-                    request.Status = "Completed";
-                    _requestRepository.Update(request);
+                    _logger.LogError("Task {TaskId} references missing request {RequestId}.", task.TaskId, task.RequestId.Value);
+                    throw new InvalidOperationException($"Task {task.TaskId} has a missing linked request.");
                 }
+
+                task.Request.Status = "Completed";
+                task.Request.UpdatedAt = DateTime.UtcNow;
             }
 
             _staffTaskRepository.Update(task);
             await _staffTaskRepository.SaveChangesAsync(ct);
-
-            var completedTask = await _staffTaskRepository.GetTaskByIdWithRelationsAsync(taskId, ct);
-            return _mapper.Map<TaskDto>(completedTask!);
+            return _mapper.Map<TaskDto>(task);
         }
 
         /// <inheritdoc />
@@ -549,6 +570,17 @@ namespace STMM.Business.Services
                     "Could not send task notification to user {UserId}.",
                     staffUserId);
             }
+        }
+
+        private static bool IsActiveSourceUniqueViolation(DbUpdateException exception)
+        {
+            if (exception.InnerException is not PostgresException postgres ||
+                postgres.SqlState != PostgresErrorCodes.UniqueViolation)
+            {
+                return false;
+            }
+
+            return postgres.ConstraintName is "ux_staff_tasks_active_issue" or "ux_staff_tasks_active_request";
         }
 
         private static void EnsureUtilityAreaIsReady(IReadOnlyCollection<StallChecklistQueryResult> stalls)

@@ -19,6 +19,7 @@ namespace STMM.DataAccess.Repositories
         public async Task<List<TaskMaterial>> GetByTaskIdAsync(int taskId, CancellationToken ct = default)
         {
             return await _context.TaskMaterials
+                .Include(m => m.RepairPrice)
                 .Where(m => m.TaskId == taskId)
                 .OrderBy(m => m.Id)
                 .AsNoTracking()
@@ -30,6 +31,11 @@ namespace STMM.DataAccess.Repositories
         {
             return await _context.TaskMaterials
                 .FirstOrDefaultAsync(m => m.Id == id, ct);
+        }
+
+        public Task<TaskMaterial?> GetMaterialByIdForTaskAsync(int id, int taskId, CancellationToken ct = default)
+        {
+            return _context.TaskMaterials.FirstOrDefaultAsync(m => m.Id == id && m.TaskId == taskId, ct);
         }
 
         public async Task<Dictionary<int, int>> GetUsageCountsAsync(CancellationToken ct = default)

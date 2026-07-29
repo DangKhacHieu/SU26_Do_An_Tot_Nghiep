@@ -4,6 +4,8 @@ import { getAuthHeaders } from '../../utils/authHeaders';
 import readProblemDetail from '../../utils/readProblemDetail';
 import './RecordMeterReadingModal.css';
 
+import { showToast } from '../../utils/alert';
+
 export default function RecordMeterReadingModal({ stallId, baseUrl, onClose, onSuccess }) {
   const { t } = useTranslation();
 
@@ -165,6 +167,19 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, onClose, onS
       errors.imageUrl = t('recordmeterreadingmodal.an_evidence_photo_of');
     }
 
+    if (!recordedAt) {
+      errors.recordedAt = t('recordmeterreadingmodal.recorded_date_is_required');
+    } else {
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+      if (!dateRegex.test(recordedAt)) {
+        errors.recordedAt = t('recordmeterreadingmodal.recorded_date_must_be');
+      }
+    }
+
+    if (!imageUrl) {
+      errors.imageUrl = t('recordmeterreadingmodal.an_evidence_photo_of');
+    }
+
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -199,6 +214,7 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, onClose, onS
       }
 
       const result = await response.json();
+      showToast(t('recordmeterreadingmodal.save_reading_success', 'Ghi nhận chỉ số thành công!'), 'success');
       onSuccess(result);
     } catch (err) {
       setSubmitError(err.message);

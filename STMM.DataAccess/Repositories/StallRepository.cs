@@ -75,14 +75,13 @@ namespace STMM.DataAccess.Repositories
 
             var stallIds = stallsList.Select(s => s.StallId).ToList();
 
-            var issueTasks = await _context.StaffTasks
+            var linkedTasks = await _context.StaffTasks
                 .Where(t => t.AssignedToUserId == staffUserId && t.Status != "Completed" && t.Status != "Cancelled" && t.Issue != null && stallIds.Contains(t.Issue.StallId))
                 .Select(t => new { StallId = t.Issue!.StallId, t.TaskType })
-                .ToListAsync(ct);
-
-            var requestTasks = await _context.StaffTasks
-                .Where(t => t.AssignedToUserId == staffUserId && t.Status != "Completed" && t.Status != "Cancelled" && t.Request != null && stallIds.Contains(t.Request.StallId))
-                .Select(t => new { StallId = t.Request!.StallId, t.TaskType })
+                .Concat(_context.StaffTasks
+                    .Where(t => t.AssignedToUserId == staffUserId && t.Status != "Completed" && t.Status != "Cancelled" && t.Request != null && stallIds.Contains(t.Request.StallId))
+                    .Select(t => new { StallId = t.Request!.StallId, t.TaskType }))
+                .AsNoTracking()
                 .ToListAsync(ct);
 
             var areaIds = stallsList.Select(s => s.AreaId).Distinct().ToList();
@@ -102,15 +101,19 @@ namespace STMM.DataAccess.Repositories
                 .Select(s => s.StallId)
                 .ToHashSet();
 
+            var linkedTaskTypesByStall = linkedTasks
+                .GroupBy(t => t.StallId)
+                .ToDictionary(group => group.Key, group => group.Select(t => t.TaskType).ToList());
+            var utilityTaskTypesByArea = areaTasks
+                .GroupBy(t => t.AreaId)
+                .ToDictionary(group => group.Key, group => group.Select(t => t.TaskType).ToList());
+
             var items = stallsList.Select(s => {
-                var stallIssueTasks = issueTasks.Where(t => t.StallId == s.StallId).Select(t => t.TaskType);
-                var stallRequestTasks = requestTasks.Where(t => t.StallId == s.StallId).Select(t => t.TaskType);
-                var stallAreaTasks = areaTasks
-                    .Where(t =>
-                        t.AreaId == s.AreaId &&
-                        utilityEligibleStallIds.Contains(s.StallId))
-                    .Select(t => t.TaskType);
-                var assignedTasks = stallIssueTasks.Concat(stallRequestTasks).Concat(stallAreaTasks).ToList();
+                var assignedTasks = linkedTaskTypesByStall.GetValueOrDefault(s.StallId, [])
+                    .Concat(utilityEligibleStallIds.Contains(s.StallId)
+                        ? utilityTaskTypesByArea.GetValueOrDefault(s.AreaId, [])
+                        : [])
+                    .ToList();
                 var taskTypes = assignedTasks.Distinct().ToList();
 
                 return new StallTaskSummaryQueryResult(
@@ -135,23 +138,41 @@ namespace STMM.DataAccess.Repositories
             int marketId,
             string? search,
             int limit,
+            DateOnly effectiveDate,
             CancellationToken ct = default)
         {
             var query = _context.Stalls
-                .Where(s => s.IsDeleted != true && s.Area.MarketId == marketId);
+                .Where(s => s.IsDeleted != true &&
+                            s.Area.MarketId == marketId &&
+                            s.Status == "Rented" &&
+                            s.Contracts.Any(c => c.IsDeleted != true &&
+                                                 c.Status == "Active" &&
+                                                 c.StartDate <= effectiveDate &&
+                                                 c.EndDate >= effectiveDate));
 
             if (!string.IsNullOrWhiteSpace(search))
             {
                 var term = search.Trim().ToLower();
                 query = query.Where(s =>
                     s.Code.ToLower().Contains(term) ||
-                    s.Area.Name.ToLower().Contains(term));
+                    s.Area.Name.ToLower().Contains(term) ||
+                    s.Contracts.Any(c => c.Status == "Active" && c.IsDeleted != true &&
+                                         c.StartDate <= effectiveDate && c.EndDate >= effectiveDate &&
+                                         (c.Vendor.User.Name.ToLower().Contains(term) || c.Vendor.BusinessName.ToLower().Contains(term))));
             }
 
             return await query
                 .OrderBy(s => s.Code)
                 .Take(limit)
-                .Select(s => new StaffStallLookupQueryResult(s.StallId, s.Code, s.Area.Name))
+                .Select(s => new StaffStallLookupQueryResult(
+                    s.StallId,
+                    s.Code,
+                    s.Area.Name,
+                    s.Contracts.Where(c => c.Status == "Active" && c.IsDeleted != true && c.StartDate <= effectiveDate && c.EndDate >= effectiveDate)
+                               .OrderByDescending(c => c.StartDate)
+                               .ThenByDescending(c => c.ContractId)
+                               .Select(c => c.Vendor.User.Name ?? c.Vendor.BusinessName)
+                               .FirstOrDefault()))
                 .AsNoTracking()
                 .ToListAsync(ct);
         }
@@ -165,6 +186,27 @@ namespace STMM.DataAccess.Repositories
                     s.StallId == stallId &&
                     s.IsDeleted != true &&
                     s.Area.MarketId == marketId,
+                    ct);
+        }
+
+        public Task<Stall?> GetEligibleRentedStallForMarketAsync(
+            int stallId,
+            int marketId,
+            DateOnly effectiveDate,
+            CancellationToken ct = default)
+        {
+            return _context.Stalls
+                .Include(s => s.Area)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(s =>
+                    s.StallId == stallId &&
+                    s.IsDeleted != true &&
+                    s.Area.MarketId == marketId &&
+                    s.Status == "Rented" &&
+                    s.Contracts.Any(c => c.IsDeleted != true &&
+                                         c.Status == "Active" &&
+                                         c.StartDate <= effectiveDate &&
+                                         c.EndDate >= effectiveDate),
                     ct);
         }
 

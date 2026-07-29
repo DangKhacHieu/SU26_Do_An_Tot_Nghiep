@@ -9,6 +9,8 @@ namespace STMM.DataAccess.IRepositories
     {
         Task<List<int>> GetAssignedIssueIdsAsync(int staffUserId, CancellationToken ct = default);
         Task<bool> HasAssignedTaskAsync(int issueId, int staffUserId, CancellationToken ct = default);
+        Task<bool> HasActiveTaskForIssueAsync(int issueId, CancellationToken ct = default);
+        Task<bool> HasActiveTaskForRequestAsync(int requestId, CancellationToken ct = default);
         Task<bool> HasActiveUtilityTaskForStallAsync(
             int staffUserId,
             int stallId,

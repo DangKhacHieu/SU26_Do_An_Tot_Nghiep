@@ -43,13 +43,18 @@ namespace STMM.Business.Services
         }
 
         public async Task<List<RepairPriceDto>> GetRepairPricesAsync(
+            int userId,
             CancellationToken ct = default)
         {
-            var prices = await _repairPriceRepository.FindAsync(
-                price => price.IsActive == true, ct);
+            var user = await _userRepository.GetUserByIdWithRoleAsync(userId, ct);
+            if (user?.MarketId == null)
+            {
+                throw new ForbiddenException("The account is not assigned to a market.");
+            }
+
+            var prices = await _repairPriceRepository.GetActiveForMarketAsync(user.MarketId.Value, ct);
 
             return prices
-                .OrderBy(price => price.ItemName)
                 .Select(MapRepairPriceToDto)
                 .ToList();
         }
@@ -78,7 +83,11 @@ namespace STMM.Business.Services
             EnsureRepairQuotationSource(task);
             EnsureTaskIsPending(task, "add material to");
 
-            var repairPrice = await LoadRepairPriceOrThrowAsync(request.RepairPriceId, ct);
+            var marketId = task.AssignedToUser?.MarketId
+                ?? (await _userRepository.GetUserByIdWithRoleAsync(staffUserId, ct))?.MarketId
+                ?? throw new ForbiddenException("The account is not assigned to a market.");
+
+            var repairPrice = await LoadRepairPriceOrThrowAsync(request.RepairPriceId, marketId, ct);
             var unitPrice = ResolveUnitPrice(repairPrice, request);
             var material = CreateTaskMaterial(taskId, repairPrice, request, unitPrice);
 
@@ -99,8 +108,8 @@ namespace STMM.Business.Services
             EnsureRepairQuotationSource(task);
             EnsureTaskIsPending(task, "remove material from");
 
-            var material = await _materialRepository.GetMaterialByIdAsync(materialId, ct);
-            if (material == null || material.TaskId != taskId)
+            var material = await _materialRepository.GetMaterialByIdForTaskAsync(materialId, taskId, ct);
+            if (material == null)
             {
                 throw new NotFoundException(
                     $"Material {materialId} was not found in task {taskId}.");
@@ -133,9 +142,7 @@ namespace STMM.Business.Services
 
             await NotifyManagersAsync(task, totalCost, staffUserId, ct);
 
-            var updatedTask = await _taskRepository.GetTaskByIdForStaffAsync(
-                taskId, staffUserId, ct);
-            return _mapper.Map<TaskDto>(updatedTask!);
+            return _mapper.Map<TaskDto>(task);
         }
 
         private async Task<StaffTask> LoadTaskOrThrowAsync(
@@ -149,10 +156,11 @@ namespace STMM.Business.Services
 
         private async Task<RepairPrice> LoadRepairPriceOrThrowAsync(
             int repairPriceId,
+            int marketId,
             CancellationToken ct)
         {
-            var repairPrice = await _repairPriceRepository.GetByIdAsync(repairPriceId, ct);
-            if (repairPrice == null || repairPrice.IsActive != true)
+            var repairPrice = await _repairPriceRepository.GetActiveByIdForMarketAsync(repairPriceId, marketId, ct);
+            if (repairPrice == null)
             {
                 throw new NotFoundException(
                     $"Material {repairPriceId} was not found or is inactive.");

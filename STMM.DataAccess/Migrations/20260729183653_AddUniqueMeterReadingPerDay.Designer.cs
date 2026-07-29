@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using STMM.DataAccess.Data;
@@ -11,9 +12,11 @@ using STMM.DataAccess.Data;
 namespace STMM.DataAccess.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260729183653_AddUniqueMeterReadingPerDay")]
+    partial class AddUniqueMeterReadingPerDay
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -202,7 +205,7 @@ namespace STMM.DataAccess.Migrations
 
                     b.HasIndex("MarketId");
 
-                    b.HasIndex(new[] { "Code", "MarketId" }, "business_categories_code_key")
+                    b.HasIndex(new[] { "Code" }, "business_categories_code_key")
                         .IsUnique();
 
                     b.ToTable("business_categories", null, t =>
@@ -1506,15 +1509,7 @@ namespace STMM.DataAccess.Migrations
 
                     b.HasIndex(new[] { "IssueId" }, "idx_staff_tasks_issue_id");
 
-                    b.HasIndex(new[] { "IssueId" }, "ux_staff_tasks_active_issue")
-                        .IsUnique()
-                        .HasFilter("issue_id IS NOT NULL AND (status IS NULL OR status NOT IN ('Completed', 'Cancelled'))");
-
                     b.HasIndex(new[] { "RequestId" }, "idx_staff_tasks_request_id");
-
-                    b.HasIndex(new[] { "RequestId" }, "ux_staff_tasks_active_request")
-                        .IsUnique()
-                        .HasFilter("request_id IS NOT NULL AND (status IS NULL OR status NOT IN ('Completed', 'Cancelled'))");
 
                     b.ToTable("staff_tasks", null, t =>
                         {

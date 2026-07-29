@@ -27,7 +27,7 @@ namespace STMM.DataAccess.IRepositories
         IEnumerable<string> PendingTaskTypes
     );
 
-    public record StaffStallLookupQueryResult(int StallId, string StallCode, string AreaName);
+    public record StaffStallLookupQueryResult(int StallId, string StallCode, string AreaName, string? VendorName);
 
     public interface IStallRepository : IBaseRepository<Stall>
     {
@@ -40,9 +40,16 @@ namespace STMM.DataAccess.IRepositories
             int marketId,
             string? search,
             int limit,
+            DateOnly effectiveDate,
             CancellationToken ct = default);
 
         Task<Stall?> GetStallForMarketAsync(int stallId, int marketId, CancellationToken ct = default);
+
+        Task<Stall?> GetEligibleRentedStallForMarketAsync(
+            int stallId,
+            int marketId,
+            DateOnly effectiveDate,
+            CancellationToken ct = default);
 
         Task<List<StallChecklistQueryResult>> GetStallsChecklistByAreaAsync(
             int areaId,

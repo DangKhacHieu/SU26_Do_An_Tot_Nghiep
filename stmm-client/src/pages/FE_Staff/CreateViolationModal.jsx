@@ -1,16 +1,9 @@
 import { useTranslation } from 'react-i18next';
 import { useEffect, useRef, useState } from 'react';
 import { getAuthHeaders } from '../../utils/authHeaders';
+import readProblemDetail from '../../utils/readProblemDetail';
+import { showToast } from '../../utils/alert';
 import './CreateViolationModal.css';
-
-const readProblemDetail = async (response, fallback) => {
-  try {
-    const problem = await response.json();
-    return problem.detail || problem.title || fallback;
-  } catch {
-    return fallback;
-  }
-};
 
 export default function CreateViolationModal({ baseUrl, onClose, onSuccess, prefilledStallId }) {
   const { t } = useTranslation();
@@ -148,7 +141,9 @@ export default function CreateViolationModal({ baseUrl, onClose, onSuccess, pref
       if (!response.ok) {
         throw new Error(await readProblemDetail(response, t('createviolationmodal.unable_to_submit_violation')));
       }
-      onSuccess(await response.json());
+      const createdViolation = await response.json();
+      showToast(t('createviolationmodal.violation_created_success', 'Đã lưu biên bản vi phạm thành công!'), 'success');
+      onSuccess(createdViolation);
     } catch (submitError) {
       setError(submitError.message);
     } finally {
@@ -179,7 +174,11 @@ export default function CreateViolationModal({ baseUrl, onClose, onSuccess, pref
             <label className="form-label required-field" htmlFor="violation-stall">{t('createviolationmodal.location')}</label>
             <select id="violation-stall" className="form-input" value={stallId} onChange={(event) => setStallId(event.target.value)} disabled={loadingOptions || Boolean(prefilledStallId)}>
               <option value="">{t('createviolationmodal.select_a_stall')}</option>
-              {stalls.map((stall) => <option key={stall.stallId} value={stall.stallId}>{stall.stallCode} - {stall.areaName}</option>)}
+              {stalls.map((stall) => (
+                <option key={stall.stallId} value={stall.stallId}>
+                  {stall.stallCode} - {stall.areaName}{stall.vendorName ? ` (${stall.vendorName})` : ''}
+                </option>
+              ))}
             </select>
           </div>
 

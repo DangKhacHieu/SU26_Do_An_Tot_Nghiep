@@ -70,7 +70,8 @@ namespace STMM.Business.Services
             }
 
             var marketId = await GetMarketIdAsync(staffUserId, "staff", ct);
-            var stall = await _stallRepository.GetStallForMarketAsync(request.StallId, marketId, ct)
+            var effectiveDate = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
+            var stall = await _stallRepository.GetEligibleRentedStallForMarketAsync(request.StallId, marketId, effectiveDate, ct)
                 ?? throw new NotFoundException($"Stall with ID {request.StallId} not found.");
 
             var issue = new Issue

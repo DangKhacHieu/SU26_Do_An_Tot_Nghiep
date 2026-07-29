@@ -42,6 +42,7 @@ import ProfileStaff from "./pages/FE_Staff/ProfileStaff";
 import StaffNotifications from "./pages/FE_Staff/StaffNotifications";
 import StaffDashboard from "./pages/FE_Staff/StaffDashboard";
 import notificationService from "./services/notificationService";
+import { showToast } from "./utils/alert";
 
 // FE Manager Imports
 import SidebarManager from "./pages/FE_Manager/SidebarManager";
@@ -526,10 +527,8 @@ function AppContent() {
   }, [loadStaffUnreadNotifications]);
 
   const handleShowNotification = (message, type = "success") => {
-    setNotification({ message, type });
-    setTimeout(() => {
-      setNotification(null);
-    }, 4000);
+    const toastIcon = type === 'danger' || type === 'error' ? 'error' : type === 'warning' ? 'warning' : 'success';
+    showToast(message, toastIcon);
   };
 
   const handleViewDetails = (id) => {
@@ -915,6 +914,10 @@ function AppContent() {
         title: t('sidebarstaff.profile_title'),
         sub: t('sidebarstaff.profile_sub'),
       },
+      notifications: {
+        title: t('sidebarstaff.notifications_title'),
+        sub: t('sidebarstaff.notifications_sub'),
+      },
     };
     const staffPageInfo = staffPageTitles[currentStaffView] || staffPageTitles['dashboard'];
 
@@ -934,9 +937,8 @@ function AppContent() {
             setView={setCurrentStaffView}
             user={user}
             onLogout={handleLogout}
+            unreadNotificationsCount={staffUnreadNotifications}
           />
-
-
 
           <main className="app-main-content">
             <div className="main-top-navbar">
@@ -976,10 +978,11 @@ function AppContent() {
                 <button
                   type="button"
                   className="nav-icon staff-notification-button"
-                  title="Notifications"
-                  aria-label={`Notifications${staffUnreadNotifications > 0 ? `, ${staffUnreadNotifications} unread` : ""}`}
-                  aria-expanded={staffNotificationsOpen}
-                  onClick={() => setStaffNotificationsOpen((current) => !current)}
+                  title={t('staffnotifications.notifications')}
+                  aria-label={staffUnreadNotifications > 0
+                    ? t('staffnotifications.notification_button_unread', { count: staffUnreadNotifications })
+                    : t('staffnotifications.notification_button')}
+                  onClick={() => setCurrentStaffView("notifications")}
                 >
                   <Bell size={20} aria-hidden="true" />
                   {staffUnreadNotifications > 0 && (
@@ -988,12 +991,6 @@ function AppContent() {
                     </span>
                   )}
                 </button>
-                {staffNotificationsOpen ? (
-                  <StaffNotifications
-                    onClose={() => setStaffNotificationsOpen(false)}
-                    onUnreadChange={setStaffUnreadNotifications}
-                  />
-                ) : null}
                 <button
                   type="button"
                   className="nav-icon"
@@ -1143,6 +1140,12 @@ function AppContent() {
                   userId={userId}
                   baseUrl={baseUrl}
                   onShowNotification={handleShowNotification}
+                />
+              )}
+
+              {currentStaffView === "notifications" && (
+                <StaffNotifications
+                  onUnreadChange={setStaffUnreadNotifications}
                 />
               )}
 
