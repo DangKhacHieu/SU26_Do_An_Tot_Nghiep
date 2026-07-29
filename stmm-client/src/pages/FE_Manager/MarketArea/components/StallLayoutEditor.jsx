@@ -74,13 +74,13 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
 
         if (validateStallBounds && !validateStallBounds(d.x, d.y, d.x + width, d.y + height)) {
             // RÀNG BUỘC FRONTEND: Sạp phải nằm trong ranh giới (Boundaries) của Khu vực
-            setErrorMessage('Không thể di chuyển: Sạp phải nằm hoàn toàn trong Khu vực!');
+            setErrorMessage(t('marketFloorPlan.stallEditor.out_bounds_move'));
             setRenderKey(prev => prev + 1); // Force Rnd to revert
             return;
         }
 
         if (checkStallOverlap(id, d.x, d.y, d.x + width, d.y + height)) {
-            setErrorMessage('Không thể di chuyển: Sạp này bị chồng lấp lên Sạp khác!');
+            setErrorMessage(t('marketFloorPlan.stallEditor.overlap_move'));
             setRenderKey(prev => prev + 1); // Force Rnd to revert
             return;
         }
@@ -92,7 +92,7 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
             await updateStallLocation(id, { mapX: d.x, mapY: d.y });
         } catch (error) {
             console.error('Failed to update stall location:', error);
-            setErrorMessage('Có lỗi xảy ra khi lưu kích thước sạp.');
+            setErrorMessage(t('marketFloorPlan.stallEditor.resize_error'));
             fetchStalls(); // revert on fail
         }
     };
@@ -108,20 +108,20 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
         const newSize = Math.round((newWidth * newHeight) / PX_PER_M2 * 100) / 100;
 
         if (validateStallBounds && !validateStallBounds(position.x, position.y, position.x + newWidth, position.y + newHeight)) {
-            setErrorMessage('Không thể thay đổi kích thước: Sạp phải nằm hoàn toàn trong Khu vực!');
+            setErrorMessage(t('marketFloorPlan.stallEditor.out_bounds_resize'));
             setRenderKey(prev => prev + 1); // Force Rnd to revert
             return;
         }
 
         if (checkStallOverlap(id, position.x, position.y, position.x + newWidth, position.y + newHeight)) {
-            setErrorMessage('Không thể thay đổi kích thước: Sạp này bị chồng lấp lên Sạp khác!');
+            setErrorMessage(t('marketFloorPlan.stallEditor.overlap_resize'));
             setRenderKey(prev => prev + 1); // Force Rnd to revert
             return;
         }
 
         const currentSum = stalls.reduce((sum, s) => s.stallId === id ? sum : sum + (parseFloat(s.size) || 0), 0);
         if (areaSize && newSize + currentSum > parseFloat(areaSize)) {
-            setErrorMessage(`Không thể thay đổi kích thước: Tổng diện tích sạp vượt quá Khu vực! (còn trống ${Math.max(0, Math.round((parseFloat(areaSize) - currentSum) * 100) / 100)} m²)`);
+            setErrorMessage(t('marketFloorPlan.stallEditor.exceeds_size', { max: Math.max(0, Math.round((parseFloat(areaSize) - currentSum) * 100) / 100) }));
             setRenderKey(prev => prev + 1);
             return;
         }
@@ -149,9 +149,9 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
             
             // Check if error is due to size validation limit
             if (error.response?.data?.message) {
-                setErrorMessage('Không thể thay đổi kích thước sạp: ${error.response.data.message}');
+                setErrorMessage(t('marketFloorPlan.stallEditor.resize_error_msg', { msg: error.response.data.message }));
             } else {
-                setErrorMessage('Có lỗi xảy ra khi lưu kích thước sạp.');
+                setErrorMessage(t('marketFloorPlan.stallEditor.resize_error'));
             }
             fetchStalls(); // revert on fail
         }
@@ -167,12 +167,12 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
             await deactivateStall(deleteConfirmId);
             fetchStalls();
             setDeleteConfirmId(null);
-            setDeleteSuccess('Đã xóa sạp thành công!');
+            setDeleteSuccess(t('marketFloorPlan.stallEditor.delete_success'));
             setTimeout(() => setDeleteSuccess(null), 3000);
         } catch (error) {
             console.error('Failed to deactivate stall:', error);
             setDeleteConfirmId(null);
-            setErrorMessage('Không thể xóa sạp này! Sạp đang có hợp đồng hiệu lực (có người thuê).');
+            setErrorMessage(t('marketFloorPlan.stallEditor.delete_error'));
         }
     };
 
@@ -187,10 +187,10 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
 
     const getStatusText = (status) => {
         switch (status) {
-            case 'Available': return 'Còn trống';
-            case 'Rented': return 'Đã thuê';
-            case 'Maintenance': return 'Đang bảo trì';
-            default: return status || 'Còn trống';
+            case 'Available': return t('marketFloorPlan.stallEditor.available');
+            case 'Rented': return t('marketFloorPlan.stallEditor.rented');
+            case 'Maintenance': return t('marketFloorPlan.stallEditor.maintenance');
+            default: return status || t('marketFloorPlan.stallEditor.available');
         }
     };
 
@@ -262,11 +262,11 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
                 <div key="confirm" style={{position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 9999, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
                     <div style={{background: 'var(--bg-panel)', padding: '32px', borderRadius: '16px', minWidth: '400px', boxShadow: '0 10px 30px rgba(0,0,0,0.2)', textAlign: 'center'}}>
                         <div style={{fontSize: '48px', marginBottom: '16px'}}>🗑️</div>
-                        <h3 style={{marginTop: 0, color: 'var(--text-primary)', fontSize: '24px'}}>{'Xác nhận xóa Sạp'}</h3>
-                        <p style={{color: 'var(--text-secondary)', fontSize: '15px', lineHeight: '1.5'}}>{'Bạn có chắc chắn muốn xóa sạp này không?'}<br/>{'Hành động này không thể hoàn tác.'}</p>
+                        <h3 style={{marginTop: 0, color: 'var(--text-primary)', fontSize: '24px'}}>{t('marketFloorPlan.stallEditor.confirm_delete')}</h3>
+                        <p style={{color: 'var(--text-secondary)', fontSize: '15px', lineHeight: '1.5', whiteSpace: 'pre-wrap'}}>{t('marketFloorPlan.stallEditor.confirm_delete_desc')}</p>
                         <div style={{marginTop: 32, display: 'flex', justifyContent: 'center', gap: 16}}>
-                            <button onClick={() => setDeleteConfirmId(null)} style={{padding: '10px 24px', background: 'transparent', border: '1px solid var(--border-color)', borderRadius: '8px', cursor: 'pointer', color: 'var(--text-primary)', fontWeight: 'bold', fontSize: '14px', transition: 'all 0.2s'}}>{'Hủy'}</button>
-                            <button onClick={confirmDelete} style={{padding: '10px 24px', background: 'var(--danger, #ff4d4f)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px', boxShadow: '0 4px 12px rgba(255, 77, 79, 0.3)', transition: 'all 0.2s'}}>{'Xóa Sạp'}</button>
+                            <button onClick={() => setDeleteConfirmId(null)} style={{padding: '10px 24px', background: 'transparent', border: '1px solid var(--border-color)', borderRadius: '8px', cursor: 'pointer', color: 'var(--text-primary)', fontWeight: 'bold', fontSize: '14px', transition: 'all 0.2s'}}>{t('marketFloorPlan.stallEditor.cancel')}</button>
+                            <button onClick={confirmDelete} style={{padding: '10px 24px', background: 'var(--danger, #ff4d4f)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px', boxShadow: '0 4px 12px rgba(255, 77, 79, 0.3)', transition: 'all 0.2s'}}>{t('marketFloorPlan.stallEditor.delete')}</button>
                         </div>
                     </div>
                 </div>
@@ -277,10 +277,10 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
                 <div key="error" style={{position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 9999, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
                     <div style={{background: 'var(--bg-panel)', padding: '32px', borderRadius: '16px', minWidth: '400px', maxWidth: '500px', boxShadow: '0 10px 30px rgba(0,0,0,0.2)', textAlign: 'center'}}>
                         <div style={{fontSize: '48px', marginBottom: '16px'}}>⚠️</div>
-                        <h3 style={{marginTop: 0, color: 'var(--danger, #ff4d4f)', fontSize: '24px'}}>{'Lỗi'}</h3>
+                        <h3 style={{marginTop: 0, color: 'var(--danger, #ff4d4f)', fontSize: '24px'}}>{t('marketFloorPlan.stallEditor.error')}</h3>
                         <p style={{color: 'var(--text-secondary)', fontSize: '15px', lineHeight: '1.5'}}>{errorMessage}</p>
                         <div style={{marginTop: 32}}>
-                            <button onClick={() => setErrorMessage(null)} style={{padding: '10px 32px', background: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px', transition: 'all 0.2s'}}>{'Đóng'}</button>
+                            <button onClick={() => setErrorMessage(null)} style={{padding: '10px 32px', background: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px', transition: 'all 0.2s'}}>{t('marketFloorPlan.stallEditor.close')}</button>
                         </div>
                     </div>
                 </div>
@@ -291,7 +291,7 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
                 <div key="success" style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', zIndex: 9999, display: 'flex', justifyContent: 'center', alignItems: 'center'}}>
                     <div style={{background: 'var(--bg-panel)', padding: '32px', borderRadius: '16px', minWidth: '400px', boxShadow: '0 10px 30px rgba(0,0,0,0.2)', textAlign: 'center', animation: 'popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)'}}>
                         <div style={{fontSize: '48px', marginBottom: '16px'}}>✅</div>
-                        <h3 style={{marginTop: 0, color: 'var(--success, #4caf50)', fontSize: '24px'}}>{'Thành công!'}</h3>
+                        <h3 style={{marginTop: 0, color: 'var(--success, #4caf50)', fontSize: '24px'}}>{t('marketFloorPlan.stallEditor.success')}</h3>
                         <p style={{color: 'var(--text-secondary)', fontSize: '15px'}}>{deleteSuccess}</p>
                     </div>
                 </div>
@@ -419,14 +419,14 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
                                             <button 
                                                 className={styles.iconBtn} 
                                                 onClick={(e) => { e.stopPropagation(); setSelectedStall(stall); setIsFormOpen(true); }}
-                                                title={'Sửa Sạp'}
+                                                title={t('marketFloorPlan.stallEditor.edit_stall')}
                                             >
                                                 ✎
                                             </button>
                                             <button 
                                                 className={styles.iconBtnDanger} 
                                                 onClick={(e) => { e.stopPropagation(); requestDelete(stall.stallId); }}
-                                                title={'Xóa Sạp'}
+                                                title={t('marketFloorPlan.stallEditor.delete_stall')}
                                             >
                                                 ✕
                                             </button>
@@ -435,7 +435,7 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
                                         <button 
                                             className={styles.iconBtn} 
                                             onClick={(e) => { e.stopPropagation(); setViewingStall(stall); }}
-                                            title={'Thông tin Sạp'}
+                                            title={t('marketFloorPlan.stallEditor.stall_info')}
                                         >
                                             ℹ
                                         </button>
@@ -450,7 +450,7 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
                 {drawnStallData && !selectedStall && !isDrawingStall && isFormOpen && (() => {
                     const tempStall = {
                         stallId: 'new-temp',
-                        code: 'Sạp mới',
+                        code: t('marketFloorPlan.stallEditor.new_stall'),
                         status: 'Available',
                         svgPath: drawnStallData.svgPath,
                         mapX: drawnStallData.minX,
@@ -568,17 +568,17 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
             <div style={{ position: 'absolute', top: 8, left: 8, background: 'rgba(255, 255, 255, 0.9)', padding: '6px 12px', borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.15)', display: 'flex', gap: 16, alignItems: 'center', fontSize: 12, zIndex: 100, border: '1px solid var(--border-color)', width: 'max-content', backdropFilter: 'blur(4px)' }}>
                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--color-primary)' }}></div>
-                  <span style={{ color: 'var(--text-secondary)' }}>Khu vực:</span>
+                  <span style={{ color: 'var(--text-secondary)' }}>{t('marketFloorPlan.stallEditor.area_label')}</span>
                   <strong style={{ color: 'var(--text-primary)' }}>{areaSize} m²</strong>
                </div>
                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10b981' }}></div>
-                  <span style={{ color: 'var(--text-secondary)' }}>Đã dùng:</span>
+                  <span style={{ color: 'var(--text-secondary)' }}>{t('marketFloorPlan.stallEditor.used_label')}</span>
                   <strong style={{ color: 'var(--text-primary)' }}>{Math.round(totalUsedStallArea * 100) / 100} m²</strong>
                </div>
                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: remainingStallArea > 0 ? '#eab308' : '#ef4444' }}></div>
-                  <span style={{ color: 'var(--text-secondary)' }}>Trống:</span>
+                  <span style={{ color: 'var(--text-secondary)' }}>{t('marketFloorPlan.stallEditor.empty_label')}</span>
                   <strong style={{ color: remainingStallArea > 0 ? 'var(--text-primary)' : '#ef4444' }}>{remainingStallArea} m²</strong>
                </div>
 
@@ -587,7 +587,7 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
                       onClick={(e) => { e.stopPropagation(); setSelectedStall(null); setDrawnStallData(null); setIsDrawingStall(true); }} 
                       style={{background: 'var(--color-primary)', color: 'white', border: 'none', padding: '4px 10px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', marginLeft: '8px'}}
                   >
-                      <i className="fa-solid fa-plus" style={{marginRight: 4}}></i> VẼ SẠP MỚI
+                      <i className="fa-solid fa-plus" style={{marginRight: 4}}></i> {t('marketFloorPlan.stallEditor.draw_new')}
                   </button>
                )}
             </div>
@@ -603,7 +603,7 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
                 {/* LEFT PANEL */}
                 <div className={styles.leftPanel} style={{ display: 'flex', flexDirection: 'column' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, borderBottom: '1px solid var(--border-color)', paddingBottom: 12 }}>
-                        <h2 style={{ margin: 0, fontSize: 18, color: 'var(--color-primary)' }}>{areaName || 'Khu vực'}</h2>
+                        <h2 style={{ margin: 0, fontSize: 18, color: 'var(--color-primary)' }}>{areaName || t('marketFloorPlan.viewer.areas')}</h2>
                         <button onClick={() => { setIsFormOpen(false); setViewingStall(null); setIsDrawingStall(false); setDrawnStallData(null); setSelectedStall(null); }} style={{ background: 'transparent', border: 'none', fontSize: 24, cursor: 'pointer', color: '#64748b' }}>&times;</button>
                     </div>
 
@@ -648,39 +648,39 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
                             
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '8px' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <span style={{color: 'var(--text-secondary)', fontSize: '13px'}}>{t('stallLayoutEditor.category', 'Ngành hàng:')}</span>
-                                    <span style={{fontWeight: 'bold', color: 'var(--text-primary)', fontSize: '14px'}}>{viewingStall.categoryName || t('stallLayoutEditor.none', 'Không có')}</span>
+                                    <span style={{color: 'var(--text-secondary)', fontSize: '13px'}}>{t('marketFloorPlan.stallEditor.category')}</span>
+                                    <span style={{fontWeight: 'bold', color: 'var(--text-primary)', fontSize: '14px'}}>{viewingStall.categoryName || t('marketFloorPlan.stallEditor.none')}</span>
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <span style={{color: 'var(--text-secondary)', fontSize: '13px'}}>{t('stallLayoutEditor.tenant', 'Người thuê:')}</span>
-                                    <span style={{fontWeight: 'bold', color: 'var(--text-primary)', fontSize: '14px'}}>{viewingStall.tenantName || viewingStall.description || t('stallLayoutEditor.empty', 'Trống')}</span>
+                                    <span style={{color: 'var(--text-secondary)', fontSize: '13px'}}>{t('marketFloorPlan.stallEditor.tenant')}</span>
+                                    <span style={{fontWeight: 'bold', color: 'var(--text-primary)', fontSize: '14px'}}>{viewingStall.tenantName || viewingStall.description || t('marketFloorPlan.stallEditor.empty')}</span>
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <span style={{color: 'var(--text-secondary)', fontSize: '13px'}}>{t('stallLayoutEditor.size_wh', 'Kích thước (WxH):')}</span>
+                                    <span style={{color: 'var(--text-secondary)', fontSize: '13px'}}>{t('marketFloorPlan.stallEditor.size_wh')}</span>
                                     <span style={{fontWeight: 'bold', color: 'var(--text-primary)', fontSize: '14px'}}>{viewingStall.width} x {viewingStall.height}</span>
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <span style={{color: 'var(--text-secondary)', fontSize: '13px'}}>{t('stallLayoutEditor.area', 'Diện tích:')}</span>
+                                    <span style={{color: 'var(--text-secondary)', fontSize: '13px'}}>{t('marketFloorPlan.stallEditor.area')}</span>
                                     <span style={{fontWeight: 'bold', fontSize: '14px', color: '#10b981'}}>{viewingStall.size} m²</span>
                                 </div>
                             </div>
                             
                             <div style={{marginTop: 'auto', padding: '16px', background: 'linear-gradient(145deg, #f8fafc, #f1f5f9)', borderRadius: '12px', border: '1px solid #e2e8f0'}}>
                                 <h4 style={{margin: '0 0 12px 0', fontSize: '14px', color: '#334155', display: 'flex', alignItems: 'center', gap: '8px'}}>
-                                    <span>⚡</span> {t('stallLayoutEditor.utilities', 'Tiện ích (Điện / Nước)')}
+                                    <span>⚡</span> {t('marketFloorPlan.stallEditor.utilities')}
                                 </h4>
                                 <div style={{display: 'flex', flexDirection: 'column', gap: '12px'}}>
                                     <div style={{background: 'white', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.05)'}}>
-                                        <div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px'}}>{t('stallLayoutEditor.elec_meter', 'Mã đồng hồ điện:')}</div>
+                                        <div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px'}}>{t('marketFloorPlan.stallEditor.elec_meter')}</div>
                                         <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'baseline'}}>
-                                            <strong style={{fontSize: '13px', color: '#1e293b'}}>{viewingStall.electricityMeterSerial || t('stallLayoutEditor.not_installed', 'Chưa lắp')}</strong>
+                                            <strong style={{fontSize: '13px', color: '#1e293b'}}>{viewingStall.electricityMeterSerial || t('marketFloorPlan.stallEditor.not_installed')}</strong>
                                             <span style={{color: '#3b82f6', fontWeight: 'bold', fontSize: '14px'}}>{viewingStall.currentElectricityIndex ?? 0} kWh</span>
                                         </div>
                                     </div>
                                     <div style={{background: 'white', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.05)'}}>
-                                        <div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px'}}>{t('stallLayoutEditor.water_meter', 'Mã đồng hồ nước:')}</div>
+                                        <div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px'}}>{t('marketFloorPlan.stallEditor.water_meter')}</div>
                                         <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'baseline'}}>
-                                            <strong style={{fontSize: '13px', color: '#1e293b'}}>{viewingStall.waterMeterSerial || t('stallLayoutEditor.not_installed', 'Chưa lắp')}</strong>
+                                            <strong style={{fontSize: '13px', color: '#1e293b'}}>{viewingStall.waterMeterSerial || t('marketFloorPlan.stallEditor.not_installed')}</strong>
                                             <span style={{color: '#06b6d4', fontWeight: 'bold', fontSize: '14px'}}>{viewingStall.currentWaterIndex ?? 0} m³</span>
                                         </div>
                                     </div>
@@ -689,7 +689,7 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
                         </div>
                     ) : (
                         <div style={{ flex: 1, overflowY: 'auto' }}>
-                            <p style={{ color: 'var(--text-secondary)' }}>Vui lòng chọn công cụ trên bản đồ.</p>
+                            <p style={{ color: 'var(--text-secondary)' }}>{t('marketFloorPlan.stallEditor.select_tool')}</p>
                         </div>
                     )}
                 </div>
