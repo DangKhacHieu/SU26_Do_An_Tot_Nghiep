@@ -26,6 +26,7 @@
     "react-konva": "^19.2.5",
     "react-rnd": "^10.5.3",
     "react-router-dom": "^7.16.0",
+    "recharts": "^3.10.1",
     "sweetalert2": "^11.26.25",
     "yup": "^1.7.1"
   },

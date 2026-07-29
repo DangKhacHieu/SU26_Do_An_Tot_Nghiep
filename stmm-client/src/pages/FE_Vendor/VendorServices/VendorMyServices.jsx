@@ -81,111 +81,121 @@ export default function VendorMyServices({ vendorId, searchTerm = '', setSearchT
     );
 
     return (
-        <div style={{ background: 'white', minHeight: '100%', padding: '32px', borderRadius: '12px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
+        <div className="premium-page-container">
+            <div className="premium-page-header">
                 <div>
-                    <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 'bold' }}>Service Management</h2>
-                    <span style={{ color: '#888', fontSize: '13px' }}>About information</span>
+                    <h2 className="premium-page-title">{t('vendormyservices.service_management') || 'Quản lý Dịch vụ'}</h2>
+                    <span className="premium-page-subtitle">{t('vendormyservices.about_information') || 'Thông tin các gói dịch vụ bạn đang dùng'}</span>
                 </div>
                 <button 
                     onClick={onAddService}
-                    style={{ background: '#000', color: '#fff', border: 'none', padding: '10px 16px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span>+</span> Add service
+                    className="premium-btn premium-btn-primary">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    {t('vendormyservices.add_service') || 'Đăng ký dịch vụ'}
                 </button>
             </div>
 
-            <div style={{ display: 'flex', gap: '16px', marginBottom: '24px', alignItems: 'flex-end' }}>
-                <div style={{ flex: 2 }}>
-                    <label style={{ display: 'block', fontSize: '11px', color: '#888', fontWeight: 'bold', marginBottom: '8px', textTransform: 'uppercase' }}>Search for services</label>
-                    <div style={{ position: 'relative' }}>
-                        <svg style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#aaa', width: '14px', height: '14px' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                        <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Enter the service name or ID code..." style={{ width: '100%', padding: '10px 12px 10px 36px', border: '1px solid #e5e7eb', borderRadius: '6px', outline: 'none' }} />
+            <div className="premium-filter-bar">
+                <div className="premium-filter-group" style={{ flex: 2 }}>
+                    <label className="premium-filter-label">{t('vendormyservices.search_for_services') || 'Tìm kiếm dịch vụ'}</label>
+                    <div className="premium-input-wrapper">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                        <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Nhập tên dịch vụ hoặc mã sạp..." className="premium-input has-icon" />
                     </div>
                 </div>
-                <div style={{ flex: 1 }}>
-                    <label style={{ display: 'block', fontSize: '11px', color: '#888', fontWeight: 'bold', marginBottom: '8px', textTransform: 'uppercase' }}>Status</label>
-                    <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e7eb', borderRadius: '6px', outline: 'none', appearance: 'none', background: 'white' }}>
-                        <option value="All">All</option>
-                        <option value="Active">Active</option>
-                        <option value="Pending">Pending</option>
-                        <option value="Cancelled">Cancelled</option>
+                <div className="premium-filter-group" style={{ flex: 1 }}>
+                    <label className="premium-filter-label">{t('vendormyservices.status') || 'Trạng thái'}</label>
+                    <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="premium-select">
+                        <option value="All">Tất cả</option>
+                        <option value="Active">Đang hoạt động</option>
+                        <option value="Pending">Chờ duyệt</option>
+                        <option value="Cancelled">Đã hủy</option>
                     </select>
-                </div>
-                <div style={{ flex: 1 }}>
-                    <button style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e7eb', background: 'white', borderRadius: '6px', fontWeight: 'bold', color: '#555', cursor: 'pointer' }}>DATA FILTERING</button>
                 </div>
             </div>
 
-            <div style={{ border: '1px solid #e5e7eb', borderRadius: '8px', overflow: 'hidden' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
-                    <thead style={{ background: '#f9fafb' }}>
+            <div className="premium-table-wrapper">
+                <table className="premium-table">
+                    <thead>
                         <tr>
-                            <th style={{ padding: '12px 16px', color: '#888', fontWeight: 'bold', fontSize: '11px', borderBottom: '1px solid #e5e7eb', textTransform: 'uppercase' }}>STT</th>
-                            <th style={{ padding: '12px 16px', color: '#888', fontWeight: 'bold', fontSize: '11px', borderBottom: '1px solid #e5e7eb', textTransform: 'uppercase' }}>SERVICE NAME</th>
-                            <th style={{ padding: '12px 16px', color: '#888', fontWeight: 'bold', fontSize: '11px', borderBottom: '1px solid #e5e7eb', textTransform: 'uppercase' }}>TYPE</th>
-                            <th style={{ padding: '12px 16px', color: '#888', fontWeight: 'bold', fontSize: '11px', borderBottom: '1px solid #e5e7eb', textTransform: 'uppercase' }}>DATE</th>
-                            <th style={{ padding: '12px 16px', color: '#888', fontWeight: 'bold', fontSize: '11px', borderBottom: '1px solid #e5e7eb', textTransform: 'uppercase' }}>STATUS</th>
-                            <th style={{ padding: '12px 16px', color: '#888', fontWeight: 'bold', fontSize: '11px', borderBottom: '1px solid #e5e7eb', textTransform: 'uppercase', textAlign: 'center' }}>OPERATION</th>
+                            <th>STT</th>
+                            <th>{t('vendormyservices.service_name') || 'Tên dịch vụ'}</th>
+                            <th>{t('vendormyservices.type') || 'Loại'}</th>
+                            <th>{t('vendormyservices.date') || 'Ngày đăng ký'}</th>
+                            <th>{t('vendormyservices.status') || 'Trạng thái'}</th>
+                            <th style={{ textAlign: 'center' }}>{t('vendormyservices.operation') || 'Thao tác'}</th>
                         </tr>
                     </thead>
                     <tbody>
                         {filteredMyServices.length === 0 ? (
                             <tr>
-                                <td colSpan="6" style={{ padding: '32px', textAlign: 'center', color: '#888' }}>
-                                    {t('vendormyservices.no_matching_data_found')}
+                                <td colSpan="6" style={{ padding: '32px', textAlign: 'center', color: '#94a3b8' }}>
+                                    {t('vendormyservices.no_matching_data_found') || 'Không tìm thấy dữ liệu'}
                                 </td>
                             </tr>
                         ) : (
-                            filteredMyServices.map((service, index) => (
-                                <tr key={service.registrationId} style={{ borderBottom: '1px solid #e5e7eb' }}>
-                                    <td style={{ padding: '16px', color: '#555', fontWeight: 'bold' }}>{index + 1}</td>
-                                    <td style={{ padding: '16px', fontWeight: '600', color: '#111' }}>{service.serviceName}</td>
-                                    <td style={{ padding: '16px', color: '#555' }}>{service.isMandatory ? t('vendormyservices.obligatory') : t('vendormyservices.selfselect')}</td>
-                                    <td style={{ padding: '16px', color: '#555' }}>{new Date(service.registeredAt).toLocaleDateString('vi-VN')}</td>
-                                    <td style={{ padding: '16px' }}>
-                                        <span style={{ 
-                                            background: service.status === 'Active' && service.isAutoRenew !== false ? '#d1fae5' : service.status === 'Active' && service.isAutoRenew === false ? '#fef3c7' : service.status === 'Pending' ? '#fef3c7' : '#fee2e2', 
-                                            color: service.status === 'Active' && service.isAutoRenew !== false ? '#065f46' : service.status === 'Active' && service.isAutoRenew === false ? '#92400e' : service.status === 'Pending' ? '#92400e' : '#991b1b',
-                                            padding: '4px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold'
-                                        }}>
-                                            {service.status === 'Active' && service.isAutoRenew === false ? t('vendormyservices.renewal_canceled') : service.status === 'Active' ? t('vendormyservices.active') : service.status === 'Pending' ? t('vendormyservices.waiting_for_approval') : t('vendormyservices.canceled')}
+                            filteredMyServices.map((service, index) => {
+                                let badgeClass = 'premium-badge-neutral';
+                                let statusText = 'N/A';
+                                if (service.status === 'Active' && service.isAutoRenew !== false) {
+                                    badgeClass = 'premium-badge-success';
+                                    statusText = 'Đang hoạt động';
+                                } else if (service.status === 'Active' && service.isAutoRenew === false) {
+                                    badgeClass = 'premium-badge-warning';
+                                    statusText = 'Đã hủy gia hạn';
+                                } else if (service.status === 'Pending') {
+                                    badgeClass = 'premium-badge-warning';
+                                    statusText = 'Chờ duyệt';
+                                } else if (service.status === 'Cancelled') {
+                                    badgeClass = 'premium-badge-danger';
+                                    statusText = 'Đã hủy';
+                                }
+
+                                return (
+                                <tr key={service.registrationId}>
+                                    <td>{index + 1}</td>
+                                    <td className="fw-bold">{service.serviceName}</td>
+                                    <td>{service.isMandatory ? 'Bắt buộc' : 'Tự chọn'}</td>
+                                    <td>{new Date(service.registeredAt).toLocaleDateString('vi-VN')}</td>
+                                    <td>
+                                        <span className={`premium-badge ${badgeClass}`}>
+                                            {statusText}
                                         </span>
                                     </td>
-                                    <td style={{ padding: '16px', textAlign: 'center' }}>
+                                    <td style={{ textAlign: 'center' }}>
                                         <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
                                             <button 
                                                 onClick={() => handleViewDetailClick(service)}
                                                 disabled={loadingDetailId === service.registrationId}
-                                                style={{ background: 'transparent', border: '1px solid #e5e7eb', color: '#333', padding: '6px 12px', borderRadius: '4px', cursor: loadingDetailId === service.registrationId ? 'wait' : 'pointer', fontSize: '12px', fontWeight: 'bold' }}>
-                                                {loadingDetailId === service.registrationId ? t('vendormyservices.loading') : t('vendormyservices.detail')}
+                                                className="premium-btn-action">
+                                                {loadingDetailId === service.registrationId ? 'Đang tải...' : 'Chi tiết'}
                                             </button>
                                             {service.status !== 'Cancelled' && !(service.status === 'Active' && service.isAutoRenew === false) && (
                                                 <button 
                                                     onClick={() => handleCancelClick(service)}
-                                                    style={{ background: '#fef2f2', border: '1px solid #fca5a5', color: '#ef4444', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}>
-                                                    {t('vendormyservices.cancel')}
+                                                    className="premium-btn-danger">
+                                                    Hủy
                                                 </button>
                                             )}
                                         </div>
                                     </td>
                                 </tr>
-                            ))
+                                );
+                            })
                         )}
                         {filteredMyServices.length < 5 && Array.from({ length: Math.max(0, 5 - filteredMyServices.length) }).map((_, i) => (
-                             <tr key={`empty-${i}`} style={{ borderBottom: '1px solid #e5e7eb', height: '52px' }}>
-                                <td></td><td></td><td></td><td></td><td></td><td></td>
+                             <tr key={`empty-${i}`} style={{ height: '52px' }}>
+                                <td colSpan="6"></td>
                              </tr>
                         ))}
                     </tbody>
                 </table>
-                <div style={{ padding: '16px', background: '#f9fafb', display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#888', fontSize: '13px' }}>
-                    <span>Showing 1-{Math.max(1, filteredMyServices.length)} of {filteredMyServices.length} services</span>
-                    <div style={{ display: 'flex', gap: '4px' }}>
-                        <button style={{ padding: '4px 8px', border: '1px solid #e5e7eb', background: 'white', borderRadius: '4px', color: '#aaa' }}>&lt;</button>
-                        <button style={{ padding: '4px 8px', border: '1px solid #e5e7eb', background: '#000', color: 'white', borderRadius: '4px', fontWeight: 'bold' }}>1</button>
-                        <button style={{ padding: '4px 8px', border: '1px solid #e5e7eb', background: 'white', borderRadius: '4px' }}>2</button>
-                        <button style={{ padding: '4px 8px', border: '1px solid #e5e7eb', background: 'white', borderRadius: '4px' }}>3</button>
-                        <button style={{ padding: '4px 8px', border: '1px solid #e5e7eb', background: 'white', borderRadius: '4px', color: '#aaa' }}>&gt;</button>
+                <div className="premium-pagination">
+                    <span className="premium-pagination-info">Hiển thị 1-{Math.max(1, filteredMyServices.length)} trong số {filteredMyServices.length} dịch vụ</span>
+                    <div className="premium-pagination-buttons">
+                        <button className="premium-page-btn" disabled>&lt;</button>
+                        <button className="premium-page-btn active">1</button>
+                        <button className="premium-page-btn" disabled>&gt;</button>
                     </div>
                 </div>
             </div>

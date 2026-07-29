@@ -89,74 +89,81 @@ export default function VendorViolationList({ stallId }) {
     }
 
     return (
-        <div style={{ background: 'white', minHeight: '100%', padding: '32px', borderRadius: '12px' }}>
-            <div style={{ marginBottom: '24px' }}>
-                <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 'bold' }}>{t('vendorviolationlist.management_of_violation_records')}</h2>
-                <span style={{ color: '#888', fontSize: '13px' }}>{t('vendorviolationlist.monitor_violation_records_and')}</span>
+        <div className="premium-page-container">
+            <div className="premium-page-header">
+                <div>
+                    <h2 className="premium-page-title">{t('vendorviolationlist.management_of_violation_records') || 'Biên bản vi phạm'}</h2>
+                    <span className="premium-page-subtitle">{t('vendorviolationlist.monitor_violation_records_and') || 'Theo dõi và xử lý vi phạm'}</span>
+                </div>
             </div>
 
-            <div style={{ display: 'flex', gap: '16px', marginBottom: '24px', alignItems: 'flex-end' }}>
-                <div style={{ flex: 2 }}>
-                    <label style={{ display: 'block', fontSize: '11px', color: '#888', fontWeight: 'bold', marginBottom: '8px', textTransform: 'uppercase' }}>{t('vendorviolationlist.search_for_violations')}</label>
-                    <div style={{ position: 'relative' }}>
-                        <svg style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#aaa', width: '14px', height: '14px' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                        <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder={t('vendorviolationlist.enter_the_name_of')} style={{ width: '100%', padding: '10px 12px 10px 36px', border: '1px solid #e5e7eb', borderRadius: '6px', outline: 'none' }} />
+            <div className="premium-filter-bar">
+                <div className="premium-filter-group" style={{ flex: 2 }}>
+                    <label className="premium-filter-label">{t('vendorviolationlist.search_for_violations') || 'Tìm kiếm vi phạm'}</label>
+                    <div className="premium-input-wrapper">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                        <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder={t('vendorviolationlist.enter_the_name_of') || 'Nhập tên vi phạm...'} className="premium-input has-icon" />
                     </div>
                 </div>
-                <div style={{ flex: 1 }}>
-                    <label style={{ display: 'block', fontSize: '11px', color: '#888', fontWeight: 'bold', marginBottom: '8px', textTransform: 'uppercase' }}>{t('vendorviolationlist.status')}</label>
-                    <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e7eb', borderRadius: '6px', outline: 'none', background: 'white' }}>
-                        <option value="All">{t('vendorviolationlist.all')}</option>
-                        <option value="Pending">{t('vendorviolationlist.waiting_for_approval')}</option>
-                        <option value="Notified">{t('vendorviolationlist.notified')}</option>
-                        <option value="Appealed">{t('vendorviolationlist.appealing')}</option>
-                        <option value="Approved">{t('vendorviolationlist.approval_appeal')}</option>
-                        <option value="Rejected">{t('vendorviolationlist.khng_ngh_t_chi')}</option>
-                        <option value="Finalized">{t('vendorviolationlist.penalty_fixed')}</option>
+                <div className="premium-filter-group" style={{ flex: 1 }}>
+                    <label className="premium-filter-label">{t('vendorviolationlist.status') || 'Trạng thái'}</label>
+                    <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="premium-select">
+                        <option value="All">{t('vendorviolationlist.all') || 'Tất cả'}</option>
+                        <option value="Pending">{t('vendorviolationlist.waiting_for_approval') || 'Chờ duyệt'}</option>
+                        <option value="Notified">{t('vendorviolationlist.notified') || 'Đã thông báo'}</option>
+                        <option value="Appealed">{t('vendorviolationlist.appealing') || 'Đang kháng nghị'}</option>
+                        <option value="Approved">{t('vendorviolationlist.approval_appeal') || 'Đã duyệt kháng nghị'}</option>
+                        <option value="Rejected">{t('vendorviolationlist.khng_ngh_t_chi') || 'Từ chối kháng nghị'}</option>
+                        <option value="Finalized">{t('vendorviolationlist.penalty_fixed') || 'Chốt phạt'}</option>
                     </select>
                 </div>
             </div>
 
-            <div style={{ border: '1px solid #e5e7eb', borderRadius: '8px', overflow: 'hidden' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
-                    <thead style={{ background: '#f9fafb' }}>
+            <div className="premium-table-wrapper">
+                <table className="premium-table">
+                    <thead>
                         <tr>
-                            <th style={{ padding: '12px 16px', color: '#888', fontWeight: 'bold', fontSize: '11px', borderBottom: '1px solid #e5e7eb', textTransform: 'uppercase' }}>{t('vendorviolationlist.bb_code')}</th>
-                            <th style={{ padding: '12px 16px', color: '#888', fontWeight: 'bold', fontSize: '11px', borderBottom: '1px solid #e5e7eb', textTransform: 'uppercase' }}>{t('vendorviolationlist.stall')}</th>
-                            <th style={{ padding: '12px 16px', color: '#888', fontWeight: 'bold', fontSize: '11px', borderBottom: '1px solid #e5e7eb', textTransform: 'uppercase' }}>{t('vendorviolationlist.type_of_violation')}</th>
-                            <th style={{ padding: '12px 16px', color: '#888', fontWeight: 'bold', fontSize: '11px', borderBottom: '1px solid #e5e7eb', textTransform: 'uppercase' }}>{t('vendorviolationlist.fine')}</th>
-                            <th style={{ padding: '12px 16px', color: '#888', fontWeight: 'bold', fontSize: '11px', borderBottom: '1px solid #e5e7eb', textTransform: 'uppercase' }}>{t('vendorviolationlist.date_of_establishment')}</th>
-                            <th style={{ padding: '12px 16px', color: '#888', fontWeight: 'bold', fontSize: '11px', borderBottom: '1px solid #e5e7eb', textTransform: 'uppercase' }}>{t('vendorviolationlist.status')}</th>
-                            <th style={{ padding: '12px 16px', color: '#888', fontWeight: 'bold', fontSize: '11px', borderBottom: '1px solid #e5e7eb', textTransform: 'uppercase', textAlign: 'center' }}>{t('vendorviolationlist.operation')}</th>
+                            <th>{t('vendorviolationlist.bb_code') || 'Mã BB'}</th>
+                            <th>{t('vendorviolationlist.stall') || 'Sạp'}</th>
+                            <th>{t('vendorviolationlist.type_of_violation') || 'Loại vi phạm'}</th>
+                            <th>{t('vendorviolationlist.fine') || 'Phạt'}</th>
+                            <th>{t('vendorviolationlist.date_of_establishment') || 'Ngày lập'}</th>
+                            <th>{t('vendorviolationlist.status') || 'Trạng thái'}</th>
+                            <th style={{ textAlign: 'center' }}>{t('vendorviolationlist.operation') || 'Thao tác'}</th>
                         </tr>
                     </thead>
                     <tbody>
                         {loading ? (
-                            <tr><td colSpan="7" style={{ padding: '32px', textAlign: 'center', color: '#888' }}>{t('vendorviolationlist.loading')}</td></tr>
+                            <tr><td colSpan="7" style={{ padding: '32px', textAlign: 'center', color: '#94a3b8' }}>{t('vendorviolationlist.loading') || 'Đang tải...'}</td></tr>
                         ) : violations.length === 0 ? (
-                            <tr><td colSpan="7" style={{ padding: '32px', textAlign: 'center', color: '#888' }}>{t('vendorviolationlist.there_are_no_violation')}</td></tr>
+                            <tr><td colSpan="7" style={{ padding: '32px', textAlign: 'center', color: '#94a3b8' }}>{t('vendorviolationlist.there_are_no_violation') || 'Không có vi phạm nào'}</td></tr>
                         ) : (
                             violations.map((vio, index) => {
-                                const statusStyle = getStatusStyle(vio.status);
+                                let badgeClass = 'premium-badge-neutral';
+                                if (vio.status === 'Pending') badgeClass = 'premium-badge-warning';
+                                else if (vio.status === 'Notified' || vio.status === 'Appealed') badgeClass = 'premium-badge-info';
+                                else if (vio.status === 'Approved') badgeClass = 'premium-badge-success';
+                                else if (vio.status === 'Rejected' || vio.status === 'Finalized') badgeClass = 'premium-badge-danger';
+
                                 return (
-                                    <tr key={vio.violationId} style={{ borderBottom: '1px solid #e5e7eb' }}>
-                                        <td style={{ padding: '16px', color: '#555', fontWeight: 'bold' }}>#{(pageNumber - 1) * pageSize + index + 1}</td>
-                                        <td style={{ padding: '16px', fontWeight: '600', color: '#111' }}>{vio.stallCode}</td>
-                                        <td style={{ padding: '16px', color: '#555' }}>{vio.violationTypeName || 'N/A'}</td>
-                                        <td style={{ padding: '16px', color: '#991b1b', fontWeight: 'bold' }}>
-                                            {vio.fineAmount ? `${vio.fineAmount.toLocaleString('vi-VN')} đ` : t('vendorviolationlist.0_pt')}
+                                    <tr key={vio.violationId}>
+                                        <td className="fw-bold">#{(pageNumber - 1) * pageSize + index + 1}</td>
+                                        <td className="fw-bold">{vio.stallCode}</td>
+                                        <td>{vio.violationTypeName || 'N/A'}</td>
+                                        <td className="fw-bold" style={{ color: '#ef4444' }}>
+                                            {vio.fineAmount ? `${vio.fineAmount.toLocaleString('vi-VN')} đ` : (t('vendorviolationlist.0_pt') || '0 đ')}
                                         </td>
-                                        <td style={{ padding: '16px', color: '#555' }}>{new Date(vio.createdAt).toLocaleDateString('vi-VN')}</td>
-                                        <td style={{ padding: '16px' }}>
-                                            <span style={{ background: statusStyle.bg, color: statusStyle.color, padding: '4px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold' }}>
+                                        <td>{new Date(vio.createdAt).toLocaleDateString('vi-VN')}</td>
+                                        <td>
+                                            <span className={`premium-badge ${badgeClass}`}>
                                                 {getStatusText(vio.status)}
                                             </span>
                                         </td>
-                                        <td style={{ padding: '16px', textAlign: 'center' }}>
+                                        <td style={{ textAlign: 'center' }}>
                                             <button 
                                                 onClick={() => handleViewDetail(vio.violationId)}
-                                                style={{ background: 'transparent', border: '1px solid #ccc', color: '#333', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}>
-                                                {t('vendorviolationlist.view_process')}
+                                                className="premium-btn-action">
+                                                {t('vendorviolationlist.view_process') || 'Chi tiết'}
                                             </button>
                                         </td>
                                     </tr>
@@ -165,28 +172,28 @@ export default function VendorViolationList({ stallId }) {
                         )}
                     </tbody>
                 </table>
+                {Math.ceil(totalCount / pageSize) > 1 && (
+                    <div className="premium-pagination">
+                        <span className="premium-pagination-info">
+                            Trang {pageNumber} / {Math.ceil(totalCount / pageSize)}
+                        </span>
+                        <div className="premium-pagination-buttons">
+                            <button 
+                                onClick={() => setPageNumber(prev => Math.max(1, prev - 1))}
+                                disabled={pageNumber === 1}
+                                className="premium-page-btn">
+                                {t('vendorviolationlist.before') || 'Trước'}
+                            </button>
+                            <button 
+                                onClick={() => setPageNumber(prev => Math.min(Math.ceil(totalCount / pageSize), prev + 1))}
+                                disabled={pageNumber === Math.ceil(totalCount / pageSize)}
+                                className="premium-page-btn">
+                                Sau
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
-
-            {/* Pagination */}
-            {Math.ceil(totalCount / pageSize) > 1 && (
-                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '16px', marginTop: '24px' }}>
-                    <button 
-                        onClick={() => setPageNumber(prev => Math.max(1, prev - 1))}
-                        disabled={pageNumber === 1}
-                        style={{ padding: '8px 16px', border: '1px solid #e5e7eb', borderRadius: '6px', background: pageNumber === 1 ? '#f9fafb' : 'white', cursor: pageNumber === 1 ? 'not-allowed' : 'pointer', color: pageNumber === 1 ? '#ccc' : '#333', fontWeight: 'bold' }}>
-                        {t('vendorviolationlist.before')}
-                    </button>
-                    <span style={{ fontSize: '13px', color: '#555', fontWeight: '500' }}>
-                        Trang {pageNumber} / {Math.ceil(totalCount / pageSize)}
-                    </span>
-                    <button 
-                        onClick={() => setPageNumber(prev => Math.min(Math.ceil(totalCount / pageSize), prev + 1))}
-                        disabled={pageNumber === Math.ceil(totalCount / pageSize)}
-                        style={{ padding: '8px 16px', border: '1px solid #e5e7eb', borderRadius: '6px', background: pageNumber === Math.ceil(totalCount / pageSize) ? '#f9fafb' : 'white', cursor: pageNumber === Math.ceil(totalCount / pageSize) ? 'not-allowed' : 'pointer', color: pageNumber === Math.ceil(totalCount / pageSize) ? '#ccc' : '#333', fontWeight: 'bold' }}>
-                        Sau
-                    </button>
-                </div>
-            )}
         </div>
     );
-};
+}
