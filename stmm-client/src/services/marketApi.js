@@ -58,6 +58,18 @@ export const createMarketBulk = async (marketData) => {
   }
 };
 
+export const getGridPreview = async (previewRequest) => {
+  try {
+    const response = await axios.post(`${MARKETS_URL}/preview-grid`, previewRequest, { headers: getAuthHeaders() });
+    return response.data;
+  } catch (error) {
+    if (error.response?.data) {
+      return error.response.data; // Return bad request data for preview (validation errors)
+    }
+    throw error;
+  }
+};
+
 export const changeMarketStatus = async (marketId, status) => {
   try {
     const response = await axios.put(`${MARKETS_URL}/${marketId}/status`, `"${status}"`, { headers: getAuthHeaders() });

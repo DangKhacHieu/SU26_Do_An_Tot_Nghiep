@@ -17,11 +17,13 @@ namespace STMM.API.Controllers
     {
         private readonly IMarketService _marketService;
         private readonly IAuditLogService _auditLogService;
+        private readonly STMM.Business.Services.Grid.IGridPreviewService _gridPreviewService;
 
-        public MarketsController(IMarketService marketService, IAuditLogService auditLogService)
+        public MarketsController(IMarketService marketService, IAuditLogService auditLogService, STMM.Business.Services.Grid.IGridPreviewService gridPreviewService)
         {
             _marketService = marketService;
             _auditLogService = auditLogService;
+            _gridPreviewService = gridPreviewService;
         }
 
         [HttpGet]
@@ -100,6 +102,24 @@ namespace STMM.API.Controllers
                 var msg = ex.Message;
                 if (ex.InnerException != null) msg += " Inner: " + ex.InnerException.Message;
                 return StatusCode(500, new { message = msg });
+            }
+        }
+
+        [HttpPost("preview-grid")]
+        public ActionResult<GridPreviewResponse> PreviewGrid([FromBody] GridPreviewRequest request)
+        {
+            try
+            {
+                var response = _gridPreviewService.GeneratePreview(request);
+                if (!response.IsValid)
+                {
+                    return BadRequest(response); // We can still return 200 or 400 depending on convention. Here we use 400.
+                }
+                return Ok(response);
+            }
+            catch (System.Exception ex)
+            {
+                return StatusCode(500, new { message = ex.Message });
             }
         }
 

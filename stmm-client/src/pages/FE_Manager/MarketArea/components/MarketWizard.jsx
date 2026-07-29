@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import styles from './LayoutEditor.module.css';
-import { createMarketBulk } from '../../../../services/marketApi';
+import { createMarketBulk, getGridPreview } from '../../../../services/marketApi';
 import polygonClipping from 'polygon-clipping';
 import { getAllCategories } from '../api/categoryApi';
 import PolygonDrawer from './PolygonDrawer';
@@ -108,8 +108,66 @@ const MarketWizard = ({ onCancel, onComplete }) => {
         gap: 10,
         prefix: 'Khu',
         categoryName: '',
-        generateStalls: true
+        startPoint: 'TopLeft',
+        orderStrategy: 'RowMajor',
+        namingStrategy: 'Numeric',
+        generateStalls: false
     });
+    
+    const [gridStats, setGridStats] = useState(null);
+    const [gridError, setGridError] = useState(null);
+
+    // Real-time Preview Debounce Effect
+    useEffect(() => {
+        if (step !== 2 || !marketInfo.isClosed || marketInfo.points.length < 3) return;
+
+        const timer = setTimeout(async () => {
+            setGridError(null);
+            try {
+                const requestPayload = {
+                    rows: gridConfig.rows || 1,
+                    cols: gridConfig.cols || 1,
+                    aisleWidthPixels: gridConfig.gap || 0,
+                    startPoint: gridConfig.startPoint,
+                    orderStrategy: gridConfig.orderStrategy,
+                    namingStrategy: gridConfig.namingStrategy,
+                    prefix: gridConfig.prefix,
+                    polygonPoints: marketInfo.points
+                };
+
+                const res = await getGridPreview(requestPayload);
+                if (res && res.isValid === false) {
+                    setGridError(res.errorMessage || "Không thể tạo lưới.");
+                    setGridStats(res);
+                    setAreas([]);
+                } else if (res && res.isValid) {
+                    setGridStats(res);
+                    // Map preview zones back to areas
+                    const newAreas = res.zones.map(z => {
+                        const bbox = getBoundingBox(z.polygon);
+                        return {
+                            name: z.name,
+                            categoryName: gridConfig.categoryName,
+                            points: z.polygon,
+                            svgPath: pointsToSvgPath(z.polygon, true),
+                            minX: bbox.minX,
+                            minY: bbox.minY,
+                            maxX: bbox.maxX,
+                            maxY: bbox.maxY,
+                            size: z.areaM2,
+                            stalls: [] // Stalls hidden
+                        };
+                    });
+                    setAreas(newAreas);
+                }
+            } catch (err) {
+                console.error("Preview error", err);
+                setGridError("Lỗi kết nối khi lấy dữ liệu xem trước.");
+            }
+        }, 300);
+
+        return () => clearTimeout(timer);
+    }, [step, gridConfig, marketInfo.points, marketInfo.isClosed]);
 
     // Step 3: Stalls
     const [selectedAreaIndex, setSelectedAreaIndex] = useState(null);
@@ -270,100 +328,7 @@ const MarketWizard = ({ onCancel, onComplete }) => {
     };
 
     // Step 2 Actions
-    const generateGridAreas = () => {
-        if (marketInfo.points.length < 3) {
-            alert("Vui lòng vẽ ranh giới chợ ở Bước 1 trước!");
-            return;
-        }
-        
-        const mBbox = getBoundingBox(marketInfo.points);
-        const { width, height } = { width: mBbox.maxX - mBbox.minX, height: mBbox.maxY - mBbox.minY };
-        const { rows, cols, gap, prefix, generateStalls: genStalls } = gridConfig;
-        
-        const areaWidth = Math.max(50, (width - (cols + 1) * gap) / cols);
-        const areaHeight = Math.max(50, (height - (rows + 1) * gap) / rows);
-        
-        let targetCount = parseInt(gridConfig.count);
-        if (isNaN(targetCount) || targetCount <= 0) targetCount = rows * cols;
-        
-        const newAreas = [];
-        let createdCount = 0;
-
-        for (let r = 0; r < rows; r++) {
-            for (let c = 0; c < cols; c++) {
-                if (createdCount >= targetCount) break;
-                
-                const x = mBbox.minX + gap + c * (areaWidth + gap);
-                const y = mBbox.minY + gap + r * (areaHeight + gap);
-                
-                const corners = [
-                    [x, y], [x + areaWidth, y], [x + areaWidth, y + areaHeight], [x, y + areaHeight]
-                ];
-
-                const rectPoly = [[...corners, corners[0]]];
-                const marketPoly = [[...marketInfo.points, marketInfo.points[0]]];
-                
-                let clippedPoints = corners;
-                try {
-                    const intersection = polygonClipping.intersection(marketPoly, rectPoly);
-                    if (intersection.length === 0) continue;
-                    clippedPoints = intersection[0][0].slice(0, -1);
-                } catch (err) {
-                    console.error("Polygon clipping failed for area", r, c, err);
-                }
-
-                const stalls = [];
-                if (genStalls) {
-                    const sCols = 2;
-                    const sRows = 2;
-                    const sGap = 10;
-                    const stW = Math.max(20, (areaWidth - (sCols + 1) * sGap) / sCols);
-                    const stH = Math.max(20, (areaHeight - (sRows + 1) * sGap) / sRows);
-                    
-                    for (let sr = 0; sr < sRows; sr++) {
-                        for (let sc = 0; sc < sCols; sc++) {
-                            const sx = x + sGap + sc * (stW + sGap);
-                            const sy = y + sGap + sr * (stH + sGap);
-                            
-                            stalls.push({
-                                code: 'Sạp ${String.fromCharCode(65 + sr)}${sc + 1}',
-                                width: stW,
-                                height: stH,
-                                mapX: sx - x,
-                                mapY: sy - y,
-                                size: null
-                            });
-                        }
-                    }
-                }
-                
-                let validStalls = stalls;
-                if (clippedPoints !== corners) {
-                    validStalls = stalls.filter(s => {
-                         const center = [x + s.mapX + s.width/2, y + s.mapY + s.height/2];
-                         return pointInPolygon(center, clippedPoints);
-                    });
-                }
-                
-                const areaBbox = getBoundingBox(clippedPoints);
-                newAreas.push({
-                    name: `${prefix} ${String.fromCharCode(65 + r)}${c + 1}`,
-                    categoryName: gridConfig.categoryName,
-                    points: clippedPoints,
-                    svgPath: pointsToSvgPath(clippedPoints, true),
-                    minX: areaBbox.minX,
-                    minY: areaBbox.minY,
-                    maxX: areaBbox.maxX,
-                    maxY: areaBbox.maxY,
-                    size: null,
-                    stalls: validStalls
-                });
-                createdCount++;
-            }
-        }
-        
-        setAreas(newAreas);
-    };
+    // generateGridAreas has been replaced by Real-time Preview in backend
 
     // Step 3 Actions
     const handleStallDrawComplete = (drawData) => {
@@ -616,8 +581,8 @@ const MarketWizard = ({ onCancel, onComplete }) => {
                 <nav aria-label={'Các bước tạo chợ'} className={styles.stepsIndicator}>
                     {[
                         { num: 1, label: 'Thông tin & Bản đồ' },
-                        { num: 2, label: 'Phân khu vực' },
-                        { num: 3, label: 'Sinh sạp tự động' },
+                        { num: 2, label: 'Phân khu vực' }
+                        // { num: 3, label: 'Sinh sạp tự động' } // HIDDEN
                     ].map((s, i) => (
                         <React.Fragment key={s.num}>
                             {i > 0 && <div className={styles.stepConnector} aria-hidden="true" />}
@@ -708,18 +673,46 @@ const MarketWizard = ({ onCancel, onComplete }) => {
                                     </div>
                                 </div>
 
-                                <div className={styles.formGroup}>
-                                    <label>SỐ LƯỢNG KHU VỰC CẦN TẠO</label>
-                                    <input className={styles.formInput} type="number" min="1" placeholder={'Để trống để tạo tối đa theo dòng & cột...'}
-                                        value={gridConfig.count}
-                                        onChange={e => setGridConfig({...gridConfig, count: e.target.value})} />
+                                <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
+                                    <div className={styles.formGroup} style={{ flex: 1, marginBottom: 0 }}>
+                                        <label>BẮT ĐẦU TỪ</label>
+                                        <select className={styles.formInput} 
+                                            value={gridConfig.startPoint}
+                                            onChange={e => setGridConfig({...gridConfig, startPoint: e.target.value})}>
+                                            <option value="TopLeft">Góc Trái - Trên</option>
+                                            <option value="TopRight">Góc Phải - Trên</option>
+                                            <option value="BottomLeft">Góc Trái - Dưới</option>
+                                            <option value="BottomRight">Góc Phải - Dưới</option>
+                                        </select>
+                                    </div>
+                                    <div className={styles.formGroup} style={{ flex: 1, marginBottom: 0 }}>
+                                        <label>HƯỚNG ĐÁNH SỐ</label>
+                                        <select className={styles.formInput} 
+                                            value={gridConfig.orderStrategy}
+                                            onChange={e => setGridConfig({...gridConfig, orderStrategy: e.target.value})}>
+                                            <option value="RowMajor">Theo Dòng (Ngang)</option>
+                                            <option value="ColMajor">Theo Cột (Dọc)</option>
+                                        </select>
+                                    </div>
                                 </div>
 
-                                <div className={styles.formGroup}>
-                                    <label>ĐỘ RỘNG LỐI ĐI (px)</label>
-                                    <input className={styles.formInput} type="number" min="0"
-                                        value={gridConfig.gap}
-                                        onChange={e => setGridConfig({...gridConfig, gap: parseInt(e.target.value) || 0})} />
+                                <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
+                                    <div className={styles.formGroup} style={{ flex: 1, marginBottom: 0 }}>
+                                        <label>CÁCH ĐẶT TÊN</label>
+                                        <select className={styles.formInput} 
+                                            value={gridConfig.namingStrategy}
+                                            onChange={e => setGridConfig({...gridConfig, namingStrategy: e.target.value})}>
+                                            <option value="Numeric">Số (1, 2, 3)</option>
+                                            <option value="Alphabetic">Chữ cái (A, B, C)</option>
+                                            <option value="AlphaNumeric">Chữ + Số (A1, A2)</option>
+                                        </select>
+                                    </div>
+                                    <div className={styles.formGroup} style={{ flex: 1, marginBottom: 0 }}>
+                                        <label>ĐỘ RỘNG LỐI ĐI (px)</label>
+                                        <input className={styles.formInput} type="number" min="0"
+                                            value={gridConfig.gap}
+                                            onChange={e => setGridConfig({...gridConfig, gap: parseInt(e.target.value) || 0})} />
+                                    </div>
                                 </div>
 
                                 <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
@@ -742,19 +735,29 @@ const MarketWizard = ({ onCancel, onComplete }) => {
                                     </div>
                                 </div>
 
-                                <div className={styles.formGroup} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px' }}>
-                                    <input type="checkbox" id="genStallsStep2"
-                                        checked={gridConfig.generateStalls}
-                                        onChange={e => setGridConfig({...gridConfig, generateStalls: e.target.checked})}
-                                        style={{ width: '16px', height: '16px', cursor: 'pointer' }} />
-                                    <label htmlFor="genStallsStep2" style={{ margin: 0, cursor: 'pointer', textTransform: 'none', fontWeight: 'bold' }}>{'Tự động sinh Sạp (Stalls)'}</label>
-                                </div>
-
-                                <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-                                    <button className={styles.primaryBtn} style={{flex: 2, background: '#8b5cf6', borderColor: '#8b5cf6'}} onClick={generateGridAreas}>
-                                        {'🪄 Sinh lưới'}</button>
-                                    <button className={styles.secondaryBtn} style={{flex: 1, color: 'var(--mw-danger)', borderColor: 'var(--mw-danger)'}} onClick={() => setAreas([])}>
-                                        {'🗑 Xóa hết'}</button>
+                                {/* REAL-TIME STATS PANEL */}
+                                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px', marginBottom: '16px' }}>
+                                    <h4 style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#334155' }}>📊 Thông số xem trước</h4>
+                                    
+                                    {gridError ? (
+                                        <div style={{ color: '#ef4444', fontSize: '14px', fontWeight: 'bold' }}>
+                                            ⚠️ {gridError}
+                                        </div>
+                                    ) : gridStats ? (
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '13px', color: '#475569' }}>
+                                            <div>Tổng diện tích: <b>{gridStats.totalAreaM2} m²</b></div>
+                                            <div>Diện tích sử dụng: <b>{gridStats.usableAreaM2} m²</b></div>
+                                            <div>Diện tích lối đi: <b>{gridStats.aisleAreaM2} m²</b></div>
+                                            <div>Trung bình mỗi lô: <b>{gridStats.averageZoneAreaM2} m²</b></div>
+                                            <div style={{ gridColumn: '1 / -1', marginTop: '4px' }}>
+                                                Số khu vực tạo ra: <b>{gridStats.generatedZones}</b> (Tối đa: {gridStats.maxAllowedZones})
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div style={{ color: '#94a3b8', fontSize: '13px', fontStyle: 'italic' }}>
+                                            Đang chờ cấu hình...
+                                        </div>
+                                    )}
                                 </div>
 
                                 <hr style={{border:'none', borderTop:'1.5px solid var(--mw-border)', margin:'4px 0 16px 0'}} />
@@ -921,7 +924,7 @@ const MarketWizard = ({ onCancel, onComplete }) => {
                             </>
                         )}
 
-                        {/* STEP 3 */}
+                        {/* HIDDEN STEP 3:
                         {step === 3 && (
                             <>
                                 <h2 className={styles.sidebarTitle}>{'Sinh sạp tự động'}</h2>
@@ -1000,6 +1003,7 @@ const MarketWizard = ({ onCancel, onComplete }) => {
                                 )}
                             </>
                         )}
+                        */}
                     </div>
 
                     {/* Sticky footer actions */}
@@ -1014,10 +1018,12 @@ const MarketWizard = ({ onCancel, onComplete }) => {
                         {step === 2 && (
                             <>
                                 <button className={styles.secondaryBtn} style={{flex:1}} onClick={() => setStep(1)}>{'← Quay lại'}</button>
-                                <button className={styles.primaryBtn} style={{flex:2}} onClick={handleNextStep2}
-                                    disabled={areas.length === 0}>{'Tiếp theo →'}</button>
+                                <button className={styles.successBtn} style={{flex:2}} onClick={handleSave} disabled={loading || areas.length === 0}>
+                                    {loading ? '⏳ Đang lưu…' : '✅ Hoàn tất & Lưu'}
+                                </button>
                             </>
                         )}
+                        {/* HIDDEN STEP 3 ACTIONS
                         {step === 3 && (
                             <>
                                 <button className={styles.secondaryBtn} style={{flex:1}} onClick={() => setStep(2)}>{'← Quay lại'}</button>
@@ -1026,6 +1032,7 @@ const MarketWizard = ({ onCancel, onComplete }) => {
                                 </button>
                             </>
                         )}
+                        */}
                     </div>
                 </aside>
 
@@ -1035,7 +1042,7 @@ const MarketWizard = ({ onCancel, onComplete }) => {
                         <div className={styles.canvasLabel}>
                             🗺️&nbsp;
                             <span>
-                                {step === 1 ? 'Vẽ ranh giới chợ' : step === 2 ? 'Vẽ các khu vực trong chợ' : 'Xem trước bố cục sạp hàng'}
+                                {step === 1 ? 'Vẽ ranh giới chợ' : 'Xem trước bố cục khu vực'}
                             </span>
                         </div>
                         {step === 1 && marketInfo.points.length > 0 && (
@@ -1044,9 +1051,11 @@ const MarketWizard = ({ onCancel, onComplete }) => {
                         {step === 2 && areas.length > 0 && (
                             <span className={styles.canvasBadge}>{areas.length} khu vực</span>
                         )}
+                        {/* HIDDEN:
                         {step === 3 && (
                             <span className={styles.canvasBadge}>{areas.reduce((s, a) => s + a.stalls.length, 0)} sạp</span>
                         )}
+                        */}
                     </div>
 
                     <div style={{ flex: 1, overflow: 'auto', position: 'relative', backgroundColor: '#f1f5f9' }}>
@@ -1153,6 +1162,7 @@ const MarketWizard = ({ onCancel, onComplete }) => {
                 </section>
             </div>
 
+            {/* HIDDEN DRAWING:
             {isDrawingStall && selectedAreaIndex !== null && (
                 <PolygonDrawer 
                     stallMode={true}
@@ -1174,6 +1184,7 @@ const MarketWizard = ({ onCancel, onComplete }) => {
                     onCancel={() => setIsDrawingStall(false)}
                 />
             )}
+            */}
         </main>
     );
 };
