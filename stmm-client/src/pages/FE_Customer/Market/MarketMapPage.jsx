@@ -602,7 +602,7 @@ export default function MarketMapPage({
                           }
 
                           return (
-                            <g key={area.areaId} className="area-group" transform={`translate(${area.minX || 0}, ${area.minY || 0})`}>
+                            <g key={area.areaId} className="area-group">
                               {/* Area Outline directly from DB */}
                               {pathD && (
                                 <path
@@ -633,8 +633,8 @@ export default function MarketMapPage({
                                   const isOccupied = stall.status === "Occupied";
                                   const isAvailable = stall.status === "Available";
 
-                                  let renderX = stall.mapX ?? 0;
-                                  let renderY = stall.mapY ?? 0;
+                                  let renderX = (area.minX || 0) + (stall.mapX ?? 0);
+                                  let renderY = (area.minY || 0) + (stall.mapY ?? 0);
 
                                   const stallWidth = stall.width || 60;
                                   const stallHeight = stall.height || 40;

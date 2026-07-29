@@ -148,6 +148,7 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IFaqService, FaqService>();
 builder.Services.AddScoped<IContentService, ContentService>();
 builder.Services.AddScoped<IAreaService, AreaService>();
+builder.Services.AddScoped<STMM.Business.Services.Grid.IGridPreviewService, STMM.Business.Services.Grid.GridPreviewService>();
 builder.Services.AddScoped<IStallService, StallService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IEmailService, EmailService>();

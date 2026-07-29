@@ -908,6 +908,10 @@ const MarketAreaList = ({ user }) => {
                             transform: expandedAreas.includes(area.areaId) ? 'none' : 'translate(-50%, -50%)',
                             display: 'flex', gap: '4px', background: 'rgba(255,255,255,0.95)', padding: '4px', borderRadius: '4px', boxShadow: '0 2px 8px rgba(0,0,0,0.15)', zIndex: 100 
                           }}>
+                            {/* Cầu nối vô hình giúp chống flickr khi di chuột */}
+                            {expandedAreas.includes(area.areaId) && (
+                               <div style={{ position: 'absolute', top: '100%', right: 0, width: '100%', height: '30px', background: 'transparent' }} />
+                            )}
                             <div style={{ padding: '0 8px', fontSize: '11px', fontWeight: 'bold', color: '#0f172a', display: 'flex', alignItems: 'center', borderRight: '1px solid #e2e8f0' }}>
                               {area.name}
                             </div>

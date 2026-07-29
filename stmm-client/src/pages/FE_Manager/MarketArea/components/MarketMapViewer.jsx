@@ -84,7 +84,7 @@ const MarketMapViewer = ({ marketId, onBack }) => {
                 <div>
                     <h1>Bản đồ chi tiết: {marketData.marketName}</h1>
                     <p style={{ color: 'var(--mw-text-muted)', margin: '8px 0 0 0' }}>
-                        📍 {marketData.address || 'Chưa cập nhật địa chỉ'} {marketData.size ? '• Diện tích: ${marketData.size}m²' : ''}
+                        📍 {marketData.address || 'Chưa cập nhật địa chỉ'} {marketData.size ? `• Diện tích: ${marketData.size}m²` : ''}
                     </p>
                 </div>
                 <button className={styles.secondaryBtn} onClick={onBack} aria-label={'Quay lại danh sách chợ'}>
@@ -122,7 +122,7 @@ const MarketMapViewer = ({ marketId, onBack }) => {
                             const pathD = area.svgPath || (area.minX != null && area.maxX != null && area.minY != null && area.maxY != null ? `M 0,0 L ${area.maxX - area.minX},0 L ${area.maxX - area.minX},${area.maxY - area.minY} L 0,${area.maxY - area.minY} Z` : null);
                             
                             return (
-                                <g key={area.areaId || aIdx} id={`area-${area.areaId || aIdx}`} transform={`translate(${area.minX || 0}, ${area.minY || 0})`}>
+                                <g key={area.areaId || aIdx} id={`area-${area.areaId || aIdx}`}>
                                     {pathD && (
                                         <path
                                             d={pathD}
@@ -137,8 +137,8 @@ const MarketMapViewer = ({ marketId, onBack }) => {
                                     {/* Render stalls always, not just when selected */}
                                     <g>
                                         {area.stalls?.map((stall, sIdx) => {
-                                            const renderX = stall.mapX || 0;
-                                            const renderY = stall.mapY || 0;
+                                            const renderX = (area.minX || 0) + (stall.mapX || 0);
+                                            const renderY = (area.minY || 0) + (stall.mapY || 0);
 
                                             return (
                                             <g key={stall.stallId || sIdx} transform={`translate(${renderX}, ${renderY})`} id={`stall-${stall.stallId || stall.code}`}>

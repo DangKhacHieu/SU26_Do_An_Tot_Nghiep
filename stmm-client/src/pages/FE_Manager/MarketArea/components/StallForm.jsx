@@ -5,7 +5,7 @@ import { createStall, updateStall, updateStallStatus, updateStallLocation, getUn
 import { getAllCategories } from '../api/categoryApi';
 import styles from './MarketAreaForm.module.css';
 
-const StallForm = ({ initialData, drawnData, areaId, areaWidth, areaHeight, areaSize, existingStalls = [], getValidPosition, onSave, onCancel, marketCategories }) => {
+const StallForm = ({ initialData, drawnData, areaId, areaWidth, areaHeight, areaSize, existingStalls = [], getValidPosition, onSave, onCancel, onRedrawShape, marketCategories, inline = false }) => {
   const { t } = useTranslation();
 
     const [formData, setFormData] = useState({
@@ -73,6 +73,10 @@ const StallForm = ({ initialData, drawnData, areaId, areaWidth, areaHeight, area
         setFormData(prev => {
             const newData = { ...prev, [name]: value };
             
+            // CÁCH TÍNH DIỆN TÍCH TỪ CANVAS (GIẢ LẬP KHÔNG DÙNG POSTGIS)
+            // - Frontend tự quy đổi Tỷ lệ: PX_PER_M2 = 900 (Tức là 1m2 = 30px * 30px trên màn hình)
+            // - Khi người dùng thay đổi Size trong form, tự động quy ra Width/Height cho hình chữ nhật Canvas.
+            // - Khi người dùng kéo Resize trên Canvas, Width/Height thay đổi -> tự động cập nhật lại Size.
             // Đồng bộ 2 chiều (Cách 3)
             if (name === 'size' && value) {
                 const numSize = parseFloat(value);
@@ -85,6 +89,8 @@ const StallForm = ({ initialData, drawnData, areaId, areaWidth, areaHeight, area
                 const w = parseFloat(name === 'width' ? value : prev.width);
                 const h = parseFloat(name === 'height' ? value : prev.height);
                 if (!isNaN(w) && !isNaN(h) && w > 0 && h > 0) {
+                    // CÔNG THỨC: Diện tích (Size) = (Width * Height) / PX_PER_M2
+                    // Làm tròn 2 chữ số thập phân
                     newData.size = Math.round((w * h) / PX_PER_M2 * 100) / 100;
                 }
             }
@@ -97,7 +103,8 @@ const StallForm = ({ initialData, drawnData, areaId, areaWidth, areaHeight, area
         e.preventDefault();
         setError('');
         
-        // Validate Area Size Limit
+        // VALIDATION TẠI FRONTEND: KIỂM TRA TỔNG DIỆN TÍCH
+        // Validate Area Size Limit: Tổng diện tích sạp không được lớn hơn tổng diện tích Khu vực
         if (formData.size) {
             const requestedSize = parseFloat(formData.size);
             const currentTotal = existingStalls.reduce((sum, s) => {
@@ -187,194 +194,176 @@ const StallForm = ({ initialData, drawnData, areaId, areaWidth, areaHeight, area
         }
     };
 
-    const modalContent = (
-        <div className={styles.overlay} style={{position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 9999, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-            <div className={styles.panel} style={{maxHeight: '90vh', overflowY: 'auto'}}>
-                <div className={styles.section}>
-                    <h2 className={styles.title}>
-                        <span>✎</span> {initialData ? 'Chỉnh sửa Sạp' : 'Thêm Sạp mới'}
-                    </h2>
-                    <button onClick={onCancel} style={{position: 'absolute', top: 24, right: 24, background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 20}}>&times;</button>
-                
-                {error && <div style={{color: '#ff4d4f', marginBottom: 16, fontSize: 13}}>{error}</div>}
-                
-                <form onSubmit={handleSubmit}>
-                    {!initialData ? (
-                        <div className={styles.formGroup}>
-                            <label htmlFor="code">{'Mã sạp (Stall Code)'}</label>
-                            <input
-                                className={styles.input}
-                                type="text"
-                                id="code"
-                                value={'Sẽ được tự động tạo'}
-                                disabled
-                                style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed', fontStyle: 'italic', color: '#888' }}
-                            />
-                        </div>
-                    ) : (
-                        <div className={styles.formGroup}>
-                            <label htmlFor="code">{'Mã sạp (Stall Code)'}</label>
-                            <input
-                                className={styles.input}
-                                type="text"
-                                id="code"
-                                name="code"
-                                value={formData.code}
-                                disabled
-                                title={'Không được phép sửa Mã sạp'}
-                                style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed' }}
-                            />
-                        </div>
-                    )}
-                    
-                    <div className={styles.formGroup}>
-                        <label htmlFor="categoryName">{'Tên sạp / Ngành hàng (Category)'}<span style={{color: '#ff4d4f'}}>*</span></label>
-                        <select
-                            className={styles.input}
-                            id="categoryName"
-                            name="categoryName"
-                            value={formData.categoryName}
-                            onChange={handleChange}
-                            required
-                        >
-                            <option value="">{'-- Chọn ngành hàng --'}</option>
-                            {(marketCategories || []).map(c => (
-                                <option key={c.categoryId || c.id} value={c.name}>
-                                    {c.name}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
+    const formInner = (
+        <div className={inline ? '' : styles.panel} style={inline ? { display: 'flex', flexDirection: 'column', height: '100%' } : { maxHeight: '90vh', overflowY: 'auto' }}>
+            <div className={styles.section} style={inline ? { flex: 1 } : {}}>
+                <h2 className={styles.title} style={inline ? { fontSize: '18px', borderBottom: '1px solid #eee', paddingBottom: '12px', marginBottom: '16px' } : {}}>
+                    <span>✎</span> {initialData ? 'Chỉnh sửa Sạp' : 'Thêm Sạp mới'}
+                </h2>
+                {!inline && <button onClick={onCancel} style={{position: 'absolute', top: 24, right: 24, background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 20}}>&times;</button>}
+            
+            {initialData && initialData.status === 'Available' && (
+                <div style={{ marginBottom: '16px', padding: '12px', background: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '13px', color: '#64748b' }}>Hình dáng sạp thực tế</span>
+                    <button type="button" onClick={() => onRedrawShape && onRedrawShape()} style={{ background: 'var(--color-primary)', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}>
+                        ✎ Vẽ lại hình dáng
+                    </button>
+                </div>
+            )}
 
-                    <div className={styles.formGroup}>
-                        <label htmlFor="size">{'Diện tích vật lý (m²)'}<span style={{color: '#ff4d4f'}}>*</span></label>
-                        <input
-                            className={styles.input}
-                            type="number"
-                            step="0.01"
-                            min="0.1"
-                            id="size"
-                            name="size"
-                            value={formData.size}
-                            onChange={handleChange}
-                            required
-                            placeholder="e.g., 20.5"
-                        />
-                    </div>
-
-                    <div className={styles.formGroup}>
-                        <label htmlFor="description">{'Người đang thuê (Tenant Name)'}</label>
+            {error && <div style={{color: '#ff4d4f', marginBottom: 16, fontSize: 13, background: '#fff1f0', padding: 8, borderRadius: 4, border: '1px solid #ffa39e'}}>{error}</div>}
+            
+            <form onSubmit={handleSubmit} style={inline ? { display: 'flex', flexDirection: 'column', gap: '12px' } : {}}>
+                {!initialData ? (
+                    <div className={styles.formGroup} style={inline ? { marginBottom: 0 } : {}}>
+                        <label htmlFor="code" style={inline ? { fontSize: '13px' } : {}}>{'Mã sạp (Stall Code)'}</label>
                         <input
                             className={styles.input}
                             type="text"
-                            id="description"
-                            name="description"
-                            value={initialData?.tenantName || ''}
-                            readOnly
+                            id="code"
+                            value={'Sẽ được tự động tạo'}
                             disabled
-                            style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed' }}
-                            placeholder={'Chưa có người thuê...'}
-                            title={'Tên người thuê được tự động cập nhật từ hệ thống Hợp đồng'}
+                            style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed', fontStyle: 'italic', color: '#888', padding: inline ? '8px' : '' }}
                         />
                     </div>
-                    
-                    <div className={styles.formGroup}>
-                        <label htmlFor="status">Tình trạng (Status) {initialData?.tenantName && <span style={{color: '#ff4d4f', fontSize: 10}}>{'(Đã khóa bởi Hợp đồng)'}</span>}</label>
-                        <select
-                            className={styles.select}
-                            id="status"
-                            name="status"
-                            value={formData.status}
-                            onChange={handleChange}
-                            disabled={!!initialData?.tenantName}
-                            style={{ backgroundColor: initialData?.tenantName ? '#f5f5f5' : 'white', cursor: initialData?.tenantName ? 'not-allowed' : 'pointer' }}
-                        >
-                            <option value="Available">Available</option>
-                            <option value="Rented">Rented</option>
-                            <option value="Maintenance">Maintenance</option>
-                        </select>
+                ) : (
+                    <div className={styles.formGroup} style={inline ? { marginBottom: 0 } : {}}>
+                        <label htmlFor="code" style={inline ? { fontSize: '13px' } : {}}>{'Mã sạp (Stall Code)'}</label>
+                        <input
+                            className={styles.input}
+                            type="text"
+                            id="code"
+                            name="code"
+                            value={formData.code}
+                            disabled
+                            title={'Không được phép sửa Mã sạp'}
+                            style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed', padding: inline ? '8px' : '' }}
+                        />
                     </div>
-
-                    {!formData.svgPath && (
-                        <div className={styles.formGroup} style={{display: 'flex', gap: 12}}>
-                            <div style={{flex: 1}}>
-                                <label htmlFor="width">{'Chiều dài hiển thị (px)'}</label>
-                                <input
-                                    className={styles.input}
-                                    type="number"
-                                    id="width"
-                                    name="width"
-                                    value={formData.width}
-                                    onChange={handleChange}
-                                    max={areaWidth || undefined}
-                                    title={areaWidth ? 'Tối đa ${areaWidth}px (bằng với Khu vực)' : ""}
-                                    required
-                                />
-                            </div>
-                            <div style={{flex: 1}}>
-                                <label htmlFor="height">{'Chiều rộng hiển thị (px)'}</label>
-                                <input
-                                    className={styles.input}
-                                    type="number"
-                                    id="height"
-                                    name="height"
-                                    value={formData.height}
-                                    onChange={handleChange}
-                                    max={areaHeight || undefined}
-                                    title={areaHeight ? 'Tối đa ${areaHeight}px (bằng với Khu vực)' : ""}
-                                    required
-                                />
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Tạm thời ẩn phần chọn Đồng hồ theo yêu cầu
-                    {!initialData && (
-                        <div className={styles.formGroup} style={{display: 'flex', gap: 12}}>
-                            <div style={{flex: 1}}>
-                                <label htmlFor="electricityMeterId">{t('stallform.electricity_meter_optional')}</label>
-                                <select
-                                    className={styles.select}
-                                    id="electricityMeterId"
-                                    name="electricityMeterId"
-                                    value={formData.electricityMeterId}
-                                    onChange={handleChange}
-                                >
-                                    <option value="">{t('stallform.create_new_automatically')}</option>
-                                    {unassignedElectricityMeters.map(m => (
-                                        <option key={m.meterId} value={m.meterId}>{m.serialNumber}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div style={{flex: 1}}>
-                                <label htmlFor="waterMeterId">{t('stallform.water_meter_optional')}</label>
-                                <select
-                                    className={styles.select}
-                                    id="waterMeterId"
-                                    name="waterMeterId"
-                                    value={formData.waterMeterId}
-                                    onChange={handleChange}
-                                >
-                                    <option value="">{t('stallform.create_new_automatically')}</option>
-                                    {unassignedWaterMeters.map(m => (
-                                        <option key={m.meterId} value={m.meterId}>{m.serialNumber}</option>
-                                    ))}
-                                </select>
-                            </div>
-                        </div>
-                    )}
-                    */}
-                    
-                    <div className={styles.actions}>
-                        <button type="submit" className={styles.btnPrimary} disabled={loading}>
-                            {loading ? 'Đang lưu...' : 'Lưu Sạp'}
-                        </button>
-                        <button type="button" onClick={onCancel} className={styles.btnSecondary} disabled={loading}>
-                            {'Hủy bỏ'}</button>
-                    </div>
-                </form>
+                )}
+                
+                <div className={styles.formGroup} style={inline ? { marginBottom: 0 } : {}}>
+                    <label htmlFor="categoryName" style={inline ? { fontSize: '13px' } : {}}>{'Tên sạp / Ngành hàng (Category)'}<span style={{color: '#ff4d4f'}}>*</span></label>
+                    <select
+                        className={styles.input}
+                        id="categoryName"
+                        name="categoryName"
+                        value={formData.categoryName}
+                        onChange={handleChange}
+                        required
+                        style={inline ? { padding: '8px' } : {}}
+                    >
+                        <option value="">{'-- Chọn ngành hàng --'}</option>
+                        {(marketCategories || []).map(c => (
+                            <option key={c.categoryId || c.id} value={c.name}>
+                                {c.name}
+                            </option>
+                        ))}
+                    </select>
                 </div>
+
+                <div className={styles.formGroup} style={inline ? { marginBottom: 0 } : {}}>
+                    <label htmlFor="size" style={inline ? { fontSize: '13px' } : {}}>{'Diện tích vật lý (m²)'}<span style={{color: '#ff4d4f'}}>*</span></label>
+                    <input
+                        className={styles.input}
+                        type="number"
+                        step="0.01"
+                        min="0.1"
+                        id="size"
+                        name="size"
+                        value={formData.size}
+                        onChange={handleChange}
+                        required
+                        placeholder="e.g., 20.5"
+                        style={inline ? { padding: '8px' } : {}}
+                    />
+                </div>
+
+                <div className={styles.formGroup} style={inline ? { marginBottom: 0 } : {}}>
+                    <label htmlFor="description" style={inline ? { fontSize: '13px' } : {}}>{'Người đang thuê (Tenant Name)'}</label>
+                    <input
+                        className={styles.input}
+                        type="text"
+                        id="description"
+                        name="description"
+                        value={initialData?.tenantName || ''}
+                        readOnly
+                        disabled
+                        style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed', padding: inline ? '8px' : '' }}
+                        placeholder={'Chưa có người thuê...'}
+                        title={'Tên người thuê được tự động cập nhật từ hệ thống Hợp đồng'}
+                    />
+                </div>
+                
+                <div className={styles.formGroup} style={inline ? { marginBottom: 0 } : {}}>
+                    <label htmlFor="status" style={inline ? { fontSize: '13px' } : {}}>Tình trạng (Status) {initialData?.tenantName && <span style={{color: '#ff4d4f', fontSize: 10}}>{'(Đã khóa bởi Hợp đồng)'}</span>}</label>
+                    <select
+                        className={styles.select}
+                        id="status"
+                        name="status"
+                        value={formData.status}
+                        onChange={handleChange}
+                        disabled={!!initialData?.tenantName}
+                        style={{ backgroundColor: initialData?.tenantName ? '#f5f5f5' : 'white', cursor: initialData?.tenantName ? 'not-allowed' : 'pointer', padding: inline ? '8px' : '' }}
+                    >
+                        <option value="Available">Available</option>
+                        <option value="Rented">Rented</option>
+                        <option value="Maintenance">Maintenance</option>
+                    </select>
+                </div>
+
+                {!formData.svgPath && (
+                    <div className={styles.formGroup} style={inline ? { marginBottom: 0, display: 'flex', gap: 12 } : { display: 'flex', gap: 12 }}>
+                        <div style={{flex: 1}}>
+                            <label htmlFor="width" style={inline ? { fontSize: '13px' } : {}}>{'Chiều dài hiển thị (px)'}</label>
+                            <input
+                                className={styles.input}
+                                type="number"
+                                id="width"
+                                name="width"
+                                value={formData.width}
+                                onChange={handleChange}
+                                max={areaWidth || undefined}
+                                title={areaWidth ? `Tối đa ${areaWidth}px (bằng với Khu vực)` : ""}
+                                required
+                                style={inline ? { padding: '8px' } : {}}
+                            />
+                        </div>
+                        <div style={{flex: 1}}>
+                            <label htmlFor="height" style={inline ? { fontSize: '13px' } : {}}>{'Chiều rộng hiển thị (px)'}</label>
+                            <input
+                                className={styles.input}
+                                type="number"
+                                id="height"
+                                name="height"
+                                value={formData.height}
+                                onChange={handleChange}
+                                max={areaHeight || undefined}
+                                title={areaHeight ? `Tối đa ${areaHeight}px (bằng với Khu vực)` : ""}
+                                required
+                                style={inline ? { padding: '8px' } : {}}
+                            />
+                        </div>
+                    </div>
+                )}
+                
+                <div className={styles.actions} style={inline ? { marginTop: '16px' } : {}}>
+                    <button type="submit" className={styles.btnPrimary} disabled={loading} style={inline ? { flex: 1, padding: '10px' } : {}}>
+                        {loading ? 'Đang lưu...' : 'Lưu Sạp'}
+                    </button>
+                    <button type="button" onClick={onCancel} className={styles.btnSecondary} disabled={loading} style={inline ? { padding: '10px' } : {}}>
+                        {'Hủy bỏ'}</button>
+                </div>
+            </form>
             </div>
+        </div>
+    );
+
+    if (inline) return formInner;
+
+    const modalContent = (
+        <div className={styles.overlay} style={{position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 9999, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+            {formInner}
         </div>
     );
 
