@@ -109,7 +109,11 @@ namespace STMM.Business.Services
             // Check Stall exists
             var stall = await _stallRepository.Query()
                 .Include(s => s.Area)
-                .FirstOrDefaultAsync(s => s.StallId == request.StallId && s.IsDeleted != true, ct);
+                    .ThenInclude(a => a.Market)
+                .FirstOrDefaultAsync(s => s.StallId == request.StallId 
+                                          && s.IsDeleted != true 
+                                          && s.Area.IsDeleted != true 
+                                          && s.Area.Market.IsDeleted != true, ct);
             if (stall == null)
             {
                 throw new NotFoundException($"Không tìm thấy sạp hàng có ID {request.StallId}.");
@@ -118,9 +122,9 @@ namespace STMM.Business.Services
             {
                 throw new BadRequestException("Sạp hàng này không thuộc chợ của bạn.");
             }
-            if (stall.Status == "Maintenance")
+            if (stall.Status != "Available")
             {
-                throw new BadRequestException("Sạp hàng này đang bảo trì, không thể ký hợp đồng.");
+                throw new BadRequestException("Sạp hàng này không còn trống, không thể ký hợp đồng.");
             }
 
             // Check if there is already an Active contract on this stall
@@ -142,6 +146,10 @@ namespace STMM.Business.Services
             if (user.Role.Name.ToLower() != "vendor")
             {
                 throw new BadRequestException("Người dùng được chọn không có vai trò Tiểu thương (Vendor).");
+            }
+            if (callerMarketId.HasValue && user.MarketId != callerMarketId.Value)
+            {
+                throw new BadRequestException("Tiểu thương được chọn không thuộc chợ của bạn.");
             }
 
             // Ensure Vendor record exists
@@ -332,8 +340,12 @@ namespace STMM.Business.Services
 
             var query = _stallRepository.Query()
                 .Include(s => s.Area)
+                    .ThenInclude(a => a.Market)
                 .Include(s => s.Category)
-                .Where(s => s.Status == "Available" && s.IsDeleted != true);
+                .Where(s => s.Status == "Available" 
+                            && s.IsDeleted != true
+                            && s.Area.IsDeleted != true
+                            && s.Area.Market.IsDeleted != true);
 
             if (callerMarketId.HasValue)
             {
