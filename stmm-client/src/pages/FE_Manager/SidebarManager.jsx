@@ -80,92 +80,92 @@ const IconBell = () => (
 // ─── Navigation structure ─────────────────────────────────────────────────────
 const getNavGroups = (t) => [
   {
-    label: 'Tổng quan',
+    label: t('sidebarmanager.overview'),
     items: [
       {
         key: 'dashboard',
-        label: 'Trang tổng quan',
+        label: t('sidebarmanager.overview_page'),
         icon: <IconGrid />,
       },
       {
         key: 'notifications',
-        label: 'Thông báo',
+        label: t('sidebarmanager.notification'),
         icon: <IconBell />,
       },
     ],
   },
   {
-    label: 'Quản lý',
+    label: t('sidebarmanager.manage'),
     items: [
       {
         key: 'users',
-        label: 'Tài khoản thành viên',
+        label: t('sidebarmanager.member_account'),
         icon: <IconUsers />,
         childKeys: ['form', 'detail'],
       },
       {
         key: 'content',
-        label: 'Tin tức & Thông báo',
+        label: t('sidebarmanager.news_announcements'),
         icon: <IconContent />,
         childKeys: ['content-form', 'content-detail'],
       },
       {
         key: 'faqs',
-        label: 'Câu hỏi thường gặp',
+        label: t('sidebarmanager.frequently_asked_questions'),
         icon: <IconFaq />,
         childKeys: ['faq-form'],
       },
       {
         key: 'market-areas',
-        label: 'Quản lý Mặt bằng',
+        label: t('sidebarmanager.premises_management'),
         icon: <IconGrid />,
         childKeys: [],
       },
       {
         key: 'markets',
-        label: 'Đăng ký Chợ',
+        label: t('sidebarmanager.sign_up_for_the'),
         icon: <IconGrid />,
         childKeys: [],
       },
       {
         key: 'business-categories',
-        label: 'Danh mục kinh doanh',
+        label: t('sidebarmanager.business_directory'),
         icon: <IconContent />,
         childKeys: [],
       },
       {
         key: 'contracts',
-        label: 'Quản lý Hợp đồng',
+        label: t('sidebarmanager.contract_management'),
         icon: <IconContent />,
         childKeys: ['contract-form', 'contract-detail'],
       },
       {
         key: 'tasks',
-        label: 'Quản lý công việc',
+        label: t('sidebarmanager.tasks_management'),
         icon: <IconContent />,
         childKeys: ['task-details'],
       },
       {
         key: 'requests',
-        label: 'Quản lý Yêu cầu',
+        label: t('sidebarmanager.request_management'),
         icon: <IconContent />,
         childKeys: ['request-detail'],
       },
       {
         key: 'violations',
-        label: 'Biên bản vi phạm',
+        label: t('sidebarmanager.violation_records'),
         icon: <IconAlert />,
         childKeys: ['violation-details'],
       },
       {
         key: 'issues',
-        label: 'Quản lý Sự cố',
+        label: t('sidebarmanager.incident_management'),
         icon: <IconAlert />,
         childKeys: ['issue-details'],
       },
       {
         key: 'meters',
-        label: 'Quản lý Công tơ',
+        label: t('sidebarmanager.meter_management'),
         icon: <IconMeter />,
         childKeys: [],
       },
