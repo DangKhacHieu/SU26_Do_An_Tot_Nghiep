@@ -160,9 +160,10 @@ export default function PaymentVerification() {
       .catch(() => showNotification('danger', t('paymentverification.sending_debt_reminder_failed')));
   };
 
-  const handleResolveDisputeClick = (dispute, approve) => {
-    setSelectedItem(dispute); setDisputeApprove(approve);
-    setDisputeFeedback(approve ? t('paymentverification.feedback_has_been_received') : t('paymentverification.refuse_to_resolve_the'));
+  const handleViewDisputeDetails = (dispute) => {
+    setSelectedItem(dispute);
+    setDisputeApprove(true);
+    setDisputeFeedback(t('paymentverification.feedback_has_been_received'));
     setIsRefund(false);
     setRefundAmount('');
     setRefundMethod('Transfer');
@@ -196,7 +197,7 @@ export default function PaymentVerification() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
       {/* Header */}
-      <div className="page-header">
+      <div className="page-header" style={{ display: "none" }}>
         <div>
           <h1 className="page-title">{t('paymentverification.payment_verification_balance')}</h1>
           <p className="page-subtitle">{t('paymentverification.check_transactions_manage_outstanding')}</p>
@@ -209,7 +210,7 @@ export default function PaymentVerification() {
         <div className={`alert alert-${notification.type}`}>
           <AlertCircle size={16} className="alert-icon" />
           <span style={{ flex: 1 }}>{notification.message}</span>
-          <button className="btn btn-ghost btn-sm btn-icon" onClick={() => setNotification(null)}><X size={14} /></button>
+          <button className="acc-btn-ghost btn-sm btn-icon" onClick={() => setNotification(null)}><X size={14} /></button>
         </div>
       )}
       {isMock && (
@@ -220,7 +221,7 @@ export default function PaymentVerification() {
       )}
 
       {/* Search */}
-      <div className="card-padded" style={{ padding: '14px 20px' }}>
+      <div className="acc-card" style={{ padding: "20px" }} style={{ padding: '14px 20px' }}>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           <div className="search-wrapper" style={{ flex: '1 1 220px' }}>
             <Search size={14} className="search-icon-inner" />
@@ -232,7 +233,7 @@ export default function PaymentVerification() {
       </div>
 
       {/* Tabs */}
-      <div className="tab-bar">
+      <div className="acc-tabs-header">
         {[
           { id: 'verification', label: t('paymentverification.transaction_reconciliation'), icon: Clock },
           { id: 'debts', label: t('paymentverification.monitor_outstanding_balances'), icon: Building },
@@ -257,7 +258,7 @@ export default function PaymentVerification() {
           {/* TAB 1: PAYMENT VERIFICATION */}
           {activeTab === 'verification' && (
             <div className="card" style={{ overflow: 'hidden' }}>
-              <table className="data-table">
+              <table className="acc-table">
                 <thead>
                   <tr>
                     <th>{t('paymentverification.transaction_code')}</th>
@@ -279,19 +280,19 @@ export default function PaymentVerification() {
                           <div><strong>{pay.stallCode}</strong></div>
                           <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{pay.tenantName}</div>
                         </td>
-                        <td><span className="badge badge-neutral">{pay.method}</span></td>
+                        <td><span className="acc-badge neutral">{pay.method}</span></td>
                         <td><span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{formatDate(pay.paidAt)}</span></td>
                         <td className="text-right"><strong style={{ color: 'var(--text-title)' }}>{formatCurrency(pay.amount)}</strong></td>
                         <td><span className={cls}>{label}</span></td>
                         <td className="text-right">
                           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
-                            <button className="btn btn-secondary btn-sm" onClick={() => handleViewOriginalInvoice(pay.invoiceId, pay.stallCode)}>
+                            <button className="acc-btn-secondary btn-sm" onClick={() => handleViewOriginalInvoice(pay.invoiceId, pay.stallCode)}>
                               <FileText size={13} /> {t('paymentverification.original_contract')}</button>
                             {pay.status === 'Pending' && (
                               <>
                                 <button className="btn btn-success btn-sm" onClick={() => handleApprovePayment(pay)}>
                                   <ThumbsUp size={13} /> {t('paymentverification.browse')}</button>
-                                <button className="btn btn-danger btn-sm" onClick={() => { setSelectedItem(pay); setRejectionNote(''); setActiveModal('reject_payment'); }}>
+                                <button className="acc-btn-danger btn-sm" onClick={() => { setSelectedItem(pay); setRejectionNote(''); setActiveModal('reject_payment'); }}>
                                   <ThumbsDown size={13} /> {t('paymentverification.refuse')}</button>
                               </>
                             )}
@@ -311,7 +312,7 @@ export default function PaymentVerification() {
                   </span>
                   <div style={{ display: 'flex', gap: 6 }}>
                     <button 
-                      className="btn btn-secondary btn-sm" 
+                      className="acc-btn-secondary btn-sm" 
                       onClick={() => setPaymentsPage(prev => Math.max(prev - 1, 1))} 
                       disabled={paymentsPage === 1}
                     >
@@ -326,7 +327,7 @@ export default function PaymentVerification() {
                       </button>
                     ))}
                     <button 
-                      className="btn btn-secondary btn-sm" 
+                      className="acc-btn-secondary btn-sm" 
                       onClick={() => setPaymentsPage(prev => Math.min(prev + 1, Math.ceil(filteredPayments.length / itemsPerPage)))} 
                       disabled={paymentsPage === Math.ceil(filteredPayments.length / itemsPerPage)}
                     >
@@ -341,7 +342,7 @@ export default function PaymentVerification() {
           {/* TAB 2: DEBTS */}
           {activeTab === 'debts' && (
             <div className="card" style={{ overflow: 'hidden' }}>
-              <table className="data-table">
+              <table className="acc-table">
                 <thead>
                   <tr>
                     <th>{t('paymentverification.stallssmall_traders')}</th>
@@ -367,8 +368,8 @@ export default function PaymentVerification() {
                       <td><span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{debt.lastDueDate}</span></td>
                       <td className="text-right">
                         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
-                          <button className="btn btn-secondary btn-sm" onClick={() => handleViewDebtDetail(debt)}><FileText size={13} /> {t('paymentverification.detail')}</button>
-                          <button className="btn btn-primary btn-sm" onClick={() => handleSendReminderClick(debt)}><Bell size={13} /> {t('paymentverification.debt_reminder')}</button>
+                          <button className="acc-btn-secondary btn-sm" onClick={() => handleViewDebtDetail(debt)}><FileText size={13} /> {t('paymentverification.detail')}</button>
+                          <button className="acc-btn-primary btn-sm" onClick={() => handleSendReminderClick(debt)}><Bell size={13} /> {t('paymentverification.debt_reminder')}</button>
                         </div>
                       </td>
                     </tr>
@@ -384,7 +385,7 @@ export default function PaymentVerification() {
                   </span>
                   <div style={{ display: 'flex', gap: 6 }}>
                     <button 
-                      className="btn btn-secondary btn-sm" 
+                      className="acc-btn-secondary btn-sm" 
                       onClick={() => setDebtsPage(prev => Math.max(prev - 1, 1))} 
                       disabled={debtsPage === 1}
                     >
@@ -399,7 +400,7 @@ export default function PaymentVerification() {
                       </button>
                     ))}
                     <button 
-                      className="btn btn-secondary btn-sm" 
+                      className="acc-btn-secondary btn-sm" 
                       onClick={() => setDebtsPage(prev => Math.min(prev + 1, Math.ceil(filteredDebts.length / itemsPerPage)))} 
                       disabled={debtsPage === Math.ceil(filteredDebts.length / itemsPerPage)}
                     >
@@ -414,7 +415,7 @@ export default function PaymentVerification() {
           {/* TAB 3: DISPUTES */}
           {activeTab === 'disputes' && (
             <div className="card" style={{ overflow: 'hidden' }}>
-              <table className="data-table">
+              <table className="acc-table">
                 <thead>
                   <tr>
                     <th>{t('paymentverification.stallssmall_traders')}</th>
@@ -436,18 +437,19 @@ export default function PaymentVerification() {
                           <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{dis.tenantName}</div>
                         </td>
                         <td><span style={{ fontWeight: 600, fontSize: 13 }}>{dis.title}</span></td>
-                        <td><span className="badge badge-neutral">Th.{dis.invoiceMonth}/{dis.invoiceYear}</span></td>
+                        <td><span className="acc-badge neutral">Th.{dis.invoiceMonth}/{dis.invoiceYear}</span></td>
                         <td className="text-right"><strong>{formatCurrency(dis.invoiceTotalAmount)}</strong></td>
                         <td><span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{formatDate(dis.createdAt)}</span></td>
                         <td><span className={cls}>{label}</span></td>
                         <td className="text-right">
                           {dis.status === 'Pending' && (
                             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
-                              <button className="btn btn-success btn-sm" onClick={() => handleResolveDisputeClick(dis, true)}><ThumbsUp size={13} /> {t('paymentverification.accept')}</button>
-                              <button className="btn btn-danger btn-sm" onClick={() => handleResolveDisputeClick(dis, false)}><ThumbsDown size={13} /> {t('paymentverification.refuse')}</button>
+                              <button className="acc-btn-primary btn-sm" onClick={() => handleViewDisputeDetails(dis)}>
+                                <Info size={13} /> {t('paymentverification.detail') || 'Xem chi tiết'}
+                              </button>
                             </div>
                           )}
-                          {dis.status !== 'Pending' && <span className="badge badge-neutral">{t('paymentverification.processed')}</span>}
+                          {dis.status !== 'Pending' && <span className="acc-badge neutral">{t('paymentverification.processed')}</span>}
                         </td>
                       </tr>
                     );
@@ -463,7 +465,7 @@ export default function PaymentVerification() {
                   </span>
                   <div style={{ display: 'flex', gap: 6 }}>
                     <button 
-                      className="btn btn-secondary btn-sm" 
+                      className="acc-btn-secondary btn-sm" 
                       onClick={() => setDisputesPage(prev => Math.max(prev - 1, 1))} 
                       disabled={disputesPage === 1}
                     >
@@ -478,7 +480,7 @@ export default function PaymentVerification() {
                       </button>
                     ))}
                     <button 
-                      className="btn btn-secondary btn-sm" 
+                      className="acc-btn-secondary btn-sm" 
                       onClick={() => setDisputesPage(prev => Math.min(prev + 1, Math.ceil(filteredDisputes.length / itemsPerPage)))} 
                       disabled={disputesPage === Math.ceil(filteredDisputes.length / itemsPerPage)}
                     >
@@ -494,14 +496,14 @@ export default function PaymentVerification() {
 
       {/* Modal: Reject Payment */}
       {activeModal === 'reject_payment' && selectedItem && (
-        <div className="modal-overlay" onClick={() => setActiveModal(null)}>
-          <div className="modal-container" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <span className="modal-title">Từ chối Giao dịch — {selectedItem.transactionCode}</span>
-              <button className="modal-close-btn" onClick={() => setActiveModal(null)}><X size={16} /></button>
+        <div className="acc-modal-overlay" onClick={() => setActiveModal(null)}>
+          <div className="acc-modal-container" onClick={e => e.stopPropagation()}>
+            <div className="acc-modal-header">
+              <span className="acc-modal-title">Từ chối Giao dịch — {selectedItem.transactionCode}</span>
+              <button className="acc-modal-close" onClick={() => setActiveModal(null)}><X size={16} /></button>
             </div>
             <form onSubmit={submitRejectPayment}>
-              <div className="modal-body">
+              <div className="acc-modal-body">
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, background: 'var(--bg-base)', padding: 14, borderRadius: 'var(--radius-md)', fontSize: 13.5 }}>
                   <div><span style={{ color: 'var(--text-muted)' }}>{t('paymentverification.stall')}</span><strong>{selectedItem.stallCode}</strong></div>
                   <div><span style={{ color: 'var(--text-muted)' }}>{t('paymentverification.small_business')}</span>{selectedItem.tenantName}</div>
@@ -509,15 +511,15 @@ export default function PaymentVerification() {
                   <div><span style={{ color: 'var(--text-muted)' }}>{t('paymentverification.method')}</span>{selectedItem.method}</div>
                 </div>
                 <div>
-                  <label className="form-label">{t('paymentverification.reason_for_refusal')}<span style={{ color: 'var(--danger)' }}>*</span></label>
+                  <label className="acc-form-label">{t('paymentverification.reason_for_refusal')}<span style={{ color: 'var(--danger)' }}>*</span></label>
                   <textarea className="form-textarea" rows={4} required
                     placeholder={t('paymentverification.specify_the_reason_wrong')}
                     value={rejectionNote} onChange={e => setRejectionNote(e.target.value)} />
                 </div>
               </div>
-              <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={() => setActiveModal(null)}>{t('paymentverification.cancel')}</button>
-                <button type="submit" className="btn btn-danger">{t('paymentverification.confirmed_refusal')}</button>
+              <div className="acc-modal-footer">
+                <button type="button" className="acc-btn-secondary" onClick={() => setActiveModal(null)}>{t('paymentverification.cancel')}</button>
+                <button type="submit" className="acc-btn-danger">{t('paymentverification.confirmed_refusal')}</button>
               </div>
             </form>
           </div>
@@ -526,13 +528,13 @@ export default function PaymentVerification() {
 
       {/* Modal: Invoice Detail */}
       {activeModal === 'invoice_detail' && (
-        <div className="modal-overlay" onClick={() => setActiveModal(null)}>
+        <div className="acc-modal-overlay" onClick={() => setActiveModal(null)}>
           <div className="modal-container modal-container-lg" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <span className="modal-title">Chi tiết Hóa đơn gốc — {selectedItem?.stallCode}</span>
-              <button className="modal-close-btn" onClick={() => setActiveModal(null)}><X size={16} /></button>
+            <div className="acc-modal-header">
+              <span className="acc-modal-title">Chi tiết Hóa đơn gốc — {selectedItem?.stallCode}</span>
+              <button className="acc-modal-close" onClick={() => setActiveModal(null)}><X size={16} /></button>
             </div>
-            <div className="modal-body">
+            <div className="acc-modal-body">
               {loadingPopup ? (
                 <div className="loading-container" style={{ padding: 40 }}>
                   <div className="loading-spinner" /><p className="loading-text">{t('paymentverification.loading')}</p>
@@ -543,9 +545,9 @@ export default function PaymentVerification() {
                     <div><span style={{ color: 'var(--text-muted)' }}>{t('paymentverification.stall')}</span><strong>{selectedInvoiceDetail.stallCode}</strong></div>
                     <div><span style={{ color: 'var(--text-muted)' }}>{t('paymentverification.month')}</span>Th.{selectedInvoiceDetail.month}/{selectedInvoiceDetail.year}</div>
                     <div><span style={{ color: 'var(--text-muted)' }}>{t('paymentverification.small_business')}</span>{selectedInvoiceDetail.vendorName}</div>
-                    <div><span style={{ color: 'var(--text-muted)' }}>{t('paymentverification.status')}</span><span className="badge badge-warning">{selectedInvoiceDetail.status}</span></div>
+                    <div><span style={{ color: 'var(--text-muted)' }}>{t('paymentverification.status')}</span><span className="acc-badge warning">{selectedInvoiceDetail.status}</span></div>
                   </div>
-                  <table className="data-table">
+                  <table className="acc-table">
                     <thead><tr><th>{t('paymentverification.fees')}</th><th>{t('paymentverification.describe')}</th><th className="text-right">{t('paymentverification.quantity')}</th><th className="text-right">{t('paymentverification.unit_price')}</th><th className="text-right">{t('paymentverification.make_money')}</th></tr></thead>
                     <tbody>
                       {selectedInvoiceDetail.details?.map((d, i) => (
@@ -566,20 +568,20 @@ export default function PaymentVerification() {
                 </>
               )}
             </div>
-            <div className="modal-footer"><button className="btn btn-secondary" onClick={() => setActiveModal(null)}>{t('paymentverification.close')}</button></div>
+            <div className="acc-modal-footer"><button className="acc-btn-secondary" onClick={() => setActiveModal(null)}>{t('paymentverification.close')}</button></div>
           </div>
         </div>
       )}
 
       {/* Modal: Debt Detail */}
       {activeModal === 'debt_detail' && (
-        <div className="modal-overlay" onClick={() => setActiveModal(null)}>
+        <div className="acc-modal-overlay" onClick={() => setActiveModal(null)}>
           <div className="modal-container modal-container-lg" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <span className="modal-title">Chi tiết Dư nợ — {selectedItem?.stallCode}</span>
-              <button className="modal-close-btn" onClick={() => setActiveModal(null)}><X size={16} /></button>
+            <div className="acc-modal-header">
+              <span className="acc-modal-title">Chi tiết Dư nợ — {selectedItem?.stallCode}</span>
+              <button className="acc-modal-close" onClick={() => setActiveModal(null)}><X size={16} /></button>
             </div>
-            <div className="modal-body">
+            <div className="acc-modal-body">
               {loadingPopup ? (
                 <div className="loading-container" style={{ padding: 40 }}><div className="loading-spinner" /></div>
               ) : selectedInvoiceDetail && (
@@ -589,8 +591,8 @@ export default function PaymentVerification() {
                   </div>
                   {selectedInvoiceDetail.unpaidInvoices?.length > 0 && (
                     <>
-                      <label className="form-label" style={{ marginBottom: 8 }}>{t('paymentverification.unpaid_invoice')}</label>
-                      <table className="data-table">
+                      <label className="acc-form-label" style={{ marginBottom: 8 }}>{t('paymentverification.unpaid_invoice')}</label>
+                      <table className="acc-table">
                         <thead><tr><th>{t('paymentverification.hd_code')}</th><th>{t('paymentverification.ky')}</th><th className="text-right">{t('paymentverification.amount')}</th><th>{t('paymentverification.term')}</th><th>{t('paymentverification.status')}</th></tr></thead>
                         <tbody>
                           {selectedInvoiceDetail.unpaidInvoices.map(inv => (
@@ -599,7 +601,7 @@ export default function PaymentVerification() {
                               <td>Th.{inv.month}/{inv.year}</td>
                               <td className="text-right"><strong style={{ color: 'var(--danger)' }}>{formatCurrency(inv.totalAmount)}</strong></td>
                               <td>{inv.dueDate}</td>
-                              <td><span className="badge badge-warning">{inv.status}</span></td>
+                              <td><span className="acc-badge warning">{inv.status}</span></td>
                             </tr>
                           ))}
                         </tbody>
@@ -608,8 +610,8 @@ export default function PaymentVerification() {
                   )}
                   {selectedInvoiceDetail.unpaidViolations?.length > 0 && (
                     <>
-                      <label className="form-label" style={{ marginTop: 16, marginBottom: 8 }}>{t('paymentverification.violations_have_not_yet')}</label>
-                      <table className="data-table">
+                      <label className="acc-form-label" style={{ marginTop: 16, marginBottom: 8 }}>{t('paymentverification.violations_have_not_yet')}</label>
+                      <table className="acc-table">
                         <thead><tr><th>{t('paymentverification.violations')}</th><th className="text-right">{t('paymentverification.fine')}</th></tr></thead>
                         <tbody>
                           {selectedInvoiceDetail.unpaidViolations.map(v => (
@@ -625,33 +627,33 @@ export default function PaymentVerification() {
                 </>
               )}
             </div>
-            <div className="modal-footer"><button className="btn btn-secondary" onClick={() => setActiveModal(null)}>{t('paymentverification.close')}</button></div>
+            <div className="acc-modal-footer"><button className="acc-btn-secondary" onClick={() => setActiveModal(null)}>{t('paymentverification.close')}</button></div>
           </div>
         </div>
       )}
 
       {/* Modal: Send Reminder */}
       {activeModal === 'send_reminder' && selectedItem && (
-        <div className="modal-overlay" onClick={() => setActiveModal(null)}>
-          <div className="modal-container" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <span className="modal-title">Gửi Thông báo Nhắc nợ — {selectedItem.stallCode}</span>
-              <button className="modal-close-btn" onClick={() => setActiveModal(null)}><X size={16} /></button>
+        <div className="acc-modal-overlay" onClick={() => setActiveModal(null)}>
+          <div className="acc-modal-container" onClick={e => e.stopPropagation()}>
+            <div className="acc-modal-header">
+              <span className="acc-modal-title">Gửi Thông báo Nhắc nợ — {selectedItem.stallCode}</span>
+              <button className="acc-modal-close" onClick={() => setActiveModal(null)}><X size={16} /></button>
             </div>
             <form onSubmit={submitSendReminder}>
-              <div className="modal-body">
+              <div className="acc-modal-body">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: 'var(--danger-light)', borderRadius: 'var(--radius-md)', border: '1px solid var(--danger-border)' }}>
                   <span style={{ fontSize: 13 }}>{t('paymentverification.total_current_debt')}</span>
                   <strong style={{ color: 'var(--danger)', fontSize: 16 }}>{formatCurrency(selectedItem.totalDebt)}</strong>
                 </div>
                 <div>
-                  <label className="form-label">{t('paymentverification.notification_content')}</label>
+                  <label className="acc-form-label">{t('paymentverification.notification_content')}</label>
                   <textarea className="form-textarea" rows={5} value={reminderMessage} onChange={e => setReminderMessage(e.target.value)} />
                 </div>
               </div>
-              <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={() => setActiveModal(null)}>{t('paymentverification.cancel')}</button>
-                <button type="submit" className="btn btn-primary"><Bell size={14} /> {t('paymentverification.send_notification')}</button>
+              <div className="acc-modal-footer">
+                <button type="button" className="acc-btn-secondary" onClick={() => setActiveModal(null)}>{t('paymentverification.cancel')}</button>
+                <button type="submit" className="acc-btn-primary"><Bell size={14} /> {t('paymentverification.send_notification')}</button>
               </div>
             </form>
           </div>
@@ -660,14 +662,14 @@ export default function PaymentVerification() {
 
       {/* Modal: Resolve Dispute */}
       {activeModal === 'resolve_dispute' && selectedItem && (
-        <div className="modal-overlay" onClick={() => setActiveModal(null)}>
-          <div className="modal-container" style={{ maxWidth: 850, width: '100%' }} onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <span className="modal-title">{disputeApprove ? t('paymentverification.accept') : t('paymentverification.refuse')} Kháng nghị</span>
-              <button className="modal-close-btn" onClick={() => setActiveModal(null)}><X size={16} /></button>
+        <div className="acc-modal-overlay" onClick={() => setActiveModal(null)}>
+          <div className="acc-modal-container" style={{ maxWidth: 850, width: '100%' }} onClick={e => e.stopPropagation()}>
+            <div className="acc-modal-header">
+              <span className="acc-modal-title">{t('paymentverification.detail') || 'Chi tiết Kháng nghị'}</span>
+              <button className="acc-modal-close" onClick={() => setActiveModal(null)}><X size={16} /></button>
             </div>
             <form onSubmit={submitResolveDispute}>
-              <div className="modal-body" style={{ display: 'flex', gap: 24, padding: '24px', overflowY: 'auto', maxHeight: '70vh' }}>
+              <div className="acc-modal-body" style={{ display: 'flex', gap: 24, padding: '24px', overflowY: 'auto', maxHeight: '70vh' }}>
                 {/* Left Column: Original Invoice Info */}
                 <div style={{ flex: 1, borderRight: '1px solid var(--border-color)', paddingRight: 24 }}>
                   <h4 style={{ margin: '0 0 16px 0', fontSize: 16, color: 'var(--text-main)' }}>{t('paymentverification.original_invoice_information')}</h4>
@@ -696,7 +698,7 @@ export default function PaymentVerification() {
                 {/* Right Column: Dispute Resolution */}
                 <div style={{ flex: 1.2 }}>
                   <h4 style={{ margin: '0 0 16px 0', fontSize: 16, color: 'var(--text-main)' }}>{t('paymentverification.content_of_appeal')}</h4>
-                  <div className={`alert ${disputeApprove ? 'alert-success' : 'alert-danger'}`} style={{ marginBottom: 16 }}>
+                  <div className="alert alert-neutral" style={{ marginBottom: 16 }}>
                     <Info size={16} className="alert-icon" />
                     <div>
                       <p style={{ fontWeight: 600 }}>{selectedItem.title}</p>
@@ -705,7 +707,23 @@ export default function PaymentVerification() {
                   </div>
                   
                   <div style={{ marginBottom: 16 }}>
-                    <label className="form-label">{t('paymentverification.feedback_for_small_businesses')}</label>
+                    <label className="acc-form-label">Quyết định xử lý</label>
+                    <div style={{ display: 'flex', gap: 16, marginTop: 8 }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                        <input type="radio" name="decision" checked={disputeApprove === true} onChange={() => { setDisputeApprove(true); setDisputeFeedback(t('paymentverification.feedback_has_been_received')); }} />
+                        <ThumbsUp size={16} style={{ color: 'var(--success)' }} />
+                        <span style={{ fontWeight: 500, color: 'var(--text-main)' }}>{t('paymentverification.accept') || 'Chấp thuận'}</span>
+                      </label>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                        <input type="radio" name="decision" checked={disputeApprove === false} onChange={() => { setDisputeApprove(false); setDisputeFeedback(t('paymentverification.refuse_to_resolve_the')); }} />
+                        <ThumbsDown size={16} style={{ color: 'var(--danger)' }} />
+                        <span style={{ fontWeight: 500, color: 'var(--text-main)' }}>{t('paymentverification.refuse') || 'Từ chối'}</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div style={{ marginBottom: 16 }}>
+                    <label className="acc-form-label">{t('paymentverification.feedback_for_small_businesses')}</label>
                     <textarea className="form-textarea" rows={3} value={disputeFeedback} onChange={e => setDisputeFeedback(e.target.value)} />
                   </div>
                   {disputeApprove && (
@@ -718,16 +736,16 @@ export default function PaymentVerification() {
                       {isRefund && (
                         <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 12 }}>
                           <div>
-                            <label className="form-label">
+                            <label className="acc-form-label">
                               {selectedItem.invoiceStatus === 'Paid' ? t('paymentverification.refund_amount_vnd') : t('paymentverification.deduction_amount_vnd')}
                             </label>
-                            <input type="number" className="form-input" min={0} value={refundAmount} onChange={e => setRefundAmount(e.target.value)} placeholder={t('paymentverification.enter_the_amount')} required={isRefund} />
+                            <input type="number" className="acc-input" min={0} value={refundAmount} onChange={e => setRefundAmount(e.target.value)} placeholder={t('paymentverification.enter_the_amount')} required={isRefund} />
                           </div>
                           
                           {selectedItem.invoiceStatus === 'Paid' && (
                             <>
                               <div>
-                                <label className="form-label">{t('paymentverification.completion_method')}</label>
+                                <label className="acc-form-label">{t('paymentverification.completion_method')}</label>
                                 <select className="form-select" value={refundMethod} onChange={e => setRefundMethod(e.target.value)}>
                                   <option value="Transfer">{t('paymentverification.transfer')}</option>
                                   <option value="Cash">{t('paymentverification.cash')}</option>
@@ -744,8 +762,8 @@ export default function PaymentVerification() {
                               )}
                               {refundMethod === 'Transfer' && (
                                 <div>
-                                  <label className="form-label">{t('paymentverification.transaction_code_if_any')}</label>
-                                  <input type="text" className="form-input" value={transactionCode} onChange={e => setTransactionCode(e.target.value)} placeholder="VD: FT2605..." />
+                                  <label className="acc-form-label">{t('paymentverification.transaction_code_if_any')}</label>
+                                  <input type="text" className="acc-input" value={transactionCode} onChange={e => setTransactionCode(e.target.value)} placeholder="VD: FT2605..." />
                                 </div>
                               )}
                             </>
@@ -756,10 +774,10 @@ export default function PaymentVerification() {
                   )}
                 </div>
               </div>
-              <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={() => setActiveModal(null)}>{t('paymentverification.cancel')}</button>
-                <button type="submit" className={`btn ${disputeApprove ? 'btn-success' : 'btn-danger'}`}>
-                  {disputeApprove ? <><ThumbsUp size={14} /> {t('paymentverification.accept')}</> : <><ThumbsDown size={14} /> {t('paymentverification.refuse')}</>}
+              <div className="acc-modal-footer">
+                <button type="button" className="acc-btn-secondary" onClick={() => setActiveModal(null)}>{t('paymentverification.cancel')}</button>
+                <button type="submit" className="acc-btn-primary">
+                  {t('paymentverification.confirm') || 'Xác nhận xử lý'}
                 </button>
               </div>
             </form>

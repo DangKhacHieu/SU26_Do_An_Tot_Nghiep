@@ -367,6 +367,19 @@ namespace STMM.Business.Services
             await _invoiceRepository.SaveChangesAsync(ct);
 
             var freshInvoice = await _invoiceRepository.GetInvoiceDetailsWithRelationsAsync(invoice.InvoiceId, ct);
+
+            if (freshInvoice?.Contract?.Vendor != null)
+            {
+                await _notificationService.CreateAsync(new CreateNotificationRequest
+                {
+                    CreatedByUserId = accountantUserId,
+                    TargetUserId = freshInvoice.Contract.Vendor.UserId,
+                    Title = "Thông báo: Hóa đơn mới đã được phát hành",
+                    Content = $"Hóa đơn kỳ {freshInvoice.Month}/{freshInvoice.Year} cho sạp {freshInvoice.Contract.Stall?.Code} đã được ban quản lý phát hành với tổng số tiền là {freshInvoice.TotalAmount:#,##0} VNĐ. Vui lòng thanh toán trước ngày {freshInvoice.DueDate?.ToString("dd/MM/yyyy")}.",
+                    NotiType = "Invoice"
+                }, ct);
+            }
+
             return MapInvoiceToDto(freshInvoice!);
         }
 
@@ -896,9 +909,7 @@ namespace STMM.Business.Services
                         invoice.TotalAmount -= request.RefundAmount.Value;
                         if (invoice.TotalAmount < 0) invoice.TotalAmount = 0;
                         
-                        _invoiceRepository.Update(invoice);
-                        
-                        refundMsg = $" Hóa đơn của bạn đã được điều chỉnh giảm trừ số tiền {request.RefundAmount.Value:#,##0} VNĐ.";
+                        refundMsg = $" Hóa đơn của bạn đã được giảm trừ {request.RefundAmount.Value:#,##0} VNĐ.";
                     }
                 }
             }
@@ -906,9 +917,12 @@ namespace STMM.Business.Services
             var targetUserId = dispute.Vendor?.UserId ?? 0;
             if (targetUserId > 0)
             {
+                var fb = request.Feedback ?? "";
+                if (fb.Length > 50) fb = fb.Substring(0, 47) + "..."; // Shorten feedback to avoid max length error
+
                 var content = request.Approve
-                    ? $"Kháng nghị hóa đơn sạp {dispute.Stall?.Code} của bạn đã ĐƯỢC CHẤP NHẬN.{refundMsg} Kế toán sẽ thực hiện điều chỉnh hóa đơn sớm nhất. Phản hồi: {request.Feedback}"
-                    : $"Kháng nghị hóa đơn sạp {dispute.Stall?.Code} của bạn đã BỊ TỪ CHỐI. Phản hồi của Kế toán: {request.Feedback ?? "Không chấp nhận yêu cầu"}";
+                    ? $"Kháng nghị sạp {dispute.Stall?.Code} ĐƯỢC CHẤP NHẬN.{refundMsg} Phản hồi: {fb}"
+                    : $"Kháng nghị sạp {dispute.Stall?.Code} BỊ TỪ CHỐI. Phản hồi: {fb}";
 
                 await _notificationService.CreateAsync(new CreateNotificationRequest
                 {

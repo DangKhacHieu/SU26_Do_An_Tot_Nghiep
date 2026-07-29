@@ -27,8 +27,7 @@ export default function ProfileManagement() {
     cccd: '001095009876',
     roleName: t('profilemanagement.professional_accountant'),
     department: t('profilemanagement.finance_accounting_department'),
-    office: t('profilemanagement.3rd_floor_stmm_executive'),
-    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=200'
+    office: t('profilemanagement.3rd_floor_stmm_executive')
   });
 
   // Password state
@@ -254,7 +253,7 @@ export default function ProfileManagement() {
         <div className="page-actions">
           <button 
             onClick={loadProfile}
-            className="btn btn-secondary btn-icon"
+            className="acc-btn-secondary btn-icon"
             title={t('profilemanagement.reload_profile')}
             disabled={loading}
           >
@@ -270,7 +269,7 @@ export default function ProfileManagement() {
             <AlertCircle size={16} className="alert-icon" />
             <span>{notification.message}</span>
           </div>
-          <button className="btn btn-ghost btn-sm btn-icon" onClick={() => setNotification(null)}>
+          <button className="acc-btn-ghost btn-sm btn-icon" onClick={() => setNotification(null)}>
             <X size={14} />
           </button>
         </div>
@@ -297,58 +296,74 @@ export default function ProfileManagement() {
           gap: '24px',
           alignItems: 'start'
         }}>
-          {/* Left Side: Avatar Card */}
-          <div className="card-padded" style={{
+          {/* Left Side: Profile Summary Card */}
+          <div className="acc-card" style={{
+            padding: '24px',
             display: 'flex',
             flexDirection: 'column',
-            alignItems: 'center',
-            gap: '24px',
-            textAlign: 'center'
+            gap: '24px'
           }}>
-            <div style={{ position: 'relative' }}>
-              <img
-                src={profile.avatar}
-                alt="Avatar"
-                style={{
-                  width: '120px',
-                  height: '120px',
-                  borderRadius: 'var(--radius-full)',
-                  objectFit: 'cover',
-                  border: '4px solid var(--primary-glow)',
-                  boxShadow: 'var(--shadow-md)'
-                }}
-              />
-            </div>
-            
-            <div style={{ width: '100%' }}>
-              <h3 style={{ fontSize: '20px', fontWeight: '700', color: 'var(--text-title)', marginBottom: '8px' }}>{profile.name}</h3>
-              <span className="badge badge-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                <Shield size={12} />
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+              <div style={{
+                width: '80px',
+                height: '80px',
+                borderRadius: '50%',
+                backgroundColor: 'var(--acc-primary-light)',
+                color: 'var(--acc-primary)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: '16px',
+                border: '4px solid var(--acc-bg-app)'
+              }}>
+                <UserIcon size={36} strokeWidth={1.5} />
+              </div>
+              
+              <h3 style={{ fontSize: '20px', fontWeight: '700', color: 'var(--acc-text-main)', marginBottom: '8px' }}>
+                {profile.name}
+              </h3>
+              <span className="acc-badge info" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '13px' }}>
+                <Shield size={14} />
                 {profile.roleName}
               </span>
             </div>
 
-            <div className="divider" style={{ margin: '8px 0', width: '100%' }}></div>
+            <div style={{ height: '1px', backgroundColor: 'var(--acc-border-color)', width: '100%' }}></div>
 
             <div style={{
-              width: '100%',
               display: 'flex',
               flexDirection: 'column',
               gap: '16px',
-              alignItems: 'flex-start',
-              fontSize: '13.5px'
+              fontSize: '14px'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--text-main)' }}>
-                <Briefcase size={16} style={{ color: 'var(--text-secondary)', flexShrink: 0 }} />
-                <span>{profile.department}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--acc-text-main)' }}>
+                <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: 'var(--acc-bg-app)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--acc-text-sub)' }}>
+                  <Briefcase size={16} />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <span style={{ fontSize: '12px', color: 'var(--acc-text-muted)' }}>{t('profilemanagement.department') || 'Phòng ban'}</span>
+                  <span style={{ fontWeight: '500' }}>{profile.department}</span>
+                </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--text-main)' }}>
-                <MapPin size={16} style={{ color: 'var(--text-secondary)', flexShrink: 0 }} />
-                <span>{profile.office}</span>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--acc-text-main)' }}>
+                <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: 'var(--acc-bg-app)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--acc-text-sub)' }}>
+                  <MapPin size={16} />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <span style={{ fontSize: '12px', color: 'var(--acc-text-muted)' }}>{t('profilemanagement.office') || 'Văn phòng'}</span>
+                  <span style={{ fontWeight: '500' }}>{profile.office}</span>
+                </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--text-main)' }}>
-                <CreditCard size={16} style={{ color: 'var(--text-secondary)', flexShrink: 0 }} />
-                <span>CCCD: {profile.cccd}</span>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--acc-text-main)' }}>
+                <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: 'var(--acc-bg-app)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--acc-text-sub)' }}>
+                  <CreditCard size={16} />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <span style={{ fontSize: '12px', color: 'var(--acc-text-muted)' }}>CCCD / ID</span>
+                  <span style={{ fontWeight: '500' }}>{profile.cccd}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -357,19 +372,20 @@ export default function ProfileManagement() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
             
             {/* Form 1: Edit Profile */}
-            <div className="card-padded">
-              <h3 style={{ fontSize: '18px', fontWeight: '700', color: 'var(--text-title)', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <UserIcon size={18} style={{ color: 'var(--primary)' }} /> {t('profilemanagement.personal_information')}</h3>
+            <div className="acc-card" style={{ padding: '24px' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: '700', color: 'var(--acc-text-main)', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <UserIcon size={18} style={{ color: 'var(--acc-primary)' }} /> {t('profilemanagement.personal_information')}
+              </h3>
               
               <form onSubmit={handleProfileSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <label className="form-label">{t('profilemanagement.employee_id_id')}</label>
+                    <label className="acc-form-label">{t('profilemanagement.employee_id_id')}</label>
                     <input
                       type="text"
                       disabled
                       value={`EMP-ACC-${String(profile.userId).padStart(3, '0')}`}
-                      className="form-input"
+                      className="acc-input"
                       style={{
                         backgroundColor: 'var(--bg-base)',
                         color: 'var(--text-muted)',
@@ -378,56 +394,57 @@ export default function ProfileManagement() {
                     />
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <label className="form-label">{t('profilemanagement.full_name')}</label>
+                    <label className="acc-form-label">{t('profilemanagement.full_name')}</label>
                     <input
                       type="text"
                       required
                       maxLength={100}
                       value={tempProfile.name}
                       onChange={(e) => setTempProfile({ ...tempProfile, name: e.target.value })}
-                      className="form-input"
+                      className="acc-input"
                     />
                   </div>
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <label className="form-label">{t('profilemanagement.contact_email')}</label>
+                    <label className="acc-form-label">{t('profilemanagement.contact_email')}</label>
                     <input
                       type="email"
                       required
                       maxLength={150}
                       value={tempProfile.email}
                       onChange={(e) => setTempProfile({ ...tempProfile, email: e.target.value })}
-                      className="form-input"
+                      className="acc-input"
                     />
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <label className="form-label">{t('profilemanagement.phone_number')}</label>
+                    <label className="acc-form-label">{t('profilemanagement.phone_number')}</label>
                     <input
                       type="text"
                       required
                       maxLength={20}
                       value={tempProfile.phone}
                       onChange={(e) => setTempProfile({ ...tempProfile, phone: e.target.value })}
-                      className="form-input"
+                      className="acc-input"
                     />
                   </div>
                 </div>
 
-                <button type="submit" className="btn btn-primary" style={{ alignSelf: 'flex-end', marginTop: '4px' }}>
+                <button type="submit" className="acc-btn-primary" style={{ alignSelf: 'flex-end', marginTop: '4px' }}>
                   <Save size={16} /> {t('profilemanagement.save_changes')}</button>
               </form>
             </div>
 
             {/* Form 2: Change Password */}
-            <div className="card-padded">
-              <h3 style={{ fontSize: '18px', fontWeight: '700', color: 'var(--text-title)', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Lock size={18} style={{ color: 'var(--primary)' }} /> {t('profilemanagement.change_password')}</h3>
+            <div className="acc-card" style={{ padding: '24px' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: '700', color: 'var(--acc-text-main)', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <Lock size={18} style={{ color: 'var(--acc-primary)' }} /> {t('profilemanagement.change_password')}
+              </h3>
               
               <form onSubmit={handlePasswordSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <label className="form-label">{t('profilemanagement.current_password')}</label>
+                  <label className="acc-form-label">{t('profilemanagement.current_password')}</label>
                   <input
                     type="password"
                     required
@@ -435,13 +452,13 @@ export default function ProfileManagement() {
                     value={password.current}
                     onChange={(e) => setPassword({ ...password, current: e.target.value })}
                     placeholder={t('profilemanagement.enter_your_current_password')}
-                    className="form-input"
+                    className="acc-input"
                   />
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <label className="form-label">{t('profilemanagement.new_password')}</label>
+                    <label className="acc-form-label">{t('profilemanagement.new_password')}</label>
                     <input
                       type="password"
                       required
@@ -450,11 +467,11 @@ export default function ProfileManagement() {
                       value={password.new}
                       onChange={(e) => setPassword({ ...password, new: e.target.value })}
                       placeholder={t('profilemanagement.minimum_6_characters')}
-                      className="form-input"
+                      className="acc-input"
                     />
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <label className="form-label">{t('profilemanagement.confirm_new_password')}</label>
+                    <label className="acc-form-label">{t('profilemanagement.confirm_new_password')}</label>
                     <input
                       type="password"
                       required
@@ -463,12 +480,12 @@ export default function ProfileManagement() {
                       value={password.confirm}
                       onChange={(e) => setPassword({ ...password, confirm: e.target.value })}
                       placeholder={t('profilemanagement.reenter_new_password')}
-                      className="form-input"
+                      className="acc-input"
                     />
                   </div>
                 </div>
 
-                <button type="submit" className="btn btn-primary" style={{ alignSelf: 'flex-end', marginTop: '4px' }}>
+                <button type="submit" className="acc-btn-primary" style={{ alignSelf: 'flex-end', marginTop: '4px' }}>
                   <Lock size={16} /> {t('profilemanagement.update_password')}</button>
               </form>
             </div>
@@ -481,14 +498,14 @@ export default function ProfileManagement() {
 
       {/* 1. Profile Update Confirmation */}
       {activeModal === 'confirm_profile' && (
-        <div className="modal-overlay">
+        <div className="acc-modal-overlay">
           <div className="modal-container modal-container-sm">
-            <div className="modal-header">
-              <h3 className="modal-title">{t('profilemanagement.confirmation_of_changes')}</h3>
-              <button onClick={() => setActiveModal(null)} className="modal-close-btn"><X size={16} /></button>
+            <div className="acc-modal-header">
+              <h3 className="acc-modal-title">{t('profilemanagement.confirmation_of_changes')}</h3>
+              <button onClick={() => setActiveModal(null)} className="acc-modal-close"><X size={16} /></button>
             </div>
             
-            <div className="modal-body">
+            <div className="acc-modal-body">
               {modalError && (
                 <div className="alert alert-danger" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', whiteSpace: 'pre-line' }}>
                   <AlertTriangle size={16} className="alert-icon" />
@@ -506,9 +523,9 @@ export default function ProfileManagement() {
               </div>
             </div>
             
-            <div className="modal-footer">
-              <button type="button" onClick={() => setActiveModal(null)} className="btn btn-secondary">{t('profilemanagement.cancel')}</button>
-              <button type="button" onClick={executeProfileSave} className="btn btn-primary">{t('profilemanagement.confirm_save')}</button>
+            <div className="acc-modal-footer">
+              <button type="button" onClick={() => setActiveModal(null)} className="acc-btn-secondary">{t('profilemanagement.cancel')}</button>
+              <button type="button" onClick={executeProfileSave} className="acc-btn-primary">{t('profilemanagement.confirm_save')}</button>
             </div>
           </div>
         </div>
@@ -516,14 +533,14 @@ export default function ProfileManagement() {
 
       {/* 2. Password Change Confirmation */}
       {activeModal === 'confirm_password' && (
-        <div className="modal-overlay">
+        <div className="acc-modal-overlay">
           <div className="modal-container modal-container-sm">
-            <div className="modal-header">
-              <h3 className="modal-title" style={{ color: 'var(--warning)' }}>{t('profilemanagement.confirm_password_change')}</h3>
-              <button onClick={() => setActiveModal(null)} className="modal-close-btn"><X size={16} /></button>
+            <div className="acc-modal-header">
+              <h3 className="acc-modal-title" style={{ color: 'var(--warning)' }}>{t('profilemanagement.confirm_password_change')}</h3>
+              <button onClick={() => setActiveModal(null)} className="acc-modal-close"><X size={16} /></button>
             </div>
             
-            <div className="modal-body">
+            <div className="acc-modal-body">
               {modalError && (
                 <div className="alert alert-danger" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', whiteSpace: 'pre-line' }}>
                   <AlertTriangle size={16} className="alert-icon" />
@@ -541,9 +558,9 @@ export default function ProfileManagement() {
               </div>
             </div>
             
-            <div className="modal-footer">
-              <button type="button" onClick={() => setActiveModal(null)} className="btn btn-secondary">{t('profilemanagement.cancel')}</button>
-              <button type="button" onClick={executePasswordChange} className="btn btn-primary" style={{ backgroundColor: 'var(--warning)', borderColor: 'var(--warning)' }}>{t('profilemanagement.change_password')}</button>
+            <div className="acc-modal-footer">
+              <button type="button" onClick={() => setActiveModal(null)} className="acc-btn-secondary">{t('profilemanagement.cancel')}</button>
+              <button type="button" onClick={executePasswordChange} className="acc-btn-primary" style={{ backgroundColor: 'var(--warning)', borderColor: 'var(--warning)' }}>{t('profilemanagement.change_password')}</button>
             </div>
           </div>
         </div>

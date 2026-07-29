@@ -137,14 +137,14 @@ export default function RepairPrice() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
       {/* Header */}
-      <div className="page-header">
+      <div className="page-header" style={{ display: "none" }}>
         <div>
           <h1 className="page-title">{t('repairprice.repair_price_list')}</h1>
           <p className="page-subtitle">{t('repairprice.set_technical_repair_unit')}</p>
         </div>
         <div className="page-actions">
           {activeTab === 'prices' && (
-            <button className="btn btn-primary" onClick={() => { setSelectedItem(null); setFormState({ itemName: '', unit: t('repairprice.female'), price: 0, description: '', isActive: true }); setModalError(null); setActiveModal('add'); }}>
+            <button className="acc-btn-primary" onClick={() => { setSelectedItem(null); setFormState({ itemName: '', unit: t('repairprice.female'), price: 0, description: '', isActive: true }); setModalError(null); setActiveModal('add'); }}>
               <Plus size={15} /> {t('repairprice.add_categories')}</button>
           )}
         </div>
@@ -155,7 +155,7 @@ export default function RepairPrice() {
         <div className={`alert alert-${notification.type}`}>
           <AlertCircle size={16} className="alert-icon" />
           <span style={{ flex: 1 }}>{notification.message}</span>
-          <button className="btn btn-ghost btn-sm btn-icon" onClick={() => setNotification(null)}><X size={14} /></button>
+          <button className="acc-btn-ghost btn-sm btn-icon" onClick={() => setNotification(null)}><X size={14} /></button>
         </div>
       )}
 
@@ -168,7 +168,7 @@ export default function RepairPrice() {
       )}
 
       {/* Search */}
-      <div className="card-padded" style={{ padding: '14px 20px' }}>
+      <div className="acc-card" style={{ padding: "20px" }} style={{ padding: '14px 20px' }}>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           <div className="search-wrapper" style={{ flex: '1 1 220px' }}>
             <Search size={14} className="search-icon-inner" />
@@ -176,12 +176,12 @@ export default function RepairPrice() {
               placeholder={t('repairprice.find_names_of_materials')}
               value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
           </div>
-          <span className="badge badge-neutral">{activeTab === 'prices' ? filteredPrices.length : filteredUsed.length} kết quả</span>
+          <span className="acc-badge neutral">{activeTab === 'prices' ? filteredPrices.length : filteredUsed.length} kết quả</span>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="tab-bar">
+      <div className="acc-tabs-header">
         {[{ id: 'prices', label: t('repairprice.list_of_unit_prices'), icon: Wrench }, { id: 'history', label: t('repairprice.supplies_used'), icon: History }].map(tab => {
           const Icon = tab.icon;
           return (
@@ -202,7 +202,7 @@ export default function RepairPrice() {
           {/* TAB 1: PRICES */}
           {activeTab === 'prices' && (
             <div className="card" style={{ overflow: 'hidden' }}>
-              <table className="data-table">
+              <table className="acc-table">
                 <thead>
                   <tr>
                     <th>{t('repairprice.name_of_material_item')}</th>
@@ -222,7 +222,7 @@ export default function RepairPrice() {
                       <tr key={item.repairPriceId} style={{ opacity: item.isActive ? 1 : 0.55 }}>
                         <td><strong style={{ fontSize: 13.5 }}>{item.itemName}</strong></td>
                         <td><span className={catBadge.cls}>{catBadge.label}</span></td>
-                        <td><span className="badge badge-neutral">{item.unit}</span></td>
+                        <td><span className="acc-badge neutral">{item.unit}</span></td>
                         <td className="text-right"><strong style={{ color: 'var(--primary)' }}>{item.price.toLocaleString('vi-VN')} ₫</strong></td>
                         <td><span style={{ color: 'var(--text-muted)', fontSize: 13 }}>{item.usageCount || 0} lần</span></td>
                         <td><span style={{ color: 'var(--text-muted)', fontSize: 13 }}>{item.description || '—'}</span></td>
@@ -233,10 +233,10 @@ export default function RepairPrice() {
                         </td>
                         <td className="text-right">
                           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
-                            <button className="btn btn-ghost btn-sm btn-icon" title={t('repairprice.update')} onClick={() => { setSelectedItem(item); setFormState({ itemName: item.itemName, unit: item.unit, price: item.price, description: item.description || '', isActive: item.isActive }); setActiveModal('edit'); }}>
+                            <button className="acc-btn-ghost btn-sm btn-icon" title={t('repairprice.update')} onClick={() => { setSelectedItem(item); setFormState({ itemName: item.itemName, unit: item.unit, price: item.price, description: item.description || '', isActive: item.isActive }); setActiveModal('edit'); }}>
                               <Edit3 size={14} />
                             </button>
-                            <button className="btn btn-ghost btn-sm btn-icon" title={t('repairprice.erase')} style={{ color: 'var(--danger)' }} onClick={() => { setSelectedItem(item); setActiveModal('delete'); }}>
+                            <button className="acc-btn-ghost btn-sm btn-icon" title={t('repairprice.erase')} style={{ color: 'var(--danger)' }} onClick={() => { setSelectedItem(item); setActiveModal('delete'); }}>
                               <Trash2 size={14} />
                             </button>
                           </div>
@@ -255,7 +255,7 @@ export default function RepairPrice() {
                   </span>
                   <div style={{ display: 'flex', gap: 6 }}>
                     <button 
-                      className="btn btn-secondary btn-sm" 
+                      className="acc-btn-secondary btn-sm" 
                       onClick={() => setPricesPage(prev => Math.max(prev - 1, 1))} 
                       disabled={pricesPage === 1}
                     >
@@ -270,7 +270,7 @@ export default function RepairPrice() {
                       </button>
                     ))}
                     <button 
-                      className="btn btn-secondary btn-sm" 
+                      className="acc-btn-secondary btn-sm" 
                       onClick={() => setPricesPage(prev => Math.min(prev + 1, Math.ceil(filteredPrices.length / itemsPerPage)))} 
                       disabled={pricesPage === Math.ceil(filteredPrices.length / itemsPerPage)}
                     >
@@ -285,7 +285,7 @@ export default function RepairPrice() {
           {/* TAB 2: USED TOOLS */}
           {activeTab === 'history' && (
             <div className="card" style={{ overflow: 'hidden' }}>
-              <table className="data-table">
+              <table className="acc-table">
                 <thead>
                   <tr>
                     <th>{t('repairprice.coupon_code')}</th>
@@ -322,7 +322,7 @@ export default function RepairPrice() {
                   </span>
                   <div style={{ display: 'flex', gap: 6 }}>
                     <button 
-                      className="btn btn-secondary btn-sm" 
+                      className="acc-btn-secondary btn-sm" 
                       onClick={() => setUsedPage(prev => Math.max(prev - 1, 1))} 
                       disabled={usedPage === 1}
                     >
@@ -337,7 +337,7 @@ export default function RepairPrice() {
                       </button>
                     ))}
                     <button 
-                      className="btn btn-secondary btn-sm" 
+                      className="acc-btn-secondary btn-sm" 
                       onClick={() => setUsedPage(prev => Math.min(prev + 1, Math.ceil(filteredUsed.length / itemsPerPage)))} 
                       disabled={usedPage === Math.ceil(filteredUsed.length / itemsPerPage)}
                     >
@@ -353,14 +353,14 @@ export default function RepairPrice() {
 
       {/* Modal: Add/Edit */}
       {(activeModal === 'add' || activeModal === 'edit') && (
-        <div className="modal-overlay" onClick={() => setActiveModal(null)}>
-          <div className="modal-container" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <span className="modal-title">{activeModal === 'edit' ? t('repairprice.edit') : t('repairprice.more')} Hạng mục Sửa chữa</span>
-              <button className="modal-close-btn" onClick={() => setActiveModal(null)}><X size={16} /></button>
+        <div className="acc-modal-overlay" onClick={() => setActiveModal(null)}>
+          <div className="acc-modal-container" onClick={e => e.stopPropagation()}>
+            <div className="acc-modal-header">
+              <span className="acc-modal-title">{activeModal === 'edit' ? t('repairprice.edit') : t('repairprice.more')} Hạng mục Sửa chữa</span>
+              <button className="acc-modal-close" onClick={() => setActiveModal(null)}><X size={16} /></button>
             </div>
             <form onSubmit={handleSubmit}>
-              <div className="modal-body">
+              <div className="acc-modal-body">
                 {modalError && (
                   <div className="alert alert-danger" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', whiteSpace: 'pre-line' }}>
                     <AlertTriangle size={16} className="alert-icon" />
@@ -368,26 +368,26 @@ export default function RepairPrice() {
                   </div>
                 )}
                 <div>
-                  <label className="form-label">{t('repairprice.material_name_item')}</label>
-                  <input type="text" className="form-input" required maxLength={100}
+                  <label className="acc-form-label">{t('repairprice.material_name_item')}</label>
+                  <input type="text" className="acc-input" required maxLength={100}
                     placeholder={t('repairprice.v_d_thay_th')}
                     value={formState.itemName} onChange={e => setFormState({ ...formState, itemName: e.target.value })} />
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                   <div>
-                    <label className="form-label">{t('repairprice.n_v_tnh')}</label>
+                    <label className="acc-form-label">{t('repairprice.n_v_tnh')}</label>
                     <select className="form-select" value={formState.unit} onChange={e => setFormState({ ...formState, unit: e.target.value })}>
                       {[t('repairprice.female'), t('repairprice.time'), t('repairprice.meter'), 'Kg', t('repairprice.set'), t('repairprice.bin'), 'm²'].map(u => <option key={u} value={u}>{u}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label className="form-label">{t('repairprice.unit_price_vnd')}</label>
-                    <input type="number" className="form-input" required min={0}
+                    <label className="acc-form-label">{t('repairprice.unit_price_vnd')}</label>
+                    <input type="number" className="acc-input" required min={0}
                       value={formState.price} onChange={e => setFormState({ ...formState, price: parseFloat(e.target.value) || 0 })} />
                   </div>
                 </div>
                 <div>
-                  <label className="form-label">{t('repairprice.detailed_description')}</label>
+                  <label className="acc-form-label">{t('repairprice.detailed_description')}</label>
                   <textarea className="form-textarea" rows={3} maxLength={500}
                     placeholder={t('repairprice.notes_on_coverage_warranty')}
                     value={formState.description} onChange={e => setFormState({ ...formState, description: e.target.value })} />
@@ -397,9 +397,9 @@ export default function RepairPrice() {
                   <label htmlFor="isActive-check" style={{ fontSize: 13.5, fontWeight: 500, cursor: 'pointer' }}>{t('repairprice.applying')}</label>
                 </div>
               </div>
-              <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={() => setActiveModal(null)}>{t('repairprice.cancel')}</button>
-                <button type="submit" className="btn btn-primary">{t('repairprice.save_changes')}</button>
+              <div className="acc-modal-footer">
+                <button type="button" className="acc-btn-secondary" onClick={() => setActiveModal(null)}>{t('repairprice.cancel')}</button>
+                <button type="submit" className="acc-btn-primary">{t('repairprice.save_changes')}</button>
               </div>
             </form>
           </div>
@@ -408,13 +408,13 @@ export default function RepairPrice() {
 
       {/* Modal: Delete Confirm */}
       {activeModal === 'delete' && selectedItem && (
-        <div className="modal-overlay" onClick={() => setActiveModal(null)}>
+        <div className="acc-modal-overlay" onClick={() => setActiveModal(null)}>
           <div className="modal-container modal-container-sm" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <span className="modal-title">{t('repairprice.confirm_deletion')}</span>
-              <button className="modal-close-btn" onClick={() => setActiveModal(null)}><X size={16} /></button>
+            <div className="acc-modal-header">
+              <span className="acc-modal-title">{t('repairprice.confirm_deletion')}</span>
+              <button className="acc-modal-close" onClick={() => setActiveModal(null)}><X size={16} /></button>
             </div>
-            <div className="modal-body">
+            <div className="acc-modal-body">
               {modalError && (
                 <div className="alert alert-danger" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', whiteSpace: 'pre-line' }}>
                   <AlertTriangle size={16} className="alert-icon" />
@@ -431,9 +431,9 @@ export default function RepairPrice() {
                 </div>
               </div>
             </div>
-            <div className="modal-footer">
-              <button className="btn btn-secondary" onClick={() => setActiveModal(null)}>{t('repairprice.cancel')}</button>
-              <button className="btn btn-danger" onClick={handleDelete} disabled={selectedItem.usageCount > 0}>{t('repairprice.confirm_deletion')}</button>
+            <div className="acc-modal-footer">
+              <button className="acc-btn-secondary" onClick={() => setActiveModal(null)}>{t('repairprice.cancel')}</button>
+              <button className="acc-btn-danger" onClick={handleDelete} disabled={selectedItem.usageCount > 0}>{t('repairprice.confirm_deletion')}</button>
             </div>
           </div>
         </div>

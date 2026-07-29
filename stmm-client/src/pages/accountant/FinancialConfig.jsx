@@ -403,8 +403,8 @@ export default function FinancialConfig() {
       };
       saveTiersToBackend(selectedTierKey, [newStep]);
     } else {
-      const maxStep = Math.max(...currentTiers.map(t => t.step));
-      const lastStep = currentTiers.find(t => t.step === maxStep);
+      const maxStep = Math.max(...currentTiers.map(tierItem => tierItem.step));
+      const lastStep = currentTiers.find(tierItem => tierItem.step === maxStep);
       
       if (!newTierLimit || newTierLimit.trim() === '') {
         setModalError(t('financialconfig.please_enter_a_new'));
@@ -418,11 +418,11 @@ export default function FinancialConfig() {
       }
 
       // Cập nhật bậc cuối hiện tại và tạo bậc tiếp theo
-      const updatedTiers = currentTiers.map(t => {
-        if (t.step === maxStep) {
-          return { ...t, to: limitVal };
+      const updatedTiers = currentTiers.map(tierItem => {
+        if (tierItem.step === maxStep) {
+          return { ...tierItem, to: limitVal };
         }
-        return t;
+        return tierItem;
       });
 
       const newStep = {
@@ -476,17 +476,17 @@ export default function FinancialConfig() {
   const deleteTierStep = (key, stepNum) => {
     const currentTiers = key === 'electricity_tiers' ? electricTiers : waterTiers;
     // We only allow deleting the LAST step to maintain contiguous indices
-    const maxStep = Math.max(...currentTiers.map(t => t.step));
+    const maxStep = Math.max(...currentTiers.map(tierItem => tierItem.step));
     if (stepNum !== maxStep) {
       showToast('error', t('financialconfig.you_are_only_allowed'));
       return;
     }
 
     if (window.confirm(t('financialconfig.are_you_sure_you'))) {
-      let updatedTiers = currentTiers.filter(t => t.step !== stepNum);
+      let updatedTiers = currentTiers.filter(tierItem => tierItem.step !== stepNum);
       // Ensure the new last step's "to" value is open-ended (null)
       if (updatedTiers.length > 0) {
-        updatedTiers = updatedTiers.map(t => t.step === maxStep - 1 ? { ...t, to: null } : t);
+        updatedTiers = updatedTiers.map(tierItem => tierItem.step === maxStep - 1 ? { ...tierItem, to: null } : tierItem);
       }
       saveTiersToBackend(key, updatedTiers);
     }
@@ -500,10 +500,10 @@ export default function FinancialConfig() {
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', width: '100%' }}>
+    <div className="acc-page-container">
 
       {/* Page Header */}
-      <div className="page-header">
+      <div className="page-header" style={{ display: "none" }}>
         <div>
           <h1 className="page-title">{t('financialconfig.financial_configuration')}</h1>
           <p className="page-subtitle">
@@ -536,13 +536,13 @@ export default function FinancialConfig() {
       )}
 
       {/* Tab Navigation */}
-      <div className="tab-bar">
+      <div className="acc-tabs-header">
         {tabs.map(tab => {
           const Icon = tab.icon;
           return (
             <button
               key={tab.id}
-              className={`tab-btn${activeTab === tab.id ? ' active' : ''}`}
+              className={`acc-tab-btn${activeTab === tab.id ? ' active' : ''}`}
               onClick={() => setActiveTab(tab.id)}
             >
               <Icon size={15} />
@@ -566,7 +566,7 @@ export default function FinancialConfig() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
 
               {/* System Config Cards */}
-              <div className="card-padded">
+              <div className="acc-card" style={{ padding: "20px" }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
                   <div style={{
                     width: '36px', height: '36px', borderRadius: 'var(--radius-md)',
@@ -591,12 +591,12 @@ export default function FinancialConfig() {
                       <h4 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--primary)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: 6 }}><Receipt size={16}/> {t('financialconfig.cycles_billing')}</h4>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                         <div>
-                          <label className="form-label" style={{ fontSize: 13, marginBottom: 4 }}>{t('financialconfig.closing_date_for_invoice')}</label>
-                          <input type="number" min="1" max="28" required className="form-input" style={{ width: '100%' }} value={configForm.auto_invoice_day} onChange={e => setConfigForm({...configForm, auto_invoice_day: e.target.value})} />
+                          <label className="acc-form-label" style={{ fontSize: 13, marginBottom: 4 }}>{t('financialconfig.closing_date_for_invoice')}</label>
+                          <input type="number" min="1" max="28" required className="acc-input" style={{ width: '100%' }} value={configForm.auto_invoice_day} onChange={e => setConfigForm({...configForm, auto_invoice_day: e.target.value})} />
                         </div>
                         <div>
-                          <label className="form-label" style={{ fontSize: 13, marginBottom: 4 }}>{t('financialconfig.invoice_payment_term_number')}</label>
-                          <input type="number" min="1" required className="form-input" style={{ width: '100%' }} value={configForm.invoice_due_days} onChange={e => setConfigForm({...configForm, invoice_due_days: e.target.value})} />
+                          <label className="acc-form-label" style={{ fontSize: 13, marginBottom: 4 }}>{t('financialconfig.invoice_payment_term_number')}</label>
+                          <input type="number" min="1" required className="acc-input" style={{ width: '100%' }} value={configForm.invoice_due_days} onChange={e => setConfigForm({...configForm, invoice_due_days: e.target.value})} />
                         </div>
                       </div>
                     </div>
@@ -606,12 +606,12 @@ export default function FinancialConfig() {
                       <h4 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--danger)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: 6 }}><AlertTriangle size={16}/> {t('financialconfig.notice_sanctions')}</h4>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                         <div>
-                          <label className="form-label" style={{ fontSize: 13, marginBottom: 4 }}>{t('financialconfig.reminder_before_deadline_number')}</label>
-                          <input type="number" min="0" required className="form-input" style={{ width: '100%' }} value={configForm.reminder_days_before_due} onChange={e => setConfigForm({...configForm, reminder_days_before_due: e.target.value})} />
+                          <label className="acc-form-label" style={{ fontSize: 13, marginBottom: 4 }}>{t('financialconfig.reminder_before_deadline_number')}</label>
+                          <input type="number" min="0" required className="acc-input" style={{ width: '100%' }} value={configForm.reminder_days_before_due} onChange={e => setConfigForm({...configForm, reminder_days_before_due: e.target.value})} />
                         </div>
                         <div>
-                          <label className="form-label" style={{ fontSize: 13, marginBottom: 4 }}>{t('financialconfig.late_penalty_interest_rate')}</label>
-                          <input type="number" step="0.01" min="0" required className="form-input" style={{ width: '100%' }} value={configForm.late_penalty_rate_per_day} onChange={e => setConfigForm({...configForm, late_penalty_rate_per_day: e.target.value})} />
+                          <label className="acc-form-label" style={{ fontSize: 13, marginBottom: 4 }}>{t('financialconfig.late_penalty_interest_rate')}</label>
+                          <input type="number" step="0.01" min="0" required className="acc-input" style={{ width: '100%' }} value={configForm.late_penalty_rate_per_day} onChange={e => setConfigForm({...configForm, late_penalty_rate_per_day: e.target.value})} />
                         </div>
                       </div>
                     </div>
@@ -621,8 +621,8 @@ export default function FinancialConfig() {
                       <h4 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--warning)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: 6 }}><CreditCard size={16}/> {t('financialconfig.general_taxes_fees')}</h4>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                         <div>
-                          <label className="form-label" style={{ fontSize: 13, marginBottom: 4 }}>{t('financialconfig.value_added_tax_vat')}</label>
-                          <input type="number" min="0" max="100" required className="form-input" style={{ width: '100%' }} value={configForm.vat_tax_rate} onChange={e => setConfigForm({...configForm, vat_tax_rate: e.target.value})} />
+                          <label className="acc-form-label" style={{ fontSize: 13, marginBottom: 4 }}>{t('financialconfig.value_added_tax_vat')}</label>
+                          <input type="number" min="0" max="100" required className="acc-input" style={{ width: '100%' }} value={configForm.vat_tax_rate} onChange={e => setConfigForm({...configForm, vat_tax_rate: e.target.value})} />
                         </div>
                       </div>
                     </div>
@@ -630,7 +630,7 @@ export default function FinancialConfig() {
                   </div>
                   
                   <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
-                    <button type="submit" className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <button type="submit" className="acc-btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <Save size={16} /> {t('financialconfig.save_system_configuration')}</button>
                   </div>
                 </form>
@@ -640,7 +640,7 @@ export default function FinancialConfig() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '22px' }}>
 
                 {/* Electricity Tiers */}
-                <div className="card-padded">
+                <div className="acc-card" style={{ padding: "20px" }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <div style={{
@@ -658,7 +658,7 @@ export default function FinancialConfig() {
                       </div>
                     </div>
                     <button
-                      className="btn btn-secondary btn-sm"
+                      className="acc-btn-secondary btn-sm"
                       onClick={() => {
                         setSelectedTierKey('electricity_tiers');
                         setNewTierPrice(2000);
@@ -670,7 +670,7 @@ export default function FinancialConfig() {
                       {t('financialconfig.add_steps')}</button>
                   </div>
 
-                  <table className="data-table">
+                  <table className="acc-table">
                     <thead>
                       <tr>
                         <th>{t('financialconfig.tier')}</th>
@@ -681,23 +681,23 @@ export default function FinancialConfig() {
                       </tr>
                     </thead>
                     <tbody>
-                      {electricTiers.map(t => (
-                        <tr key={t.step}>
+                      {electricTiers.map(tierItem => (
+                        <tr key={tierItem.step}>
                           <td>
-                            <span className="badge badge-warning">Bậc {t.step}</span>
+                            <span className="acc-badge warning">Bậc {tierItem.step}</span>
                           </td>
-                          <td style={{ fontWeight: '600', color: 'var(--text-title)' }}>{t.from}</td>
+                          <td style={{ fontWeight: '600', color: 'var(--text-title)' }}>{tierItem.from}</td>
                           <td style={{ color: 'var(--text-muted)' }}>
-                            {t.to === null ? <span className="badge badge-neutral">{t('financialconfig.infinite')}</span> : t.to}
+                            {tierItem.to === null ? <span className="acc-badge neutral">{t('financialconfig.infinite')}</span> : tierItem.to}
                           </td>
                           <td className="text-right" style={{ fontWeight: '700', color: 'var(--warning)' }}>
-                            {t.price.toLocaleString('vi-VN')} đ
+                            {tierItem.price.toLocaleString('vi-VN')} đ
                           </td>
                           <td className="text-right">
-                            {t.step === electricTiers.length && (
+                            {tierItem.step === electricTiers.length && tierItem.step > 1 && (
                               <button
-                                className="btn btn-ghost btn-sm"
-                                onClick={() => deleteTierStep('electricity_tiers', t.step)}
+                                className="acc-btn-ghost btn-sm"
+                                onClick={() => deleteTierStep('electricity_tiers', tierItem.step)}
                                 style={{ color: 'var(--danger)' }}
                               >
                                 <Trash2 size={13} />
@@ -711,7 +711,7 @@ export default function FinancialConfig() {
                 </div>
 
                 {/* Water Tiers */}
-                <div className="card-padded">
+                <div className="acc-card" style={{ padding: "20px" }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <div style={{
@@ -729,7 +729,7 @@ export default function FinancialConfig() {
                       </div>
                     </div>
                     <button
-                      className="btn btn-secondary btn-sm"
+                      className="acc-btn-secondary btn-sm"
                       onClick={() => {
                         setSelectedTierKey('water_tiers');
                         setNewTierPrice(12000);
@@ -741,7 +741,7 @@ export default function FinancialConfig() {
                       {t('financialconfig.add_steps')}</button>
                   </div>
 
-                  <table className="data-table">
+                  <table className="acc-table">
                     <thead>
                       <tr>
                         <th>{t('financialconfig.tier')}</th>
@@ -752,23 +752,23 @@ export default function FinancialConfig() {
                       </tr>
                     </thead>
                     <tbody>
-                      {waterTiers.map(t => (
-                        <tr key={t.step}>
+                      {waterTiers.map(tierItem => (
+                        <tr key={tierItem.step}>
                           <td>
-                            <span className="badge badge-info">Bậc {t.step}</span>
+                            <span className="acc-badge info">Bậc {tierItem.step}</span>
                           </td>
-                          <td style={{ fontWeight: '600', color: 'var(--text-title)' }}>{t.from}</td>
+                          <td style={{ fontWeight: '600', color: 'var(--text-title)' }}>{tierItem.from}</td>
                           <td style={{ color: 'var(--text-muted)' }}>
-                            {t.to === null ? <span className="badge badge-neutral">{t('financialconfig.infinite')}</span> : t.to}
+                            {tierItem.to === null ? <span className="acc-badge neutral">{t('financialconfig.infinite')}</span> : tierItem.to}
                           </td>
                           <td className="text-right" style={{ fontWeight: '700', color: 'var(--info)' }}>
-                            {t.price.toLocaleString('vi-VN')} đ
+                            {tierItem.price.toLocaleString('vi-VN')} đ
                           </td>
                           <td className="text-right">
-                            {t.step === waterTiers.length && (
+                            {tierItem.step === waterTiers.length && tierItem.step > 1 && (
                               <button
-                                className="btn btn-ghost btn-sm"
-                                onClick={() => deleteTierStep('water_tiers', t.step)}
+                                className="acc-btn-ghost btn-sm"
+                                onClick={() => deleteTierStep('water_tiers', tierItem.step)}
                                 style={{ color: 'var(--danger)' }}
                               >
                                 <Trash2 size={13} />
@@ -787,7 +787,7 @@ export default function FinancialConfig() {
 
           {/* ─── TAB 2: FEE TYPES ─── */}
           {activeTab === 'fees' && (
-            <div className="card-padded">
+            <div className="acc-card" style={{ padding: "20px" }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                 <div>
                   <h3 style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-title)', letterSpacing: '-0.02em' }}>
@@ -797,7 +797,7 @@ export default function FinancialConfig() {
                   </p>
                 </div>
                 <button
-                  className="btn btn-primary btn-sm"
+                  className="acc-btn-primary btn-sm"
                   onClick={() => {
                     setSelectedItem(null);
                     resetFeeForm({ name: '', unit: '', description: '' });
@@ -808,7 +808,7 @@ export default function FinancialConfig() {
                   {t('financialconfig.add_fees')}</button>
               </div>
 
-              <table className="data-table">
+              <table className="acc-table">
                 <thead>
                   <tr>
                     <th>{t('financialconfig.fee_code')}</th>
@@ -829,14 +829,14 @@ export default function FinancialConfig() {
                       <td style={{ fontWeight: '700', color: 'var(--text-title)' }}>{f.name}</td>
                       <td>
                         {f.unit
-                          ? <span className="badge badge-neutral">{f.unit}</span>
+                          ? <span className="acc-badge neutral">{f.unit}</span>
                           : <span style={{ color: 'var(--text-placeholder)' }}>—</span>}
                       </td>
                       <td style={{ color: 'var(--text-secondary)' }}>{f.description}</td>
                       <td className="text-right">
                         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px' }}>
                           <button
-                            className="btn btn-ghost btn-sm"
+                            className="acc-btn-ghost btn-sm"
                             onClick={() => {
                               setSelectedItem(f);
                               resetFeeForm({ name: f.name, unit: f.unit, description: f.description || '' });
@@ -847,7 +847,7 @@ export default function FinancialConfig() {
                             <Edit3 size={14} />
                           </button>
                           <button
-                            className="btn btn-ghost btn-sm"
+                            className="acc-btn-ghost btn-sm"
                             style={{ color: 'var(--danger)' }}
                             onClick={() => {
                               setSelectedItem(f);
@@ -870,7 +870,7 @@ export default function FinancialConfig() {
                   </span>
                   <div style={{ display: 'flex', gap: 6 }}>
                     <button 
-                      className="btn btn-secondary btn-sm" 
+                      className="acc-btn-secondary btn-sm" 
                       onClick={() => setFeeTypesPage(prev => Math.max(prev - 1, 1))} 
                       disabled={feeTypesPage === 1}
                     >
@@ -885,7 +885,7 @@ export default function FinancialConfig() {
                       </button>
                     ))}
                     <button 
-                      className="btn btn-secondary btn-sm" 
+                      className="acc-btn-secondary btn-sm" 
                       onClick={() => setFeeTypesPage(prev => Math.min(prev + 1, Math.ceil(feeTypes.length / itemsPerPage)))} 
                       disabled={feeTypesPage === Math.ceil(feeTypes.length / itemsPerPage)}
                     >
@@ -899,7 +899,7 @@ export default function FinancialConfig() {
 
           {/* ─── TAB 3: SERVICES ─── */}
           {activeTab === 'services' && (
-            <div className="card-padded">
+            <div className="acc-card" style={{ padding: "20px" }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                 <div>
                   <h3 style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-title)', letterSpacing: '-0.02em' }}>
@@ -909,7 +909,7 @@ export default function FinancialConfig() {
                   </p>
                 </div>
                 <button
-                  className="btn btn-primary btn-sm"
+                  className="acc-btn-primary btn-sm"
                   onClick={() => {
                     setSelectedItem(null);
                     setServiceForm({ name: '', description: '', price: 50000, billingCycle: 'Monthly', feeTypeId: feeTypes[0]?.feeTypeId || 1, isActive: true });
@@ -920,7 +920,7 @@ export default function FinancialConfig() {
                   {t('financialconfig.add_services')}</button>
               </div>
 
-              <table className="data-table">
+              <table className="acc-table">
                 <thead>
                   <tr>
                     <th>{t('financialconfig.service_name')}</th>
@@ -940,7 +940,7 @@ export default function FinancialConfig() {
                         <span className="badge badge-primary">{s.feeTypeName}</span>
                       </td>
                       <td>
-                        <span className="badge badge-neutral">
+                        <span className="acc-badge neutral">
                           {s.billingCycle === 'Monthly' ? t('financialconfig.monthly') : s.billingCycle === 'One-time' ? t('financialconfig.once') : t('financialconfig.annual')}
                         </span>
                       </td>
@@ -950,15 +950,15 @@ export default function FinancialConfig() {
                       <td style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>{s.description}</td>
                       <td>
                         {s.isActive !== false ? (
-                          <span className="badge badge-success" style={{ backgroundColor: '#e6f4ea', color: '#137333' }}>{t('financialconfig.active')}</span>
+                          <span className="acc-badge success" style={{ backgroundColor: '#e6f4ea', color: '#137333' }}>{t('financialconfig.active')}</span>
                         ) : (
-                          <span className="badge badge-neutral" style={{ backgroundColor: '#f1f3f4', color: '#5f6368' }}>{t('financialconfig.stop_working')}</span>
+                          <span className="acc-badge neutral" style={{ backgroundColor: '#f1f3f4', color: '#5f6368' }}>{t('financialconfig.stop_working')}</span>
                         )}
                       </td>
                       <td className="text-right">
                         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px' }}>
                           <button
-                            className="btn btn-ghost btn-sm"
+                            className="acc-btn-ghost btn-sm"
                             onClick={() => {
                               setSelectedItem(s);
                               setServiceForm({ name: s.name, description: s.description || '', price: s.price, billingCycle: s.billingCycle, feeTypeId: s.feeTypeId, isActive: s.isActive ?? true });
@@ -969,7 +969,7 @@ export default function FinancialConfig() {
                             <Edit3 size={14} />
                           </button>
                           <button
-                            className="btn btn-ghost btn-sm"
+                            className="acc-btn-ghost btn-sm"
                             style={{ color: 'var(--danger)' }}
                             onClick={() => {
                               setSelectedItem(s);
@@ -992,7 +992,7 @@ export default function FinancialConfig() {
                   </span>
                   <div style={{ display: 'flex', gap: 6 }}>
                     <button 
-                      className="btn btn-secondary btn-sm" 
+                      className="acc-btn-secondary btn-sm" 
                       onClick={() => setServicesPage(prev => Math.max(prev - 1, 1))} 
                       disabled={servicesPage === 1}
                     >
@@ -1007,7 +1007,7 @@ export default function FinancialConfig() {
                       </button>
                     ))}
                     <button 
-                      className="btn btn-secondary btn-sm" 
+                      className="acc-btn-secondary btn-sm" 
                       onClick={() => setServicesPage(prev => Math.min(prev + 1, Math.ceil(services.length / itemsPerPage)))} 
                       disabled={servicesPage === Math.ceil(services.length / itemsPerPage)}
                     >
@@ -1028,18 +1028,18 @@ export default function FinancialConfig() {
 
       {/* 1. Modal: Add / Edit Fee Type */}
       {activeModal === 'fee' && (
-        <div className="modal-overlay">
-          <div className="modal-container">
-            <div className="modal-header">
-              <h2 className="modal-title">
+        <div className="acc-modal-overlay">
+          <div className="acc-modal-container">
+            <div className="acc-modal-header">
+              <h2 className="acc-modal-title">
                 {selectedItem ? t('financialconfig.edit_fee_type') : t('financialconfig.add_new_fee_type')}
               </h2>
-              <button className="modal-close-btn" onClick={closeModal}>
+              <button className="acc-modal-close" onClick={closeModal}>
                 <X size={17} />
               </button>
             </div>
             <form onSubmit={handleFeeSubmit}>
-              <div className="modal-body">
+              <div className="acc-modal-body">
                 {modalError && (
                   <div className="alert alert-danger" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
                     <AlertTriangle size={16} className="alert-icon" style={{ flexShrink: 0 }} />
@@ -1047,7 +1047,7 @@ export default function FinancialConfig() {
                   </div>
                 )}
                 <div className="mb-3">
-                  <label className="form-label">{t('financialconfig.charge_name')}<span className="text-danger">*</span></label>
+                  <label className="acc-form-label">{t('financialconfig.charge_name')}<span className="text-danger">*</span></label>
                   <input 
                     type="text" 
                     className={`form-input ${feeErrors.name ? 'is-invalid' : ''}`}
@@ -1056,7 +1056,7 @@ export default function FinancialConfig() {
                   {feeErrors.name && <div style={{ color: 'var(--danger)', fontSize: '0.85rem' }}>{feeErrors.name.message}</div>}
                 </div>
                 <div className="mb-3">
-                  <label className="form-label">{t('financialconfig.unit_eg_kwh_m3')}<span className="text-danger">*</span></label>
+                  <label className="acc-form-label">{t('financialconfig.unit_eg_kwh_m3')}<span className="text-danger">*</span></label>
                   <input 
                     type="text" 
                     className={`form-input ${feeErrors.unit ? 'is-invalid' : ''}`}
@@ -1065,7 +1065,7 @@ export default function FinancialConfig() {
                   {feeErrors.unit && <div style={{ color: 'var(--danger)', fontSize: '0.85rem' }}>{feeErrors.unit.message}</div>}
                 </div>
                 <div className="mb-3">
-                  <label className="form-label">{t('financialconfig.describe')}</label>
+                  <label className="acc-form-label">{t('financialconfig.describe')}</label>
                   <textarea 
                     className={`form-textarea ${feeErrors.description ? 'is-invalid' : ''}`}
                     rows="3" 
@@ -1074,10 +1074,10 @@ export default function FinancialConfig() {
                   {feeErrors.description && <div style={{ color: 'var(--danger)', fontSize: '0.85rem' }}>{feeErrors.description.message}</div>}
                 </div>
               </div>
-              <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={closeModal}>
+              <div className="acc-modal-footer">
+                <button type="button" className="acc-btn-secondary" onClick={closeModal}>
                   {t('financialconfig.cancel')}</button>
-                <button type="submit" className="btn btn-primary">
+                <button type="submit" className="acc-btn-primary">
                   <Save size={14} />
                   {t('financialconfig.save_changes')}</button>
               </div>
@@ -1088,15 +1088,15 @@ export default function FinancialConfig() {
 
       {/* 2. Modal: Confirm Delete Fee Type */}
       {activeModal === 'confirm_delete_fee' && selectedItem && (
-        <div className="modal-overlay">
+        <div className="acc-modal-overlay">
           <div className="modal-container modal-container-sm">
-            <div className="modal-header">
-              <h2 className="modal-title">{t('financialconfig.confirm_fee_deletion')}</h2>
-              <button className="modal-close-btn" onClick={closeModal}>
+            <div className="acc-modal-header">
+              <h2 className="acc-modal-title">{t('financialconfig.confirm_fee_deletion')}</h2>
+              <button className="acc-modal-close" onClick={closeModal}>
                 <X size={17} />
               </button>
             </div>
-            <div className="modal-body">
+            <div className="acc-modal-body">
               {modalError && (
                 <div className="alert alert-danger" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
                   <AlertTriangle size={16} className="alert-icon" style={{ flexShrink: 0 }} />
@@ -1109,9 +1109,9 @@ export default function FinancialConfig() {
                   {t('financialconfig.are_you_sure_you')}<strong>"{selectedItem.name}"</strong>{t('financialconfig.this_action_may_affect')}</span>
               </div>
             </div>
-            <div className="modal-footer">
-              <button className="btn btn-secondary" onClick={closeModal}>{t('financialconfig.cancel')}</button>
-              <button className="btn btn-danger" onClick={deleteFeeType}>
+            <div className="acc-modal-footer">
+              <button className="acc-btn-secondary" onClick={closeModal}>{t('financialconfig.cancel')}</button>
+              <button className="acc-btn-danger" onClick={deleteFeeType}>
                 <Trash2 size={14} />
                 {t('financialconfig.confirm_deletion')}</button>
             </div>
@@ -1121,18 +1121,18 @@ export default function FinancialConfig() {
 
       {/* 3. Modal: Add / Edit Service */}
       {activeModal === 'service' && (
-        <div className="modal-overlay">
-          <div className="modal-container">
-            <div className="modal-header">
-              <h2 className="modal-title">
+        <div className="acc-modal-overlay">
+          <div className="acc-modal-container">
+            <div className="acc-modal-header">
+              <h2 className="acc-modal-title">
                 {selectedItem ? t('financialconfig.edit_service') : t('financialconfig.add_new_service')}
               </h2>
-              <button className="modal-close-btn" onClick={closeModal}>
+              <button className="acc-modal-close" onClick={closeModal}>
                 <X size={17} />
               </button>
             </div>
             <form onSubmit={handleServiceSubmit}>
-              <div className="modal-body">
+              <div className="acc-modal-body">
                 {modalError && (
                   <div className="alert alert-danger" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
                     <AlertTriangle size={16} className="alert-icon" style={{ flexShrink: 0 }} />
@@ -1140,9 +1140,9 @@ export default function FinancialConfig() {
                   </div>
                 )}
                 <div>
-                  <label className="form-label">{t('financialconfig.service_name')}<span style={{ color: 'var(--danger)' }}>*</span></label>
+                  <label className="acc-form-label">{t('financialconfig.service_name')}<span style={{ color: 'var(--danger)' }}>*</span></label>
                   <input
-                    className="form-input"
+                    className="acc-input"
                     type="text"
                     required
                     maxLength={150}
@@ -1154,9 +1154,9 @@ export default function FinancialConfig() {
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                   <div>
-                    <label className="form-label">{t('financialconfig.service_unit_price_vnd')}<span style={{ color: 'var(--danger)' }}>*</span></label>
+                    <label className="acc-form-label">{t('financialconfig.service_unit_price_vnd')}<span style={{ color: 'var(--danger)' }}>*</span></label>
                     <input
-                      className="form-input"
+                      className="acc-input"
                       type="number"
                       required
                       min={0}
@@ -1165,7 +1165,7 @@ export default function FinancialConfig() {
                     />
                   </div>
                   <div>
-                    <label className="form-label">{t('financialconfig.charge_cycle')}</label>
+                    <label className="acc-form-label">{t('financialconfig.charge_cycle')}</label>
                     <select
                       className="form-select"
                       value={serviceForm.billingCycle}
@@ -1179,7 +1179,7 @@ export default function FinancialConfig() {
                 </div>
 
                 <div>
-                  <label className="form-label">{t('financialconfig.invoicing_link_fee_type')}</label>
+                  <label className="acc-form-label">{t('financialconfig.invoicing_link_fee_type')}</label>
                   <select
                     className="form-select"
                     value={serviceForm.feeTypeId}
@@ -1193,7 +1193,7 @@ export default function FinancialConfig() {
 
                 {selectedItem && (
                   <div>
-                    <label className="form-label">{t('financialconfig.operating_status')}</label>
+                    <label className="acc-form-label">{t('financialconfig.operating_status')}</label>
                     <select
                       className="form-select"
                       value={serviceForm.isActive ? "true" : "false"}
@@ -1206,7 +1206,7 @@ export default function FinancialConfig() {
                 )}
 
                 <div>
-                  <label className="form-label">{t('financialconfig.service_description')}</label>
+                  <label className="acc-form-label">{t('financialconfig.service_description')}</label>
                   <textarea
                     className="form-textarea"
                     value={serviceForm.description}
@@ -1217,9 +1217,9 @@ export default function FinancialConfig() {
                   />
                 </div>
               </div>
-              <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={closeModal}>{t('financialconfig.cancel')}</button>
-                <button type="submit" className="btn btn-primary">
+              <div className="acc-modal-footer">
+                <button type="button" className="acc-btn-secondary" onClick={closeModal}>{t('financialconfig.cancel')}</button>
+                <button type="submit" className="acc-btn-primary">
                   <Save size={14} />
                   {t('financialconfig.save_service')}</button>
               </div>
@@ -1230,15 +1230,15 @@ export default function FinancialConfig() {
 
       {/* 4. Modal: Confirm Delete Service */}
       {activeModal === 'confirm_delete_srv' && selectedItem && (
-        <div className="modal-overlay">
+        <div className="acc-modal-overlay">
           <div className="modal-container modal-container-sm">
-            <div className="modal-header">
-              <h2 className="modal-title">{t('financialconfig.confirm_service_discontinuation')}</h2>
-              <button className="modal-close-btn" onClick={closeModal}>
+            <div className="acc-modal-header">
+              <h2 className="acc-modal-title">{t('financialconfig.confirm_service_discontinuation')}</h2>
+              <button className="acc-modal-close" onClick={closeModal}>
                 <X size={17} />
               </button>
             </div>
-            <div className="modal-body">
+            <div className="acc-modal-body">
               {modalError && (
                 <div className="alert alert-danger" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
                   <AlertTriangle size={16} className="alert-icon" style={{ flexShrink: 0 }} />
@@ -1254,9 +1254,9 @@ export default function FinancialConfig() {
                 </div>
               </div>
             </div>
-            <div className="modal-footer">
-              <button className="btn btn-secondary" onClick={closeModal}>{t('financialconfig.cancel')}</button>
-              <button className="btn btn-danger" onClick={deleteService}>
+            <div className="acc-modal-footer">
+              <button className="acc-btn-secondary" onClick={closeModal}>{t('financialconfig.cancel')}</button>
+              <button className="acc-btn-danger" onClick={deleteService}>
                 <Trash2 size={14} />
                 {t('financialconfig.stop_working')}</button>
             </div>
@@ -1266,16 +1266,16 @@ export default function FinancialConfig() {
 
       {/* 5. Modal: Edit System Config */}
       {activeModal === 'sys_edit' && selectedItem && (
-        <div className="modal-overlay">
+        <div className="acc-modal-overlay">
           <div className="modal-container modal-container-sm">
-            <div className="modal-header">
-              <h2 className="modal-title">{t('financialconfig.edit_system_parameters')}</h2>
-              <button className="modal-close-btn" onClick={closeModal}>
+            <div className="acc-modal-header">
+              <h2 className="acc-modal-title">{t('financialconfig.edit_system_parameters')}</h2>
+              <button className="acc-modal-close" onClick={closeModal}>
                 <X size={17} />
               </button>
             </div>
             <form onSubmit={handleSysSubmit}>
-              <div className="modal-body">
+              <div className="acc-modal-body">
                 {modalError && (
                   <div className="alert alert-danger" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
                     <AlertTriangle size={16} className="alert-icon" style={{ flexShrink: 0 }} />
@@ -1305,7 +1305,7 @@ export default function FinancialConfig() {
                 </div>
 
                 <div>
-                  <label className="form-label">{t('financialconfig.setting_value')}<span style={{ color: 'var(--danger)' }}>*</span></label>
+                  <label className="acc-form-label">{t('financialconfig.setting_value')}<span style={{ color: 'var(--danger)' }}>*</span></label>
                   {sysForm.configKey === 'auto_invoice_day' ? (
                     <select
                       className="form-select"
@@ -1331,7 +1331,7 @@ export default function FinancialConfig() {
                     </select>
                   ) : (
                     <input
-                      className="form-input"
+                      className="acc-input"
                       type="text"
                       required
                       maxLength={255}
@@ -1341,9 +1341,9 @@ export default function FinancialConfig() {
                   )}
                 </div>
               </div>
-              <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={closeModal}>{t('financialconfig.cancel')}</button>
-                <button type="submit" className="btn btn-primary">
+              <div className="acc-modal-footer">
+                <button type="button" className="acc-btn-secondary" onClick={closeModal}>{t('financialconfig.cancel')}</button>
+                <button type="submit" className="acc-btn-primary">
                   <Save size={14} />
                   {t('financialconfig.save_configuration')}</button>
               </div>
@@ -1354,13 +1354,13 @@ export default function FinancialConfig() {
 
       {/* 6. Modal: Add Tier Step */}
       {activeModal === 'tier_add' && (
-        <div className="modal-overlay">
+        <div className="acc-modal-overlay">
           <div className="modal-container modal-container-sm">
-            <div className="modal-header">
-              <h2 className="modal-title">
+            <div className="acc-modal-header">
+              <h2 className="acc-modal-title">
                 Thêm bậc giá {selectedTierKey === 'electricity_tiers' ? t('financialconfig.electricity') : t('financialconfig.water')} mới
               </h2>
-              <button className="modal-close-btn" onClick={closeModal}>
+              <button className="acc-modal-close" onClick={closeModal}>
                 <X size={17} />
               </button>
             </div>
@@ -1371,7 +1371,7 @@ export default function FinancialConfig() {
 
               return (
                 <form onSubmit={handleAddTierStep}>
-                  <div className="modal-body">
+                  <div className="acc-modal-body">
                     {modalError && (
                         <div className="alert alert-danger" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', whiteSpace: 'pre-line' }}>
                           <AlertTriangle size={16} className="alert-icon" />
@@ -1398,11 +1398,11 @@ export default function FinancialConfig() {
 
                     {hasTiers && (
                       <div>
-                        <label className="form-label">
+                        <label className="acc-form-label">
                           Giới hạn kết thúc mới cho Bậc {lastStep.step} <span style={{ color: 'var(--danger)' }}>*</span>
                         </label>
                         <input
-                          className="form-input"
+                          className="acc-input"
                           type="number"
                           required
                           min={lastStep.from + 1}
@@ -1414,11 +1414,11 @@ export default function FinancialConfig() {
                     )}
 
                     <div>
-                      <label className="form-label">
+                      <label className="acc-form-label">
                         Đơn giá áp dụng cho {hasTiers ? `Bậc ${lastStep.step + 1} mới (từ ${newTierLimit ? parseInt(newTierLimit) + 1 : '...'} trở đi)` : t('financialconfig.level_1_from_0')} (đ/{selectedTierKey === 'electricity_tiers' ? 'kWh' : 'm³'}) <span style={{ color: 'var(--danger)' }}>*</span>
                       </label>
                       <input
-                        className="form-input"
+                        className="acc-input"
                         type="number"
                         required
                         min="0"
@@ -1428,9 +1428,9 @@ export default function FinancialConfig() {
                       />
                     </div>
                   </div>
-                  <div className="modal-footer">
-                    <button type="button" className="btn btn-secondary" onClick={closeModal}>{t('financialconfig.cancel')}</button>
-                    <button type="submit" className="btn btn-primary">
+                  <div className="acc-modal-footer">
+                    <button type="button" className="acc-btn-secondary" onClick={closeModal}>{t('financialconfig.cancel')}</button>
+                    <button type="submit" className="acc-btn-primary">
                       <Plus size={14} />
                       {t('financialconfig.confirm_additional_steps')}</button>
                   </div>

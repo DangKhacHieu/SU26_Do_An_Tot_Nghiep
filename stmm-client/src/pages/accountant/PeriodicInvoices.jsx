@@ -233,19 +233,19 @@ export default function PeriodicInvoices() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
       {/* Header */}
-      <div className="page-header">
+      <div className="acc-page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <div>
-          <h1 className="page-title">{t('periodicinvoices.ha_n_nh_k')}</h1>
-          <p className="page-subtitle">{t('periodicinvoices.manage_close_issuance_books')}</p>
+          <h1 className="acc-page-title">{t('periodicinvoices.ha_n_nh_k')}</h1>
+          <p className="acc-page-subtitle">{t('periodicinvoices.manage_close_issuance_books')}</p>
         </div>
-        <div className="page-actions">
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
           {selectedIds.length > 0 && (
             <button className="btn btn-success" onClick={() => setActiveModal('bulk')}>
               <CheckCircle size={15} />
               <span>Phát Hành Hàng Loạt ({selectedIds.length})</span>
             </button>
           )}
-          <button className="btn btn-primary" onClick={() => setActiveModal('adhoc')}>
+          <button className="acc-btn-primary" onClick={() => setActiveModal('adhoc')}>
             <Plus size={15} />
             <span>{t('periodicinvoices.unexpected_bills')}</span>
           </button>
@@ -270,7 +270,7 @@ export default function PeriodicInvoices() {
       )}
 
       {/* Filter Bar */}
-      <div className="card-padded" style={{ padding: '16px 20px' }}>
+      <div className="acc-card" style={{ padding: "20px" }} style={{ padding: '16px 20px' }}>
         <form onSubmit={(e) => { e.preventDefault(); fetchInvoices(); }}
           style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
           <div className="search-wrapper" style={{ flex: '1 1 220px' }}>
@@ -292,7 +292,7 @@ export default function PeriodicInvoices() {
             <option value="Paid">{t('periodicinvoices.paid')}</option>
             <option value="Overdue">{t('periodicinvoices.qu_hn_overdue')}</option>
           </select>
-          <button type="submit" className="btn btn-primary btn-sm">{t('periodicinvoices.filter')}</button>
+          <button type="submit" className="acc-btn-primary btn-sm">{t('periodicinvoices.filter')}</button>
         </form>
       </div>
 
@@ -304,7 +304,7 @@ export default function PeriodicInvoices() {
         </div>
       ) : (
         <div className="card" style={{ overflow: 'hidden' }}>
-          <table className="data-table">
+          <table className="acc-table">
             <thead>
               <tr>
                 <th style={{ width: 40, padding: '11px 16px' }}>
@@ -340,7 +340,7 @@ export default function PeriodicInvoices() {
                     <td><span className={cls}>{label}</span></td>
                     <td className="text-right">
                       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
-                        <button className="btn btn-secondary btn-sm" onClick={() => openDetails(inv)}>
+                        <button className="acc-btn-secondary btn-sm" onClick={() => openDetails(inv)}>
                           <Eye size={13} /> {t('periodicinvoices.detail')}</button>
                         {(inv.status === 'Draft' || inv.status === 'Unpaid') && (
                           <>
@@ -374,7 +374,7 @@ export default function PeriodicInvoices() {
               </span>
               <div style={{ display: 'flex', gap: 6 }}>
                 <button 
-                  className="btn btn-secondary btn-sm" 
+                  className="acc-btn-secondary btn-sm" 
                   onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} 
                   disabled={currentPage === 1}
                 >
@@ -389,7 +389,7 @@ export default function PeriodicInvoices() {
                   </button>
                 ))}
                 <button 
-                  className="btn btn-secondary btn-sm" 
+                  className="acc-btn-secondary btn-sm" 
                   onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(invoices.length / itemsPerPage)))} 
                   disabled={currentPage === Math.ceil(invoices.length / itemsPerPage)}
                 >
@@ -403,13 +403,13 @@ export default function PeriodicInvoices() {
 
       {/* Modal: Invoice Details */}
       {activeModal === 'details' && selectedInvoice && (
-        <div className="modal-overlay" onClick={() => setActiveModal(null)}>
+        <div className="acc-modal-overlay" onClick={() => setActiveModal(null)}>
           <div className="modal-container modal-container-lg" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <span className="modal-title">Chi Tiết Hóa Đơn — INV-{selectedInvoice.invoiceId}</span>
-              <button className="modal-close-btn" onClick={() => setActiveModal(null)}><X size={16} /></button>
+            <div className="acc-modal-header">
+              <span className="acc-modal-title">Chi Tiết Hóa Đơn — INV-{selectedInvoice.invoiceId}</span>
+              <button className="acc-modal-close" onClick={() => setActiveModal(null)}><X size={16} /></button>
             </div>
-            <div className="modal-body" style={{ maxHeight: '60vh', overflowY: 'auto' }}>
+            <div className="acc-modal-body" style={{ maxHeight: '60vh', overflowY: 'auto' }}>
               {modalError && (
                 <div className="alert alert-danger" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', whiteSpace: 'pre-line' }}>
                   <AlertTriangle size={16} className="alert-icon" />
@@ -422,7 +422,7 @@ export default function PeriodicInvoices() {
                 <div><span style={{ color: 'var(--text-muted)' }}>{t('periodicinvoices.submission_deadline')}</span>{selectedInvoice.dueDate || t('periodicinvoices.not_regulated')}</div>
                 <div><span style={{ color: 'var(--text-muted)' }}>{t('periodicinvoices.status')}</span><span className={getStatusBadge(selectedInvoice.status).cls}>{getStatusBadge(selectedInvoice.status).label}</span></div>
               </div>
-              <table className="data-table">
+              <table className="acc-table">
                 <thead>
                   <tr>
                     <th>{t('periodicinvoices.fees')}</th>
@@ -449,8 +449,8 @@ export default function PeriodicInvoices() {
                 </tbody>
               </table>
             </div>
-            <div className="modal-footer">
-              <button className="btn btn-secondary" onClick={() => setActiveModal(null)}>{t('periodicinvoices.close')}</button>
+            <div className="acc-modal-footer">
+              <button className="acc-btn-secondary" onClick={() => setActiveModal(null)}>{t('periodicinvoices.close')}</button>
             </div>
           </div>
         </div>
@@ -458,14 +458,14 @@ export default function PeriodicInvoices() {
 
       {/* Modal: Cancel Invoice */}
       {activeModal === 'cancel' && selectedInvoice && (
-        <div className="modal-overlay" onClick={() => setActiveModal(null)}>
-          <div className="modal-container" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <span className="modal-title">Hủy Hóa Đơn — INV-{selectedInvoice.invoiceId}</span>
-              <button className="modal-close-btn" onClick={() => setActiveModal(null)}><X size={16} /></button>
+        <div className="acc-modal-overlay" onClick={() => setActiveModal(null)}>
+          <div className="acc-modal-container" onClick={e => e.stopPropagation()}>
+            <div className="acc-modal-header">
+              <span className="acc-modal-title">Hủy Hóa Đơn — INV-{selectedInvoice.invoiceId}</span>
+              <button className="acc-modal-close" onClick={() => setActiveModal(null)}><X size={16} /></button>
             </div>
             <form onSubmit={handleCancelInvoice}>
-              <div className="modal-body">
+              <div className="acc-modal-body">
                 {modalError && (
                   <div className="alert alert-danger" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', whiteSpace: 'pre-line' }}>
                     <AlertTriangle size={16} className="alert-icon" />
@@ -477,9 +477,9 @@ export default function PeriodicInvoices() {
                   <span>{t('periodicinvoices.this_action_will_cancel')}</span>
                 </div>
                 <div>
-                  <label className="form-label">{t('periodicinvoices.reason_for_cancellation_will')}</label>
+                  <label className="acc-form-label">{t('periodicinvoices.reason_for_cancellation_will')}</label>
                   <textarea 
-                    className="form-input" 
+                    className="acc-input" 
                     rows={3} 
                     style={{ width: '100%', resize: 'vertical' }}
                     placeholder={t('periodicinvoices.for_example_wrong_electricity')}
@@ -488,8 +488,8 @@ export default function PeriodicInvoices() {
                   />
                 </div>
               </div>
-              <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={() => setActiveModal(null)}>{t('periodicinvoices.close')}</button>
+              <div className="acc-modal-footer">
+                <button type="button" className="acc-btn-secondary" onClick={() => setActiveModal(null)}>{t('periodicinvoices.close')}</button>
                 <button type="submit" className="btn" style={{ background: 'var(--danger)', color: '#fff', border: 'none' }}>{t('periodicinvoices.confirm_cancel')}</button>
               </div>
             </form>
@@ -499,14 +499,14 @@ export default function PeriodicInvoices() {
 
       {/* Modal: Meter Adjust */}
       {activeModal === 'adjust' && selectedInvoice && (
-        <div className="modal-overlay" onClick={() => setActiveModal(null)}>
-          <div className="modal-container" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <span className="modal-title">Điều Chỉnh Chỉ Số — {selectedInvoice.stallCode}</span>
-              <button className="modal-close-btn" onClick={() => setActiveModal(null)}><X size={16} /></button>
+        <div className="acc-modal-overlay" onClick={() => setActiveModal(null)}>
+          <div className="acc-modal-container" onClick={e => e.stopPropagation()}>
+            <div className="acc-modal-header">
+              <span className="acc-modal-title">Điều Chỉnh Chỉ Số — {selectedInvoice.stallCode}</span>
+              <button className="acc-modal-close" onClick={() => setActiveModal(null)}><X size={16} /></button>
             </div>
             <form onSubmit={handleAdjustSubmit}>
-              <div className="modal-body">
+              <div className="acc-modal-body">
               {modalError && (
                 <div className="alert alert-danger" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', whiteSpace: 'pre-line' }}>
                   <AlertTriangle size={16} className="alert-icon" />
@@ -518,7 +518,7 @@ export default function PeriodicInvoices() {
                   <span>Sửa sai chỉ số Điện/Nước. Hóa đơn tháng {selectedInvoice.month}/{selectedInvoice.year} sẽ tự động tính lại.</span>
                 </div>
                 <div>
-                  <label className="form-label">{t('periodicinvoices.meter_type')}</label>
+                  <label className="acc-form-label">{t('periodicinvoices.meter_type')}</label>
                   <select className="form-select" value={adjustForm.meterType} onChange={e => setAdjustForm({ ...adjustForm, meterType: e.target.value })}>
                     <option value="Electricity">{t('periodicinvoices.electricity_kwh')}</option>
                     <option value="Water">{t('periodicinvoices.water_m')}</option>
@@ -526,13 +526,13 @@ export default function PeriodicInvoices() {
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                   <div>
-                    <label className="form-label">{t('periodicinvoices.old_index_beginning_of')}</label>
-                    <input type="number" className="form-input" required min={0} value={adjustForm.oldValue}
+                    <label className="acc-form-label">{t('periodicinvoices.old_index_beginning_of')}</label>
+                    <input type="number" className="acc-input" required min={0} value={adjustForm.oldValue}
                       onChange={e => setAdjustForm({ ...adjustForm, oldValue: parseFloat(e.target.value) || 0 })} />
                   </div>
                   <div>
-                    <label className="form-label">{t('periodicinvoices.new_index')}</label>
-                    <input type="number" className="form-input" required min={0} value={adjustForm.newValue}
+                    <label className="acc-form-label">{t('periodicinvoices.new_index')}</label>
+                    <input type="number" className="acc-input" required min={0} value={adjustForm.newValue}
                       onChange={e => setAdjustForm({ ...adjustForm, newValue: parseFloat(e.target.value) || 0 })} />
                   </div>
                 </div>
@@ -542,9 +542,9 @@ export default function PeriodicInvoices() {
                   </div>
                 )}
               </div>
-              <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={() => setActiveModal(null)}>{t('periodicinvoices.cancel')}</button>
-                <button type="submit" className="btn btn-primary">{t('periodicinvoices.update_recalculate')}</button>
+              <div className="acc-modal-footer">
+                <button type="button" className="acc-btn-secondary" onClick={() => setActiveModal(null)}>{t('periodicinvoices.cancel')}</button>
+                <button type="submit" className="acc-btn-primary">{t('periodicinvoices.update_recalculate')}</button>
               </div>
             </form>
           </div>
@@ -553,14 +553,14 @@ export default function PeriodicInvoices() {
 
       {/* Modal: Ad-hoc Invoice */}
       {activeModal === 'adhoc' && (
-        <div className="modal-overlay" onClick={() => setActiveModal(null)}>
-          <div className="modal-container" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <span className="modal-title">{t('periodicinvoices.issuing_unscheduled_invoices')}</span>
-              <button className="modal-close-btn" onClick={() => setActiveModal(null)}><X size={16} /></button>
+        <div className="acc-modal-overlay" onClick={() => setActiveModal(null)}>
+          <div className="acc-modal-container" onClick={e => e.stopPropagation()}>
+            <div className="acc-modal-header">
+              <span className="acc-modal-title">{t('periodicinvoices.issuing_unscheduled_invoices')}</span>
+              <button className="acc-modal-close" onClick={() => setActiveModal(null)}><X size={16} /></button>
             </div>
             <form onSubmit={handleAdhocSubmit}>
-              <div className="modal-body">
+              <div className="acc-modal-body">
               {modalError && (
                 <div className="alert alert-danger" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', whiteSpace: 'pre-line' }}>
                   <AlertTriangle size={16} className="alert-icon" />
@@ -569,8 +569,8 @@ export default function PeriodicInvoices() {
               )}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                   <div>
-                    <label className="form-label">{t('periodicinvoices.store_codename')}</label>
-                    <input type="text" list="stall-list" className="form-input" required placeholder={t('periodicinvoices.enter_to_search_for')}
+                    <label className="acc-form-label">{t('periodicinvoices.store_codename')}</label>
+                    <input type="text" list="stall-list" className="acc-input" required placeholder={t('periodicinvoices.enter_to_search_for')}
                       value={adhocForm.stallSearch || ''}
                       onChange={e => {
                         const val = e.target.value;
@@ -584,7 +584,7 @@ export default function PeriodicInvoices() {
                     {adhocForm.stallSearch && !adhocForm.stallId && <small style={{ color: 'var(--text-danger)', marginTop: '4px', display: 'block' }}>{t('periodicinvoices.please_select_a_valid')}</small>}
                   </div>
                   <div>
-                    <label className="form-label">{t('periodicinvoices.type_of_fee_incurred')}</label>
+                    <label className="acc-form-label">{t('periodicinvoices.type_of_fee_incurred')}</label>
                     <select className="form-select" required value={adhocForm.feeTypeId} onChange={e => setAdhocForm({ ...adhocForm, feeTypeId: parseInt(e.target.value) })}>
                       <option value="">{t('periodicinvoices.select_fee_type')}</option>
                       {availableFeeTypes.map(f => (
@@ -595,27 +595,27 @@ export default function PeriodicInvoices() {
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                   <div>
-                    <label className="form-label">{t('periodicinvoices.amount_vnd')}</label>
-                    <input type="number" className="form-input" required min={1} value={adhocForm.amount}
+                    <label className="acc-form-label">{t('periodicinvoices.amount_vnd')}</label>
+                    <input type="number" className="acc-input" required min={1} value={adhocForm.amount}
                       onChange={e => setAdhocForm({ ...adhocForm, amount: parseFloat(e.target.value) || 0 })} />
                   </div>
                   <div>
-                    <label className="form-label">{t('periodicinvoices.payment_deadline')}</label>
-                    <input type="date" className="form-input" required value={adhocForm.dueDate}
+                    <label className="acc-form-label">{t('periodicinvoices.payment_deadline')}</label>
+                    <input type="date" className="acc-input" required value={adhocForm.dueDate}
                       onChange={e => setAdhocForm({ ...adhocForm, dueDate: e.target.value })} />
                   </div>
                 </div>
                 <div>
-                  <label className="form-label">{t('periodicinvoices.describe_the_reason_for')}</label>
+                  <label className="acc-form-label">{t('periodicinvoices.describe_the_reason_for')}</label>
                   <textarea className="form-textarea" required rows={3} maxLength={500}
                     placeholder={t('periodicinvoices.specific_description_of_the')}
                     value={adhocForm.description}
                     onChange={e => setAdhocForm({ ...adhocForm, description: e.target.value })} />
                 </div>
               </div>
-              <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={() => setActiveModal(null)}>{t('periodicinvoices.cancel')}</button>
-                <button type="submit" className="btn btn-primary">{t('periodicinvoices.release_immediately')}</button>
+              <div className="acc-modal-footer">
+                <button type="button" className="acc-btn-secondary" onClick={() => setActiveModal(null)}>{t('periodicinvoices.cancel')}</button>
+                <button type="submit" className="acc-btn-primary">{t('periodicinvoices.release_immediately')}</button>
               </div>
             </form>
           </div>
@@ -624,13 +624,13 @@ export default function PeriodicInvoices() {
 
       {/* Modal: Bulk Approve */}
       {activeModal === 'bulk' && (
-        <div className="modal-overlay" onClick={() => setActiveModal(null)}>
+        <div className="acc-modal-overlay" onClick={() => setActiveModal(null)}>
           <div className="modal-container modal-container-sm" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <span className="modal-title">{t('periodicinvoices.mass_release_confirmed')}</span>
-              <button className="modal-close-btn" onClick={() => setActiveModal(null)}><X size={16} /></button>
+            <div className="acc-modal-header">
+              <span className="acc-modal-title">{t('periodicinvoices.mass_release_confirmed')}</span>
+              <button className="acc-modal-close" onClick={() => setActiveModal(null)}><X size={16} /></button>
             </div>
-            <div className="modal-body">
+            <div className="acc-modal-body">
               {modalError && (
                 <div className="alert alert-danger" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', whiteSpace: 'pre-line' }}>
                   <AlertTriangle size={16} className="alert-icon" />
@@ -650,8 +650,8 @@ export default function PeriodicInvoices() {
               <p style={{ fontSize: 12.5, color: 'var(--text-muted)', lineHeight: 1.5 }}>
                 {t('periodicinvoices.once_published_notifications_will')}</p>
             </div>
-            <div className="modal-footer">
-              <button className="btn btn-secondary" onClick={() => setActiveModal(null)}>{t('periodicinvoices.cancel')}</button>
+            <div className="acc-modal-footer">
+              <button className="acc-btn-secondary" onClick={() => setActiveModal(null)}>{t('periodicinvoices.cancel')}</button>
               <button className="btn btn-success" onClick={handleBulkApprove}>{t('periodicinvoices.confirmation_release')}</button>
             </div>
           </div>
