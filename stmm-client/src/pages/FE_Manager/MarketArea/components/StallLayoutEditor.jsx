@@ -438,7 +438,7 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
                     })
                 )}
                 
-                {drawnStallData && !selectedStall && !isDrawingStall && (() => {
+                {drawnStallData && !selectedStall && !isDrawingStall && isFormOpen && (() => {
                     const tempStall = {
                         stallId: 'new-temp',
                         code: 'Sạp mới',
@@ -598,7 +598,7 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
                 <div className={styles.leftPanel} style={{ display: 'flex', flexDirection: 'column' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, borderBottom: '1px solid var(--border-color)', paddingBottom: 12 }}>
                         <h2 style={{ margin: 0, fontSize: 18, color: 'var(--color-primary)' }}>{areaName || 'Khu vực'}</h2>
-                        <button onClick={() => { setIsFormOpen(false); setViewingStall(null); setIsDrawingStall(false); }} style={{ background: 'transparent', border: 'none', fontSize: 24, cursor: 'pointer', color: '#64748b' }}>&times;</button>
+                        <button onClick={() => { setIsFormOpen(false); setViewingStall(null); setIsDrawingStall(false); setDrawnStallData(null); setSelectedStall(null); }} style={{ background: 'transparent', border: 'none', fontSize: 24, cursor: 'pointer', color: '#64748b' }}>&times;</button>
                     </div>
 
                     {(isFormOpen && isEditMode) ? (
