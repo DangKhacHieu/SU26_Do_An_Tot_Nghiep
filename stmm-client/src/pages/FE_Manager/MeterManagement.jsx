@@ -17,7 +17,8 @@ const IconChevronRight = () => <svg width="16" height="16" viewBox="0 0 24 24" f
 const DEFAULT_ASSIGNED_FILTER = 'false';
 
 export default function MeterManagement({ addToast }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const locale = i18n.resolvedLanguage?.startsWith('vi') ? 'vi-VN' : 'en-US';
 
   const [meters, setMeters] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -49,7 +50,7 @@ export default function MeterManagement({ addToast }) {
     } finally {
       setLoading(false);
     }
-  }, [addToast]);
+  }, [addToast, t]);
 
   useEffect(() => {
     fetchMeters();
@@ -91,11 +92,12 @@ export default function MeterManagement({ addToast }) {
   };
 
   const hasFilters = search || typeFilter || isActiveFilter || isAssignedFilter !== DEFAULT_ASSIGNED_FILTER;
+  // tableTitle dùng t() theo ngôn ngữ — không hardcode VI
   const tableTitle = isAssignedFilter === DEFAULT_ASSIGNED_FILTER
-    ? 'Kho công tơ khả dụng'
+    ? t('metermanagement.available_meter_inventory')
     : isAssignedFilter === 'true'
-      ? 'Công tơ đã gán vào sạp'
-      : 'Tất cả công tơ cùng chợ';
+      ? t('metermanagement.the_meter_has_been')
+      : t('metermanagement.all_meters_are_in');
 
   // Form validation
   const validateForm = () => {
@@ -128,7 +130,7 @@ export default function MeterManagement({ addToast }) {
 
   const handleOpenStatusModal = (meter) => {
     if (meter.isActive && meter.stallId !== null) {
-      addToast('Replace or unassign this meter before deactivating it.', 'error');
+      addToast(t('metermanagement.deactivate_error_unassign_first'), 'error');
       return;
     }
     setSelectedMeter(meter);
@@ -153,7 +155,7 @@ export default function MeterManagement({ addToast }) {
         serialNumber: formValues.serialNumber.trim(),
         type: formValues.type
       });
-      addToast('Thêm công tơ vào kho khả dụng thành công!', 'success');
+      addToast(t('metermanagement.added_meter_to_availability'), 'success');
       handleCloseModal();
       setPageNumber(1);
       fetchMeters();
@@ -175,7 +177,7 @@ export default function MeterManagement({ addToast }) {
         type: formValues.type,
         isActive: formValues.isActive
       });
-      addToast(`Cập nhật công tơ #${selectedMeter.meterId} thành công!`, 'success');
+      addToast(t('metermanagement.updated_meter_selectedmetermeterid_successfully', { meterId: selectedMeter.meterId }), 'success');
       handleCloseModal();
       fetchMeters();
     } catch (error) {
@@ -197,13 +199,13 @@ export default function MeterManagement({ addToast }) {
         isActive: nextIsActive
       });
       addToast(
-        `Meter #${selectedMeter.meterId} ${nextIsActive ? 'reactivated' : 'deactivated'} successfully!`,
+        t('metermanagement.meter_status_changed', { meterId: selectedMeter.meterId, action: nextIsActive ? t('metermanagement.reactivated') : t('metermanagement.deactivated') }),
         'success'
       );
       handleCloseModal();
       fetchMeters();
     } catch (error) {
-      addToast(error.message || 'Unable to change the meter status.', 'error');
+      addToast(error.message || t('metermanagement.unable_to_change_meter_status'), 'error');
     } finally {
       setActionLoading(false);
     }
@@ -220,7 +222,7 @@ export default function MeterManagement({ addToast }) {
     }
     try {
       const d = new Date(dateStr);
-      return d.toLocaleDateString('vi-VN', {
+      return d.toLocaleDateString(locale, {
         day: '2-digit',
         month: '2-digit',
         year: 'numeric'
@@ -575,7 +577,7 @@ export default function MeterManagement({ addToast }) {
               )}
             </div>
             <div className="modal-foot">
-              <button className="btn-secondary" onClick={handleCloseModal} disabled={actionLoading}>Cancel</button>
+              <button className="btn-secondary" onClick={handleCloseModal} disabled={actionLoading}>{t('metermanagement.cancel')}</button>
               <button className={selectedMeter.isActive ? 'btn-danger' : 'btn-primary'} onClick={handleToggleMeterStatus} disabled={actionLoading}>
                 {actionLoading
                   ? 'Saving...'

@@ -38,7 +38,7 @@ export default function UtilityChecklist({ taskId, baseUrl, onShowNotification, 
     } finally {
       if (!quiet) setLoading(false);
     }
-  }, [baseUrl, onProgressChange, taskId]);
+  }, [baseUrl, onProgressChange, taskId, t]);
 
   useEffect(() => {
     fetchStalls(true);
@@ -48,7 +48,7 @@ export default function UtilityChecklist({ taskId, baseUrl, onShowNotification, 
     <section className="utility-checklist-panel">
       <div className="panel-header-with-action">
         <div className="checklist-summary-info">
-          <h3 className="card-section-title"><Gauge size={18} aria-hidden={t('utilitychecklist.true')} /> {t('utilitychecklist.utility_meter_checklist')}</h3>
+          <h3 className="card-section-title"><Gauge size={18} aria-hidden="true" /> {t('utilitychecklist.utility_meter_checklist')}</h3>
           <p className="checklist-stat-text">{t('utilitychecklist.progress')}<strong>{stats.completed} / {stats.total}</strong> {t('utilitychecklist.stalls_recorded_this_month')}</p>
         </div>
         <button
@@ -72,8 +72,8 @@ export default function UtilityChecklist({ taskId, baseUrl, onShowNotification, 
                 <thead><tr><th>{t('utilitychecklist.stall')}</th><th>{t('utilitychecklist.operation_status')}</th><th>{t('utilitychecklist.reading_status')}</th><th>{t('utilitychecklist.action')}</th></tr></thead>
                 <tbody>
                   {stalls.map((stall) => (
-                    <tr key={stall.stallId} className={stall.hasReadingThisMonth ? t('utilitychecklist.rowcompleted') : t('utilitychecklist.rowpending')}>
-                      <td className="stall-code-cell"><Store size={15} aria-hidden={t('utilitychecklist.true')} /> {stall.stallCode}</td>
+                    <tr key={stall.stallId} className={stall.hasReadingThisMonth ? 'row-completed' : 'row-pending'}>
+                      <td className="stall-code-cell"><Store size={15} aria-hidden="true" /> {stall.stallCode}</td>
                       <td><span className="status-badge badge-default">{stall.stallStatus}</span></td>
                       <td>{stall.hasReadingThisMonth ? <span className="reading-done-badge">{t('utilitychecklist.recorded')}</span> : <span className="reading-pending-badge">{t('utilitychecklist.pending')}</span>}</td>
                       <td>
@@ -87,7 +87,7 @@ export default function UtilityChecklist({ taskId, baseUrl, onShowNotification, 
               </table>
             </div>
           ) : null}
-          <div className="checklist-footer-note"><Lightbulb size={15} aria-hidden={t('utilitychecklist.true')} /> {t('utilitychecklist.record_each_stall_here')}</div>
+          <div className="checklist-footer-note"><Lightbulb size={15} aria-hidden="true" /> {t('utilitychecklist.record_each_stall_here')}</div>
         </div>
       ) : null}
 
@@ -97,10 +97,9 @@ export default function UtilityChecklist({ taskId, baseUrl, onShowNotification, 
           baseUrl={baseUrl}
           onClose={() => setSelectedStall(null)}
           onSuccess={async () => {
-            const stallCode = selectedStall.stallCode;
             setSelectedStall(null);
             await fetchStalls(true);
-            onShowNotification?.(t('utilitychecklist.meter_reading_for_stall'), t('utilitychecklist.success'));
+            onShowNotification?.(t('utilitychecklist.meter_reading_for_stall'), 'success');
           }}
         />
       ) : null}

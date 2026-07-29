@@ -5,8 +5,12 @@ import CreateViolationModal from './CreateViolationModal';
 import readProblemDetail from '../../utils/readProblemDetail';
 import './StallList.css';
 
+const FILTER = Object.freeze({ ALL: 'all', HAS_TASK: 'hasTask', HAS_UNPAID_INVOICE: 'hasUnpaidInvoice' });
+const STALL_STATUS = Object.freeze({ RENTED: 'Rented' });
+const TASK_TYPE = Object.freeze({ REPAIR: 'Repair', MAINTENANCE: 'Maintenance', UTILITY_READING: 'UtilityReading' });
+
 export default function StallList({ baseUrl, onShowNotification, onViewMeterHistory, onViewInvoices }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const [stalls, setStalls] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -14,7 +18,7 @@ export default function StallList({ baseUrl, onShowNotification, onViewMeterHist
 
   const [pageNumber, setPageNumber] = useState(1);
   const [pageSize] = useState(6);
-  const [filterType, setFilterType] = useState(t('stalllist.all'));
+  const [filterType, setFilterType] = useState(FILTER.ALL);
   const [searchQuery, setSearchQuery] = useState('');
   const [appliedSearch, setAppliedSearch] = useState('');
 
@@ -39,7 +43,7 @@ export default function StallList({ baseUrl, onShowNotification, onViewMeterHist
     } finally {
       setLoading(false);
     }
-  }, [baseUrl]);
+  }, [baseUrl, t]);
 
   useEffect(() => {
     fetchStalls();
@@ -51,9 +55,9 @@ export default function StallList({ baseUrl, onShowNotification, onViewMeterHist
     return stalls.filter((stall) => {
       const matchesSearch = !normalizedSearch
         || String(stall.stallCode || '').toLowerCase().includes(normalizedSearch);
-      const matchesFilter = filterType === t('stalllist.all')
-        || (filterType === t('stalllist.hastask') && Number(stall.pendingTaskCount || 0) > 0)
-        || (filterType === t('stalllist.hasunpaidinvoice') && Boolean(stall.hasUnpaidInvoice));
+      const matchesFilter = filterType === FILTER.ALL
+        || (filterType === FILTER.HAS_TASK && Number(stall.pendingTaskCount || 0) > 0)
+        || (filterType === FILTER.HAS_UNPAID_INVOICE && Boolean(stall.hasUnpaidInvoice));
 
       return matchesSearch && matchesFilter;
     });
@@ -80,7 +84,7 @@ export default function StallList({ baseUrl, onShowNotification, onViewMeterHist
   const handleResetFilters = () => {
     setSearchQuery('');
     setAppliedSearch('');
-    setFilterType(t('stalllist.all'));
+    setFilterType(FILTER.ALL);
     setPageNumber(1);
   };
 
@@ -98,15 +102,15 @@ export default function StallList({ baseUrl, onShowNotification, onViewMeterHist
 
   const handleModalSuccess = (message) => {
     closeModal();
-    onShowNotification(message, t('stalllist.success'));
+    onShowNotification(message, 'success');
     fetchStalls();
   };
 
   const getTaskIcon = (type) => {
     switch (type) {
-      case 'UtilityReading': return t('stalllist.meter');
-      case t('stalllist.repair'): return '🔧';
-      case t('stalllist.maintenance'): return '🧹';
+      case 'UtilityReading': return '⚡';
+      case TASK_TYPE.REPAIR: return '🔧';
+      case TASK_TYPE.MAINTENANCE: return '🧹';
       default: return '📋';
     }
   };
@@ -114,8 +118,8 @@ export default function StallList({ baseUrl, onShowNotification, onViewMeterHist
   const getTaskLabel = (type) => {
     switch (type) {
       case 'UtilityReading': return t('stalllist.utility_reading');
-      case t('stalllist.repair'): return t('stalllist.repair');
-      case t('stalllist.maintenance'): return t('stalllist.maintenance');
+      case TASK_TYPE.REPAIR: return t('stalllist.repair');
+      case TASK_TYPE.MAINTENANCE: return t('stalllist.maintenance');
       default: return type;
     }
   };
@@ -127,7 +131,7 @@ export default function StallList({ baseUrl, onShowNotification, onViewMeterHist
       <div className="toolbar">
         <div className="toolbar-left">
           <form onSubmit={handleSearchSubmit} className="search-wrap">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill={t('stalllist.none')} stroke={t('stalllist.currentcolor')} strokeWidth="2.5" strokeLinecap={t('stalllist.round')} strokeLinejoin={t('stalllist.round')}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             <input
               type="text"
               className="search-input"
@@ -137,30 +141,30 @@ export default function StallList({ baseUrl, onShowNotification, onViewMeterHist
             />
             {searchQuery && (
               <button type="button" className="search-clear" onClick={() => { setSearchQuery(''); setAppliedSearch(''); }} title={t('stalllist.clear')}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill={t('stalllist.none')} stroke={t('stalllist.currentcolor')} strokeWidth="2" strokeLinecap={t('stalllist.round')} strokeLinejoin={t('stalllist.round')}><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
               </button>
             )}
           </form>
 
           <div className="filter-tabs">
             <button 
-              className={`tab-btn ${filterType === t('stalllist.all') ? t('stalllist.active') : ''}`}
-              onClick={() => { setFilterType(t('stalllist.all')); setPageNumber(1); }}
+               className={`tab-btn ${filterType === FILTER.ALL ? 'active' : ''}`}
+               onClick={() => { setFilterType(FILTER.ALL); setPageNumber(1); }}
             >
               {t('stalllist.all')}</button>
             <button 
-              className={`tab-btn ${filterType === t('stalllist.hastask') ? t('stalllist.active') : ''}`}
-              onClick={() => { setFilterType(t('stalllist.hastask')); setPageNumber(1); }}
+               className={`tab-btn ${filterType === FILTER.HAS_TASK ? 'active' : ''}`}
+               onClick={() => { setFilterType(FILTER.HAS_TASK); setPageNumber(1); }}
             >
               {t('stalllist.assigned_tasks')}</button>
             <button 
-              className={`tab-btn ${filterType === t('stalllist.hasunpaidinvoice') ? 'active' : ''}`}
-              onClick={() => { setFilterType(t('stalllist.hasunpaidinvoice')); setPageNumber(1); }}
+               className={`tab-btn ${filterType === FILTER.HAS_UNPAID_INVOICE ? 'active' : ''}`}
+               onClick={() => { setFilterType(FILTER.HAS_UNPAID_INVOICE); setPageNumber(1); }}
             >
               {t('stalllist.unpaid_invoices')}</button>
           </div>
 
-          {(searchQuery || filterType !== t('stalllist.all')) && (
+           {(searchQuery || filterType !== FILTER.ALL) && (
             <button type="button" className="btn-filter-clear" onClick={handleResetFilters}>
               {t('stalllist.clear_filters')}</button>
           )}
@@ -189,7 +193,7 @@ export default function StallList({ baseUrl, onShowNotification, onViewMeterHist
                     <span className="stall-code">{stall.stallCode}</span>
                   </div>
                   <span className={`stall-status-badge ${stall.stallStatus.toLowerCase()}`}>
-                    {stall.stallStatus === t('stalllist.rented') ? t('stalllist.rented') : stall.stallStatus}
+                    {stall.stallStatus === STALL_STATUS.RENTED ? t('stalllist.rented') : stall.stallStatus}
                   </span>
                 </div>
 
@@ -214,7 +218,7 @@ export default function StallList({ baseUrl, onShowNotification, onViewMeterHist
                   <div className="task-tags-container">
                     <span className="tags-title">{t('stalllist.checklist_tasks')}</span>
                     {(stall.taskTypes || []).length === 0 ? (
-                      <span className="no-tasks-tag">✅ Completed</span>
+                      <span className="no-tasks-tag">✅ {t('stalllist.completed')}</span>
                     ) : (
                       <div className="tags-list">
                         {(stall.taskTypes || []).map((type) => (
@@ -228,8 +232,8 @@ export default function StallList({ baseUrl, onShowNotification, onViewMeterHist
 
                   {stall.hasUnpaidInvoice && (
                     <div className="debt-summary-box">
-                      <span>{t('stalllist.unpaid_invoices')}<strong>{stall.unpaidInvoiceCount} month(s)</strong></span>
-                      <span className="debt-total">{stall.unpaidTotalAmount.toLocaleString('vi-VN')} VND</span>
+                      <span>{t('stalllist.unpaid_invoices')}<strong>{t('stalllist.month_count', { count: stall.unpaidInvoiceCount })}</strong></span>
+                      <span className="debt-total">{stall.unpaidTotalAmount.toLocaleString(i18n.resolvedLanguage?.startsWith('vi') ? 'vi-VN' : 'en-US')} VND</span>
                     </div>
                   )}
                 </div>
@@ -237,19 +241,19 @@ export default function StallList({ baseUrl, onShowNotification, onViewMeterHist
                 <div className="stall-card-actions">
                   <button 
                     className="btn-card-action violation-btn" 
-                    onClick={() => openModal(t('stalllist.violation'), stall.stallId, stall.stallCode)}
+                    onClick={() => openModal('violation', stall.stallId, stall.stallCode)}
                     title={t('stalllist.report_violation_for_this')}
                   >
                     ⚠️ Violation
                   </button>
 
-                  {stall.stallStatus === t('stalllist.rented') && (
+                  {stall.stallStatus === STALL_STATUS.RENTED && (
                     <button 
                       className="btn-card-action meter-btn" 
                       onClick={() => onViewMeterHistory(stall.stallId)}
                       title={t('stalllist.view_meter_reading_history')}
                     >
-                      ⚡ Meter History
+                      ⚡ {t('stalllist.meter_history')}
                     </button>
                   )}
 
@@ -259,7 +263,7 @@ export default function StallList({ baseUrl, onShowNotification, onViewMeterHist
                       onClick={() => onViewInvoices(stall.stallId, stall.stallCode)}
                       title={t('stalllist.view_unpaid_invoices')}
                     >
-                      📄 View Invoices
+                      📄 {t('stalllist.view_invoices')}
                     </button>
                   )}
                 </div>
@@ -282,7 +286,7 @@ export default function StallList({ baseUrl, onShowNotification, onViewMeterHist
               {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
                 <button
                   key={p}
-                  className={`btn-page ${safePageNumber === p ? t('stalllist.active') : ''}`}
+                  className={`btn-page ${safePageNumber === p ? 'active' : ''}`}
                   onClick={() => setPageNumber(p)}
                 >
                   {p}
@@ -300,7 +304,7 @@ export default function StallList({ baseUrl, onShowNotification, onViewMeterHist
         </>
       )}
 
-      {activeModal === t('stalllist.violation') && (
+      {activeModal === 'violation' && (
         <CreateViolationModal
           baseUrl={baseUrl}
           prefilledStallId={activeStallId}

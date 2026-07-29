@@ -45,7 +45,7 @@ export default function TaskDetail({ taskId, baseUrl, onBack, onShowNotification
     } finally {
       setLoading(false);
     }
-  }, [baseUrl, taskId]);
+  }, [baseUrl, taskId, t]);
 
   useEffect(() => {
     fetchTaskDetails();
@@ -88,17 +88,17 @@ export default function TaskDetail({ taskId, baseUrl, onBack, onShowNotification
       <div className="breadcrumb-path">
         <button type="button" onClick={onBack} className="link-path">{t('taskdetail.daily_tasks')}</button>
         <span>/</span>
-        <span className="active-path">Task #{task.taskId}</span>
+        <span className="active-path">{t('taskdetail.task_number', { taskId: task.taskId })}</span>
       </div>
 
       <header className="detail-header">
         <div>
           <h1 className="main-title">{task.title}</h1>
           <p className="subtitle">
-            Location: {task.stallCode || task.areaName || t('taskdetail.location_not_specified')} | Type: {task.taskType}
+            {t('taskdetail.location')}: {task.stallCode || task.areaName || t('taskdetail.location_not_specified')} | {t('taskdetail.type')}: {task.taskType}
           </p>
         </div>
-        <button onClick={onBack} className="btn-secondary">&larr; Back to List</button>
+        <button onClick={onBack} className="btn-secondary">&larr; {t('taskdetail.back_to_list')}</button>
       </header>
 
       <div className="detail-layout">

@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { useEffect, useMemo, useState, useRef } from "react";
 import { getStaffMarketMap } from "../../services/marketApi";
 import { TASK_STATUS, TASK_TYPE } from "../../constants/taskEnums";
+import { TASK_TYPE_CLASS, TASK_STATUS_CLASS } from "../../constants/enumMaps";
 import readProblemDetail from "../../utils/readProblemDetail";
 import "./TaskMapView.css";
 
@@ -50,7 +51,7 @@ export default function TaskMapView({ baseUrl, onBack, onViewDetails }) {
         }
       }
     };
-  }, []);
+  }, [t]);
 
   // Scoped Wheel Zoom: Zoom towards current mouse cursor position
   useEffect(() => {
@@ -90,7 +91,7 @@ export default function TaskMapView({ baseUrl, onBack, onViewDetails }) {
       try {
         setLoading(true);
         setError("");
-        
+
         const token = localStorage.getItem("accessToken") || localStorage.getItem("token");
         const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
@@ -100,7 +101,7 @@ export default function TaskMapView({ baseUrl, onBack, onViewDetails }) {
         ]);
         if (mapData) {
           setMarketMap(mapData);
-          
+
           let max_x = 900;
           let max_y = 600;
           if (mapData.areas && mapData.areas.length > 0) {
@@ -149,7 +150,7 @@ export default function TaskMapView({ baseUrl, onBack, onViewDetails }) {
     };
 
     loadMapAndTasks();
-  }, [baseUrl]);
+  }, [baseUrl, t]);
 
   // Zoom & Pan Handlers
   const zoomTowardsPoint = (delta, focusX, focusY) => {
@@ -243,67 +244,48 @@ export default function TaskMapView({ baseUrl, onBack, onViewDetails }) {
     return result;
   }, [marketMap, tasks, utilityStallIdsByTask]);
 
+  // Stall status label — dịch tại render
   const getStatusLabel = (status) => {
     switch (status) {
-      case t('taskmapview.available'):
-        return t('taskmapview.available');
-      case t('taskmapview.rented'):
-        return t('taskmapview.rented');
-      case t('taskmapview.maintenance'):
-        return t('taskmapview.maintenance');
-      default:
-        return status;
+      case 'Available':   return t('taskmapview.available');
+      case 'Rented':      return t('taskmapview.rented');
+      case 'Maintenance': return t('taskmapview.maintenance');
+      default:            return status;
     }
   };
 
+  // Stall status color — KHÔNG dịch, màu sắc không thay đổi theo ngôn ngữ
   const getStatusColor = (status) => {
     switch (status) {
-      case t('taskmapview.available'):
-        return "#10b981";
-      case t('taskmapview.rented'):
-        return "#3b82f6";
-      case t('taskmapview.maintenance'):
-        return "#f59e0b";
-      default:
-        return "#94a3b8";
+      case 'Available':   return "#10b981";
+      case 'Rented':      return "#3b82f6";
+      case 'Maintenance': return "#f59e0b";
+      default:            return "#94a3b8";
     }
   };
 
+  // Task status/type label — dịch tại render (hiển thị)
   const getTaskStatusLabel = (status) => {
     switch (status) {
-      case TASK_STATUS.PENDING: return t('taskmapview.pending');
+      case TASK_STATUS.PENDING:          return t('taskmapview.pending');
       case TASK_STATUS.PENDING_APPROVAL: return t('taskmapview.pending_approval');
-      case TASK_STATUS.IN_PROGRESS: return t('taskmapview.in_progress');
-      default: return status;
+      case TASK_STATUS.IN_PROGRESS:      return t('taskmapview.in_progress');
+      default:                           return status;
     }
   };
 
   const getTaskTypeLabel = (type) => {
     switch (type) {
-      case TASK_TYPE.REPAIR: return t('taskmapview.repair');
-      case TASK_TYPE.MAINTENANCE: return t('taskmapview.maintenance');
+      case TASK_TYPE.REPAIR:          return t('taskmapview.repair');
+      case TASK_TYPE.MAINTENANCE:     return t('taskmapview.maintenance');
       case TASK_TYPE.UTILITY_READING: return t('taskmapview.meter_reading');
-      default: return type;
+      default:                        return type;
     }
   };
 
-  const getTaskTypeClass = (type) => {
-    switch (type) {
-      case TASK_TYPE.REPAIR: return t('taskmapview.typerepair');
-      case TASK_TYPE.MAINTENANCE: return t('taskmapview.typemaintenance');
-      case TASK_TYPE.UTILITY_READING: return t('taskmapview.typeutility');
-      default: return t('taskmapview.typedefault');
-    }
-  };
-
-  const getTaskStatusClass = (status) => {
-    switch (status) {
-      case TASK_STATUS.PENDING: return t('taskmapview.statuspending');
-      case TASK_STATUS.PENDING_APPROVAL: return t('taskmapview.statusapproval');
-      case TASK_STATUS.IN_PROGRESS: return t('taskmapview.statusprogress');
-      default: return t('taskmapview.statusdefault');
-    }
-  };
+  // CSS class token — KHÔNG dùng t(), dùng static map từ enumMaps
+  const getTaskTypeClass = (type) => TASK_TYPE_CLASS[type] || 'type-default';
+  const getTaskStatusClass = (status) => TASK_STATUS_CLASS[status] || 'status-default';
 
   const handleStallClick = (stall, area) => {
     const enrichedStall = {
@@ -323,22 +305,20 @@ export default function TaskMapView({ baseUrl, onBack, onViewDetails }) {
     <main className="task-map-view-container" id="task-map-main-view">
       <div className="map-view-header">
         <div className="header-left">
-          <h1>📍 Task Map View</h1>
+          <h1>📍 {t('taskmapview.task_map_view')}</h1>
         </div>
         <div className="header-right">
           <span className="summary-badge">
-            📋 Active Tasks: <strong>{activeTaskCount}</strong>
+            📋 {t('taskmapview.active_tasks')}: <strong>{activeTaskCount}</strong>
           </span>
           <span className="summary-badge">
-            🏪 Stalls with Tasks: <strong>{stallsWithTasksCount}</strong>
+            🏪 {t('taskmapview.stalls_with_tasks')}: <strong>{stallsWithTasksCount}</strong>
           </span>
           <button className="btn-back-link" id="btn-task-map-back" onClick={onBack}>
-            ← Back to List
+            ← {t('taskmapview.back_to_list')}
           </button>
         </div>
       </div>
-
-
 
       {loading ? (
         <div className="map-loading-state">
@@ -353,14 +333,14 @@ export default function TaskMapView({ baseUrl, onBack, onViewDetails }) {
         <div className={`map-grid-layout ${selectedStall ? "has-selection" : ""}`}>
           <section className="map-canvas-card" id="task-map-canvas-section">
             <div className="map-card-header">
-              <h3>{marketMap.marketName} Blueprint Map</h3>
+              <h3>{t('taskmapview.blueprint_map', { marketName: marketMap.marketName })}</h3>
               <p className="address-text">📍 {marketMap.address}</p>
             </div>
 
             <div className="map-legends">
               <div className="legend-item">
                 <span className="legend-dot active-task-dot"></span>
-                <span>Stall with Assigned Tasks ({stallsWithTasksCount})</span>
+                <span>{t('taskmapview.stall_with_tasks')} ({stallsWithTasksCount})</span>
               </div>
               <div className="legend-item">
                 <span className="legend-color-box rented"></span>
@@ -386,10 +366,10 @@ export default function TaskMapView({ baseUrl, onBack, onViewDetails }) {
             >
               {/* Floating Zoom Controls Toolbar */}
               <div className="map-zoom-controls" onClick={(e) => e.stopPropagation()}>
-                <button type="button" className="zoom-btn" onClick={handleZoomIn} title="Zoom In (+)">➕</button>
+                <button type="button" className="zoom-btn" onClick={handleZoomIn} title={t('taskmapview.zoom_in')}>➕</button>
                 <span className="zoom-level-text">{Math.round(zoomScale * 100)}%</span>
-                <button type="button" className="zoom-btn" onClick={handleZoomOut} title="Zoom Out (-)">➖</button>
-                <button type="button" className="zoom-btn reset" onClick={handleResetZoom} title="Reset View">🔄 Reset</button>
+                <button type="button" className="zoom-btn" onClick={handleZoomOut} title={t('taskmapview.zoom_out')}>➖</button>
+                <button type="button" className="zoom-btn reset" onClick={handleResetZoom} title={t('taskmapview.reset_view')}>🔄 {t('taskmapview.reset')}</button>
               </div>
 
               <div
@@ -519,7 +499,7 @@ export default function TaskMapView({ baseUrl, onBack, onViewDetails }) {
                 <hr className="drawer-divider" />
 
                 <div className="drawer-tasks-list">
-                  <h5>🛠️ Assigned Tasks ({tasksByStall[selectedStall.stallId]?.length || 0})</h5>
+                  <h5>🛠️ {t('taskmapview.assigned_tasks')} ({tasksByStall[selectedStall.stallId]?.length || 0})</h5>
 
                   {tasksByStall[selectedStall.stallId]?.length > 0 ? (
                     <div className="tasks-scroll-wrap">
@@ -567,4 +547,3 @@ export default function TaskMapView({ baseUrl, onBack, onViewDetails }) {
     </main>
   );
 }
-

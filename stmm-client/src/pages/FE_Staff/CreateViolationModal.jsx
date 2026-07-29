@@ -78,7 +78,7 @@ export default function CreateViolationModal({ baseUrl, onClose, onSuccess, pref
 
     loadOptions();
     return () => { active = false; };
-  }, [baseUrl]);
+  }, [baseUrl, t]);
 
   const handleTypeChange = (event) => {
     const nextId = event.target.value;
@@ -131,7 +131,7 @@ export default function CreateViolationModal({ baseUrl, onClose, onSuccess, pref
     setSubmitting(true);
     try {
       const response = await fetch(`${baseUrl}/api/violations`, {
-        method: t('createviolationmodal.post'),
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           ...getAuthHeaders(),
@@ -168,7 +168,7 @@ export default function CreateViolationModal({ baseUrl, onClose, onSuccess, pref
           {error ? <div className="error-alert"><strong>{t('createviolationmodal.error')}</strong> {error}</div> : null}
 
           <div className="form-group">
-            <label className="form-label required-field" htmlFor={t('createviolationmodal.violationtype')}>{t('createviolationmodal.violation_type')}</label>
+            <label className="form-label required-field" htmlFor="violation-type">{t('createviolationmodal.violation_type')}</label>
             <select id="violation-type" className="form-input" value={violationTypeId} onChange={handleTypeChange} disabled={loadingOptions}>
               <option value="">{t('createviolationmodal.select_a_violation_type')}</option>
               {violationTypes.map((type) => <option key={type.violationTypeId} value={type.violationTypeId}>{type.name}</option>)}
@@ -176,7 +176,7 @@ export default function CreateViolationModal({ baseUrl, onClose, onSuccess, pref
           </div>
 
           <div className="form-group">
-            <label className="form-label required-field" htmlFor={t('createviolationmodal.violationstall')}>{t('createviolationmodal.location')}</label>
+            <label className="form-label required-field" htmlFor="violation-stall">{t('createviolationmodal.location')}</label>
             <select id="violation-stall" className="form-input" value={stallId} onChange={(event) => setStallId(event.target.value)} disabled={loadingOptions || Boolean(prefilledStallId)}>
               <option value="">{t('createviolationmodal.select_a_stall')}</option>
               {stalls.map((stall) => <option key={stall.stallId} value={stall.stallId}>{stall.stallCode} - {stall.areaName}</option>)}
@@ -184,26 +184,26 @@ export default function CreateViolationModal({ baseUrl, onClose, onSuccess, pref
           </div>
 
           <div className="form-group">
-            <label className="form-label required-field" htmlFor={t('createviolationmodal.violationtitle')}>{t('createviolationmodal.title')}</label>
+            <label className="form-label required-field" htmlFor="violation-title">{t('createviolationmodal.title')}</label>
             <input id="violation-title" className="form-input" value={title} onChange={(event) => setTitle(event.target.value)} />
           </div>
 
           <div className="form-group">
-            <label className="form-label required-field" htmlFor={t('createviolationmodal.violationdescription')}>{t('createviolationmodal.detailed_description')}</label>
+            <label className="form-label required-field" htmlFor="violation-description">{t('createviolationmodal.detailed_description')}</label>
             <textarea id="violation-description" className="form-input" rows="4" value={description} onChange={(event) => setDescription(event.target.value)} />
           </div>
 
           <div className="form-group">
-            <label className="form-label required-field" htmlFor={t('createviolationmodal.violationfine')}>{t('createviolationmodal.fine_amount_vnd')}</label>
+            <label className="form-label required-field" htmlFor="violation-fine">{t('createviolationmodal.fine_amount_vnd')}</label>
             <input id="violation-fine" type="number" min="0" className="form-input" value={fineAmount} onChange={(event) => setFineAmount(event.target.value)} />
           </div>
 
           <div className="form-group">
             <label className="form-label required-field">{t('createviolationmodal.evidence_image')}</label>
-            <input ref={fileInputRef} type="file" accept={t('createviolationmodal.image')} hidden onChange={(event) => uploadImage(event.target.files?.[0])} />
+            <input ref={fileInputRef} type="file" accept="image/*" hidden onChange={(event) => uploadImage(event.target.files?.[0])} />
             
             <div 
-              className={`drag-drop-zone ${dragActive ? t('createviolationmodal.active') : ''} ${imageUrl ? t('createviolationmodal.disabled') : ''}`}
+              className={`drag-drop-zone ${dragActive ? 'active' : ''} ${imageUrl ? 'disabled' : ''}`}
               onDragEnter={handleDrag}
               onDragOver={handleDrag}
               onDragLeave={handleDrag}

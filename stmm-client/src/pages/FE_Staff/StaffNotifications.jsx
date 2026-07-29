@@ -4,10 +4,10 @@ import { Bell, CheckCheck, Inbox, X } from "lucide-react";
 import notificationService from "../../services/notificationService";
 import "./StaffNotifications.css";
 
-const formatDateTime = (value) => {
+const formatDateTime = (value, locale) => {
   if (!value) return "";
   try {
-    return new Intl.DateTimeFormat("en-GB", {
+    return new Intl.DateTimeFormat(locale, {
       dateStyle: "medium",
       timeStyle: "short",
     }).format(new Date(value));
@@ -18,7 +18,8 @@ const formatDateTime = (value) => {
 };
 
 export default function StaffNotifications({ onClose, onUnreadChange }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const locale = i18n.resolvedLanguage?.startsWith('vi') ? 'vi-VN' : 'en-US';
 
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -52,7 +53,7 @@ export default function StaffNotifications({ onClose, onUnreadChange }) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     loadNotifications();
@@ -64,10 +65,10 @@ export default function StaffNotifications({ onClose, onUnreadChange }) {
 
   useEffect(() => {
     const closeOnEscape = (event) => {
-      if (event.key === t('staffnotifications.escape')) onClose?.();
+      if (event.key === 'Escape') onClose?.();
     };
-    window.addEventListener(t('staffnotifications.keydown'), closeOnEscape);
-    return () => window.removeEventListener(t('staffnotifications.keydown'), closeOnEscape);
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
   }, [onClose]);
 
   const handleOpen = async (item) => {
@@ -108,7 +109,7 @@ export default function StaffNotifications({ onClose, onUnreadChange }) {
         aria-label={t('staffnotifications.close_notifications')}
         onClick={onClose}
       />
-      <section className="staff-notification-popover" role={t('staffnotifications.dialog')} aria-label={t('staffnotifications.notifications')}>
+      <section className="staff-notification-popover" role="dialog" aria-label={t('staffnotifications.notifications')}>
         <header>
           <div>
             <h2>{t('staffnotifications.notifications')}</h2>
@@ -142,7 +143,7 @@ export default function StaffNotifications({ onClose, onUnreadChange }) {
                 <button
                   type="button"
                   key={item.notiId}
-                  className={`staff-notification-item ${item.isRead ? t('staffnotifications.read') : t('staffnotifications.unread')}`}
+                  className={`staff-notification-item ${item.isRead ? 'read' : 'unread'}`}
                   onClick={() => handleOpen(item)}
                 >
                   <span className="staff-notification-icon"><Bell size={16} /></span>
@@ -152,7 +153,7 @@ export default function StaffNotifications({ onClose, onUnreadChange }) {
                       {!item.isRead ? <span className="staff-unread-dot" /> : null}
                     </span>
                     <span className="staff-notification-message">{item.content}</span>
-                    <span className="staff-notification-time">{formatDateTime(item.createdAt)}</span>
+                    <span className="staff-notification-time">{formatDateTime(item.createdAt, locale)}</span>
                   </span>
                 </button>
               ))

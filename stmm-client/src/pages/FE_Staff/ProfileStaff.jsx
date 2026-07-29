@@ -113,9 +113,9 @@ export default function ProfileStaff({ userId, baseUrl, onShowNotification }) {
 
   const handleSaveChanges = async (e) => {
     e.preventDefault();
-    if (!name.trim()) { addToast('Full name is required.', 'error'); return; }
-    if (!phone.trim()) { addToast('Phone number is required.', 'error'); return; }
-    if (!/^\d{9,11}$/.test(phone)) { addToast('Phone number must contain 9 to 11 digits.', 'error'); return; }
+    if (!name.trim()) { addToast(t('profilestaff.full_name_required'), 'error'); return; }
+    if (!phone.trim()) { addToast(t('profilestaff.phone_required'), 'error'); return; }
+    if (!/^\d{9,11}$/.test(phone)) { addToast(t('profilestaff.phone_invalid'), 'error'); return; }
 
     setSaving(true);
     try {
@@ -130,7 +130,7 @@ export default function ProfileStaff({ userId, baseUrl, onShowNotification }) {
         window.dispatchEvent(new Event('storage'));
       }
       setProfile(res.data);
-      addToast('Profile updated successfully.', 'success');
+      addToast(t('profilestaff.profile_updated'), 'success');
     } catch (err) {
       addToast(err.response?.data?.detail || err.response?.data?.title || t('profilestaff.unable_to_update_profile'), 'error');
     } finally {
@@ -140,10 +140,10 @@ export default function ProfileStaff({ userId, baseUrl, onShowNotification }) {
 
   const handleChangePassword = async (e) => {
     e.preventDefault();
-    if (!currentPassword) { addToast('Enter your current password.', 'error'); return; }
-    if (newPassword.length < 6) { addToast('New password must contain at least 6 characters.', 'error'); return; }
-    if (newPassword === currentPassword) { addToast('New password must differ from the current password.', 'error'); return; }
-    if (newPassword !== confirmPassword) { addToast('Password confirmation does not match.', 'error'); return; }
+    if (!currentPassword) { addToast(t('profilestaff.current_password_required'), 'error'); return; }
+    if (newPassword.length < 6) { addToast(t('profilestaff.new_password_too_short'), 'error'); return; }
+    if (newPassword === currentPassword) { addToast(t('profilestaff.new_password_must_differ'), 'error'); return; }
+    if (newPassword !== confirmPassword) { addToast(t('profilestaff.password_confirmation_mismatch'), 'error'); return; }
 
     setPasswordSaving(true);
     try {
@@ -151,7 +151,7 @@ export default function ProfileStaff({ userId, baseUrl, onShowNotification }) {
       await axios.post(`${API_URL}/users/change-password`, { currentPassword, newPassword, confirmPassword }, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      addToast('Password changed successfully.', 'success');
+      addToast(t('profilestaff.password_changed'), 'success');
       setCurrentPassword(''); setNewPassword(''); setConfirmPassword('');
     } catch (err) {
       addToast(err.response?.data?.detail || err.response?.data?.title || t('profilestaff.unable_to_change_password'), 'error');
@@ -213,7 +213,7 @@ export default function ProfileStaff({ userId, baseUrl, onShowNotification }) {
           </div>
           <div className="sp2-chip">
             <IconClock />
-            <span>Joined: {fmtDate(profile?.createdAt)}</span>
+            <span>{t('profilestaff.joined')}: {fmtDate(profile?.createdAt)}</span>
           </div>
         </div>
       </div>

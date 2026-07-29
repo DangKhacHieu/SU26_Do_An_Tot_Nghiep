@@ -1,6 +1,20 @@
 import { useTranslation } from 'react-i18next';
 import { TASK_STATUS, TASK_TYPE } from '../../../constants/taskEnums';
 
+const STATUS_BADGE_CLASS = {
+  [TASK_STATUS.PENDING]: 'badge-pending',
+  [TASK_STATUS.PENDING_APPROVAL]: 'badge-approval',
+  [TASK_STATUS.IN_PROGRESS]: 'badge-progress',
+  [TASK_STATUS.COMPLETED]: 'badge-completed',
+  [TASK_STATUS.CANCELLED]: 'badge-cancelled',
+};
+
+const TYPE_BADGE_CLASS = {
+  [TASK_TYPE.REPAIR]: 'badge-repair',
+  [TASK_TYPE.MAINTENANCE]: 'badge-maintenance',
+  [TASK_TYPE.UTILITY_READING]: 'badge-utility',
+};
+
 export default function TaskInfoCard({ task, onViewIssueDetails }) {
   const { t, i18n } = useTranslation();
 
@@ -27,16 +41,7 @@ export default function TaskInfoCard({ task, onViewIssueDetails }) {
     }
   };
 
-  const getStatusBadgeClass = (status) => {
-    switch (status) {
-      case TASK_STATUS.PENDING: return t('taskinfocard.badgepending');
-      case TASK_STATUS.PENDING_APPROVAL: return t('taskinfocard.badgeapproval');
-      case TASK_STATUS.IN_PROGRESS: return t('taskinfocard.badgeprogress');
-      case TASK_STATUS.COMPLETED: return t('taskinfocard.badgecompleted');
-      case TASK_STATUS.CANCELLED: return t('taskinfocard.badgecancelled');
-      default: return t('taskinfocard.badgedefault');
-    }
-  };
+  const getStatusBadgeClass = (status) => STATUS_BADGE_CLASS[status] || 'badge-default';
 
   const getTypeLabel = (type) => {
     switch (type) {
@@ -47,19 +52,12 @@ export default function TaskInfoCard({ task, onViewIssueDetails }) {
     }
   };
 
-  const getTypeBadgeClass = (type) => {
-    switch (type) {
-      case TASK_TYPE.REPAIR: return t('taskinfocard.badgerepair');
-      case TASK_TYPE.MAINTENANCE: return t('taskinfocard.badgemaintenance');
-      case TASK_TYPE.UTILITY_READING: return t('taskinfocard.badgeutility');
-      default: return t('taskinfocard.badgedefault');
-    }
-  };
+  const getTypeBadgeClass = (type) => TYPE_BADGE_CLASS[type] || 'badge-default';
 
   return (
     <div className="task-info-card">
       <div className="card-header-with-badge">
-        <h3 className="card-section-title">📌 Task Details</h3>
+        <h3 className="card-section-title">📌 {t('taskinfocard.task_details')}</h3>
         <div className="badges-group">
           <span className={`type-badge ${getTypeBadgeClass(task.taskType)}`}>
             {getTypeLabel(task.taskType)}
@@ -120,7 +118,7 @@ export default function TaskInfoCard({ task, onViewIssueDetails }) {
             <span className="info-label">{t('taskinfocard.linked_issue')}</span>
             <span 
               className="info-value font-monospace" 
-              style={{ color: '#2563eb', cursor: t('taskinfocard.pointer'), textDecoration: t('taskinfocard.underline'), fontWeight: 'bold' }}
+              style={{ color: '#2563eb', cursor: 'pointer', textDecoration: 'underline', fontWeight: 'bold' }}
               onClick={() => onViewIssueDetails && onViewIssueDetails(task.issueId)}
             >
               #ISSUE-{task.issueId}

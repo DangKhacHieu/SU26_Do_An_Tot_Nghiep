@@ -13,7 +13,8 @@ const IconEmpty = () => <svg width="48" height="48" viewBox="0 0 24 24" fill="no
 const PAGE_SIZE = 10;
 
 export default function TaskListManager({ baseUrl, navigate, addToast }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const locale = i18n.resolvedLanguage?.startsWith('vi') ? 'vi-VN' : 'en-US';
 
   // Filtering & Pagination State
   const [tasks, setTasks] = useState([]);
@@ -42,15 +43,14 @@ export default function TaskListManager({ baseUrl, navigate, addToast }) {
       if (res.ok) {
         const data = await res.json();
         setTasks(Array.isArray(data) ? data : []);
-      } else {
       }
     } catch (err) {
       console.error('Error fetching tasks:', err);
-      addToast('Network error loading tasks.', 'error');
+      addToast(t('tasklistmanager.network_error'), 'error');
     } finally {
       setLoading(false);
     }
-  }, [addToast, baseUrl]);
+  }, [addToast, baseUrl, t]);
 
   useEffect(() => {
     fetchTasks();
@@ -90,20 +90,25 @@ export default function TaskListManager({ baseUrl, navigate, addToast }) {
   };
 
   const formatTaskType = (type) => {
-    if (type === 'UtilityReading') return 'Utility Reading';
+    if (type === 'UtilityReading') return t('tasklistmanager.utility_reading');
+    if (type === 'Repair') return t('tasklistmanager.repair');
+    if (type === 'Maintenance') return t('tasklistmanager.maintenance');
     return type;
   };
 
   const formatStatus = (status) => {
-    if (status === 'PendingApproval') return 'Pending Approval';
-    if (status === 'In_Progress') return 'In Progress';
+    if (status === 'PendingApproval') return t('tasklistmanager.pending_approval');
+    if (status === 'In_Progress') return t('tasklistmanager.in_progress');
+    if (status === 'Pending') return t('tasklistmanager.pending');
+    if (status === 'Completed') return t('tasklistmanager.completed');
+    if (status === 'Cancelled') return t('tasklistmanager.cancelled');
     return status;
   };
 
   const formatDate = (dateStr) => {
     if (!dateStr) return 'N/A';
     const date = new Date(dateStr);
-    return date.toLocaleDateString('en-US', {
+    return date.toLocaleDateString(locale, {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -139,7 +144,7 @@ export default function TaskListManager({ baseUrl, navigate, addToast }) {
         }
       }
     };
-  }, []);
+  }, [t]);
 
   return (
     <main className="task-manager-container" id="task-manager-main-view">
@@ -153,7 +158,7 @@ export default function TaskListManager({ baseUrl, navigate, addToast }) {
               type="text"
               id="input-manager-task-search"
               className="search-input"
-              placeholder="Search by title or description..."
+              placeholder={t('tasklistmanager.search_placeholder')}
               value={searchQuery}
               onChange={(e) => {
                 setSearchQuery(e.target.value);
@@ -180,10 +185,10 @@ export default function TaskListManager({ baseUrl, navigate, addToast }) {
               setPageNumber(1);
             }}
           >
-            <option value="">All Types</option>
-            <option value="Repair">Repair</option>
-            <option value="Maintenance">Maintenance</option>
-            <option value="UtilityReading">Utility Reading</option>
+            <option value="">{t('tasklistmanager.all_types')}</option>
+            <option value="Repair">{t('tasklistmanager.repair')}</option>
+            <option value="Maintenance">{t('tasklistmanager.maintenance')}</option>
+            <option value="UtilityReading">{t('tasklistmanager.utility_reading')}</option>
           </select>
 
           <select
@@ -195,12 +200,12 @@ export default function TaskListManager({ baseUrl, navigate, addToast }) {
               setPageNumber(1);
             }}
           >
-            <option value="">All Statuses</option>
-            <option value="Pending">Pending</option>
-            <option value="PendingApproval">Pending Approval</option>
-            <option value="In_Progress">In Progress</option>
-            <option value="Completed">Completed</option>
-            <option value="Cancelled">Cancelled</option>
+            <option value="">{t('tasklistmanager.all_statuses')}</option>
+            <option value="Pending">{t('tasklistmanager.pending')}</option>
+            <option value="PendingApproval">{t('tasklistmanager.pending_approval')}</option>
+            <option value="In_Progress">{t('tasklistmanager.in_progress')}</option>
+            <option value="Completed">{t('tasklistmanager.completed')}</option>
+            <option value="Cancelled">{t('tasklistmanager.cancelled')}</option>
           </select>
 
           {(searchQuery || typeFilter || statusFilter) && (
@@ -209,7 +214,7 @@ export default function TaskListManager({ baseUrl, navigate, addToast }) {
               className="btn-filter-clear" 
               onClick={handleClearFilters}
             >
-              Clear Filters
+              {t('tasklistmanager.clear_filters')}
             </button>
           )}
         </div>
@@ -220,7 +225,7 @@ export default function TaskListManager({ baseUrl, navigate, addToast }) {
             className="task-btn task-btn-primary" 
             onClick={() => setShowCreateModal(true)}
           >
-            <IconPlus /> CREATE TASK
+            <IconPlus /> {t('tasklistmanager.create_task')}
           </button>
         </div>
       </section>
@@ -229,20 +234,20 @@ export default function TaskListManager({ baseUrl, navigate, addToast }) {
       <section className="table-section" id="task-manager-table-section">
         <div className="task-table-card">
           <div className="task-table-card-header">
-            <span className="task-table-card-title">Task Overview</span>
-            <span className="task-table-count-badge">{totalCount} Tasks</span>
+            <span className="task-table-card-title">{t('tasklistmanager.overview')}</span>
+            <span className="task-table-count-badge">{totalCount} {t('tasklistmanager.tasks_count')}</span>
           </div>
 
           <div className="task-table-responsive">
             {loading ? (
               <div className="task-state-empty">
                 <div className="task-spinner"></div>
-                <p className="task-state-empty-text">Loading operational tasks...</p>
+                <p className="task-state-empty-text">{t('tasklistmanager.loading')}</p>
               </div>
             ) : visibleTasks.length === 0 ? (
               <div className="task-state-empty">
                 <IconEmpty />
-                <p className="task-state-empty-text">No tasks found matching current filters.</p>
+                <p className="task-state-empty-text">{t('tasklistmanager.empty')}</p>
               </div>
             ) : (
               <table className="task-overview-table">
@@ -257,13 +262,13 @@ export default function TaskListManager({ baseUrl, navigate, addToast }) {
                 </colgroup>
                 <thead>
                   <tr>
-                    <th className="task-th-id">ID</th>
-                    <th>Task Label</th>
-                    <th>Task Type</th>
-                    <th>Created At</th>
-                    <th>Status</th>
-                    <th>Assigned Staff</th>
-                    <th className="task-th-actions">Actions</th>
+                    <th className="task-th-id">{t('tasklistmanager.id')}</th>
+                    <th>{t('tasklistmanager.label')}</th>
+                    <th>{t('tasklistmanager.type')}</th>
+                    <th>{t('tasklistmanager.created_at')}</th>
+                    <th>{t('tasklistmanager.status')}</th>
+                    <th>{t('tasklistmanager.assigned_staff')}</th>
+                    <th className="task-th-actions">{t('tasklistmanager.actions')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -290,7 +295,7 @@ export default function TaskListManager({ baseUrl, navigate, addToast }) {
                           </span>
                           {task.areaName && (
                             <span className="task-area-badge">
-                              Area: {task.areaName}
+                              {t('tasklistmanager.area')}: {task.areaName}
                             </span>
                           )}
                         </td>
@@ -310,7 +315,7 @@ export default function TaskListManager({ baseUrl, navigate, addToast }) {
                           <button 
                             id={`btn-manager-view-details-${task.taskId}`}
                             className="task-action-btn" 
-                            title="View Details"
+                            title={t('tasklistmanager.view_details')}
                             onClick={() => navigate('task-details', task.taskId)}
                           >
                             <IconEye />
@@ -333,10 +338,10 @@ export default function TaskListManager({ baseUrl, navigate, addToast }) {
                 disabled={safePageNumber === 1}
                 onClick={() => setPageNumber(p => Math.max(1, p - 1))}
               >
-                Previous
+                {t('tasklistmanager.previous')}
               </button>
               <span className="task-pagination-text">
-                Page {safePageNumber} of {totalPages}
+                {t('tasklistmanager.page_of', { page: safePageNumber, total: totalPages })}
               </span>
               <button 
                 id="btn-manager-page-next"
@@ -344,7 +349,7 @@ export default function TaskListManager({ baseUrl, navigate, addToast }) {
                 disabled={safePageNumber === totalPages}
                 onClick={() => setPageNumber(p => Math.min(totalPages, p + 1))}
               >
-                Next
+                {t('tasklistmanager.next')}
               </button>
             </div>
           )}

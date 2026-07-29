@@ -16,6 +16,7 @@ import {
   X,
 } from 'lucide-react';
 import { TASK_STATUS, TASK_TYPE } from '../../constants/taskEnums';
+import { TASK_STATUS_TONE } from '../../constants/enumMaps';
 import './TaskList.css';
 
 const PAGE_SIZE = 9;
@@ -57,11 +58,12 @@ export default function TaskList({ baseUrl, onViewDetails, onMapView }) {
     [TASK_TYPE.UTILITY_READING]: t('tasklist.utility_reading'),
   }), [t]);
 
+  // tone là CSS class modifier — KHÔNG dùng t(), dùng static token từ TASK_STATUS_TONE
   const STAT_CARDS = useMemo(() => [
-    { status: TASK_STATUS.PENDING, label: t('tasklist.pending'), icon: Clock3, tone: t('tasklist.warning') },
-    { status: TASK_STATUS.PENDING_APPROVAL, label: t('tasklist.pending_approval'), icon: ShieldCheck, tone: t('tasklist.approval') },
-    { status: TASK_STATUS.IN_PROGRESS, label: t('tasklist.in_progress'), icon: Wrench, tone: t('tasklist.progress') },
-    { status: TASK_STATUS.COMPLETED, label: t('tasklist.completed'), icon: CheckCircle2, tone: t('tasklist.success') },
+    { status: TASK_STATUS.PENDING,          label: t('tasklist.pending'),          icon: Clock3,       tone: TASK_STATUS_TONE.Pending         },
+    { status: TASK_STATUS.PENDING_APPROVAL, label: t('tasklist.pending_approval'), icon: ShieldCheck,  tone: TASK_STATUS_TONE.PendingApproval },
+    { status: TASK_STATUS.IN_PROGRESS,      label: t('tasklist.in_progress'),      icon: Wrench,       tone: TASK_STATUS_TONE.In_Progress     },
+    { status: TASK_STATUS.COMPLETED,        label: t('tasklist.completed'),        icon: CheckCircle2, tone: TASK_STATUS_TONE.Completed       },
   ], [t]);
 
   const [tasks, setTasks] = useState([]);
@@ -122,7 +124,7 @@ export default function TaskList({ baseUrl, onViewDetails, onMapView }) {
       if (finishedDifference !== 0) return finishedDifference;
       return new Date(right.createdAt || 0).getTime() - new Date(left.createdAt || 0).getTime();
     });
-  }, [searchQuery, tasks]);
+  }, [searchQuery, tasks, STATUS_LABELS]);
 
   const totalPages = Math.max(1, Math.ceil(filteredTasks.length / PAGE_SIZE));
   const safePageNumber = Math.min(pageNumber, totalPages);
@@ -150,7 +152,7 @@ export default function TaskList({ baseUrl, onViewDetails, onMapView }) {
             <Map size={16} aria-hidden="true" /> {t('tasklist.map_view')}</button>
           <span className="staff-task-list__total">
             <ClipboardList size={16} aria-hidden="true" />
-            {tasks.length} assigned
+            {tasks.length} {t('tasklist.assigned')}
           </span>
         </div>
       </header>
@@ -189,12 +191,12 @@ export default function TaskList({ baseUrl, onViewDetails, onMapView }) {
       </section>
 
       {loading ? (
-        <div className="staff-task-state" role={t('tasklist.status')}>
+        <div className="staff-task-state" role="status">
           <span className="staff-task-spinner" />
           <p>{t('tasklist.loading_assigned_tasks')}</p>
         </div>
       ) : error ? (
-        <div className="staff-task-state staff-task-state--error" role={t('tasklist.alert')}>
+        <div className="staff-task-state staff-task-state--error" role="alert">
           <h2>{t('tasklist.tasks_could_not_be')}</h2>
           <p>{error}</p>
           <button type="button" onClick={fetchTasks}>{t('tasklist.try_again')}</button>
@@ -215,7 +217,7 @@ export default function TaskList({ baseUrl, onViewDetails, onMapView }) {
                   <div className="staff-task-card__topline">
                     <span className="staff-task-card__id">#{task.taskId}</span>
                     <div className="staff-task-card__badges">
-                      <span className={`staff-task-badge staff-task-badge--type-${task.taskType.toLowerCase()}`}>
+                      <span className={`staff-task-badge staff-task-badge--${task.taskType.toLowerCase()}`}>
                         {TYPE_LABELS[task.taskType] || task.taskType}
                       </span>
                       <span className={`staff-task-badge staff-task-badge--status-${task.status.toLowerCase()}`}>
@@ -227,7 +229,7 @@ export default function TaskList({ baseUrl, onViewDetails, onMapView }) {
                   <div className="staff-task-card__body">
                     <h2>{task.title}</h2>
                     <p><MapPin size={16} aria-hidden="true" /> {location}</p>
-                    <p><CalendarDays size={16} aria-hidden="true" /> Assigned {formatDate(task.createdAt, t, i18n?.language)}</p>
+                    <p><CalendarDays size={16} aria-hidden="true" /> {t('tasklist.assigned')} {formatDate(task.createdAt, t, i18n?.language)}</p>
                   </div>
 
                   <footer className="staff-task-card__footer">
@@ -243,7 +245,7 @@ export default function TaskList({ baseUrl, onViewDetails, onMapView }) {
           {totalPages > 1 ? (
             <nav className="staff-task-pagination" aria-label={t('tasklist.task_list_pagination')}>
               <span>
-                Showing {(safePageNumber - 1) * PAGE_SIZE + 1}–{Math.min(safePageNumber * PAGE_SIZE, filteredTasks.length)} of {filteredTasks.length}
+                {t('tasklist.showing')} {(safePageNumber - 1) * PAGE_SIZE + 1}–{Math.min(safePageNumber * PAGE_SIZE, filteredTasks.length)} {t('tasklist.of')} {filteredTasks.length}
               </span>
               <div>
                 <button
@@ -254,7 +256,7 @@ export default function TaskList({ baseUrl, onViewDetails, onMapView }) {
                 >
                   <ChevronLeft size={17} aria-hidden="true" />
                 </button>
-                <strong>Page {safePageNumber} of {totalPages}</strong>
+                <strong>{t('tasklist.page')} {safePageNumber} {t('tasklist.of')} {totalPages}</strong>
                 <button
                   type="button"
                   disabled={safePageNumber === totalPages}

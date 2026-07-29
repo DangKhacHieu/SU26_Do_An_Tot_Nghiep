@@ -56,7 +56,16 @@ export default function SidebarStaff({ currentView, setView, user, onLogout }) {
           <span className="staff-user-avatar">{user?.name ? user.name.substring(0, 1).toUpperCase() : 'S'}</span>
           <span className="staff-user-info"><span className="staff-user-name">{user?.name || t('sidebarstaff.staff')}</span><span className="staff-user-role">{t('sidebarstaff.staff')}</span></span>
         </button>
-        {onLogout ? <button type="button" className="staff-menu-item logout-btn" onClick={onLogout}><LogOut size={16} /> {t('sidebarstaff.log_out')}</button> : null}
+        {onLogout ? (
+          <button
+            type="button"
+            className="logout-btn"
+            onClick={onLogout}
+            title={t('sidebarstaff.log_out')}
+          >
+            <LogOut size={18} />
+          </button>
+        ) : null}
       </div>
     </aside>
   );

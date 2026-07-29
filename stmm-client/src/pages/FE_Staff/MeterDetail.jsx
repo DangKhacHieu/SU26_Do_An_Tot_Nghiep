@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { getAuthHeaders } from '../../utils/authHeaders';
 import readProblemDetail from '../../utils/readProblemDetail';
+import { METER_TYPE_MAP, getEnumLabel } from '../../constants/enumMaps';
 import './MeterDetail.css';
 
 export default function MeterDetail({ meterId, baseUrl, onBack }) {
@@ -30,7 +31,7 @@ export default function MeterDetail({ meterId, baseUrl, onBack }) {
     };
 
     fetchMeterDetail();
-  }, [meterId, baseUrl]);
+  }, [meterId, baseUrl, t]);
 
   const formatDate = (dateString) => {
     if (!dateString) return t('meterdetail.na');
@@ -53,12 +54,17 @@ export default function MeterDetail({ meterId, baseUrl, onBack }) {
 
   if (!meter) return null;
 
+  // Meter type: icon tĩnh, label dịch tại render
+  const meterTypeEntry = METER_TYPE_MAP[meter.type];
+  const meterTypeIcon = meterTypeEntry ? meterTypeEntry.icon : '🔧';
+  const meterTypeLabel = getEnumLabel(meter.type, METER_TYPE_MAP, t);
+
   return (
     <div className="violation-details-container">
-      <div className="details-header" style={{ display: 'flex', justifyContent: t('meterdetail.spacebetween'), alignItems: t('meterdetail.center'), marginBottom: '20px' }}>
-        <h2 style={{ fontSize: '18px', fontWeight: '700', margin: 0, color: 'var(--text-main)' }}>METER DETAILS: {meter.serialNumber}</h2>
+      <div className="details-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <h2 style={{ fontSize: '18px', fontWeight: '700', margin: 0, color: 'var(--text-main)' }}>{t('meterdetail.meter_details_label')}: {meter.serialNumber}</h2>
         <button className="btn-secondary-outline" onClick={onBack}>
-          &larr; Back to History
+          {t('meterdetail.back_to_history')}
         </button>
       </div>
 
@@ -72,7 +78,8 @@ export default function MeterDetail({ meterId, baseUrl, onBack }) {
           <div className="info-block">
             <span className="info-label">{t('meterdetail.meter_type')}</span>
             <span className="info-value">
-              {meter.type === 'Electricity' ? '⚡ Electricity Meter' : '💧 Water Meter'}
+              {/* Icon tĩnh, label dịch tại render */}
+              {meterTypeIcon} {meterTypeLabel}
             </span>
           </div>
 
@@ -89,8 +96,9 @@ export default function MeterDetail({ meterId, baseUrl, onBack }) {
           <div className="info-block">
             <span className="info-label">{t('meterdetail.status')}</span>
             <div className="status-container">
-              <span className={`status-badge-large ${meter.isActive ? t('meterdetail.approved') : t('meterdetail.rejected')}`}>
-                [STATUS: {meter.isActive ? t('meterdetail.active') : t('meterdetail.inactive_replaced')}]
+              {/* CSS class từ boolean isActive — KHÔNG dùng chuỗi dịch */}
+              <span className={`status-badge-large ${meter.isActive ? 'approved' : 'rejected'}`}>
+                {meter.isActive ? t('meterdetail.active') : t('meterdetail.inactive_replaced')}
               </span>
             </div>
           </div>
@@ -108,10 +116,17 @@ export default function MeterDetail({ meterId, baseUrl, onBack }) {
             <div className="info-block" style={{ marginTop: '20px', borderTop: '1px dashed #ccc', paddingTop: '15px' }}>
               <span className="info-label">{t('meterdetail.latest_reading_evidence_photo')}</span>
               <div className="meter-evidence-photo-container" style={{ marginTop: '10px' }}>
-                <img 
-                  src={meter.lastReadingImageUrl} 
-                  alt={t('meterdetail.latest_meter_reading_evidence')} 
-                  style={{ maxWidth: '100%', maxHeight: '320px', borderRadius: '8px', border: '1px solid #cbd5e1', display: 'block', objectFit: t('meterdetail.contain') }} 
+                <img
+                  src={meter.lastReadingImageUrl}
+                  alt={t('meterdetail.latest_meter_reading_evidence')}
+                  style={{
+                    maxWidth: '100%',
+                    maxHeight: '320px',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    display: 'block',
+                    objectFit: 'contain'  // CSS property value — KHÔNG dịch
+                  }}
                 />
               </div>
             </div>

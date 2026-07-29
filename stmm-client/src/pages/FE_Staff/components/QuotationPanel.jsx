@@ -6,7 +6,7 @@ import readProblemDetail from '../../../utils/readProblemDetail';
 import { getAuthHeaders } from '../../../utils/authHeaders';
 
 export default function QuotationPanel({ taskId, baseUrl, taskStatus, initialMaterials, onRefreshTask, onShowNotification }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const isEditMode = taskStatus === TASK_STATUS.PENDING;
   
@@ -48,7 +48,7 @@ export default function QuotationPanel({ taskId, baseUrl, taskStatus, initialMat
     } finally {
       setLoading(false);
     }
-  }, [baseUrl, taskId]);
+  }, [baseUrl, taskId, t]);
 
   const fetchCatalog = useCallback(async () => {
     setCatalogLoading(true);
@@ -63,7 +63,7 @@ export default function QuotationPanel({ taskId, baseUrl, taskStatus, initialMat
     } finally {
       setCatalogLoading(false);
     }
-  }, [baseUrl]);
+  }, [baseUrl, t]);
 
   useEffect(() => {
     if (isEditMode) {
@@ -87,15 +87,15 @@ export default function QuotationPanel({ taskId, baseUrl, taskStatus, initialMat
   const handleAddMaterial = async (e) => {
     e.preventDefault();
     if (!selectedCatalogId) {
-      onShowNotification('Please select a material from the catalog.', 'error');
+      onShowNotification(t('quotationpanel.please_select_a_material'), 'error');
       return;
     }
     if (quantity <= 0) {
-      onShowNotification(t('quotationpanel.quantity_must_be_greater'), t('quotationpanel.error'));
+      onShowNotification(t('quotationpanel.quantity_must_be_greater'), 'error');
       return;
     }
     if (isCustomPriceRequired && (!customUnitPrice || parseFloat(customUnitPrice) <= 0)) {
-      onShowNotification(t('quotationpanel.please_enter_a_valid'), t('quotationpanel.error'));
+      onShowNotification(t('quotationpanel.please_enter_a_valid'), 'error');
       return;
     }
 
@@ -108,7 +108,7 @@ export default function QuotationPanel({ taskId, baseUrl, taskStatus, initialMat
       };
 
       const response = await fetch(`${baseUrl}/api/staff/tasks/${taskId}/quotation`, {
-        method: t('quotationpanel.post'),
+        method: 'POST',
         headers: {
           ...getAuthHeaders(),
           'Content-Type': 'application/json'
@@ -124,9 +124,9 @@ export default function QuotationPanel({ taskId, baseUrl, taskStatus, initialMat
       setSelectedCatalogId('');
       setQuantity(1);
       setCustomUnitPrice('');
-      onShowNotification(t('quotationpanel.material_added_successfully'), t('quotationpanel.success'));
+      onShowNotification(t('quotationpanel.material_added_successfully'), 'success');
     } catch (err) {
-      onShowNotification(err.message, t('quotationpanel.error'));
+      onShowNotification(err.message, 'error');
     } finally {
       setSubmittingMaterial(false);
     }
@@ -135,7 +135,7 @@ export default function QuotationPanel({ taskId, baseUrl, taskStatus, initialMat
   const executeRemoveMaterial = async (materialId) => {
     try {
       const response = await fetch(`${baseUrl}/api/staff/tasks/${taskId}/quotation/${materialId}`, {
-        method: t('quotationpanel.delete'),
+        method: 'DELETE',
         headers: getAuthHeaders()
       });
 
@@ -144,9 +144,9 @@ export default function QuotationPanel({ taskId, baseUrl, taskStatus, initialMat
       }
 
       await fetchQuotation();
-      onShowNotification(t('quotationpanel.material_removed_successfully'), t('quotationpanel.success'));
+      onShowNotification(t('quotationpanel.material_removed_successfully'), 'success');
     } catch (err) {
-      onShowNotification(err.message, t('quotationpanel.error'));
+      onShowNotification(err.message, 'error');
     }
   };
 
@@ -164,7 +164,7 @@ export default function QuotationPanel({ taskId, baseUrl, taskStatus, initialMat
     setSubmittingQuotation(true);
     try {
       const response = await fetch(`${baseUrl}/api/staff/tasks/${taskId}/submit-quotation`, {
-        method: t('quotationpanel.patch'),
+        method: 'PATCH',
         headers: getAuthHeaders()
       });
 
@@ -172,10 +172,10 @@ export default function QuotationPanel({ taskId, baseUrl, taskStatus, initialMat
         throw new Error(await readProblemDetail(response, t('quotationpanel.unable_to_submit_quotation')));
       }
 
-      onShowNotification(t('quotationpanel.quotation_has_been_submitted'), t('quotationpanel.success'));
+      onShowNotification(t('quotationpanel.quotation_has_been_submitted'), 'success');
       onRefreshTask();
     } catch (err) {
-      onShowNotification(err.message, t('quotationpanel.error'));
+      onShowNotification(err.message, 'error');
     } finally {
       setSubmittingQuotation(false);
     }
@@ -183,7 +183,7 @@ export default function QuotationPanel({ taskId, baseUrl, taskStatus, initialMat
 
   const handleSubmitQuotation = () => {
     if (quotation.materials.length === 0) {
-      onShowNotification(t('quotationpanel.the_quotation_must_contain'), t('quotationpanel.error'));
+      onShowNotification(t('quotationpanel.the_quotation_must_contain'), 'error');
       return;
     }
 
@@ -198,24 +198,24 @@ export default function QuotationPanel({ taskId, baseUrl, taskStatus, initialMat
 
   const formatVnd = (amount) => {
     if (amount === undefined || amount === null) return '0 VND';
-    return amount.toLocaleString(t('quotationpanel.vivn')) + ' VND';
+    return amount.toLocaleString(i18n.resolvedLanguage?.startsWith('vi') ? 'vi-VN' : 'en-US') + ' VND';
   };
 
   return (
     <div className="quotation-panel">
       <div className="panel-header-with-action">
-        <h3 className="card-section-title">🔧 Repair Materials & Parts Quotation</h3>
+        <h3 className="card-section-title">🔧 {t('quotationpanel.repair_materials_quotation')}</h3>
       </div>
 
       {isEditMode && quotation.materials.length > 0 && (
-        <div style={{ marginBottom: '16px', textAlign: t('quotationpanel.right') }}>
+        <div style={{ marginBottom: '16px', textAlign: 'right' }}>
           <button 
             type="button" 
             onClick={handleSubmitQuotation} 
             disabled={submittingQuotation}
             className="btn-primary-dark submit-quotation-btn"
           >
-            {submittingQuotation ? t('quotationpanel.sending') : '🚀 Submit for Approval'}
+            {submittingQuotation ? t('quotationpanel.sending') : `🚀 ${t('quotationpanel.submit_for_approval')}`}
           </button>
         </div>
       )}
@@ -235,7 +235,7 @@ export default function QuotationPanel({ taskId, baseUrl, taskStatus, initialMat
                 className="form-input"
                 style={{ width: '100%' }}
               >
-                <option value="">-- Select from Material Catalog --</option>
+                <option value="">-- {t('quotationpanel.select_from_catalog')} --</option>
                 {catalog.map(item => (
                   <option key={item.repairPriceId} value={item.repairPriceId}>
                     {item.itemName} ({item.unit}) - {item.price > 0 ? formatVnd(item.price) : t('quotationpanel.custom_price')}
@@ -250,7 +250,7 @@ export default function QuotationPanel({ taskId, baseUrl, taskStatus, initialMat
                 <input 
                   type="number" 
                   min="0.1" 
-                  step={t('quotationpanel.any')}
+                  step="any"
                   value={quantity}
                   onChange={(e) => setQuantity(e.target.value)}
                   disabled={submittingMaterial}
@@ -280,7 +280,7 @@ export default function QuotationPanel({ taskId, baseUrl, taskStatus, initialMat
                 disabled={submittingMaterial} 
                 className="btn-add-material-submit"
               >
-                {submittingMaterial ? t('quotationpanel.adding') : '➕ Add Material'}
+                {submittingMaterial ? t('quotationpanel.adding') : `➕ ${t('quotationpanel.add_material')}`}
               </button>
             </div>
           </div>
@@ -307,7 +307,7 @@ export default function QuotationPanel({ taskId, baseUrl, taskStatus, initialMat
               {quotation.materials.length === 0 ? (
                 <tr>
                   <td colSpan={isEditMode ? 5 : 4} className="empty-table-cell">
-                    No materials recorded yet. {isEditMode && t('quotationpanel.please_select_a_material')}
+                    {t('quotationpanel.no_materials_recorded')} {isEditMode && t('quotationpanel.please_select_a_material')}
                   </td>
                 </tr>
               ) : (

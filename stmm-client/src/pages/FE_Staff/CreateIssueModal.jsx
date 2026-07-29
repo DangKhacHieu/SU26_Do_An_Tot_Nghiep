@@ -67,7 +67,7 @@ export default function CreateIssueModal({ baseUrl, onClose, onSuccess, prefille
 
     loadStalls();
     return () => { active = false; };
-  }, [baseUrl]);
+  }, [baseUrl, t]);
 
   const uploadFiles = async (files) => {
     const available = 3 - uploadedImages.length;
@@ -115,7 +115,7 @@ export default function CreateIssueModal({ baseUrl, onClose, onSuccess, prefille
     setSubmitting(true);
     try {
       const response = await fetch(`${baseUrl}/api/staff/issues`, {
-        method: t('createissuemodal.post'),
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           ...getAuthHeaders(),
@@ -150,7 +150,7 @@ export default function CreateIssueModal({ baseUrl, onClose, onSuccess, prefille
           {error ? <div className="error-alert"><strong>{t('createissuemodal.error')}</strong> {error}</div> : null}
 
           <div className="form-group">
-            <label className="form-label required-field" htmlFor={t('createissuemodal.issuestall')}>{t('createissuemodal.location')}</label>
+            <label className="form-label required-field" htmlFor="issue-stall">{t('createissuemodal.location')}</label>
             <select
               id="issue-stall"
               className="form-input"
@@ -168,12 +168,12 @@ export default function CreateIssueModal({ baseUrl, onClose, onSuccess, prefille
           </div>
 
           <div className="form-group">
-            <label className="form-label required-field" htmlFor={t('createissuemodal.issuetitle')}>{t('createissuemodal.issue_title')}</label>
+            <label className="form-label required-field" htmlFor="issue-title">{t('createissuemodal.issue_title')}</label>
             <input id="issue-title" className="form-input" value={title} onChange={(event) => setTitle(event.target.value)} maxLength={500} />
           </div>
 
           <div className="form-group">
-            <label className="form-label required-field" htmlFor={t('createissuemodal.issuedescription')}>{t('createissuemodal.detailed_description')}</label>
+            <label className="form-label required-field" htmlFor="issue-description">{t('createissuemodal.detailed_description')}</label>
             <textarea id="issue-description" className="form-input" rows="4" value={description} onChange={(event) => setDescription(event.target.value)} />
           </div>
 
@@ -182,13 +182,13 @@ export default function CreateIssueModal({ baseUrl, onClose, onSuccess, prefille
             <input
               ref={fileInputRef}
               type="file"
-              accept={t('createissuemodal.image')}
+              accept="image/*"
               multiple
               hidden
               onChange={(event) => uploadFiles(event.target.files)}
             />
             <div 
-              className={`drag-drop-zone ${dragActive ? t('createissuemodal.active') : ''} ${uploadedImages.length >= 3 ? t('createissuemodal.disabled') : ''}`}
+              className={`drag-drop-zone ${dragActive ? 'active' : ''} ${uploadedImages.length >= 3 ? 'disabled' : ''}`}
               onDragEnter={handleDrag}
               onDragOver={handleDrag}
               onDragLeave={handleDrag}

@@ -49,7 +49,7 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, onClose, onS
     };
 
     fetchMeters();
-  }, [stallId, baseUrl]);
+  }, [stallId, baseUrl, t]);
 
   const handleMeterChange = (e) => {
     const id = e.target.value;
@@ -147,9 +147,9 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, onClose, onS
     }
 
     if (newValue === '' || isNaN(Number(newValue)) || Number(newValue) < 0) {
-      errors.newValue = t('recordmeterreadingmodal.new_value_must_be');
+      errors.newValue = t('recordmeterreadingmodal.invalid_new_value');
     } else if (selectedMeter && selectedMeter.lastReadingValue !== null && Number(newValue) < selectedMeter.lastReadingValue) {
-      errors.newValue = t('recordmeterreadingmodal.new_value_must_be');
+      errors.newValue = t('recordmeterreadingmodal.new_value_must_be', { previousValue: selectedMeter.lastReadingValue });
     }
 
     if (!recordedAt) {
@@ -186,7 +186,7 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, onClose, onS
 
     try {
       const response = await fetch(`${baseUrl}/api/meter-readings`, {
-        method: t('recordmeterreadingmodal.post'),
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           ...getAuthHeaders(),
@@ -211,7 +211,7 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, onClose, onS
     <div className="modal-overlay">
       <div className="modal-container">
         <div className="modal-header">
-          <h2 className="modal-title">⚡ Record Meter Reading</h2>
+          <h2 className="modal-title">⚡ {t('recordmeterreadingmodal.record_meter_reading')}</h2>
           <button className="modal-close-btn" onClick={onClose}>&times;</button>
         </div>
 
@@ -227,7 +227,7 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, onClose, onS
             <select
               value={meterId}
               onChange={handleMeterChange}
-              className={`form-input ${formErrors.meterId ? t('recordmeterreadingmodal.errorborder') : ''}`}
+              className={`form-input ${formErrors.meterId ? 'error-border' : ''}`}
               disabled={loadingMeters}
             >
               <option value="">{t('recordmeterreadingmodal.choose_meter')}</option>
@@ -256,11 +256,11 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, onClose, onS
             <label className="form-label required-field">{t('recordmeterreadingmodal.new_reading_value')}</label>
             <input
               type="number"
-              step={t('recordmeterreadingmodal.any')}
+              step="any"
               placeholder={t('recordmeterreadingmodal.enter_current_meter_digit')}
               value={newValue}
               onChange={(e) => setNewValue(e.target.value)}
-              className={`form-input ${formErrors.newValue ? t('recordmeterreadingmodal.errorborder') : ''}`}
+              className={`form-input ${formErrors.newValue ? 'error-border' : ''}`}
             />
             {formErrors.newValue && <span className="error-text">{formErrors.newValue}</span>}
           </div>
@@ -271,7 +271,7 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, onClose, onS
               type="date"
               value={recordedAt}
               onChange={(e) => setRecordedAt(e.target.value)}
-              className={`form-input ${formErrors.recordedAt ? t('recordmeterreadingmodal.errorborder') : ''}`}
+              className={`form-input ${formErrors.recordedAt ? 'error-border' : ''}`}
             />
             {formErrors.recordedAt && <span className="error-text">{formErrors.recordedAt}</span>}
           </div>
@@ -282,13 +282,13 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, onClose, onS
             <input 
               ref={fileInputRef}
               type="file" 
-              accept={t('recordmeterreadingmodal.image')}
+              accept="image/*"
               onChange={handleFileChange}
               style={{ display: 'none' }}
             />
 
             <div 
-              className={`drag-drop-zone ${dragActive ? t('recordmeterreadingmodal.active') : ''} ${imageUrl ? t('recordmeterreadingmodal.disabled') : ''}`}
+              className={`drag-drop-zone ${dragActive ? 'active' : ''} ${imageUrl ? 'disabled' : ''}`}
               onDragEnter={handleDrag}
               onDragOver={handleDrag}
               onDragLeave={handleDrag}
@@ -307,7 +307,7 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, onClose, onS
             </div>
 
             {imageUploading && <div className="helper-text" style={{ color: '#0066cc' }}>{t('recordmeterreadingmodal.uploading_image_to_cloudinary')}</div>}
-            {imageError && <div className="error-text">Upload Error: {imageError}</div>}
+            {imageError && <div className="error-text">{t('recordmeterreadingmodal.upload_error')}: {imageError}</div>}
             {formErrors.imageUrl && <span className="error-text">{formErrors.imageUrl}</span>}
 
             {imageUrl && (

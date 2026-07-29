@@ -4,12 +4,12 @@ import { Camera, CheckCircle2, UploadCloud, X } from 'lucide-react';
 import { getAuthHeaders } from '../../../utils/authHeaders';
 import { TASK_TYPE } from '../../../constants/taskEnums';
 
-const readProblemDetail = async (response) => {
+const readProblemDetail = async (response, fallback) => {
   try {
     const payload = await response.json();
-    return payload.detail || payload.title || t('completetaskform.unable_to_complete_the');
+    return payload.detail || payload.title || fallback;
   } catch {
-    return t('completetaskform.unable_to_complete_the');
+    return fallback;
   }
 };
 
@@ -38,7 +38,7 @@ export default function CompleteTaskForm({ task, baseUrl, onRefreshTask, onShowN
   );
 
   const setImage = (target, value) => {
-    if (target === t('completetaskform.before')) setImageBeforeUrl(value);
+    if (target === 'before') setImageBeforeUrl(value);
     else setImageAfterUrl(value);
   };
 
@@ -56,7 +56,7 @@ export default function CompleteTaskForm({ task, baseUrl, onRefreshTask, onShowN
     setUploadingTarget(target);
     setUploadErrors((current) => ({ ...current, [target]: null }));
     const formData = new FormData();
-    formData.append(t('completetaskform.file'), file);
+    formData.append('file', file);
 
     try {
       const response = await fetch(`${baseUrl}/api/files/upload`, {
@@ -64,7 +64,7 @@ export default function CompleteTaskForm({ task, baseUrl, onRefreshTask, onShowN
         headers: getAuthHeaders(),
         body: formData
       });
-      if (!response.ok) throw new Error(await readProblemDetail(response));
+      if (!response.ok) throw new Error(await readProblemDetail(response, t('completetaskform.unable_to_complete_the')));
       const payload = await response.json();
       setImage(target, payload.imageUrl);
     } catch (uploadError) {
@@ -113,8 +113,8 @@ export default function CompleteTaskForm({ task, baseUrl, onRefreshTask, onShowN
         }),
       });
 
-      if (!response.ok) throw new Error(await readProblemDetail(response));
-      onShowNotification?.(t('completetaskform.task_completed_successfully'), t('completetaskform.success'));
+      if (!response.ok) throw new Error(await readProblemDetail(response, t('completetaskform.unable_to_complete_the')));
+      onShowNotification?.(t('completetaskform.task_completed_successfully'), 'success');
       await onRefreshTask();
     } catch (completionError) {
       setSubmitError(completionError.message);
@@ -129,20 +129,20 @@ export default function CompleteTaskForm({ task, baseUrl, onRefreshTask, onShowN
       <input
         ref={inputRef}
         type="file"
-        accept={t('completetaskform.image')}
+        accept="image/*"
         onChange={(event) => uploadFile(event.target.files?.[0], target)}
         hidden
       />
       <div
-        className={`drag-drop-zone ${dragTarget === target ? t('completetaskform.active') : ''} ${value ? t('completetaskform.hasfile') : ''}`}
+        className={`drag-drop-zone ${dragTarget === target ? 'active' : ''} ${value ? 'has-file' : ''}`}
         onDragEnter={(event) => { event.preventDefault(); setDragTarget(target); }}
         onDragOver={(event) => event.preventDefault()}
         onDragLeave={(event) => { event.preventDefault(); setDragTarget(null); }}
         onDrop={(event) => handleDrop(event, target)}
         onClick={() => inputRef.current?.click()}
-        role={t('completetaskform.button')}
+                role="button"
         tabIndex={0}
-        onKeyDown={(event) => { if (event.key === t('completetaskform.enter') || event.key === ' ') inputRef.current?.click(); }}
+                onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') inputRef.current?.click(); }}
       >
         {value ? (
           <div className="uploaded-preview-container" onClick={(event) => event.stopPropagation()}>
@@ -153,7 +153,7 @@ export default function CompleteTaskForm({ task, baseUrl, onRefreshTask, onShowN
           </div>
         ) : (
           <div className="drag-drop-content">
-            <UploadCloud className="upload-icon" size={30} aria-hidden={t('completetaskform.true')} />
+            <UploadCloud className="upload-icon" size={30} aria-hidden="true" />
             <p>{t('completetaskform.drag_and_drop_an')}<strong>{t('completetaskform.click_to_select')}</strong></p>
             <span className="helper-text">{t('completetaskform.jpg_png_or_webp')}</span>
           </div>
@@ -166,19 +166,19 @@ export default function CompleteTaskForm({ task, baseUrl, onRefreshTask, onShowN
 
   return (
     <section className="complete-task-form-panel">
-      <h3 className="card-section-title"><CheckCircle2 size={18} aria-hidden={t('completetaskform.true')} /> {t('completetaskform.report_task_completion')}</h3>
+      <h3 className="card-section-title"><CheckCircle2 size={18} aria-hidden="true" /> {t('completetaskform.report_task_completion')}</h3>
       <form onSubmit={handleSubmit} className="complete-form">
-        {submitError ? <div className="error-alert" role={t('completetaskform.alert')}><strong>{t('completetaskform.error')}</strong> {submitError}</div> : null}
+        {submitError ? <div className="error-alert" role="alert"><strong>{t('completetaskform.error')}</strong> {submitError}</div> : null}
 
         {requiresPhotos ? (
           <div className="upload-fields-grid">
-            {requiresBeforeUpload ? renderUpload(t('completetaskform.before'), t('completetaskform.before_photo'), imageBeforeUrl, beforeInputRef) : null}
-            {renderUpload(t('completetaskform.after'), t('completetaskform.after_photo'), imageAfterUrl, afterInputRef)}
+            {requiresBeforeUpload ? renderUpload('before', t('completetaskform.before_photo'), imageBeforeUrl, beforeInputRef) : null}
+            {renderUpload('after', t('completetaskform.after_photo'), imageAfterUrl, afterInputRef)}
           </div>
         ) : null}
 
         {isUtilityReading && utilityProgress && utilityProgress.total > 0 ? (
-          <div className={`utility-completion-progress ${isChecklistIncomplete ? t('completetaskform.isincomplete') : t('completetaskform.iscomplete')}`}>
+          <div className={`utility-completion-progress ${isChecklistIncomplete ? 'is-incomplete' : 'is-complete'}`}>
             <div className="progress-info">
               <span>{t('completetaskform.meter_reading_progress')}</span>
               <strong>{utilityProgress.completed} / {utilityProgress.total} stalls</strong>
@@ -207,7 +207,7 @@ export default function CompleteTaskForm({ task, baseUrl, onRefreshTask, onShowN
             disabled={loading || uploadingTarget !== null || isChecklistIncomplete}
             className="btn-primary-dark submit-completion-btn"
           >
-            <Camera size={16} aria-hidden={t('completetaskform.true')} />
+            <Camera size={16} aria-hidden="true" />
             {loading ? t('completetaskform.submitting') : t('completetaskform.confirm_completion')}
           </button>
         </div>
