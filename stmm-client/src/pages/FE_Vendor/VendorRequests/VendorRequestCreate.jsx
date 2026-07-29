@@ -103,8 +103,8 @@ export default function VendorRequestCreate({ onBack, onSuccess, prefillViolatio
                 requestType,
                 title,
                 description,
-                violationId: violationId ? parseInt(violationId) : null,
-                invoiceId: invoiceId ? parseInt(invoiceId) : null
+                violationId: (requestType === 'ViolationAppeal' && violationId) ? parseInt(violationId) : null,
+                invoiceId: (requestType === 'InvoiceDispute' && invoiceId) ? parseInt(invoiceId) : null
             };
 
             await axios.post('http://localhost:5056/api/vendor/requests', payload, {

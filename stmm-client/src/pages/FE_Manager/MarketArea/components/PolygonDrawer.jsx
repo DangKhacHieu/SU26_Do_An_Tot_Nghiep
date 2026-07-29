@@ -138,8 +138,26 @@ const PolygonDrawer = ({
                 if (area.svgPath) {
                     const matches = [...area.svgPath.matchAll(/(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)/g)];
                     if (matches.length > 2) {
-                        const exMinX = area.minX ?? area.MinX ?? 0;
-                        const exMinY = area.minY ?? area.MinY ?? 0;
+                        const xs = matches.map(m => parseFloat(m[1]));
+                        const ys = matches.map(m => parseFloat(m[2]));
+                        const pMinX = Math.min(...xs);
+                        const pMinY = Math.min(...ys);
+                        
+                        let exMinX = 0;
+                        let exMinY = 0;
+                        
+                        if (stallMode) {
+                            // Stalls are always relative to mapX, mapY
+                            exMinX = area.mapX ?? area.MapX ?? 0;
+                            exMinY = area.mapY ?? area.MapY ?? 0;
+                        } else {
+                            // Areas might be absolute (GridGenerator) or relative (Manual)
+                            // If relative, pMinX is ~0, so we add area.minX to get absolute coordinates.
+                            // If absolute, pMinX is already area.minX, so we add 0.
+                            exMinX = Math.abs(pMinX) < 1 ? (area.minX ?? area.MinX ?? 0) : 0;
+                            exMinY = Math.abs(pMinY) < 1 ? (area.minY ?? area.MinY ?? 0) : 0;
+                        }
+
                         const exPoly = [matches.map(m => [parseFloat(m[1]) + exMinX, parseFloat(m[2]) + exMinY])];
                         const overlap = polygonClipping.intersection(drawnPoly, exPoly);
                         if (overlap.length > 0) {

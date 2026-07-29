@@ -46,7 +46,9 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
         }
     };
 
-    // Helper to check collision between stalls
+    // THUẬT TOÁN KIỂM TRA CHỒNG LẤN (COLLISION DETECTION) TẠI FRONTEND
+    // Do không sử dụng PostGIS (yêu cầu không thay đổi Database), hệ thống dùng
+    // thuật toán Axis-Aligned Bounding Box (AABB) Intersection để phát hiện va chạm sạp.
     const checkStallOverlap = (stallId, minX, minY, maxX, maxY) => {
         return stalls.some(s => {
             if (s.stallId === stallId) return false;
@@ -71,6 +73,7 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
         const height = stall.height || 100;
 
         if (validateStallBounds && !validateStallBounds(d.x, d.y, d.x + width, d.y + height)) {
+            // RÀNG BUỘC FRONTEND: Sạp phải nằm trong ranh giới (Boundaries) của Khu vực
             setErrorMessage('Không thể di chuyển: Sạp phải nằm hoàn toàn trong Khu vực!');
             setRenderKey(prev => prev + 1); // Force Rnd to revert
             return;
@@ -98,6 +101,9 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
         const newWidth = parseFloat(ref.style.width);
         const newHeight = parseFloat(ref.style.height);
         
+        // TÍNH TOÁN DIỆN TÍCH (SIZE) TỪ CANVAS REAL-TIME
+        // Giả lập hệ số Tỷ lệ: PX_PER_M2 = 900 (1 mét vuông = 30x30 pixels)
+        // Khi kéo kích thước, tự động quy ra m²
         const PX_PER_M2 = 900;
         const newSize = Math.round((newWidth * newHeight) / PX_PER_M2 * 100) / 100;
 
@@ -240,46 +246,6 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
         return status === 'Rented' ? '#ffffff' : '#1e293b'; // White text for blue background, dark otherwise
     };
 
-    const renderViewModal = () => {
-        if (!viewingStall) return null;
-        
-        const modalContent = (
-            <div style={{position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 9999, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-                <div style={{background: 'var(--bg-panel)', padding: '32px', borderRadius: '16px', minWidth: '400px', maxWidth: '500px', boxShadow: '0 10px 30px rgba(0,0,0,0.2)', position: 'relative'}}>
-                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '16px'}}>
-                        <h3 style={{margin: 0, color: 'var(--color-primary)', fontSize: '20px'}}>{'Thông tin Sạp'}</h3>
-                        <button onClick={() => setViewingStall(null)} style={{background: 'transparent', border: 'none', fontSize: '24px', cursor: 'pointer', color: 'var(--text-secondary)'}}>&times;</button>
-                    </div>
-                    <div style={{marginTop: '24px', display: 'flex', flexDirection: 'column', gap: '16px'}}>
-                        <div style={{fontSize: '15px'}}><strong>{'Mã sạp:'}</strong> {viewingStall.code}</div>
-                        <div style={{fontSize: '15px'}}><strong>{'Ngành hàng:'}</strong> {viewingStall.categoryName || 'Không có'}</div>
-                        <div style={{fontSize: '15px'}}><strong>{'Tình trạng:'}</strong> <span style={{backgroundColor: getStatusColor(viewingStall.status), color: 'white', padding: '4px 12px', borderRadius: '12px', fontSize: '13px', marginLeft: '8px', fontWeight: 'bold'}}>{viewingStall.status}</span></div>
-                        <div style={{fontSize: '15px'}}><strong>{'Người thuê:'}</strong> {viewingStall.tenantName || viewingStall.description || 'Trống'}</div>
-                        <div style={{fontSize: '15px'}}><strong>{'Kích thước (WxH):'}</strong> {viewingStall.width} x {viewingStall.height}</div>
-                        
-                        <div style={{marginTop: '8px', padding: '12px', background: 'var(--bg-card)', borderRadius: '8px', border: '1px solid var(--border-color)'}}>
-                            <h4 style={{margin: '0 0 8px 0', fontSize: '14px', color: 'var(--text-secondary)'}}>{'⚡ Tiện ích (Điện / Nước)'}</h4>
-                            <div style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
-                                <div style={{fontSize: '14px', display: 'flex', justifyContent: 'space-between'}}>
-                                    <span>{'Mã đồng hồ điện:'}<strong>{viewingStall.electricityMeterSerial || 'Chưa lắp'}</strong></span>
-                                    <span>{'Chỉ số:'}<strong>{viewingStall.currentElectricityIndex ?? 0} kWh</strong></span>
-                                </div>
-                                <div style={{fontSize: '14px', display: 'flex', justifyContent: 'space-between'}}>
-                                    <span>{'Mã đồng hồ nước:'}<strong>{viewingStall.waterMeterSerial || 'Chưa lắp'}</strong></span>
-                                    <span>{'Chỉ số:'}<strong>{viewingStall.currentWaterIndex ?? 0} m³</strong></span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div style={{display: 'flex', justifyContent: 'flex-end', marginTop: '32px'}}>
-                        <button onClick={() => setViewingStall(null)} style={{padding: '10px 24px', background: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold'}}>{'Đóng'}</button>
-                    </div>
-                </div>
-            </div>
-        );
-        return createPortal(modalContent, document.body);
-    };
-
     const renderDeleteModals = () => {
         let modals = [];
         if (deleteConfirmId) {
@@ -329,45 +295,13 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
     const totalUsedStallArea = stalls.reduce((sum, s) => sum + (parseFloat(s.size) || 0), 0);
     const remainingStallArea = Math.max(0, Math.round(((parseFloat(areaSize) || 0) - totalUsedStallArea) * 100) / 100);
 
-    return (
-        <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-            <div style={{ position: 'absolute', top: '-50px', left: 0, zIndex: 101, padding: '8px 16px', backgroundColor: 'var(--bg-panel)', border: '1px solid var(--border-color)', borderRadius: '8px', display: 'flex', gap: '24px', alignItems: 'center', flexWrap: 'wrap', fontSize: '13px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)' }}>
-               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#3b82f6' }}></div>
-                  <span style={{ color: 'var(--text-secondary)' }}>Diện tích Khu vực:</span>
-                  <strong style={{ color: 'var(--text-primary)' }}>{areaSize || 0} m²</strong>
-               </div>
-               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10b981' }}></div>
-                  <span style={{ color: 'var(--text-secondary)' }}>Đã sử dụng:</span>
-                  <strong style={{ color: 'var(--text-primary)' }}>{Math.round(totalUsedStallArea * 100) / 100} m²</strong>
-               </div>
-               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: remainingStallArea > 0 ? '#eab308' : '#ef4444' }}></div>
-                  <span style={{ color: 'var(--text-secondary)' }}>Còn trống:</span>
-                  <strong style={{ color: remainingStallArea > 0 ? 'var(--text-primary)' : '#ef4444' }}>{remainingStallArea} m²</strong>
-               </div>
-            </div>
+    const isSplitViewActive = isFormOpen || viewingStall || isDrawingStall;
 
-            <div className={styles.editorContainer} style={{ width: '100%', height: '100%' }}>
-                {isEditMode && (
-              <div style={{position: 'absolute', bottom: 8, right: 8, zIndex: 100, display: 'flex', gap: 8}}>
-                  <button 
-                      onClick={() => setIsDrawingStall(true)} 
-                      style={{background: 'var(--color-secondary, #64748b)', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '16px', cursor: 'pointer', fontWeight: 'bold', boxShadow: '0 2px 8px rgba(81, 117, 148, 0.4)', fontSize: 11}}
-                  >
-                      🖊️ VẼ SẠP
-                  </button>
-                  <button 
-                      onClick={() => { setSelectedStall(null); setDrawnStallData(null); setIsFormOpen(true); }} 
-                      style={{background: 'var(--color-primary)', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '16px', cursor: 'pointer', fontWeight: 'bold', boxShadow: '0 2px 8px rgba(81, 117, 148, 0.4)', fontSize: 11}}
-                  >
-                      + THÊM SẠP
-                  </button>
-              </div>
-            )}
+    const modalZoom = (typeof window !== 'undefined' && isSplitViewActive) ? Math.min(Math.max(Math.min((window.innerWidth - 450) / Math.max(areaWidth || 200, 200), (window.innerHeight - 150) / Math.max(areaHeight || 200, 200)), 1), 4) : 1;
 
-            <div className={styles.gridContainer} ref={editorRef}>
+    const renderCanvas = (isModal) => (
+        <div className={styles.gridContainer} ref={isModal ? editorRef : null} style={isModal ? { width: '100%', height: '100%', overflow: 'hidden', background: '#cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center' } : { width: '100%', height: '100%' }}>
+            <div style={isModal ? { width: Math.max(areaWidth || 200, 200), height: Math.max(areaHeight || 200, 200), position: 'relative', background: 'white', boxShadow: '0 20px 40px rgba(0,0,0,0.2)', borderRadius: '8px', border: '1px solid #94a3b8', transform: `scale(${modalZoom})`, transformOrigin: 'center' } : { position: 'relative', width: '100%', height: '100%' }}>
                 {svgPath && (() => {
                     const matches = [...svgPath.matchAll(/(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)/g)];
                     if (matches.length > 0) {
@@ -392,23 +326,32 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
                 {loading ? (
                     <div className={styles.loading}>Loading stalls...</div>
                 ) : (
-                    stalls.map(stall => (
+                    stalls.map(stallItem => {
+                        if (isDrawingStall && selectedStall && stallItem.stallId === selectedStall.stallId) return null;
+                        const isActive = (selectedStall && stallItem.stallId === selectedStall.stallId) || (viewingStall && stallItem.stallId === viewingStall.stallId);
+                        
+                        // If we just redrew this stall, override its shape data with the newly drawn data
+                        const stall = (drawnStallData && selectedStall && stallItem.stallId === selectedStall.stallId) 
+                            ? { ...stallItem, svgPath: drawnStallData.svgPath, mapX: drawnStallData.minX, mapY: drawnStallData.minY, width: drawnStallData.width, height: drawnStallData.height }
+                            : stallItem;
+                        
+                        return (
                         <Rnd
-                            key={`${stall.stallId}-${renderKey}`}
+                            key={`${stall.stallId}-${renderKey}-${isModal ? 'modal' : 'inline'}`}
                             bounds="parent"
-                            scale={zoom}
+                            scale={isModal ? modalZoom : zoom}
                             size={{ width: stall.width || 100, height: stall.height || 100 }}
                             position={{ x: (stall.mapX !== undefined && stall.mapX !== null) ? parseFloat(stall.mapX) : 0, y: (stall.mapY !== undefined && stall.mapY !== null) ? parseFloat(stall.mapY) : 0 }}
                             onDragStop={(e, d) => handleDragStop(e, d, stall)}
                             onResizeStop={(e, direction, ref, delta, position) => handleResizeStop(e, direction, ref, delta, position, stall)}
-                            disableDragging={!isEditMode || !!stall.svgPath}
-                            enableResizing={isEditMode && !stall.svgPath}
+                            disableDragging={(!isEditMode || !!stall.svgPath) || (!isModal && isSplitViewActive)}
+                            enableResizing={isEditMode && !stall.svgPath && (isModal || !isSplitViewActive)}
                             className={`${styles.stallNode} stall-node-prevent-drag`}
                             style={{ 
                                 position: 'absolute',
-                                borderLeftColor: stall.svgPath ? 'transparent' : getStatusColor(stall.status),
-                                cursor: isEditMode ? 'move' : 'default',
-                                zIndex: isEditMode ? 10 : 1,
+                                border: stall.svgPath ? 'none' : (isActive ? '2px solid #f59e0b' : `1px solid ${getStatusColor(stall.status)}`),
+                                cursor: isEditMode && (isModal || !isSplitViewActive) ? 'move' : 'default',
+                                zIndex: isActive ? 50 : (isEditMode ? 10 : 1),
                                 ...(stall.svgPath ? {
                                     background: 'transparent',
                                     border: 'none',
@@ -437,7 +380,7 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
                                     })()} 
                                     style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none', overflow: 'visible' }}
                                 >
-                                    <path d={stall.svgPath} fill={getPolygonFillColor(stall.status)} fillOpacity={1.0} stroke="#64748b" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
+                                    <path d={stall.svgPath} fill={getPolygonFillColor(stall.status)} fillOpacity={isActive ? 0.8 : 1.0} stroke={isActive ? '#f59e0b' : '#64748b'} strokeWidth={isActive ? "2.5" : "1.5"} vectorEffect="non-scaling-stroke" />
                                 </svg>
                             )}
                             <div className={styles.stallContent} style={{ 
@@ -491,76 +434,274 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
                                 </div>
                             </div>
                         </Rnd>
-                    ))
+                        );
+                    })
+                )}
+                
+                {drawnStallData && !selectedStall && !isDrawingStall && isFormOpen && (() => {
+                    const tempStall = {
+                        stallId: 'new-temp',
+                        code: 'Sạp mới',
+                        status: 'Available',
+                        svgPath: drawnStallData.svgPath,
+                        mapX: drawnStallData.minX,
+                        mapY: drawnStallData.minY,
+                        width: drawnStallData.width,
+                        height: drawnStallData.height
+                    };
+                    return (
+                        <Rnd
+                            key="new-temp-stall"
+                            bounds="parent"
+                            scale={isModal ? modalZoom : zoom}
+                            size={{ width: tempStall.width, height: tempStall.height }}
+                            position={{ x: tempStall.mapX, y: tempStall.mapY }}
+                            disableDragging={true}
+                            enableResizing={false}
+                            className={`${styles.stallNode} stall-node-prevent-drag`}
+                            style={{ 
+                                position: 'absolute',
+                                border: 'none',
+                                cursor: 'default',
+                                zIndex: 50,
+                                background: 'transparent',
+                                boxShadow: 'none',
+                                overflow: 'visible'
+                            }}
+                        >
+                            <svg 
+                                width="100%" 
+                                height="100%" 
+                                preserveAspectRatio="none" 
+                                viewBox={(() => {
+                                    const matches = [...tempStall.svgPath.matchAll(/(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)/g)];
+                                    if(matches.length > 0) {
+                                        const xs = matches.map(m => parseFloat(m[1]));
+                                        const ys = matches.map(m => parseFloat(m[2]));
+                                        const pMinX = Math.min(...xs);
+                                        const pMinY = Math.min(...ys);
+                                        const pMaxX = Math.max(...xs);
+                                        const pMaxY = Math.max(...ys);
+                                        return `${pMinX} ${pMinY} ${Math.max(1, pMaxX - pMinX)} ${Math.max(1, pMaxY - pMinY)}`;
+                                    }
+                                    return `0 0 ${tempStall.width} ${tempStall.height}`;
+                                })()} 
+                                style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none', overflow: 'visible' }}
+                            >
+                                <path d={tempStall.svgPath} fill="rgba(59, 130, 246, 0.15)" fillOpacity={0.8} stroke="#f59e0b" strokeWidth="2.5" vectorEffect="non-scaling-stroke" />
+                            </svg>
+                            <div className={styles.stallContent} style={{ 
+                                position: 'absolute', 
+                                zIndex: 2,
+                                left: getPolygonCentroid(tempStall.svgPath).x,
+                                top: getPolygonCentroid(tempStall.svgPath).y,
+                                transform: 'translate(-50%, -50%)',
+                                width: 'auto',
+                                height: 'auto',
+                                background: 'transparent',
+                                padding: '0',
+                                margin: '0',
+                                pointerEvents: 'auto'
+                            }}>
+                                <strong style={{ color: getPolygonTextColor('Available'), fontSize: '18px', textShadow: '0 1px 2px rgba(0,0,0,0.1)' }}>{tempStall.code}</strong>
+                            </div>
+                        </Rnd>
+                    );
+                })()}
+
+                {isDrawingStall && isModal && (
+                    <PolygonDrawer 
+                        stallMode={true}
+                        cWidth={4000}
+                        cHeight={4000}
+                        svgOffsetX={2000 - (areaWidth || 0) / 2}
+                        svgOffsetY={2000 - (areaHeight || 0) / 2}
+                        maxAllowedAreaSize={areaSize}
+                        existingAreas={stalls.filter(s => !(selectedStall && s.stallId === selectedStall.stallId))}
+                        marketPolygon={(() => {
+                            if (!svgPath) {
+                                if (!areaWidth || !areaHeight) return null;
+                                return [
+                                    [0, 0],
+                                    [areaWidth, 0],
+                                    [areaWidth, areaHeight],
+                                    [0, areaHeight]
+                                ];
+                            }
+                            const matches = [...svgPath.matchAll(/(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)/g)];
+                            if (matches.length === 0) return null;
+                            const xs = matches.map(m => parseFloat(m[1]));
+                            const ys = matches.map(m => parseFloat(m[2]));
+                            const pMinX = Math.min(...xs);
+                            const pMinY = Math.min(...ys);
+                            return matches.map(m => [
+                                parseFloat(m[1]) - pMinX,
+                                parseFloat(m[2]) - pMinY
+                            ]);
+                        })()}
+                        onComplete={(drawData) => {
+                            setDrawnStallData(drawData);
+                            setIsDrawingStall(false);
+                            // If we are drawing a new stall, selectedStall is null, form opens via drawnData
+                            // If redrawing, selectedStall stays active, form opens to update it.
+                            setIsFormOpen(true);
+                        }}
+                        onCancel={() => {
+                            setIsDrawingStall(false);
+                            if (selectedStall) {
+                                setIsFormOpen(true);
+                            }
+                        }}
+                    />
                 )}
             </div>
+        </div>
+    );
 
-            {isFormOpen && (
-                <StallForm 
-                    initialData={selectedStall} 
-                    drawnData={drawnStallData}
-                    areaId={areaId}
-                    areaWidth={areaWidth}
-                    areaHeight={areaHeight}
-                    areaSize={areaSize || 1000} // Temporary fallback if areaSize isn't passed
-                    existingStalls={stalls}
-                    marketCategories={marketCategories}
-                    onSave={() => {
-                        setIsFormOpen(false);
-                        setDrawnStallData(null);
-                        fetchStalls();
-                    }}
-                    onCancel={() => {
-                        setIsFormOpen(false);
-                        setDrawnStallData(null);
-                    }}
-                />
-            )}
+    const inlineContent = (
+        <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+            <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: '8px', zIndex: 101, padding: '8px 16px', backgroundColor: 'var(--bg-panel)', border: '1px solid var(--border-color)', borderRadius: '8px', display: 'flex', gap: '24px', alignItems: 'center', flexWrap: 'wrap', fontSize: '13px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
+               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#3b82f6' }}></div>
+                  <span style={{ color: 'var(--text-secondary)' }}>Khu vực:</span>
+                  <strong style={{ color: 'var(--text-primary)' }}>{areaSize || 0} m²</strong>
+               </div>
+               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10b981' }}></div>
+                  <span style={{ color: 'var(--text-secondary)' }}>Đã dùng:</span>
+                  <strong style={{ color: 'var(--text-primary)' }}>{Math.round(totalUsedStallArea * 100) / 100} m²</strong>
+               </div>
+               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: remainingStallArea > 0 ? '#eab308' : '#ef4444' }}></div>
+                  <span style={{ color: 'var(--text-secondary)' }}>Trống:</span>
+                  <strong style={{ color: remainingStallArea > 0 ? 'var(--text-primary)' : '#ef4444' }}>{remainingStallArea} m²</strong>
+               </div>
+            </div>
+            <div className={styles.editorContainer} style={{ width: '100%', height: '100%' }}>
+                {isEditMode && !isSplitViewActive && (
+                  <div style={{position: 'absolute', bottom: 8, right: 8, zIndex: 100, display: 'flex', gap: 8}}>
+                      <button 
+                          onClick={(e) => { e.stopPropagation(); setSelectedStall(null); setDrawnStallData(null); setIsDrawingStall(true); }} 
+                          style={{background: 'var(--color-primary)', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '16px', cursor: 'pointer', fontWeight: 'bold', boxShadow: '0 2px 8px rgba(0,0,0,0.2)', fontSize: 12}}
+                      >+ VẼ SẠP MỚI</button>
+                  </div>
+                )}
+                {renderCanvas(false)}
+            </div>
+        </div>
+    );
 
-            {isDrawingStall && (
-                <PolygonDrawer 
-                    stallMode={true}
-                    cWidth={4000}
-                    cHeight={4000}
-                    svgOffsetX={2000 - (areaWidth || 0) / 2}
-                    svgOffsetY={2000 - (areaHeight || 0) / 2}
-                    maxAllowedAreaSize={areaSize}
-                    existingAreas={stalls}
-                    marketPolygon={(() => {
-                        if (!svgPath) {
-                            if (!areaWidth || !areaHeight) return null;
-                            return [
-                                [0, 0],
-                                [areaWidth, 0],
-                                [areaWidth, areaHeight],
-                                [0, areaHeight]
-                            ];
-                        }
-                        const matches = [...svgPath.matchAll(/(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)/g)];
-                        if (matches.length === 0) return null;
-                        const xs = matches.map(m => parseFloat(m[1]));
-                        const ys = matches.map(m => parseFloat(m[2]));
-                        const pMinX = Math.min(...xs);
-                        const pMinY = Math.min(...ys);
-                        return matches.map(m => [
-                            parseFloat(m[1]) - pMinX,
-                            parseFloat(m[2]) - pMinY
-                        ]);
-                    })()}
-                    onComplete={(drawData) => {
-                        setDrawnStallData(drawData);
-                        setIsDrawingStall(false);
-                        setSelectedStall(null);
-                        setIsFormOpen(true);
-                    }}
-                    onCancel={() => setIsDrawingStall(false)}
-                />
-            )}
-            
-            {renderViewModal()}
+    const modalContent = isSplitViewActive ? (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 9999, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', display: 'flex', padding: '32px' }}>
+            <div className={styles.splitContainer} style={{ background: 'white', borderRadius: 12, overflow: 'hidden', boxShadow: '0 20px 40px rgba(0,0,0,0.3)' }}>
+                {/* LEFT PANEL */}
+                <div className={styles.leftPanel} style={{ display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, borderBottom: '1px solid var(--border-color)', paddingBottom: 12 }}>
+                        <h2 style={{ margin: 0, fontSize: 18, color: 'var(--color-primary)' }}>{areaName || 'Khu vực'}</h2>
+                        <button onClick={() => { setIsFormOpen(false); setViewingStall(null); setIsDrawingStall(false); setDrawnStallData(null); setSelectedStall(null); }} style={{ background: 'transparent', border: 'none', fontSize: 24, cursor: 'pointer', color: '#64748b' }}>&times;</button>
+                    </div>
+
+                    {(isFormOpen && isEditMode) ? (
+                        <div style={{ flex: 1, overflowY: 'auto' }}>
+                            <StallForm 
+                                inline={true}
+                                initialData={selectedStall} 
+                                drawnData={drawnStallData}
+                                areaId={areaId}
+                                areaWidth={areaWidth}
+                                areaHeight={areaHeight}
+                                areaSize={areaSize || 1000}
+                                existingStalls={stalls}
+                                marketCategories={marketCategories}
+                                onSave={() => {
+                                    setIsFormOpen(false);
+                                    setDrawnStallData(null);
+                                    fetchStalls();
+                                }}
+                                onCancel={() => {
+                                    setIsFormOpen(false);
+                                    setDrawnStallData(null);
+                                }}
+                                onRedrawShape={() => {
+                                    setIsFormOpen(false);
+                                    setIsDrawingStall(true);
+                                }}
+                            />
+                        </div>
+                    ) : viewingStall ? (
+                        <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px', paddingRight: '8px' }}>
+                            <div style={{ textAlign: 'center', paddingBottom: '16px', borderBottom: '1px solid var(--border-color)' }}>
+                                <div style={{ fontSize: '48px', marginBottom: '8px' }}>🏪</div>
+                                <h3 style={{margin: 0, color: 'var(--color-primary)', fontSize: '20px'}}>{viewingStall.code}</h3>
+                                <div style={{marginTop: '8px'}}>
+                                    <span style={{display: 'inline-block', backgroundColor: getStatusColor(viewingStall.status), color: 'white', padding: '6px 16px', borderRadius: '20px', fontSize: '12px', fontWeight: 'bold', boxShadow: '0 2px 4px rgba(0,0,0,0.1)'}}>
+                                        {viewingStall.status}
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '8px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span style={{color: 'var(--text-secondary)', fontSize: '13px'}}>{t('stallLayoutEditor.category', 'Ngành hàng:')}</span>
+                                    <span style={{fontWeight: 'bold', color: 'var(--text-primary)', fontSize: '14px'}}>{viewingStall.categoryName || t('stallLayoutEditor.none', 'Không có')}</span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span style={{color: 'var(--text-secondary)', fontSize: '13px'}}>{t('stallLayoutEditor.tenant', 'Người thuê:')}</span>
+                                    <span style={{fontWeight: 'bold', color: 'var(--text-primary)', fontSize: '14px'}}>{viewingStall.tenantName || viewingStall.description || t('stallLayoutEditor.empty', 'Trống')}</span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span style={{color: 'var(--text-secondary)', fontSize: '13px'}}>{t('stallLayoutEditor.size_wh', 'Kích thước (WxH):')}</span>
+                                    <span style={{fontWeight: 'bold', color: 'var(--text-primary)', fontSize: '14px'}}>{viewingStall.width} x {viewingStall.height}</span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span style={{color: 'var(--text-secondary)', fontSize: '13px'}}>{t('stallLayoutEditor.area', 'Diện tích:')}</span>
+                                    <span style={{fontWeight: 'bold', fontSize: '14px', color: '#10b981'}}>{viewingStall.size} m²</span>
+                                </div>
+                            </div>
+                            
+                            <div style={{marginTop: 'auto', padding: '16px', background: 'linear-gradient(145deg, #f8fafc, #f1f5f9)', borderRadius: '12px', border: '1px solid #e2e8f0'}}>
+                                <h4 style={{margin: '0 0 12px 0', fontSize: '14px', color: '#334155', display: 'flex', alignItems: 'center', gap: '8px'}}>
+                                    <span>⚡</span> {t('stallLayoutEditor.utilities', 'Tiện ích (Điện / Nước)')}
+                                </h4>
+                                <div style={{display: 'flex', flexDirection: 'column', gap: '12px'}}>
+                                    <div style={{background: 'white', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.05)'}}>
+                                        <div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px'}}>{t('stallLayoutEditor.elec_meter', 'Mã đồng hồ điện:')}</div>
+                                        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'baseline'}}>
+                                            <strong style={{fontSize: '13px', color: '#1e293b'}}>{viewingStall.electricityMeterSerial || t('stallLayoutEditor.not_installed', 'Chưa lắp')}</strong>
+                                            <span style={{color: '#3b82f6', fontWeight: 'bold', fontSize: '14px'}}>{viewingStall.currentElectricityIndex ?? 0} kWh</span>
+                                        </div>
+                                    </div>
+                                    <div style={{background: 'white', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.05)'}}>
+                                        <div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px'}}>{t('stallLayoutEditor.water_meter', 'Mã đồng hồ nước:')}</div>
+                                        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'baseline'}}>
+                                            <strong style={{fontSize: '13px', color: '#1e293b'}}>{viewingStall.waterMeterSerial || t('stallLayoutEditor.not_installed', 'Chưa lắp')}</strong>
+                                            <span style={{color: '#06b6d4', fontWeight: 'bold', fontSize: '14px'}}>{viewingStall.currentWaterIndex ?? 0} m³</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ) : (
+                        <div style={{ flex: 1, overflowY: 'auto' }}>
+                            <p style={{ color: 'var(--text-secondary)' }}>Vui lòng chọn công cụ trên bản đồ.</p>
+                        </div>
+                    )}
+                </div>
+
+                {/* RIGHT PANEL */}
+                <div className={styles.rightPanel}>
+                    {renderCanvas(true)}
+                </div>
+            </div>
+        </div>
+    ) : null;
+
+    return (
+        <>
+            {inlineContent}
+            {isSplitViewActive && createPortal(modalContent, document.body)}
             {renderDeleteModals()}
-        </div>
-        </div>
+        </>
     );
 };
 

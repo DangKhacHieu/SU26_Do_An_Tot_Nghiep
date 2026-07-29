@@ -213,25 +213,26 @@ namespace STMM.Business.Services
 
                     if (areaReq.Stalls != null)
                     {
-                        foreach (var stallReq in areaReq.Stalls)
-                        {
-                            var newStall = new Stall
-                            {
-                                Code = stallReq.Code,
-                                CategoryId = stallReq.CategoryId > 0 ? stallReq.CategoryId : defaultCategoryId,
-                                Status = stallReq.Status ?? "Available",
-                                Size = stallReq.Size,
-                                MapX = stallReq.MapX,
-                                MapY = stallReq.MapY,
-                                Width = stallReq.Width,
-                                Height = stallReq.Height,
-                                Rotation = stallReq.Rotation,
-                                SvgPath = stallReq.SvgPath,
-                                CreatedAt = DateTime.UtcNow,
-                                IsDeleted = false
-                            };
-                            newArea.Stalls.Add(newStall);
-                        }
+                        // HIDDEN: Stall generation is temporarily disabled in the Grid Area Subdivision phase.
+                        // foreach (var stallReq in areaReq.Stalls)
+                        // {
+                        //     var newStall = new Stall
+                        //     {
+                        //         Code = stallReq.Code,
+                        //         CategoryId = stallReq.CategoryId > 0 ? stallReq.CategoryId : defaultCategoryId,
+                        //         Status = stallReq.Status ?? "Available",
+                        //         Size = stallReq.Size,
+                        //         MapX = stallReq.MapX,
+                        //         MapY = stallReq.MapY,
+                        //         Width = stallReq.Width,
+                        //         Height = stallReq.Height,
+                        //         Rotation = stallReq.Rotation,
+                        //         SvgPath = stallReq.SvgPath,
+                        //         CreatedAt = DateTime.UtcNow,
+                        //         IsDeleted = false
+                        //     };
+                        //     newArea.Stalls.Add(newStall);
+                        // }
                     }
                     newMarket.Areas.Add(newArea);
                 }
