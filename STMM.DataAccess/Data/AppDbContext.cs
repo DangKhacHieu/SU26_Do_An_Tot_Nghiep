@@ -170,7 +170,7 @@ public partial class AppDbContext : DbContext
 
             entity.ToTable("business_categories", tb => tb.HasComment("Danh mục ngành hàng kinh doanh"));
 
-            entity.HasIndex(e => e.Code, "business_categories_code_key").IsUnique();
+            entity.HasIndex(e => new { e.Code, e.MarketId }, "business_categories_code_key").IsUnique();
 
             entity.Property(e => e.CategoryId)
                 .HasComment("Mã định danh ngành hàng")

@@ -6,6 +6,9 @@ const API_STALLS = "http://localhost:5056/api/manager/contracts/available-stalls
 const API_VENDORS = "http://localhost:5056/api/manager/contracts/vendors";
 const API_CONTRACTS = "http://localhost:5056/api/manager/contracts";
 
+const getAuthHeaders = () => ({
+  "Authorization": `Bearer ${localStorage.getItem('accessToken') || localStorage.getItem('token')}`
+});
 
 export default function ContractFormManager({ navigate, addToast }) {
   const { t } = useTranslation();
@@ -37,9 +40,10 @@ export default function ContractFormManager({ navigate, addToast }) {
   const loadFormDependencies = async () => {
     setLoadingDropdowns(true);
     try {
+      const headers = getAuthHeaders();
       const [stallsRes, vendorsRes] = await Promise.all([
-        fetch(API_STALLS),
-        fetch(API_VENDORS)
+        fetch(API_STALLS, { headers }),
+        fetch(API_VENDORS, { headers })
       ]);
 
       if (stallsRes.ok && vendorsRes.ok) {
@@ -127,7 +131,8 @@ export default function ContractFormManager({ navigate, addToast }) {
       const res = await fetch(API_CONTRACTS, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          ...getAuthHeaders()
         },
         body: JSON.stringify(payload)
       });
