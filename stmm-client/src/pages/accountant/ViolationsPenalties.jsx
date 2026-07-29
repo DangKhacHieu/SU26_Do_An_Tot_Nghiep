@@ -111,9 +111,9 @@ export default function ViolationsPenalties() {
   ];
 
   const filteredViolations = violations.filter(v => {
-    const q = searchQuery.toLowerCase();
-    const matchSearch = v.stallCode.toLowerCase().includes(q) || 
-                        v.title.toLowerCase().includes(q) || 
+    const q = (searchQuery || '').toLowerCase();
+    const matchSearch = (v.stallCode || '').toLowerCase().includes(q) || 
+                        (v.title || '').toLowerCase().includes(q) || 
                         (v.violationTypeName || v.violationType?.name || '').toLowerCase().includes(q);
     const matchStatus = statusFilter === 'all' || v.status === statusFilter;
     return matchSearch && matchStatus;
@@ -124,7 +124,7 @@ export default function ViolationsPenalties() {
     const isEdit = !!selectedItem;
     const url = isEdit ? `http://localhost:5056/api/violations/types/${selectedItem.violationTypeId}` : 'http://localhost:5056/api/violations/types';
     if (isMock) {
-      if (isEdit) setViolationTypes(violationTypes.map(t => t.violationTypeId === selectedItem.violationTypeId ? { ...t, ...typeForm } : t));
+      if (isEdit) setViolationTypes(violationTypes.map(typeItem => typeItem.violationTypeId === selectedItem.violationTypeId ? { ...typeItem, ...typeForm } : typeItem));
       else setViolationTypes([...violationTypes, { violationTypeId: Math.floor(Math.random() * 100) + 10, ...typeForm }]);
       showNotification('success', `${isEdit ? t('violationspenalties.update') : t('violationspenalties.more')} loại vi phạm thành công!`);
       setActiveModal(null);
@@ -147,7 +147,7 @@ export default function ViolationsPenalties() {
 
   const deleteViolationType = () => {
     if (isMock) {
-      setViolationTypes(violationTypes.filter(t => t.violationTypeId !== selectedItem.violationTypeId));
+      setViolationTypes(violationTypes.filter(typeItem => typeItem.violationTypeId !== selectedItem.violationTypeId));
       showNotification('success', t('violationspenalties.violation_type_removed'));
       setActiveModal(null);
     } else {
@@ -200,14 +200,14 @@ export default function ViolationsPenalties() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
       {/* Header */}
-      <div className="page-header">
+      <div className="page-header" style={{ display: "none" }}>
         <div>
           <h1 className="page-title">{t('violationspenalties.violations_sanctions')}</h1>
           <p className="page-subtitle">{t('violationspenalties.manage_violation_records_and')}</p>
         </div>
         <div className="page-actions">
           {activeTab === 'types' && (
-            <button className="btn btn-primary" onClick={() => { setSelectedItem(null); setTypeForm({ name: '', description: '', defaultFine: 500000, isActive: true }); setModalError(null); setActiveModal('type'); }}>
+            <button className="acc-btn-primary" onClick={() => { setSelectedItem(null); setTypeForm({ name: '', description: '', defaultFine: 500000, isActive: true }); setModalError(null); setActiveModal('type'); }}>
               <Plus size={15} /> {t('violationspenalties.add_violation_type')}</button>
           )}
         </div>
@@ -218,7 +218,7 @@ export default function ViolationsPenalties() {
         <div className={`alert alert-${notification.type}`}>
           <AlertCircle size={16} className="alert-icon" />
           <span style={{ flex: 1 }}>{notification.message}</span>
-          <button className="btn btn-ghost btn-sm btn-icon" onClick={() => setNotification(null)}><X size={14} /></button>
+          <button className="acc-btn-ghost btn-sm btn-icon" onClick={() => setNotification(null)}><X size={14} /></button>
         </div>
       )}
 
@@ -231,7 +231,7 @@ export default function ViolationsPenalties() {
       )}
 
       {/* Tabs */}
-      <div className="tab-bar">
+      <div className="acc-tabs-header">
         {[{ id: 'violations', label: t('violationspenalties.violation_minutes'), icon: ShieldAlert }, { id: 'types', label: t('violationspenalties.list_of_penalty_errors'), icon: Info }].map(tab => {
           const Icon = tab.icon;
           return (
@@ -253,7 +253,7 @@ export default function ViolationsPenalties() {
           {activeTab === 'violations' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
               {/* Search & Filters */}
-              <div className="card-padded" style={{ padding: '14px 20px' }}>
+              <div className="acc-card" style={{ padding: "20px" }} style={{ padding: '14px 20px' }}>
                 <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
                   <div className="search-wrapper" style={{ flex: '1 1 220px' }}>
                     <Search size={14} className="search-icon-inner" />
@@ -269,14 +269,14 @@ export default function ViolationsPenalties() {
                     <option value="Rejected">{t('violationspenalties.reject_kh_need_to')}</option>
                     <option value="Paid">{t('violationspenalties.fine_paid')}</option>
                   </select>
-                  <span className="badge badge-neutral">{filteredViolations.length} biên bản</span>
+                  <span className="acc-badge neutral">{filteredViolations.length} biên bản</span>
                 </div>
               </div>
 
               {/* Table */}
               {filteredViolations.length > 0 ? (
                 <div className="card" style={{ overflow: 'hidden' }}>
-                  <table className="data-table">
+                  <table className="acc-table">
                     <thead>
                       <tr>
                         <th>{t('violationspenalties.m_bb')}</th>
@@ -297,21 +297,21 @@ export default function ViolationsPenalties() {
                             <td><span style={{ fontWeight: 600, color: 'var(--text-title)', fontFamily: 'monospace', fontSize: 13 }}>VIO-{vio.violationId}</span></td>
                             <td><strong style={{ color: 'var(--danger)' }}>{vio.stallCode}</strong></td>
                             <td><span style={{ fontWeight: 600 }}>{vio.title}</span></td>
-                            <td><span className="badge badge-neutral">{vio.violationTypeName || vio.violationType?.name || '—'}</span></td>
+                            <td><span className="acc-badge neutral">{vio.violationTypeName || vio.violationType?.name || '—'}</span></td>
                             <td><span style={{ color: 'var(--text-muted)', fontSize: 13 }}>{vio.createdAt ? formatDate(vio.createdAt) : (vio.date || '—')}</span></td>
-                            <td className="text-right"><strong style={{ color: 'var(--danger)' }}>{(vio.fineAmount || vio.penalty).toLocaleString('vi-VN')} ₫</strong></td>
+                            <td className="text-right"><strong style={{ color: 'var(--danger)' }}>{(vio.fineAmount || vio.penalty || 0).toLocaleString('vi-VN')} ₫</strong></td>
                             <td><span className={cls}>{label}</span></td>
                             <td className="text-right">
                               <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                                 {canCreateInvoice(vio) && (
                                   <button 
-                                    className="btn btn-primary btn-sm" 
+                                    className="acc-btn-primary btn-sm" 
                                     onClick={() => handleCreateInvoiceClick(vio)}
                                     title={t('violationspenalties.create_fine_collection_invoices')}
                                   >
                                     <FileText size={13} /> {t('violationspenalties.bill')}</button>
                                 )}
-                                <button className="btn btn-secondary btn-sm" onClick={() => { setSelectedItem(vio); setActiveModal('details'); }}>
+                                <button className="acc-btn-secondary btn-sm" onClick={() => { setSelectedItem(vio); setActiveModal('details'); }}>
                                   <Eye size={13} /> Xem
                                 </button>
                               </div>
@@ -328,7 +328,7 @@ export default function ViolationsPenalties() {
                       </span>
                       <div style={{ display: 'flex', gap: 6 }}>
                         <button 
-                          className="btn btn-secondary btn-sm" 
+                          className="acc-btn-secondary btn-sm" 
                           onClick={() => setViolationsPage(prev => Math.max(prev - 1, 1))} 
                           disabled={violationsPage === 1}
                         >
@@ -343,7 +343,7 @@ export default function ViolationsPenalties() {
                           </button>
                         ))}
                         <button 
-                          className="btn btn-secondary btn-sm" 
+                          className="acc-btn-secondary btn-sm" 
                           onClick={() => setViolationsPage(prev => Math.min(prev + 1, Math.ceil(filteredViolations.length / itemsPerPage)))} 
                           disabled={violationsPage === Math.ceil(filteredViolations.length / itemsPerPage)}
                         >
@@ -354,7 +354,7 @@ export default function ViolationsPenalties() {
                   )}
                 </div>
               ) : (
-                <div className="card-padded">
+                <div className="acc-card" style={{ padding: "20px" }}>
                   <div className="empty-state">
                     <div className="empty-state-icon"><ShieldOff size={24} /></div>
                     <p className="empty-state-title">{t('violationspenalties.no_violation_records_found')}</p>
@@ -368,7 +368,7 @@ export default function ViolationsPenalties() {
           {/* TAB 2: VIOLATION TYPES */}
           {activeTab === 'types' && (
             <div className="card" style={{ overflow: 'hidden' }}>
-              <table className="data-table">
+              <table className="acc-table">
                 <thead>
                   <tr>
                     <th>{t('violationspenalties.violation_type_name')}</th>
@@ -379,22 +379,22 @@ export default function ViolationsPenalties() {
                   </tr>
                 </thead>
                 <tbody>
-                  {violationTypes.length > 0 ? violationTypes.slice((typesPage - 1) * itemsPerPage, typesPage * itemsPerPage).map(t => (
-                    <tr key={t.violationTypeId}>
-                      <td><strong>{t.name}</strong></td>
-                      <td><span style={{ color: 'var(--text-muted)' }}>{t.description}</span></td>
-                      <td className="text-right"><strong style={{ color: 'var(--danger)' }}>{t.defaultFine.toLocaleString('vi-VN')} ₫</strong></td>
+                  {violationTypes.length > 0 ? violationTypes.slice((typesPage - 1) * itemsPerPage, typesPage * itemsPerPage).map(typeItem => (
+                    <tr key={typeItem.violationTypeId}>
+                      <td><strong>{typeItem.name}</strong></td>
+                      <td><span style={{ color: 'var(--text-muted)' }}>{typeItem.description}</span></td>
+                      <td className="text-right"><strong style={{ color: 'var(--danger)' }}>{(typeItem.defaultFine || 0).toLocaleString('vi-VN')} ₫</strong></td>
                       <td>
-                        <span className={t.isActive ? 'badge badge-success' : 'badge badge-neutral'}>
-                          {t.isActive ? t('violationspenalties.applying') : t('violationspenalties.stop_applying')}
+                        <span className={typeItem.isActive ? 'badge badge-success' : 'badge badge-neutral'}>
+                          {typeItem.isActive ? t('violationspenalties.applying') : t('violationspenalties.stop_applying')}
                         </span>
                       </td>
                       <td className="text-right">
                         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
-                          <button className="btn btn-ghost btn-sm btn-icon" title={t('violationspenalties.edit')} onClick={() => { setSelectedItem(t); setTypeForm({ name: t.name, description: t.description, defaultFine: t.defaultFine, isActive: t.isActive }); setActiveModal('type'); }}>
+                          <button className="acc-btn-ghost btn-sm btn-icon" title={t('violationspenalties.edit')} onClick={() => { setSelectedItem(typeItem); setTypeForm({ name: typeItem.name, description: typeItem.description, defaultFine: typeItem.defaultFine, isActive: typeItem.isActive }); setActiveModal('type'); }}>
                             <Edit3 size={14} />
                           </button>
-                          <button className="btn btn-ghost btn-sm btn-icon" title={t('violationspenalties.erase')} style={{ color: 'var(--danger)' }} onClick={() => { setSelectedItem(t); setActiveModal('confirm_delete'); }}>
+                          <button className="acc-btn-ghost btn-sm btn-icon" title={t('violationspenalties.erase')} style={{ color: 'var(--danger)' }} onClick={() => { setSelectedItem(typeItem); setActiveModal('confirm_delete'); }}>
                             <Trash2 size={14} />
                           </button>
                         </div>
@@ -412,7 +412,7 @@ export default function ViolationsPenalties() {
                   </span>
                   <div style={{ display: 'flex', gap: 6 }}>
                     <button 
-                      className="btn btn-secondary btn-sm" 
+                      className="acc-btn-secondary btn-sm" 
                       onClick={() => setTypesPage(prev => Math.max(prev - 1, 1))} 
                       disabled={typesPage === 1}
                     >
@@ -427,7 +427,7 @@ export default function ViolationsPenalties() {
                       </button>
                     ))}
                     <button 
-                      className="btn btn-secondary btn-sm" 
+                      className="acc-btn-secondary btn-sm" 
                       onClick={() => setTypesPage(prev => Math.min(prev + 1, Math.ceil(violationTypes.length / itemsPerPage)))} 
                       disabled={typesPage === Math.ceil(violationTypes.length / itemsPerPage)}
                     >
@@ -443,13 +443,13 @@ export default function ViolationsPenalties() {
 
       {/* Modal: Violation Details */}
       {activeModal === 'details' && selectedItem && (
-        <div className="modal-overlay" onClick={() => setActiveModal(null)}>
+        <div className="acc-modal-overlay" onClick={() => setActiveModal(null)}>
           <div className="modal-container modal-container-lg" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <span className="modal-title">Chi tiết Biên bản — VIO-{selectedItem.violationId}</span>
-              <button className="modal-close-btn" onClick={() => setActiveModal(null)}><X size={16} /></button>
+            <div className="acc-modal-header">
+              <span className="acc-modal-title">Chi tiết Biên bản — VIO-{selectedItem.violationId}</span>
+              <button className="acc-modal-close" onClick={() => setActiveModal(null)}><X size={16} /></button>
             </div>
-            <div className="modal-body">
+            <div className="acc-modal-body">
               {selectedItem.imageUrl && (
                 <img src={selectedItem.imageUrl} alt={t('violationspenalties.photo_proof')} style={{ width: '100%', height: 200, objectFit: 'cover', borderRadius: 'var(--radius-md)' }} />
               )}
@@ -463,20 +463,20 @@ export default function ViolationsPenalties() {
                 <div style={{ gridColumn: 'span 2' }}><span style={{ color: 'var(--text-muted)' }}>{t('violationspenalties.status')}</span><span className={getStatusBadge(selectedItem.status).cls}>{getStatusBadge(selectedItem.status).label}</span></div>
               </div>
               <div>
-                <label className="form-label">{t('violationspenalties.violations')}</label>
+                <label className="acc-form-label">{t('violationspenalties.violations')}</label>
                 <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-title)' }}>{selectedItem.title}</p>
               </div>
               <div>
-                <label className="form-label">{t('violationspenalties.detailed_description')}</label>
+                <label className="acc-form-label">{t('violationspenalties.detailed_description')}</label>
                 <p style={{ fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{selectedItem.description}</p>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px', background: 'var(--danger-light)', borderRadius: 'var(--radius-md)', border: '1px solid var(--danger-border)' }}>
                 <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>{t('violationspenalties.fine')}</span>
-                <strong style={{ color: 'var(--danger)', fontSize: 18 }}>{(selectedItem.fineAmount || selectedItem.penalty).toLocaleString('vi-VN')} ₫</strong>
+                <strong style={{ color: 'var(--danger)', fontSize: 18 }}>{(selectedItem.fineAmount || selectedItem.penalty || 0).toLocaleString('vi-VN')} ₫</strong>
               </div>
             </div>
-            <div className="modal-footer">
-              <button className="btn btn-secondary" onClick={() => setActiveModal(null)}>{t('violationspenalties.close')}</button>
+            <div className="acc-modal-footer">
+              <button className="acc-btn-secondary" onClick={() => setActiveModal(null)}>{t('violationspenalties.close')}</button>
             </div>
           </div>
         </div>
@@ -484,14 +484,14 @@ export default function ViolationsPenalties() {
 
       {/* Modal: Add/Edit Type */}
       {activeModal === 'type' && (
-        <div className="modal-overlay" onClick={() => setActiveModal(null)}>
-          <div className="modal-container" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <span className="modal-title">{selectedItem ? t('violationspenalties.edit') : t('violationspenalties.more')} Loại Vi Phạm</span>
-              <button className="modal-close-btn" onClick={() => setActiveModal(null)}><X size={16} /></button>
+        <div className="acc-modal-overlay" onClick={() => setActiveModal(null)}>
+          <div className="acc-modal-container" onClick={e => e.stopPropagation()}>
+            <div className="acc-modal-header">
+              <span className="acc-modal-title">{selectedItem ? t('violationspenalties.edit') : t('violationspenalties.more')} Loại Vi Phạm</span>
+              <button className="acc-modal-close" onClick={() => setActiveModal(null)}><X size={16} /></button>
             </div>
             <form onSubmit={handleTypeSubmit}>
-              <div className="modal-body">
+              <div className="acc-modal-body">
                 {modalError && (
                   <div className="alert alert-danger" style={{ marginBottom: 16 }}>
                     <AlertTriangle size={16} className="alert-icon" />
@@ -499,24 +499,24 @@ export default function ViolationsPenalties() {
                   </div>
                 )}
                 <div>
-                  <label className="form-label">{t('violationspenalties.violation_type_name')}</label>
-                  <input type="text" className="form-input" required maxLength={100} value={typeForm.name}
+                  <label className="acc-form-label">{t('violationspenalties.violation_type_name')}</label>
+                  <input type="text" className="acc-input" required maxLength={100} value={typeForm.name}
                     placeholder={t('violationspenalties.for_example_encroaching_the')} onChange={e => setTypeForm({ ...typeForm, name: e.target.value })} />
                 </div>
                 <div>
-                  <label className="form-label">{t('violationspenalties.default_fine_vnd')}</label>
-                  <input type="number" className="form-input" required min={0} value={typeForm.defaultFine}
+                  <label className="acc-form-label">{t('violationspenalties.default_fine_vnd')}</label>
+                  <input type="number" className="acc-input" required min={0} value={typeForm.defaultFine}
                     onChange={e => setTypeForm({ ...typeForm, defaultFine: parseFloat(e.target.value) || 0 })} />
                 </div>
                 <div>
-                  <label className="form-label">{t('violationspenalties.describe_the_meaning')}</label>
+                  <label className="acc-form-label">{t('violationspenalties.describe_the_meaning')}</label>
                   <textarea className="form-textarea" rows={3} maxLength={500} value={typeForm.description}
                     onChange={e => setTypeForm({ ...typeForm, description: e.target.value })} />
                 </div>
               </div>
-              <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={() => setActiveModal(null)}>{t('violationspenalties.cancel')}</button>
-                <button type="submit" className="btn btn-primary">{t('violationspenalties.save_changes')}</button>
+              <div className="acc-modal-footer">
+                <button type="button" className="acc-btn-secondary" onClick={() => setActiveModal(null)}>{t('violationspenalties.cancel')}</button>
+                <button type="submit" className="acc-btn-primary">{t('violationspenalties.save_changes')}</button>
               </div>
             </form>
           </div>
@@ -525,13 +525,13 @@ export default function ViolationsPenalties() {
 
       {/* Modal: Confirm Delete */}
       {activeModal === 'confirm_delete' && selectedItem && (
-        <div className="modal-overlay" onClick={() => setActiveModal(null)}>
+        <div className="acc-modal-overlay" onClick={() => setActiveModal(null)}>
           <div className="modal-container modal-container-sm" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <span className="modal-title">{t('violationspenalties.confirm_deletion')}</span>
-              <button className="modal-close-btn" onClick={() => setActiveModal(null)}><X size={16} /></button>
+            <div className="acc-modal-header">
+              <span className="acc-modal-title">{t('violationspenalties.confirm_deletion')}</span>
+              <button className="acc-modal-close" onClick={() => setActiveModal(null)}><X size={16} /></button>
             </div>
-            <div className="modal-body">
+            <div className="acc-modal-body">
               {modalError && (
                 <div className="alert alert-danger" style={{ marginBottom: 16 }}>
                   <AlertTriangle size={16} className="alert-icon" />
@@ -543,9 +543,9 @@ export default function ViolationsPenalties() {
                 <span>{t('violationspenalties.you_are_about_to')}<strong>"{selectedItem.name}"</strong>{t('violationspenalties.this_action_cannot_be')}</span>
               </div>
             </div>
-            <div className="modal-footer">
-              <button className="btn btn-secondary" onClick={() => setActiveModal(null)}>{t('violationspenalties.cancel')}</button>
-              <button className="btn btn-danger" onClick={deleteViolationType}>{t('violationspenalties.confirm_deletion')}</button>
+            <div className="acc-modal-footer">
+              <button className="acc-btn-secondary" onClick={() => setActiveModal(null)}>{t('violationspenalties.cancel')}</button>
+              <button className="acc-btn-danger" onClick={deleteViolationType}>{t('violationspenalties.confirm_deletion')}</button>
             </div>
           </div>
         </div>
@@ -553,21 +553,21 @@ export default function ViolationsPenalties() {
 
       {/* Modal: Confirm Invoice */}
       {invoiceConfirmVio && (
-        <div className="modal-overlay" onClick={() => setInvoiceConfirmVio(null)}>
+        <div className="acc-modal-overlay" onClick={() => setInvoiceConfirmVio(null)}>
           <div className="modal-container modal-container-sm" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <span className="modal-title">{t('violationspenalties.confirm_invoicing')}</span>
-              <button className="modal-close-btn" onClick={() => setInvoiceConfirmVio(null)}><X size={16} /></button>
+            <div className="acc-modal-header">
+              <span className="acc-modal-title">{t('violationspenalties.confirm_invoicing')}</span>
+              <button className="acc-modal-close" onClick={() => setInvoiceConfirmVio(null)}><X size={16} /></button>
             </div>
-            <div className="modal-body">
+            <div className="acc-modal-body">
               <div className="alert alert-warning">
                 <AlertTriangle size={16} className="alert-icon" />
-                <span>{t('violationspenalties.are_you_sure_you')}<strong>{(invoiceConfirmVio.fineAmount || invoiceConfirmVio.penalty).toLocaleString('vi-VN')} ₫</strong> {t('violationspenalties.for_minutes')}<strong>VIO-{invoiceConfirmVio.violationId}</strong>?<br/><br/>{t('violationspenalties.this_action_cannot_be')}</span>
+                <span>{t('violationspenalties.are_you_sure_you')}<strong>{(invoiceConfirmVio.fineAmount || invoiceConfirmVio.penalty || 0).toLocaleString('vi-VN')} ₫</strong> {t('violationspenalties.for_minutes')}<strong>VIO-{invoiceConfirmVio.violationId}</strong>?<br/><br/>{t('violationspenalties.this_action_cannot_be')}</span>
               </div>
             </div>
-            <div className="modal-footer">
-              <button className="btn btn-secondary" onClick={() => setInvoiceConfirmVio(null)}>{t('violationspenalties.cancel')}</button>
-              <button className="btn btn-primary" onClick={confirmCreateInvoice}>{t('violationspenalties.invoicing')}</button>
+            <div className="acc-modal-footer">
+              <button className="acc-btn-secondary" onClick={() => setInvoiceConfirmVio(null)}>{t('violationspenalties.cancel')}</button>
+              <button className="acc-btn-primary" onClick={confirmCreateInvoice}>{t('violationspenalties.invoicing')}</button>
             </div>
           </div>
         </div>

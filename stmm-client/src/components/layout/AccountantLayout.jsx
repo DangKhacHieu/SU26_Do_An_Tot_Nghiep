@@ -82,8 +82,7 @@ export default function AccountantLayout() {
   const [currentUser, setCurrentUser] = useState({
     name: t('accountantlayout.le_thanh_binh'),
     email: 'binhlt.accountant@stmm.vn',
-    roleName: 'Accountant',
-    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=200'
+    roleName: 'Accountant'
   });
 
   const fetchNotifications = async () => {
@@ -159,8 +158,7 @@ export default function AccountantLayout() {
           setCurrentUser({
             name: parsed.name || t('accountantlayout.le_thanh_binh'),
             email: parsed.email || 'binhlt.accountant@stmm.vn',
-            roleName: parsed.roleName || 'Accountant',
-            avatar: parsed.avatar || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=200'
+            roleName: parsed.roleName || 'Accountant'
           });
         } catch (e) {}
       }
@@ -212,23 +210,21 @@ export default function AccountantLayout() {
   const currentPageLabel = PAGE_LABELS[location.pathname] || 'STMM Portal';
 
   return (
-    <div className="layout-container">
+    <div className="acc-layout-wrapper">
       {/* ===== SIDEBAR ===== */}
-      <aside className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
+      <aside className={`acc-sidebar ${isCollapsed ? 'collapsed' : ''}`}>
 
         {/* Brand Header */}
-        <div className="sidebar-header">
-          <div className="sidebar-brand">
-            <div className="sidebar-logo-icon">
-              <Building2 size={18} />
-            </div>
-            <div className="sidebar-brand-text">
-              <span className="sidebar-brand-name">STMM Portal</span>
-              <span className="sidebar-brand-sub">{t('accountantlayout.accounting_system')}</span>
-            </div>
+        <div className="acc-brand-section">
+          <div className="acc-brand-logo">
+            <Building2 size={18} />
+          </div>
+          <div className="acc-brand-name">
+            <span className="acc-brand-title">STMM Portal</span>
+            <span className="acc-brand-subtitle">{t('accountantlayout.accounting_system')}</span>
           </div>
           <button
-            className="collapse-btn"
+            className="acc-collapse-btn"
             onClick={() => setIsCollapsed(!isCollapsed)}
             title={isCollapsed ? t('accountantlayout.expand_menu') : t('accountantlayout.collapse_menu')}
           >
@@ -236,23 +232,14 @@ export default function AccountantLayout() {
           </button>
         </div>
 
-        {/* User Card */}
-        <div className="sidebar-user-card">
-          <img src={currentUser.avatar} alt={currentUser.name} className="sidebar-user-avatar" />
-          <div className="sidebar-user-info">
-            <span className="sidebar-user-name">{currentUser.name}</span>
-            <span className="sidebar-user-role">{roleLabel(currentUser.roleName)}</span>
-          </div>
-        </div>
+        {/* User Card (Removed here, moved to footer) */}
 
         {/* Navigation */}
-        <nav className="sidebar-nav">
+        <nav className="acc-sidebar-menu">
           {NAV_ITEMS.map((group) => (
             <div key={group.section}>
               {!isCollapsed && (
-                <div className="sidebar-nav-section">
-                  <span className="sidebar-nav-section-label">{group.section}</span>
-                </div>
+                <p className="acc-sidebar-section-label">{group.section}</p>
               )}
               {isCollapsed && <div style={{ height: 8 }} />}
               {group.items.map((item) => {
@@ -261,11 +248,11 @@ export default function AccountantLayout() {
                   <NavLink
                     key={item.path}
                     to={item.path}
-                    className={({ isActive }) => `nav-link-item ${isActive ? 'active' : ''}`}
+                    className={({ isActive }) => `acc-menu-item ${isActive ? 'active' : ''}`}
                     title={isCollapsed ? item.label : undefined}
                   >
-                    <Icon size={18} className="nav-icon" />
-                    <span className="nav-label">{item.label}</span>
+                    <Icon size={18} className="acc-menu-icon" />
+                    <span className="acc-menu-label">{item.label}</span>
                   </NavLink>
                 );
               })}
@@ -274,36 +261,35 @@ export default function AccountantLayout() {
         </nav>
 
         {/* Footer Logout */}
-        <div className="sidebar-footer">
-          <button className="logout-btn" onClick={handleLogout} title={t('accountantlayout.sign_out')}>
-            <LogOut size={18} />
-            <span className="logout-btn-text">{t('accountantlayout.sign_out')}</span>
-          </button>
+        <div className="acc-sidebar-footer" onClick={handleLogout} title={t('accountantlayout.sign_out')}>
+          <div className="acc-user-avatar" style={{ backgroundColor: 'var(--acc-primary-light)', color: 'var(--acc-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <User size={18} />
+          </div>
+          <div className="acc-user-info">
+            <span className="acc-user-name">{currentUser.name}</span>
+            <span className="acc-user-role">{roleLabel(currentUser.roleName)}</span>
+          </div>
+          <LogOut size={16} className="acc-logout-icon" />
         </div>
       </aside>
 
       {/* ===== MAIN CONTENT ===== */}
-      <div className={`main-content-wrapper ${isCollapsed ? 'sidebar-collapsed' : ''}`}>
+      <div className="acc-main">
 
         {/* Top Header */}
-        <header className="top-header">
-          {/* Left: Breadcrumb */}
-          <div className="header-left">
-            <div className="header-breadcrumb">
-              <Building2 size={15} />
-              <span className="header-breadcrumb-separator">›</span>
-              <span>{t('accountantlayout.accountant')}</span>
-              <span className="header-breadcrumb-separator">›</span>
-              <span className="header-breadcrumb-current">{currentPageLabel}</span>
-            </div>
+        <header className="acc-header">
+          {/* Left: Breadcrumb/Title */}
+          <div className="acc-header-title">
+            <h1>{currentPageLabel}</h1>
+            <p>Hệ thống Quản lý Kế toán STMM</p>
           </div>
 
           {/* Center: Search (Removed) */}
 
           {/* Right: Controls */}
-          <div className="header-controls">
+          <div className="acc-header-actions">
             {/* Theme Toggle */}
-            <button className="control-btn" onClick={toggleTheme} title={isDark ? t('accountantlayout.bright_interface') : t('accountantlayout.dark_interface')}>
+            <button className="acc-btn-ghost" onClick={toggleTheme} title={isDark ? t('accountantlayout.bright_interface') : t('accountantlayout.dark_interface')}>
               {isDark ? <Sun size={17} /> : <Moon size={17} />}
             </button>
 
@@ -311,46 +297,48 @@ export default function AccountantLayout() {
             <LanguageSwitcher />
 
             {/* Notifications */}
-            <div className="notification-wrapper">
+            <div style={{ position: 'relative' }}>
               <button
-                className="control-btn"
+                className="acc-btn-ghost"
                 onClick={() => setShowNotifications(!showNotifications)}
                 title={t('accountantlayout.notification')}
               >
                 <Bell size={17} />
                 {notifications.filter(n => !n.isRead).length > 0 && (
-                  <span className="notif-badge">{notifications.filter(n => !n.isRead).length}</span>
+                  <span className="acc-badge danger" style={{ position: 'absolute', top: -4, right: -4, padding: '2px 4px', fontSize: 10, minWidth: 16 }}>
+                    {notifications.filter(n => !n.isRead).length}
+                  </span>
                 )}
               </button>
 
               {showNotifications && (
-                <div className="notifications-dropdown">
-                  <div className="notif-header">
-                    <h4>{t('accountantlayout.notification')}</h4>
-                    <button className="mark-read-btn" onClick={handleMarkAllAsRead}>
-                      {t('accountantlayout.mark_all_as_read')}</button>
+                <div className="acc-card" style={{ position: 'absolute', top: '100%', right: 0, width: 350, marginTop: 8, zIndex: 50 }}>
+                  <div className="acc-card-header">
+                    <h4 style={{ margin: 0 }}>{t('accountantlayout.notification')}</h4>
+                    <button className="acc-btn-ghost" onClick={handleMarkAllAsRead} style={{ fontSize: 12 }}>
+                      {t('accountantlayout.mark_all_as_read')}
+                    </button>
                   </div>
-                  <div className="notif-list">
+                  <div style={{ maxHeight: 400, overflowY: 'auto', padding: '8px 0' }}>
                     {notifications.length > 0 ? notifications.map((n) => (
-                      <div key={n.id} className={`notif-item ${!n.isRead ? 'unread' : ''}`} onClick={() => handleReadNotification(n)}>
-                        <div className="notif-item-inner" style={{ position: 'relative', paddingRight: '24px' }}>
-                          {!n.isRead && <span className="notif-dot" />}
+                      <div key={n.id} style={{ padding: '12px 16px', borderBottom: '1px solid var(--acc-border-color)', cursor: 'pointer', backgroundColor: n.isRead ? 'transparent' : 'var(--acc-primary-light)' }} onClick={() => handleReadNotification(n)}>
+                        <div style={{ position: 'relative', paddingRight: '24px' }}>
                           <div>
-                            <p className="notif-text">{n.title}</p>
-                            <span className="notif-time">{new Date(n.createdAt).toLocaleString('vi-VN')}</span>
+                            <p style={{ margin: '0 0 4px', fontSize: 13, fontWeight: n.isRead ? 400 : 600, color: 'var(--acc-text-main)' }}>{n.title}</p>
+                            <span style={{ fontSize: 11, color: 'var(--acc-text-muted)' }}>{new Date(n.createdAt).toLocaleString('vi-VN')}</span>
                           </div>
                           <button 
-                            className="btn-ghost btn-icon" 
-                            style={{ position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)', padding: 4 }}
+                            className="acc-btn-ghost" 
+                            style={{ position: 'absolute', right: -8, top: '50%', transform: 'translateY(-50%)' }}
                             onClick={(e) => handleDeleteNotification(e, n.id)}
                             title={t('accountantlayout.delete_notification')}
                           >
-                            <Trash2 size={14} color="var(--danger)" />
+                            <Trash2 size={14} color="var(--acc-danger)" />
                           </button>
                         </div>
                       </div>
                     )) : (
-                      <div style={{ padding: '16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
+                      <div style={{ padding: '16px', textAlign: 'center', color: 'var(--acc-text-muted)', fontSize: 13 }}>
                         {t('accountantlayout.there_are_no_announcements')}</div>
                     )}
                   </div>
@@ -358,45 +346,41 @@ export default function AccountantLayout() {
               )}
             </div>
 
-            <div className="header-divider" />
-
             {/* User Profile */}
             <div
-              className="user-profile-header"
               onClick={() => navigate('/accountant/profile-management')}
+              style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, marginLeft: 8 }}
             >
-              <img src={currentUser.avatar} alt={currentUser.name} className="user-avatar" />
-              <div className="user-info-text">
-                <span className="user-name">{currentUser.name}</span>
-                <span className="user-role">{roleLabel(currentUser.roleName)}</span>
+              <div className="acc-user-avatar" style={{ backgroundColor: 'var(--acc-primary-light)', color: 'var(--acc-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <User size={18} />
               </div>
             </div>
           </div>
         </header>
 
         {/* Dynamic Page Content */}
-        <main className="content-container-inside">
+        <main className="acc-dashboard-content">
           <Outlet />
         </main>
       </div>
 
       {/* Notification Detail Modal */}
       {selectedNoti && (
-        <div className="modal-overlay" onClick={() => setSelectedNoti(null)} style={{ zIndex: 9999 }}>
-          <div className="modal-container" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <span className="modal-title">{t('accountantlayout.notification_details')}</span>
-              <button className="modal-close-btn" onClick={() => setSelectedNoti(null)}><X size={16} /></button>
+        <div className="acc-modal-overlay" onClick={() => setSelectedNoti(null)}>
+          <div className="acc-modal-container" onClick={e => e.stopPropagation()}>
+            <div className="acc-modal-header">
+              <span className="acc-modal-title">{t('accountantlayout.notification_details')}</span>
+              <button className="acc-modal-close" onClick={() => setSelectedNoti(null)}><X size={16} /></button>
             </div>
-            <div className="modal-body" style={{ minHeight: '120px' }}>
-              <h3 style={{ marginBottom: 12, color: 'var(--text-title)', fontSize: 16 }}>{selectedNoti.title}</h3>
-              <p style={{ color: 'var(--text-primary)', whiteSpace: 'pre-line', lineHeight: 1.5 }}>{selectedNoti.content}</p>
-              <div style={{ marginTop: 16, fontSize: 12, color: 'var(--text-muted)' }}>
+            <div className="acc-modal-body" style={{ minHeight: '120px' }}>
+              <h3 style={{ marginBottom: 12, color: 'var(--acc-text-main)', fontSize: 16 }}>{selectedNoti.title}</h3>
+              <p style={{ color: 'var(--acc-text-sub)', whiteSpace: 'pre-line', lineHeight: 1.5 }}>{selectedNoti.content}</p>
+              <div style={{ marginTop: 16, fontSize: 12, color: 'var(--acc-text-muted)' }}>
                 Thời gian: {new Date(selectedNoti.createdAt).toLocaleString('vi-VN')}
               </div>
             </div>
-            <div className="modal-footer">
-              <button className="btn btn-secondary" onClick={() => setSelectedNoti(null)}>{t('accountantlayout.close')}</button>
+            <div className="acc-modal-footer">
+              <button className="acc-btn-secondary" onClick={() => setSelectedNoti(null)}>{t('accountantlayout.close')}</button>
             </div>
           </div>
         </div>

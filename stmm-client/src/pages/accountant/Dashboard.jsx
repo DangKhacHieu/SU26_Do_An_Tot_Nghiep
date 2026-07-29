@@ -120,7 +120,7 @@ export default function Dashboard() {
               <td>${tx.transactionId}</td>
               <td>${tx.stallCode} (${tx.tenantName})</td>
               <td>${tx.type}</td>
-              <td class="number">${tx.amount.toLocaleString('vi-VN')}</td>
+              <td class="number">${(tx.amount || 0).toLocaleString('vi-VN')}</td>
               <td>${tx.status === 'Paid' ? t('dashboard.paid') : (tx.status === 'Pending' ? t('dashboard.waiting_for_processing') : t('dashboard.failure'))}</td>
             </tr>
           `).join('')}
@@ -197,7 +197,7 @@ export default function Dashboard() {
   const stats = [
     {
       title: t('dashboard.revenue_this_month'),
-      value: data.revenueThisMonth.toLocaleString('vi-VN') + ' ₫',
+      value: (data.revenueThisMonth || 0).toLocaleString('vi-VN') + ' ₫',
       change: data.revenueChangePercent,
       isPositive: data.isRevenuePositive,
       icon: DollarSign,
@@ -217,7 +217,7 @@ export default function Dashboard() {
     },
     {
       title: t('dashboard.problems_repairs'),
-      value: data.repairCostThisMonth.toLocaleString('vi-VN') + ' ₫',
+      value: (data.repairCostThisMonth || 0).toLocaleString('vi-VN') + ' ₫',
       change: data.repairCostChangePercent,
       isPositive: data.isRepairCostPositive,
       icon: Wrench,
@@ -227,7 +227,7 @@ export default function Dashboard() {
     },
     {
       title: t('dashboard.violation_fines'),
-      value: data.violationFinesThisMonth.toLocaleString('vi-VN') + ' ₫',
+      value: (data.violationFinesThisMonth || 0).toLocaleString('vi-VN') + ' ₫',
       change: data.violationFinesChangePercent,
       isPositive: data.isViolationFinesPositive,
       icon: FileWarning,
@@ -238,21 +238,14 @@ export default function Dashboard() {
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '28px', width: '100%' }}>
+    <div className="acc-page-container">
 
-      {/* Page Header */}
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">{t('dashboard.dashboards_reports')}</h1>
-          <p className="page-subtitle">
-            {t('dashboard.statistical_data_on_revenue')}</p>
-        </div>
-        <div className="page-actions">
-          <button className="btn btn-primary" onClick={handleExportExcel}>
-            <span>{t('dashboard.xut_bo_co')}</span>
-            <ArrowUpRight size={15} />
-          </button>
-        </div>
+      {/* Page Actions */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '-8px' }}>
+        <button className="acc-btn-primary" onClick={handleExportExcel}>
+          <span>{t('dashboard.xut_bo_co')}</span>
+          <ArrowUpRight size={15} />
+        </button>
       </div>
 
       {/* Mock Data Warning Alert */}
@@ -275,23 +268,35 @@ export default function Dashboard() {
         {stats.map((stat, idx) => {
           const Icon = stat.icon;
           return (
-            <div key={idx} className="stat-card">
-              <div className="stat-card-top">
-                <span className="stat-card-label">{stat.title}</span>
+            <div key={idx} className="acc-card" style={{ padding: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+                <span style={{ fontSize: '14px', fontWeight: '500', color: 'var(--acc-text-sub)' }}>{stat.title}</span>
                 <div
-                  className="stat-card-icon"
-                  style={{ backgroundColor: stat.iconBg, color: stat.iconColor }}
+                  style={{
+                    backgroundColor: stat.iconBg,
+                    color: stat.iconColor,
+                    padding: '8px',
+                    borderRadius: '8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
                 >
                   <Icon size={20} />
                 </div>
               </div>
-              <div className="stat-card-value">{stat.value}</div>
-              <div className="stat-card-meta">
-                <span className={`stat-card-trend ${stat.isPositive ? 'trend-up' : 'trend-down'}`}>
-                  {stat.isPositive ? <TrendingUp size={13} /> : <TrendingDown size={13} />}
+              <div style={{ fontSize: '24px', fontWeight: '700', color: 'var(--acc-text-main)', marginBottom: '8px' }}>
+                {stat.value}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px' }}>
+                <span style={{ 
+                  display: 'flex', alignItems: 'center', gap: '4px', fontWeight: '600',
+                  color: stat.isPositive ? 'var(--acc-success)' : 'var(--acc-danger)' 
+                }}>
+                  {stat.isPositive ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
                   {stat.change}
                 </span>
-                <span className="stat-card-desc">{stat.desc}</span>
+                <span style={{ color: 'var(--acc-text-muted)' }}>{stat.desc}</span>
               </div>
             </div>
           );
@@ -307,21 +312,22 @@ export default function Dashboard() {
       }}>
 
         {/* Revenue Chart Panel */}
-        <div className="card-padded" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div className="acc-card">
+          <div className="acc-card-header">
             <div>
-              <h3 style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-title)', letterSpacing: '-0.02em' }}>
-                {t('dashboard.6month_revenue_trend')}</h3>
-              <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                {t('dashboard.total_revenue_each_month')}</p>
+              <h3 className="acc-card-title">{t('dashboard.6month_revenue_trend')}</h3>
+              <p style={{ fontSize: '12.5px', color: 'var(--acc-text-muted)', margin: '4px 0 0 0' }}>
+                {t('dashboard.total_revenue_each_month')}
+              </p>
             </div>
-            <select className="filter-select" style={{ width: 'auto' }}>
+            <select className="acc-input" style={{ width: 'auto', padding: '6px 12px' }}>
               <option>{t('dashboard.the_most_recent_6')}</option>
             </select>
           </div>
+          <div className="acc-card-body" style={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
 
           {/* Custom CSS Bar Chart */}
-          <div style={{ position: 'relative' }}>
+          <div style={{ position: 'relative', marginTop: 'auto', paddingBottom: '16px' }}>
             {/* Y-axis grid lines */}
             <div style={{ position: 'relative', height: '200px', display: 'flex', alignItems: 'flex-end', gap: '0' }}>
               {/* Grid lines background */}
@@ -330,7 +336,7 @@ export default function Dashboard() {
                   position: 'absolute',
                   left: 0, right: 0,
                   bottom: `${pct * 1.8}px`,
-                  borderTop: '1px dashed var(--border)',
+                  borderTop: '1px dashed var(--acc-border-color)',
                   opacity: 0.7,
                   zIndex: 0,
                 }} />
@@ -357,12 +363,12 @@ export default function Dashboard() {
                     <span style={{
                       fontSize: '10.5px',
                       fontWeight: '700',
-                      color: isLast ? 'var(--primary)' : 'var(--text-secondary)',
+                      color: isLast ? 'var(--acc-primary)' : 'var(--acc-text-sub)',
                       letterSpacing: '-0.01em',
                       marginBottom: 'auto',
                       marginTop: `${180 - barHeight}px`,
                     }}>
-                      {bar.amount >= 1000000 ? (bar.amount / 1000000).toFixed(0) + 'M' : bar.amount.toLocaleString()}
+                      {(bar.amount || 0) >= 1000000 ? ((bar.amount || 0) / 1000000).toFixed(0) + 'M' : (bar.amount || 0).toLocaleString()}
                     </span>
 
                     {/* Bar itself */}
@@ -371,15 +377,15 @@ export default function Dashboard() {
                         width: '36px',
                         height: `${barHeight}px`,
                         background: isLast
-                          ? 'linear-gradient(180deg, var(--primary) 0%, var(--primary-hover) 100%)'
-                          : 'var(--primary-glow)',
-                        border: isLast ? 'none' : '1.5px solid var(--primary-border)',
+                          ? 'linear-gradient(180deg, var(--acc-primary) 0%, var(--acc-primary-hover) 100%)'
+                          : 'var(--acc-primary-light)',
+                        border: isLast ? 'none' : '1.5px solid var(--acc-primary-ring)',
                         borderRadius: '6px 6px 0 0',
-                        transition: 'all var(--transition-normal)',
+                        transition: 'all 0.2s',
                         cursor: 'pointer',
-                        boxShadow: isLast ? '0 -2px 12px var(--primary-glow)' : 'none',
+                        boxShadow: isLast ? '0 -2px 12px var(--acc-primary-ring)' : 'none',
                       }}
-                      title={`${bar.label}: ${bar.amount.toLocaleString('vi-VN')} ₫`}
+                      title={`${bar.label}: ${(bar.amount || 0).toLocaleString('vi-VN')} ₫`}
                     />
                   </div>
                 );
@@ -387,27 +393,27 @@ export default function Dashboard() {
             </div>
 
             {/* X-axis baseline */}
-            <div style={{ borderTop: '2px solid var(--border)', display: 'flex' }}>
+            <div style={{ borderTop: '2px solid var(--acc-border-color)', display: 'flex' }}>
               {data.monthlyRevenueChart && data.monthlyRevenueChart.map((bar, i) => (
                 <div key={i} style={{ flex: 1, textAlign: 'center', paddingTop: '8px' }}>
-                  <span style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-muted)' }}>
+                  <span style={{ fontSize: '12px', fontWeight: '600', color: 'var(--acc-text-muted)' }}>
                     {bar.label}
                   </span>
                 </div>
               ))}
             </div>
           </div>
+          </div>
         </div>
 
         {/* Recent Transactions Panel */}
-        <div className="card-padded" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h3 style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-title)', letterSpacing: '-0.02em' }}>
-              {t('dashboard.recent_transactions')}</h3>
-            <span className="badge badge-primary">{data.recentTransactions?.length || 0} giao dịch</span>
+        <div className="acc-card">
+          <div className="acc-card-header">
+            <h3 className="acc-card-title">{t('dashboard.recent_transactions')}</h3>
+            <span className="acc-badge info">{data.recentTransactions?.length || 0} giao dịch</span>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <div className="acc-table-wrapper" style={{ padding: '0 20px 20px 20px', marginTop: '16px' }}>
             {data.recentTransactions && data.recentTransactions.length > 0 ? (
               data.recentTransactions.map((tx, idx) => (
                 <div
@@ -424,42 +430,40 @@ export default function Dashboard() {
                 >
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', minWidth: 0 }}>
                     <span style={{
-                      fontWeight: '700',
-                      color: 'var(--text-title)',
+                      fontWeight: '600',
+                      color: 'var(--acc-text-main)',
                       fontSize: '13.5px',
-                      letterSpacing: '-0.01em',
                       whiteSpace: 'nowrap',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
                     }}>
                       {tx.stallCode}
                     </span>
-                    <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>
+                    <span style={{ color: 'var(--acc-text-muted)', fontSize: '12px' }}>
                       {tx.tenantName} &nbsp;·&nbsp; {tx.date}
                     </span>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '5px', flexShrink: 0, marginLeft: '12px' }}>
                     <span style={{
-                      fontWeight: '800',
-                      color: 'var(--text-title)',
+                      fontWeight: '700',
+                      color: 'var(--acc-text-main)',
                       fontSize: '13.5px',
-                      letterSpacing: '-0.02em',
                     }}>
-                      {tx.amount.toLocaleString('vi-VN')} ₫
+                      {(tx.amount || 0).toLocaleString('vi-VN')} ₫
                     </span>
-                    <span className={getStatusBadgeClass(tx.status)}>
+                    <span className={getStatusBadgeClass(tx.status).replace('badge', 'acc-badge')}>
                       {getStatusLabel(tx.status)}
                     </span>
                   </div>
                 </div>
               ))
             ) : (
-              <div className="empty-state">
-                <div className="empty-state-icon">
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 0', color: 'var(--acc-text-muted)' }}>
+                <div style={{ backgroundColor: 'var(--acc-bg-app)', padding: '16px', borderRadius: '50%', marginBottom: '12px' }}>
                   <Receipt size={24} />
                 </div>
-                <p className="empty-state-title">{t('dashboard.no_transactions_yet')}</p>
-                <p className="empty-state-desc">{t('dashboard.cha_c_lch_s')}</p>
+                <p style={{ fontWeight: 600, color: 'var(--acc-text-main)', margin: '0 0 4px' }}>{t('dashboard.no_transactions_yet')}</p>
+                <p style={{ fontSize: 13, margin: 0 }}>{t('dashboard.cha_c_lch_s')}</p>
               </div>
             )}
           </div>
