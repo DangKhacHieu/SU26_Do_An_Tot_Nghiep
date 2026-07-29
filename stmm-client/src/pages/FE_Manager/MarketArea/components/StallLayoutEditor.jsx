@@ -185,6 +185,15 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
         }
     };
 
+    const getStatusText = (status) => {
+        switch (status) {
+            case 'Available': return 'Còn trống';
+            case 'Rented': return 'Đã thuê';
+            case 'Maintenance': return 'Đang bảo trì';
+            default: return status || 'Còn trống';
+        }
+    };
+
     const getPolygonFillColor = (status) => {
         switch (status) {
             case 'Available': return '#ffffff'; // White
@@ -401,7 +410,7 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
                                 <strong style={stall.svgPath ? { color: getPolygonTextColor(stall.status), fontSize: '18px', textShadow: '0 1px 2px rgba(0,0,0,0.1)' } : {}}>{stall.code}</strong>
                                 {!stall.svgPath && (
                                     <span className={styles.statusBadge} style={{ backgroundColor: getStatusColor(stall.status) }}>
-                                        {stall.status || 'Available'}
+                                        {getStatusText(stall.status)}
                                     </span>
                                 )}
                                 <div className={stall.svgPath ? styles.stallActionsPolygon : styles.stallActions}>
@@ -530,13 +539,9 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
                             }
                             const matches = [...svgPath.matchAll(/(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)/g)];
                             if (matches.length === 0) return null;
-                            const xs = matches.map(m => parseFloat(m[1]));
-                            const ys = matches.map(m => parseFloat(m[2]));
-                            const pMinX = Math.min(...xs);
-                            const pMinY = Math.min(...ys);
                             return matches.map(m => [
-                                parseFloat(m[1]) - pMinX,
-                                parseFloat(m[2]) - pMinY
+                                parseFloat(m[1]),
+                                parseFloat(m[2])
                             ]);
                         })()}
                         onComplete={(drawData) => {
@@ -560,11 +565,11 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
 
     const inlineContent = (
         <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-            <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: '8px', zIndex: 101, padding: '8px 16px', backgroundColor: 'var(--bg-panel)', border: '1px solid var(--border-color)', borderRadius: '8px', display: 'flex', gap: '24px', alignItems: 'center', flexWrap: 'wrap', fontSize: '13px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
+            <div style={{ position: 'absolute', top: 8, left: 8, background: 'rgba(255, 255, 255, 0.9)', padding: '6px 12px', borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.15)', display: 'flex', gap: 16, alignItems: 'center', fontSize: 12, zIndex: 100, border: '1px solid var(--border-color)', width: 'max-content', backdropFilter: 'blur(4px)' }}>
                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#3b82f6' }}></div>
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--color-primary)' }}></div>
                   <span style={{ color: 'var(--text-secondary)' }}>Khu vực:</span>
-                  <strong style={{ color: 'var(--text-primary)' }}>{areaSize || 0} m²</strong>
+                  <strong style={{ color: 'var(--text-primary)' }}>{areaSize} m²</strong>
                </div>
                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10b981' }}></div>
@@ -576,16 +581,17 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
                   <span style={{ color: 'var(--text-secondary)' }}>Trống:</span>
                   <strong style={{ color: remainingStallArea > 0 ? 'var(--text-primary)' : '#ef4444' }}>{remainingStallArea} m²</strong>
                </div>
+
+               {isEditMode && !isSplitViewActive && (
+                  <button 
+                      onClick={(e) => { e.stopPropagation(); setSelectedStall(null); setDrawnStallData(null); setIsDrawingStall(true); }} 
+                      style={{background: 'var(--color-primary)', color: 'white', border: 'none', padding: '4px 10px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', marginLeft: '8px'}}
+                  >
+                      <i className="fa-solid fa-plus" style={{marginRight: 4}}></i> VẼ SẠP MỚI
+                  </button>
+               )}
             </div>
             <div className={styles.editorContainer} style={{ width: '100%', height: '100%' }}>
-                {isEditMode && !isSplitViewActive && (
-                  <div style={{position: 'absolute', bottom: 8, right: 8, zIndex: 100, display: 'flex', gap: 8}}>
-                      <button 
-                          onClick={(e) => { e.stopPropagation(); setSelectedStall(null); setDrawnStallData(null); setIsDrawingStall(true); }} 
-                          style={{background: 'var(--color-primary)', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '16px', cursor: 'pointer', fontWeight: 'bold', boxShadow: '0 2px 8px rgba(0,0,0,0.2)', fontSize: 12}}
-                      >+ VẼ SẠP MỚI</button>
-                  </div>
-                )}
                 {renderCanvas(false)}
             </div>
         </div>
@@ -635,7 +641,7 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
                                 <h3 style={{margin: 0, color: 'var(--color-primary)', fontSize: '20px'}}>{viewingStall.code}</h3>
                                 <div style={{marginTop: '8px'}}>
                                     <span style={{display: 'inline-block', backgroundColor: getStatusColor(viewingStall.status), color: 'white', padding: '6px 16px', borderRadius: '20px', fontSize: '12px', fontWeight: 'bold', boxShadow: '0 2px 4px rgba(0,0,0,0.1)'}}>
-                                        {viewingStall.status}
+                                        {getStatusText(viewingStall.status)}
                                     </span>
                                 </div>
                             </div>

@@ -19,5 +19,9 @@ namespace STMM.Business.DTOs.Stall
         public DateOnly? FireInsuranceExpiry { get; set; }
 
         public string? Status { get; set; }
+
+        public int? ElectricityMeterId { get; set; }
+
+        public int? WaterMeterId { get; set; }
     }
 }

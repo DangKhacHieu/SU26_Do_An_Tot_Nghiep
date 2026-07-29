@@ -160,16 +160,33 @@ namespace STMM.Business.Services
                     throw new BadRequestException("Tên khu vực này đã tồn tại trong chợ. Vui lòng chọn tên khác.");
             }
 
+            var hasStalls = await _stallRepository.Query().AnyAsync(s => s.AreaId == id && s.IsDeleted != true);
+            var resolvedCategoryId = await ResolveCategoryAsync(request.CategoryId, request.CategoryName);
+
+            if (hasStalls)
+            {
+                if (resolvedCategoryId.HasValue && resolvedCategoryId.Value != existingArea.CategoryId)
+                {
+                    throw new BadRequestException("Không thể thay đổi ngành hàng của khu vực khi đã có sạp bên trong.");
+                }
+
+                if ((!string.IsNullOrWhiteSpace(request.SvgPath) && request.SvgPath != existingArea.SvgPath) || 
+                    (request.Size.HasValue && Math.Abs(request.Size.Value - (existingArea.Size ?? 0)) > 0.01))
+                {
+                    throw new BadRequestException("Không thể thay đổi hình dạng/diện tích khu vực khi đã có sạp bên trong.");
+                }
+            }
+
             _mapper.Map(request, existingArea);
             
-            var resolvedCategoryId = await ResolveCategoryAsync(request.CategoryId, request.CategoryName);
             if (resolvedCategoryId.HasValue)
             {
                 existingArea.CategoryId = resolvedCategoryId.Value;
             }
 
-            if (request.Size.HasValue)
+            if (request.Size.HasValue && !hasStalls)
             {
+                // Logic kept for safety, although hasStalls == false means totalStallsSize == 0
                 var totalStallsSize = await _stallRepository.Query()
                     .Where(s => s.AreaId == id && s.IsDeleted != true)
                     .SumAsync(s => s.Size ?? 0);

@@ -840,6 +840,7 @@ const MarketAreaList = ({ user }) => {
                         border: area.svgPath ? 'none' : '1px solid #10b981',
                         borderRadius: area.svgPath ? '0' : '2px',
                         background: area.svgPath ? 'transparent' : 'rgba(16, 185, 129, 0.05)',
+                        pointerEvents: area.svgPath ? 'none' : 'auto',
                       }}
                       onMouseEnter={() => setHoveredAreaId(area.areaId)}
                       onMouseLeave={() => setHoveredAreaId(null)}
@@ -861,13 +862,23 @@ const MarketAreaList = ({ user }) => {
                                  return "0 0 100 100";
                              })()}
                         >
-                          <path d={area.svgPath} fill={getCategoryColor(area.categoryName)} stroke="rgba(255,255,255,0.5)" strokeWidth="2" strokeDasharray="none" vectorEffect="non-scaling-stroke" strokeLinejoin="round" />
+                          <path 
+                            d={area.svgPath} 
+                            fill={getCategoryColor(area.categoryName)} 
+                            stroke="rgba(255,255,255,0.5)" 
+                            strokeWidth="2" 
+                            strokeDasharray="none" 
+                            vectorEffect="non-scaling-stroke" 
+                            strokeLinejoin="round" 
+                            style={{ pointerEvents: 'auto', cursor: !isEditMode ? 'pointer' : (isInteractive ? 'move' : 'default') }}
+                            onClick={(e) => { if (!isEditMode) toggleAreaExpand(e, area.areaId); }}
+                          />
                         </svg>
                       )}
 
                       <div 
-                        style={{ width: '100%', height: '100%', position: 'relative', display: 'flex', flexDirection: 'column', cursor: !isEditMode ? 'pointer' : 'default' }}
-                        onClick={(e) => { if (!isEditMode) toggleAreaExpand(e, area.areaId); }}
+                        style={{ width: '100%', height: '100%', position: 'relative', display: 'flex', flexDirection: 'column', cursor: !isEditMode ? 'pointer' : 'default', pointerEvents: area.svgPath ? 'none' : 'auto' }}
+                        onClick={(e) => { if (!isEditMode && !area.svgPath) toggleAreaExpand(e, area.areaId); }}
                       >
                         {/* Area Label Overlay */}
                         {!expandedAreas.includes(area.areaId) && hoveredAreaId !== area.areaId && (
@@ -898,7 +909,6 @@ const MarketAreaList = ({ user }) => {
                           </div>
                         )}
 
-                        {/* Hover Action Menu */}
                         {hoveredAreaId === area.areaId && (
                           <div style={{ 
                             position: 'absolute', 
@@ -906,7 +916,8 @@ const MarketAreaList = ({ user }) => {
                             left: expandedAreas.includes(area.areaId) ? 'auto' : '50%', 
                             right: expandedAreas.includes(area.areaId) ? 0 : 'auto', 
                             transform: expandedAreas.includes(area.areaId) ? 'none' : 'translate(-50%, -50%)',
-                            display: 'flex', gap: '4px', background: 'rgba(255,255,255,0.95)', padding: '4px', borderRadius: '4px', boxShadow: '0 2px 8px rgba(0,0,0,0.15)', zIndex: 100 
+                            display: 'flex', gap: '4px', background: 'rgba(255,255,255,0.95)', padding: '4px', borderRadius: '4px', boxShadow: '0 2px 8px rgba(0,0,0,0.15)', zIndex: 100,
+                            pointerEvents: 'auto' 
                           }}>
                             {/* Cầu nối vô hình giúp chống flickr khi di chuột */}
                             {expandedAreas.includes(area.areaId) && (
@@ -933,7 +944,7 @@ const MarketAreaList = ({ user }) => {
                         
                         {/* Conditionally show StallLayoutEditor only if expanded */}
                         {(isEditMode || zoom > 0.7) && expandedAreas.includes(area.areaId) && (
-                          <div style={{ flex: 1, position: 'relative', overflow: 'visible' }}>
+                          <div style={{ flex: 1, position: 'relative', overflow: 'visible', pointerEvents: 'auto' }}>
                             <StallLayoutEditor 
                               areaId={area.areaId} 
                               areaName={area.name}

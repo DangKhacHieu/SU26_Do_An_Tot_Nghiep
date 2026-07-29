@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect } from 'react';
 import styles from './MarketAreaForm.module.css';
 import PolygonDrawer from './PolygonDrawer';
+import { getAllStallsByAreaId } from '../api/stallApi';
 
 const MarketAreaForm = ({ 
   initialData, 
@@ -29,6 +30,19 @@ const MarketAreaForm = ({
   });
   const [error, setError] = useState(null);
   const [isDrawing, setIsDrawing] = useState(false);
+  const [hasStalls, setHasStalls] = useState(false);
+
+  useEffect(() => {
+    if (initialData?.areaId) {
+      getAllStallsByAreaId(initialData.areaId)
+        .then(stalls => {
+          setHasStalls(stalls && stalls.length > 0);
+        })
+        .catch(err => console.error('Error fetching stalls for area:', err));
+    } else {
+      setHasStalls(false);
+    }
+  }, [initialData]);
 
   useEffect(() => {
     if (initialData) {
@@ -169,7 +183,7 @@ const MarketAreaForm = ({
           minY: result.minY,
           width: result.width,
           height: result.height,
-          size: prev.size ? prev.size : Math.round(result.areaM2 * 100) / 100
+          size: Math.round(result.areaM2 * 100) / 100
       }));
       setIsDrawing(false);
   };
@@ -209,6 +223,7 @@ const MarketAreaForm = ({
 
           <div className={styles.formGroup}>
             <label>DIỆN TÍCH VẬT LÝ (m²)</label>
+            {hasStalls && <div style={{color: '#e11d48', fontSize: '12px', marginBottom: '4px'}}>* Khu vực đã có sạp, không thể đổi diện tích.</div>}
             <input 
               className={styles.input} 
               type="number" 
@@ -218,6 +233,8 @@ const MarketAreaForm = ({
               min="1"
               step="any"
               placeholder="VD: 50" 
+              disabled={hasStalls}
+              style={hasStalls ? {background: '#f3f4f6', cursor: 'not-allowed'} : {}}
             />
           </div>
 
@@ -232,7 +249,8 @@ const MarketAreaForm = ({
                   onChange={handleChange}
                   min="50"
                   placeholder="VD: 200" 
-                  disabled={!!formData.svgPath}
+                  disabled={!!formData.svgPath || hasStalls}
+                  style={hasStalls ? {background: '#f3f4f6', cursor: 'not-allowed'} : {}}
                 />
               </div>
               <div className={styles.formGroup} style={{flex: 1}}>
@@ -245,19 +263,22 @@ const MarketAreaForm = ({
                   onChange={handleChange}
                   min="50"
                   placeholder="VD: 150" 
-                  disabled={!!formData.svgPath}
+                  disabled={!!formData.svgPath || hasStalls}
+                  style={hasStalls ? {background: '#f3f4f6', cursor: 'not-allowed'} : {}}
                 />
               </div>
           </div>
           
           <div className={styles.formGroup}>
             <label>HÌNH DÁNG (ĐA GIÁC)</label>
+            {hasStalls && <div style={{color: '#e11d48', fontSize: '12px', marginBottom: '4px'}}>* Khu vực đã có sạp, không thể vẽ lại hình dáng.</div>}
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                 <button 
                     onClick={() => setIsDrawing(true)}
+                    disabled={hasStalls}
                     style={{ 
-                        background: '#3b82f6', color: 'white', border: 'none', 
-                        padding: '10px 16px', borderRadius: '8px', cursor: 'pointer', 
+                        background: hasStalls ? '#9ca3af' : '#3b82f6', color: 'white', border: 'none', 
+                        padding: '10px 16px', borderRadius: '8px', cursor: hasStalls ? 'not-allowed' : 'pointer', 
                         fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' 
                     }}
                 >
@@ -272,11 +293,14 @@ const MarketAreaForm = ({
 
           <div className={styles.formGroup}>
             <label>NGÀNH HÀNG</label>
+            {hasStalls && <div style={{color: '#e11d48', fontSize: '12px', marginBottom: '4px'}}>* Khu vực đã có sạp, không thể đổi ngành hàng.</div>}
             <select 
               className={styles.input} 
               name="categoryName"
               value={formData.categoryName}
               onChange={handleChange}
+              disabled={hasStalls}
+              style={hasStalls ? {background: '#f3f4f6', cursor: 'not-allowed'} : {}}
             >
               <option value="">{'-- Chọn ngành hàng --'}</option>
               {(marketCategories || []).map(c => (

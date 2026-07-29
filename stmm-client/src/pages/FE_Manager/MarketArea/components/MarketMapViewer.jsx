@@ -119,10 +119,12 @@ const MarketMapViewer = ({ marketId, onBack }) => {
                         {/* Render Areas and Stalls */}
                         {areas?.map((area, aIdx) => {
                             const isSelected = selectedAreaId === (area.areaId || aIdx);
-                            const pathD = area.svgPath || (area.minX != null && area.maxX != null && area.minY != null && area.maxY != null ? `M 0,0 L ${area.maxX - area.minX},0 L ${area.maxX - area.minX},${area.maxY - area.minY} L 0,${area.maxY - area.minY} Z` : null);
+                            const width = area.maxX != null && area.minX != null ? area.maxX - area.minX : 180;
+                            const height = area.maxY != null && area.minY != null ? area.maxY - area.minY : 140;
+                            const pathD = area.svgPath || (area.minX != null && area.minY != null ? `M 0,0 L ${width},0 L ${width},${height} L 0,${height} Z` : null);
                             
                             return (
-                                <g key={area.areaId || aIdx} id={`area-${area.areaId || aIdx}`}>
+                                <g key={area.areaId || aIdx} id={`area-${area.areaId || aIdx}`} transform={`translate(${area.minX || 0}, ${area.minY || 0})`}>
                                     {pathD && (
                                         <path
                                             d={pathD}
@@ -137,8 +139,8 @@ const MarketMapViewer = ({ marketId, onBack }) => {
                                     {/* Render stalls always, not just when selected */}
                                     <g>
                                         {area.stalls?.map((stall, sIdx) => {
-                                            const renderX = (area.minX || 0) + (stall.mapX || 0);
-                                            const renderY = (area.minY || 0) + (stall.mapY || 0);
+                                            const renderX = stall.mapX || 0;
+                                            const renderY = stall.mapY || 0;
 
                                             return (
                                             <g key={stall.stallId || sIdx} transform={`translate(${renderX}, ${renderY})`} id={`stall-${stall.stallId || stall.code}`}>

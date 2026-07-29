@@ -1,8 +1,10 @@
 import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { createStall, updateStall, updateStallStatus, updateStallLocation, getUnassignedMeters } from '../api/stallApi';
+import { createStall, updateStall, updateStallStatus, updateStallLocation } from '../api/stallApi';
+import { getAreaById } from '../api/marketAreaApi';
 import { getAllCategories } from '../api/categoryApi';
+import meterService from '../../../../services/meterService';
 import styles from './MarketAreaForm.module.css';
 
 const StallForm = ({ initialData, drawnData, areaId, areaWidth, areaHeight, areaSize, existingStalls = [], getValidPosition, onSave, onCancel, onRedrawShape, marketCategories, inline = false }) => {
@@ -24,37 +26,60 @@ const StallForm = ({ initialData, drawnData, areaId, areaWidth, areaHeight, area
     const [unassignedWaterMeters, setUnassignedWaterMeters] = useState([]);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+    const [areaCategory, setAreaCategory] = useState(null);
 
     useEffect(() => {
-        const fetchMeters = async () => {
+        const fetchArea = async () => {
+            if (!areaId) return;
             try {
-                if (!initialData) {
-                    const eMeters = await getUnassignedMeters('Electricity');
-                    const wMeters = await getUnassignedMeters('Water');
-                    setUnassignedElectricityMeters(eMeters);
-                    setUnassignedWaterMeters(wMeters);
+                const areaData = await getAreaById(areaId);
+                if (areaData && areaData.categoryName) {
+                    setAreaCategory(areaData.categoryName);
+                    // Auto-fill form data if creating new stall
+                    if (!initialData) {
+                        setFormData(prev => ({ ...prev, categoryName: areaData.categoryName }));
+                    }
                 }
             } catch (err) {
-                console.error("Failed to fetch unassigned meters", err);
+                console.error("Failed to fetch area data", err);
             }
         };
+
+        const fetchMeters = async () => {
+            try {
+                const eMeters = await meterService.getUnassignedMeters('Electricity');
+                const wMeters = await meterService.getUnassignedMeters('Water');
+                setUnassignedElectricityMeters(eMeters || []);
+                setUnassignedWaterMeters(wMeters || []);
+            } catch (err) {
+                console.error("Failed to fetch meters", err);
+            }
+        };
+        
+        fetchArea();
         fetchMeters();
-    }, [initialData]);
+    }, [initialData, areaId]);
 
     useEffect(() => {
         if (initialData) {
-            setFormData({
-                code: initialData.code || '',
-                categoryName: initialData.categoryName || '',
-                status: initialData.status || 'Available',
-                size: initialData.size || '',
-                description: initialData.description || '',
+            const baseData = {
+                ...initialData,
+                size: initialData.size ? initialData.size.toString() : '',
                 width: initialData.width || 100,
                 height: initialData.height || 100,
                 svgPath: initialData.svgPath || '',
-                electricityMeterId: '',
-                waterMeterId: ''
-            });
+                electricityMeterId: initialData.electricityMeterId || '',
+                waterMeterId: initialData.waterMeterId || ''
+            };
+
+            if (drawnData) {
+                baseData.size = (Math.round((drawnData.areaM2 || drawnData.area || 0) * 100) / 100).toString();
+                baseData.width = drawnData.width;
+                baseData.height = drawnData.height;
+                baseData.svgPath = drawnData.svgPath;
+            }
+
+            setFormData(baseData);
         } else if (drawnData) {
             setFormData(prev => ({
                 ...prev,
@@ -121,31 +146,42 @@ const StallForm = ({ initialData, drawnData, areaId, areaWidth, areaHeight, area
         setLoading(true);
 
         try {
+            let finalStatus = formData.status;
+            if (finalStatus === 'Rented' && !initialData?.tenantName) {
+                finalStatus = 'Available';
+            }
+
             const payload = {
                 ...formData,
+                status: finalStatus,
                 size: formData.size ? parseFloat(formData.size) : null,
                 electricityMeterId: formData.electricityMeterId ? parseInt(formData.electricityMeterId) : null,
                 waterMeterId: formData.waterMeterId ? parseInt(formData.waterMeterId) : null
             };
 
             if (initialData?.stallId) {
-                if (initialData.status !== formData.status) {
-                    await updateStallStatus(initialData.stallId, formData.status);
+                if (initialData.status !== finalStatus) {
+                    await updateStallStatus(initialData.stallId, finalStatus);
                 }
                 
+                let updateMapX = initialData.mapX !== undefined ? initialData.mapX : initialData.xAxis;
+                let updateMapY = initialData.mapY !== undefined ? initialData.mapY : initialData.yAxis;
+                if (drawnData) {
+                    updateMapX = drawnData.minX;
+                    updateMapY = drawnData.minY;
+                }
+
                 await updateStallLocation(initialData.stallId, {
                     width: Number(formData.width),
                     height: Number(formData.height),
-                    mapX: initialData.mapX !== undefined ? initialData.mapX : initialData.xAxis,
-                    mapY: initialData.mapY !== undefined ? initialData.mapY : initialData.yAxis,
+                    mapX: updateMapX,
+                    mapY: updateMapY,
                     svgPath: formData.svgPath
                 });
                 
                 await updateStall(initialData.stallId, {
-                    code: formData.code,
-                    categoryName: formData.categoryName,
-                    size: Number(formData.size),
-                    description: formData.description
+                    ...payload,
+                    size: Number(formData.size)
                 });
             } else {
                 let currentWidth = parseFloat(formData.width) || 100;
@@ -202,7 +238,7 @@ const StallForm = ({ initialData, drawnData, areaId, areaWidth, areaHeight, area
                 </h2>
                 {!inline && <button onClick={onCancel} style={{position: 'absolute', top: 24, right: 24, background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 20}}>&times;</button>}
             
-            {initialData && initialData.status === 'Available' && (
+            {initialData && !initialData.tenantName && (
                 <div style={{ marginBottom: '16px', padding: '12px', background: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ fontSize: '13px', color: '#64748b' }}>Hình dáng sạp thực tế</span>
                     <button type="button" onClick={() => onRedrawShape && onRedrawShape()} style={{ background: 'var(--color-primary)', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}>
@@ -243,7 +279,10 @@ const StallForm = ({ initialData, drawnData, areaId, areaWidth, areaHeight, area
                 )}
                 
                 <div className={styles.formGroup} style={inline ? { marginBottom: 0 } : {}}>
-                    <label htmlFor="categoryName" style={inline ? { fontSize: '13px' } : {}}>{'Tên sạp / Ngành hàng (Category)'}<span style={{color: '#ff4d4f'}}>*</span></label>
+                    <label htmlFor="categoryName" style={inline ? { fontSize: '13px' } : {}}>
+                        {'Tên sạp / Ngành hàng (Category)'}<span style={{color: '#ff4d4f'}}>*</span>
+                        {areaCategory && <span style={{fontSize: '11px', color: '#10b981', marginLeft: '8px'}}>(Kế thừa từ khu vực)</span>}
+                    </label>
                     <select
                         className={styles.input}
                         id="categoryName"
@@ -251,7 +290,8 @@ const StallForm = ({ initialData, drawnData, areaId, areaWidth, areaHeight, area
                         value={formData.categoryName}
                         onChange={handleChange}
                         required
-                        style={inline ? { padding: '8px' } : {}}
+                        disabled={!!areaCategory}
+                        style={inline ? { padding: '8px', ...(areaCategory ? {background: '#f3f4f6', cursor: 'not-allowed'} : {}) } : (areaCategory ? {background: '#f3f4f6', cursor: 'not-allowed'} : {})}
                     >
                         <option value="">{'-- Chọn ngành hàng --'}</option>
                         {(marketCategories || []).map(c => (
@@ -264,6 +304,7 @@ const StallForm = ({ initialData, drawnData, areaId, areaWidth, areaHeight, area
 
                 <div className={styles.formGroup} style={inline ? { marginBottom: 0 } : {}}>
                     <label htmlFor="size" style={inline ? { fontSize: '13px' } : {}}>{'Diện tích vật lý (m²)'}<span style={{color: '#ff4d4f'}}>*</span></label>
+                    {<div style={{color: '#64748b', fontSize: '11px', marginBottom: '4px'}}>* Diện tích được tự động tính toán khi vẽ sạp.</div>}
                     <input
                         className={styles.input}
                         type="number"
@@ -274,8 +315,10 @@ const StallForm = ({ initialData, drawnData, areaId, areaWidth, areaHeight, area
                         value={formData.size}
                         onChange={handleChange}
                         required
+                        disabled
                         placeholder="e.g., 20.5"
-                        style={inline ? { padding: '8px' } : {}}
+                        style={{ backgroundColor: '#f3f4f6', cursor: 'not-allowed', ...(inline ? { padding: '8px' } : {}) }}
+                        title="Vui lòng dùng công cụ Vẽ lại hình dáng để thay đổi diện tích"
                     />
                 </div>
 
@@ -306,16 +349,64 @@ const StallForm = ({ initialData, drawnData, areaId, areaWidth, areaHeight, area
                         disabled={!!initialData?.tenantName}
                         style={{ backgroundColor: initialData?.tenantName ? '#f5f5f5' : 'white', cursor: initialData?.tenantName ? 'not-allowed' : 'pointer', padding: inline ? '8px' : '' }}
                     >
-                        <option value="Available">Available</option>
-                        <option value="Rented">Rented</option>
-                        <option value="Maintenance">Maintenance</option>
+                        <option value="Available">Còn trống (Available)</option>
+                        <option value="Maintenance">Đang bảo trì (Maintenance)</option>
+                        {initialData?.tenantName && <option value="Rented">Đã thuê (Rented)</option>}
                     </select>
+                </div>
+
+                <div style={{display: 'flex', gap: '12px', marginBottom: inline ? 0 : '16px', marginTop: inline ? 0 : '16px'}}>
+                    <div className={styles.formGroup} style={{flex: 1, marginBottom: 0}}>
+                        <label htmlFor="electricityMeterId" style={inline ? { fontSize: '13px' } : {}}>Đồng hồ Điện {!initialData && <span style={{color: '#ff4d4f'}}>*</span>}</label>
+                        <select
+                            className={styles.select}
+                            id="electricityMeterId"
+                            name="electricityMeterId"
+                            value={formData.electricityMeterId || ''}
+                            onChange={handleChange}
+                            required={!initialData}
+                            style={inline ? { padding: '8px' } : {}}
+                        >
+                            <option value="">-- Chọn ĐH Điện --</option>
+                            {initialData?.electricityMeterId && (
+                                <option value={initialData.electricityMeterId}>
+                                    {initialData.electricityMeterSerial || `ĐH hiện tại (${initialData.electricityMeterId})`}
+                                </option>
+                            )}
+                            {unassignedElectricityMeters.map(m => (
+                                <option key={m.meterId} value={m.meterId}>{m.serialNumber}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className={styles.formGroup} style={{flex: 1, marginBottom: 0}}>
+                        <label htmlFor="waterMeterId" style={inline ? { fontSize: '13px' } : {}}>Đồng hồ Nước {!initialData && <span style={{color: '#ff4d4f'}}>*</span>}</label>
+                        <select
+                            className={styles.select}
+                            id="waterMeterId"
+                            name="waterMeterId"
+                            value={formData.waterMeterId || ''}
+                            onChange={handleChange}
+                            required={!initialData}
+                            style={inline ? { padding: '8px' } : {}}
+                        >
+                            <option value="">-- Chọn ĐH Nước --</option>
+                            {initialData?.waterMeterId && (
+                                <option value={initialData.waterMeterId}>
+                                    {initialData.waterMeterSerial || `ĐH hiện tại (${initialData.waterMeterId})`}
+                                </option>
+                            )}
+                            {unassignedWaterMeters.map(m => (
+                                <option key={m.meterId} value={m.meterId}>{m.serialNumber}</option>
+                            ))}
+                        </select>
+                    </div>
                 </div>
 
                 {!formData.svgPath && (
                     <div className={styles.formGroup} style={inline ? { marginBottom: 0, display: 'flex', gap: 12 } : { display: 'flex', gap: 12 }}>
                         <div style={{flex: 1}}>
                             <label htmlFor="width" style={inline ? { fontSize: '13px' } : {}}>{'Chiều dài hiển thị (px)'}</label>
+                            {<div style={{color: '#64748b', fontSize: '11px', marginBottom: '4px'}}>* Tự động tính toán khi vẽ sạp.</div>}
                             <input
                                 className={styles.input}
                                 type="number"
@@ -324,13 +415,15 @@ const StallForm = ({ initialData, drawnData, areaId, areaWidth, areaHeight, area
                                 value={formData.width}
                                 onChange={handleChange}
                                 max={areaWidth || undefined}
-                                title={areaWidth ? `Tối đa ${areaWidth}px (bằng với Khu vực)` : ""}
+                                disabled
+                                title="Vui lòng dùng công cụ Vẽ lại hình dáng để thay đổi kích thước"
                                 required
-                                style={inline ? { padding: '8px' } : {}}
+                                style={{ backgroundColor: '#f3f4f6', cursor: 'not-allowed', ...(inline ? { padding: '8px' } : {}) }}
                             />
                         </div>
                         <div style={{flex: 1}}>
                             <label htmlFor="height" style={inline ? { fontSize: '13px' } : {}}>{'Chiều rộng hiển thị (px)'}</label>
+                            {<div style={{color: '#64748b', fontSize: '11px', marginBottom: '4px'}}>* Tự động tính toán khi vẽ sạp.</div>}
                             <input
                                 className={styles.input}
                                 type="number"
@@ -339,9 +432,10 @@ const StallForm = ({ initialData, drawnData, areaId, areaWidth, areaHeight, area
                                 value={formData.height}
                                 onChange={handleChange}
                                 max={areaHeight || undefined}
-                                title={areaHeight ? `Tối đa ${areaHeight}px (bằng với Khu vực)` : ""}
+                                disabled
+                                title="Vui lòng dùng công cụ Vẽ lại hình dáng để thay đổi kích thước"
                                 required
-                                style={inline ? { padding: '8px' } : {}}
+                                style={{ backgroundColor: '#f3f4f6', cursor: 'not-allowed', ...(inline ? { padding: '8px' } : {}) }}
                             />
                         </div>
                     </div>
