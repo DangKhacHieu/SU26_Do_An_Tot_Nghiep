@@ -3,6 +3,10 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import "./ContractPrintPreview.css";
 
+const getAuthHeaders = () => ({
+  "Authorization": `Bearer ${localStorage.getItem('accessToken') || localStorage.getItem('token')}`
+});
+
 export default function ContractPrintPreview({ contract, onClose, onSaveSuccess, addToast }) {
   const { t } = useTranslation();
 
@@ -41,6 +45,7 @@ export default function ContractPrintPreview({ contract, onClose, onSaveSuccess,
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
+          ...getAuthHeaders()
         },
         body: JSON.stringify({
           businessName: lessee.businessName.trim() || null,

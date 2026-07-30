@@ -1,8 +1,10 @@
 import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { createStall, updateStall, updateStallStatus, updateStallLocation, getUnassignedMeters } from '../api/stallApi';
+import { createStall, updateStall, updateStallStatus, updateStallLocation } from '../api/stallApi';
+import { getAreaById } from '../api/marketAreaApi';
 import { getAllCategories } from '../api/categoryApi';
+import meterService from '../../../../services/meterService';
 import styles from './MarketAreaForm.module.css';
 
 const StallForm = ({ initialData, drawnData, areaId, areaWidth, areaHeight, areaSize, existingStalls = [], getValidPosition, onSave, onCancel, onRedrawShape, marketCategories, inline = false }) => {
@@ -24,37 +26,60 @@ const StallForm = ({ initialData, drawnData, areaId, areaWidth, areaHeight, area
     const [unassignedWaterMeters, setUnassignedWaterMeters] = useState([]);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+    const [areaCategory, setAreaCategory] = useState(null);
 
     useEffect(() => {
-        const fetchMeters = async () => {
+        const fetchArea = async () => {
+            if (!areaId) return;
             try {
-                if (!initialData) {
-                    const eMeters = await getUnassignedMeters('Electricity');
-                    const wMeters = await getUnassignedMeters('Water');
-                    setUnassignedElectricityMeters(eMeters);
-                    setUnassignedWaterMeters(wMeters);
+                const areaData = await getAreaById(areaId);
+                if (areaData && areaData.categoryName) {
+                    setAreaCategory(areaData.categoryName);
+                    // Auto-fill form data if creating new stall
+                    if (!initialData) {
+                        setFormData(prev => ({ ...prev, categoryName: areaData.categoryName }));
+                    }
                 }
             } catch (err) {
-                console.error("Failed to fetch unassigned meters", err);
+                console.error("Failed to fetch area data", err);
             }
         };
+
+        const fetchMeters = async () => {
+            try {
+                const eMeters = await meterService.getUnassignedMeters('Electricity');
+                const wMeters = await meterService.getUnassignedMeters('Water');
+                setUnassignedElectricityMeters(eMeters || []);
+                setUnassignedWaterMeters(wMeters || []);
+            } catch (err) {
+                console.error("Failed to fetch meters", err);
+            }
+        };
+        
+        fetchArea();
         fetchMeters();
-    }, [initialData]);
+    }, [initialData, areaId]);
 
     useEffect(() => {
         if (initialData) {
-            setFormData({
-                code: initialData.code || '',
-                categoryName: initialData.categoryName || '',
-                status: initialData.status || 'Available',
-                size: initialData.size || '',
-                description: initialData.description || '',
+            const baseData = {
+                ...initialData,
+                size: initialData.size ? initialData.size.toString() : '',
                 width: initialData.width || 100,
                 height: initialData.height || 100,
                 svgPath: initialData.svgPath || '',
-                electricityMeterId: '',
-                waterMeterId: ''
-            });
+                electricityMeterId: initialData.electricityMeterId || '',
+                waterMeterId: initialData.waterMeterId || ''
+            };
+
+            if (drawnData) {
+                baseData.size = (Math.round((drawnData.areaM2 || drawnData.area || 0) * 100) / 100).toString();
+                baseData.width = drawnData.width;
+                baseData.height = drawnData.height;
+                baseData.svgPath = drawnData.svgPath;
+            }
+
+            setFormData(baseData);
         } else if (drawnData) {
             setFormData(prev => ({
                 ...prev,
@@ -113,7 +138,7 @@ const StallForm = ({ initialData, drawnData, areaId, areaWidth, areaHeight, area
             }, 0);
             
             if (areaSize && requestedSize + currentTotal > parseFloat(areaSize)) {
-                setError(`Diện tích sạp (${requestedSize} m²) làm tổng diện tích vượt quá Khu vực! (còn trống ${Math.max(0, Math.round((parseFloat(areaSize) - currentTotal) * 100) / 100)} m²)`);
+                setError(t('marketFloorPlan.stallForm.exceeds_size', { size: requestedSize, max: Math.max(0, Math.round((parseFloat(areaSize) - currentTotal) * 100) / 100) }));
                 return;
             }
         }
@@ -121,31 +146,42 @@ const StallForm = ({ initialData, drawnData, areaId, areaWidth, areaHeight, area
         setLoading(true);
 
         try {
+            let finalStatus = formData.status;
+            if (finalStatus === 'Rented' && !initialData?.tenantName) {
+                finalStatus = 'Available';
+            }
+
             const payload = {
                 ...formData,
+                status: finalStatus,
                 size: formData.size ? parseFloat(formData.size) : null,
                 electricityMeterId: formData.electricityMeterId ? parseInt(formData.electricityMeterId) : null,
                 waterMeterId: formData.waterMeterId ? parseInt(formData.waterMeterId) : null
             };
 
             if (initialData?.stallId) {
-                if (initialData.status !== formData.status) {
-                    await updateStallStatus(initialData.stallId, formData.status);
+                if (initialData.status !== finalStatus) {
+                    await updateStallStatus(initialData.stallId, finalStatus);
                 }
                 
+                let updateMapX = initialData.mapX !== undefined ? initialData.mapX : initialData.xAxis;
+                let updateMapY = initialData.mapY !== undefined ? initialData.mapY : initialData.yAxis;
+                if (drawnData) {
+                    updateMapX = drawnData.minX;
+                    updateMapY = drawnData.minY;
+                }
+
                 await updateStallLocation(initialData.stallId, {
                     width: Number(formData.width),
                     height: Number(formData.height),
-                    mapX: initialData.mapX !== undefined ? initialData.mapX : initialData.xAxis,
-                    mapY: initialData.mapY !== undefined ? initialData.mapY : initialData.yAxis,
+                    mapX: updateMapX,
+                    mapY: updateMapY,
                     svgPath: formData.svgPath
                 });
                 
                 await updateStall(initialData.stallId, {
-                    code: formData.code,
-                    categoryName: formData.categoryName,
-                    size: Number(formData.size),
-                    description: formData.description
+                    ...payload,
+                    size: Number(formData.size)
                 });
             } else {
                 let currentWidth = parseFloat(formData.width) || 100;
@@ -176,7 +212,7 @@ const StallForm = ({ initialData, drawnData, areaId, areaWidth, areaHeight, area
             console.error('Error saving stall:', err);
             let errorMessage = 'Failed to save stall. Please check the inputs.';
             if (!err.response) {
-                errorMessage = 'Lỗi kết nối tới Server: ${err.message}. Vui lòng kiểm tra lại Backend đã chạy chưa.';
+                errorMessage = t('marketFloorPlan.stallForm.err_connect', { msg: err.message });
             } else if (err.response?.data?.errors) {
                 // Validation error from ASP.NET
                 const errors = err.response.data.errors;
@@ -184,7 +220,7 @@ const StallForm = ({ initialData, drawnData, areaId, areaWidth, areaHeight, area
             } else if (err.response?.data?.message) {
                 errorMessage = err.response.data.message;
             } else if (err.response?.data?.title) {
-                errorMessage = 'Lỗi Server (500): ${err.response.data.title}';
+                errorMessage = t('marketFloorPlan.stallForm.err_server', { msg: err.response.data.title });
             } else if (typeof err.response?.data === 'string') {
                 errorMessage = err.response.data;
             }
@@ -198,15 +234,15 @@ const StallForm = ({ initialData, drawnData, areaId, areaWidth, areaHeight, area
         <div className={inline ? '' : styles.panel} style={inline ? { display: 'flex', flexDirection: 'column', height: '100%' } : { maxHeight: '90vh', overflowY: 'auto' }}>
             <div className={styles.section} style={inline ? { flex: 1 } : {}}>
                 <h2 className={styles.title} style={inline ? { fontSize: '18px', borderBottom: '1px solid #eee', paddingBottom: '12px', marginBottom: '16px' } : {}}>
-                    <span>✎</span> {initialData ? 'Chỉnh sửa Sạp' : 'Thêm Sạp mới'}
+                    <span>✎</span> {initialData ? t('marketFloorPlan.stallForm.edit_title') : t('marketFloorPlan.stallForm.add_title')}
                 </h2>
                 {!inline && <button onClick={onCancel} style={{position: 'absolute', top: 24, right: 24, background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 20}}>&times;</button>}
             
-            {initialData && initialData.status === 'Available' && (
+            {initialData && !initialData.tenantName && (
                 <div style={{ marginBottom: '16px', padding: '12px', background: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '13px', color: '#64748b' }}>Hình dáng sạp thực tế</span>
+                    <span style={{ fontSize: '13px', color: '#64748b' }}>{t('marketFloorPlan.stallForm.real_shape')}</span>
                     <button type="button" onClick={() => onRedrawShape && onRedrawShape()} style={{ background: 'var(--color-primary)', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}>
-                        ✎ Vẽ lại hình dáng
+                        ✎ {t('marketFloorPlan.stallForm.redraw')}
                     </button>
                 </div>
             )}
@@ -216,19 +252,19 @@ const StallForm = ({ initialData, drawnData, areaId, areaWidth, areaHeight, area
             <form onSubmit={handleSubmit} style={inline ? { display: 'flex', flexDirection: 'column', gap: '12px' } : {}}>
                 {!initialData ? (
                     <div className={styles.formGroup} style={inline ? { marginBottom: 0 } : {}}>
-                        <label htmlFor="code" style={inline ? { fontSize: '13px' } : {}}>{'Mã sạp (Stall Code)'}</label>
+                        <label htmlFor="code" style={inline ? { fontSize: '13px' } : {}}>{t('marketFloorPlan.stallForm.code')}</label>
                         <input
                             className={styles.input}
                             type="text"
                             id="code"
-                            value={'Sẽ được tự động tạo'}
+                            value={t('marketFloorPlan.stallForm.auto_generated')}
                             disabled
                             style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed', fontStyle: 'italic', color: '#888', padding: inline ? '8px' : '' }}
                         />
                     </div>
                 ) : (
                     <div className={styles.formGroup} style={inline ? { marginBottom: 0 } : {}}>
-                        <label htmlFor="code" style={inline ? { fontSize: '13px' } : {}}>{'Mã sạp (Stall Code)'}</label>
+                        <label htmlFor="code" style={inline ? { fontSize: '13px' } : {}}>{t('marketFloorPlan.stallForm.code')}</label>
                         <input
                             className={styles.input}
                             type="text"
@@ -236,14 +272,17 @@ const StallForm = ({ initialData, drawnData, areaId, areaWidth, areaHeight, area
                             name="code"
                             value={formData.code}
                             disabled
-                            title={'Không được phép sửa Mã sạp'}
+                            title={t('marketFloorPlan.stallForm.no_edit_code')}
                             style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed', padding: inline ? '8px' : '' }}
                         />
                     </div>
                 )}
                 
                 <div className={styles.formGroup} style={inline ? { marginBottom: 0 } : {}}>
-                    <label htmlFor="categoryName" style={inline ? { fontSize: '13px' } : {}}>{'Tên sạp / Ngành hàng (Category)'}<span style={{color: '#ff4d4f'}}>*</span></label>
+                    <label htmlFor="categoryName" style={inline ? { fontSize: '13px' } : {}}>
+                        {t('marketFloorPlan.stallForm.category')}<span style={{color: '#ff4d4f'}}>*</span>
+                        {areaCategory && <span style={{fontSize: '11px', color: '#10b981', marginLeft: '8px'}}>{t('marketFloorPlan.stallForm.inherit_area')}</span>}
+                    </label>
                     <select
                         className={styles.input}
                         id="categoryName"
@@ -251,9 +290,10 @@ const StallForm = ({ initialData, drawnData, areaId, areaWidth, areaHeight, area
                         value={formData.categoryName}
                         onChange={handleChange}
                         required
-                        style={inline ? { padding: '8px' } : {}}
+                        disabled={!!areaCategory}
+                        style={inline ? { padding: '8px', ...(areaCategory ? {background: '#f3f4f6', cursor: 'not-allowed'} : {}) } : (areaCategory ? {background: '#f3f4f6', cursor: 'not-allowed'} : {})}
                     >
-                        <option value="">{'-- Chọn ngành hàng --'}</option>
+                        <option value="">{t('marketFloorPlan.stallForm.select_category')}</option>
                         {(marketCategories || []).map(c => (
                             <option key={c.categoryId || c.id} value={c.name}>
                                 {c.name}
@@ -263,7 +303,8 @@ const StallForm = ({ initialData, drawnData, areaId, areaWidth, areaHeight, area
                 </div>
 
                 <div className={styles.formGroup} style={inline ? { marginBottom: 0 } : {}}>
-                    <label htmlFor="size" style={inline ? { fontSize: '13px' } : {}}>{'Diện tích vật lý (m²)'}<span style={{color: '#ff4d4f'}}>*</span></label>
+                    <label htmlFor="size" style={inline ? { fontSize: '13px' } : {}}>{t('marketFloorPlan.stallForm.physical_size')}<span style={{color: '#ff4d4f'}}>*</span></label>
+                    {<div style={{color: '#64748b', fontSize: '11px', marginBottom: '4px'}}>{t('marketFloorPlan.stallForm.auto_calc_shape')}</div>}
                     <input
                         className={styles.input}
                         type="number"
@@ -274,13 +315,15 @@ const StallForm = ({ initialData, drawnData, areaId, areaWidth, areaHeight, area
                         value={formData.size}
                         onChange={handleChange}
                         required
+                        disabled
                         placeholder="e.g., 20.5"
-                        style={inline ? { padding: '8px' } : {}}
+                        style={{ backgroundColor: '#f3f4f6', cursor: 'not-allowed', ...(inline ? { padding: '8px' } : {}) }}
+                        title={t('marketFloorPlan.stallForm.use_redraw_size')}
                     />
                 </div>
 
                 <div className={styles.formGroup} style={inline ? { marginBottom: 0 } : {}}>
-                    <label htmlFor="description" style={inline ? { fontSize: '13px' } : {}}>{'Người đang thuê (Tenant Name)'}</label>
+                    <label htmlFor="description" style={inline ? { fontSize: '13px' } : {}}>{t('marketFloorPlan.stallForm.tenant')}</label>
                     <input
                         className={styles.input}
                         type="text"
@@ -290,13 +333,13 @@ const StallForm = ({ initialData, drawnData, areaId, areaWidth, areaHeight, area
                         readOnly
                         disabled
                         style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed', padding: inline ? '8px' : '' }}
-                        placeholder={'Chưa có người thuê...'}
-                        title={'Tên người thuê được tự động cập nhật từ hệ thống Hợp đồng'}
+                        placeholder={t('marketFloorPlan.stallForm.no_tenant')}
+                        title={t('marketFloorPlan.stallForm.tenant_auto')}
                     />
                 </div>
                 
                 <div className={styles.formGroup} style={inline ? { marginBottom: 0 } : {}}>
-                    <label htmlFor="status" style={inline ? { fontSize: '13px' } : {}}>Tình trạng (Status) {initialData?.tenantName && <span style={{color: '#ff4d4f', fontSize: 10}}>{'(Đã khóa bởi Hợp đồng)'}</span>}</label>
+                    <label htmlFor="status" style={inline ? { fontSize: '13px' } : {}}>{t('marketFloorPlan.stallForm.status')} {initialData?.tenantName && <span style={{color: '#ff4d4f', fontSize: 10}}>{t('marketFloorPlan.stallForm.locked_contract')}</span>}</label>
                     <select
                         className={styles.select}
                         id="status"
@@ -306,16 +349,64 @@ const StallForm = ({ initialData, drawnData, areaId, areaWidth, areaHeight, area
                         disabled={!!initialData?.tenantName}
                         style={{ backgroundColor: initialData?.tenantName ? '#f5f5f5' : 'white', cursor: initialData?.tenantName ? 'not-allowed' : 'pointer', padding: inline ? '8px' : '' }}
                     >
-                        <option value="Available">Available</option>
-                        <option value="Rented">Rented</option>
-                        <option value="Maintenance">Maintenance</option>
+                        <option value="Available">{t('marketFloorPlan.stallForm.available')}</option>
+                        <option value="Maintenance">{t('marketFloorPlan.stallForm.maintenance')}</option>
+                        {initialData?.tenantName && <option value="Rented">{t('marketFloorPlan.stallForm.rented')}</option>}
                     </select>
+                </div>
+
+                <div style={{display: 'flex', gap: '12px', marginBottom: inline ? 0 : '16px', marginTop: inline ? 0 : '16px'}}>
+                    <div className={styles.formGroup} style={{flex: 1, marginBottom: 0}}>
+                        <label htmlFor="electricityMeterId" style={inline ? { fontSize: '13px' } : {}}>{t('marketFloorPlan.stallForm.elec_meter')} {!initialData && <span style={{color: '#ff4d4f'}}>*</span>}</label>
+                        <select
+                            className={styles.select}
+                            id="electricityMeterId"
+                            name="electricityMeterId"
+                            value={formData.electricityMeterId || ''}
+                            onChange={handleChange}
+                            required={!initialData}
+                            style={inline ? { padding: '8px' } : {}}
+                        >
+                            <option value="">{t('marketFloorPlan.stallForm.select_elec')}</option>
+                            {initialData?.electricityMeterId && (
+                                <option value={initialData.electricityMeterId}>
+                                    {initialData.electricityMeterSerial || t('marketFloorPlan.stallForm.current_meter_elec', { id: initialData.electricityMeterId })}
+                                </option>
+                            )}
+                            {unassignedElectricityMeters.map(m => (
+                                <option key={m.meterId} value={m.meterId}>{m.serialNumber}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className={styles.formGroup} style={{flex: 1, marginBottom: 0}}>
+                        <label htmlFor="waterMeterId" style={inline ? { fontSize: '13px' } : {}}>{t('marketFloorPlan.stallForm.water_meter')} {!initialData && <span style={{color: '#ff4d4f'}}>*</span>}</label>
+                        <select
+                            className={styles.select}
+                            id="waterMeterId"
+                            name="waterMeterId"
+                            value={formData.waterMeterId || ''}
+                            onChange={handleChange}
+                            required={!initialData}
+                            style={inline ? { padding: '8px' } : {}}
+                        >
+                            <option value="">{t('marketFloorPlan.stallForm.select_water')}</option>
+                            {initialData?.waterMeterId && (
+                                <option value={initialData.waterMeterId}>
+                                    {initialData.waterMeterSerial || t('marketFloorPlan.stallForm.current_meter_water', { id: initialData.waterMeterId })}
+                                </option>
+                            )}
+                            {unassignedWaterMeters.map(m => (
+                                <option key={m.meterId} value={m.meterId}>{m.serialNumber}</option>
+                            ))}
+                        </select>
+                    </div>
                 </div>
 
                 {!formData.svgPath && (
                     <div className={styles.formGroup} style={inline ? { marginBottom: 0, display: 'flex', gap: 12 } : { display: 'flex', gap: 12 }}>
                         <div style={{flex: 1}}>
-                            <label htmlFor="width" style={inline ? { fontSize: '13px' } : {}}>{'Chiều dài hiển thị (px)'}</label>
+                            <label htmlFor="width" style={inline ? { fontSize: '13px' } : {}}>{t('marketFloorPlan.stallForm.width')}</label>
+                            {<div style={{color: '#64748b', fontSize: '11px', marginBottom: '4px'}}>{t('marketFloorPlan.stallForm.auto_calc_draw')}</div>}
                             <input
                                 className={styles.input}
                                 type="number"
@@ -324,13 +415,15 @@ const StallForm = ({ initialData, drawnData, areaId, areaWidth, areaHeight, area
                                 value={formData.width}
                                 onChange={handleChange}
                                 max={areaWidth || undefined}
-                                title={areaWidth ? `Tối đa ${areaWidth}px (bằng với Khu vực)` : ""}
+                                disabled
+                                title={t('marketFloorPlan.stallForm.use_redraw_dim')}
                                 required
-                                style={inline ? { padding: '8px' } : {}}
+                                style={{ backgroundColor: '#f3f4f6', cursor: 'not-allowed', ...(inline ? { padding: '8px' } : {}) }}
                             />
                         </div>
                         <div style={{flex: 1}}>
-                            <label htmlFor="height" style={inline ? { fontSize: '13px' } : {}}>{'Chiều rộng hiển thị (px)'}</label>
+                            <label htmlFor="height" style={inline ? { fontSize: '13px' } : {}}>{t('marketFloorPlan.stallForm.height')}</label>
+                            {<div style={{color: '#64748b', fontSize: '11px', marginBottom: '4px'}}>{t('marketFloorPlan.stallForm.auto_calc_draw')}</div>}
                             <input
                                 className={styles.input}
                                 type="number"
@@ -339,9 +432,10 @@ const StallForm = ({ initialData, drawnData, areaId, areaWidth, areaHeight, area
                                 value={formData.height}
                                 onChange={handleChange}
                                 max={areaHeight || undefined}
-                                title={areaHeight ? `Tối đa ${areaHeight}px (bằng với Khu vực)` : ""}
+                                disabled
+                                title={t('marketFloorPlan.stallForm.use_redraw_dim')}
                                 required
-                                style={inline ? { padding: '8px' } : {}}
+                                style={{ backgroundColor: '#f3f4f6', cursor: 'not-allowed', ...(inline ? { padding: '8px' } : {}) }}
                             />
                         </div>
                     </div>
@@ -349,10 +443,10 @@ const StallForm = ({ initialData, drawnData, areaId, areaWidth, areaHeight, area
                 
                 <div className={styles.actions} style={inline ? { marginTop: '16px' } : {}}>
                     <button type="submit" className={styles.btnPrimary} disabled={loading} style={inline ? { flex: 1, padding: '10px' } : {}}>
-                        {loading ? 'Đang lưu...' : 'Lưu Sạp'}
+                        {loading ? t('marketFloorPlan.stallForm.saving') : t('marketFloorPlan.stallForm.save')}
                     </button>
                     <button type="button" onClick={onCancel} className={styles.btnSecondary} disabled={loading} style={inline ? { padding: '10px' } : {}}>
-                        {'Hủy bỏ'}</button>
+                        {t('marketFloorPlan.stallForm.cancel')}</button>
                 </div>
             </form>
             </div>

@@ -25,6 +25,7 @@ const PolygonDrawer = ({
     maxAllowedAreaSize,
     stallMode = false
 }) => {
+    const { t } = useTranslation();
     const [points, setPoints] = useState([]);
     const [mousePos, setMousePos] = useState(null);
     const [isClosed, setIsClosed] = useState(false);
@@ -82,7 +83,7 @@ const PolygonDrawer = ({
 
     const handleFinish = () => {
         if (points.length < 3) {
-            setErrorMsg('Bạn cần vẽ ít nhất 3 điểm!');
+            setErrorMsg(t('marketFloorPlan.polygonDrawer.min_points'));
             return;
         }
 
@@ -96,7 +97,7 @@ const PolygonDrawer = ({
         const areaPx = getPolygonArea(dbPoints);
         const areaM2 = areaPx / 900;
         if (maxAllowedAreaSize > 0 && areaM2 > maxAllowedAreaSize) {
-            setErrorMsg(`Diện tích vượt quá giới hạn cho phép! (Vẽ: ${Math.round(areaM2)} m², Tối đa: ${Math.round(maxAllowedAreaSize)} m²)`);
+            setErrorMsg(t('marketFloorPlan.polygonDrawer.exceeds_limit', { drawn: Math.round(areaM2), max: Math.round(maxAllowedAreaSize) }));
             setIsClosed(false);
             return;
         }
@@ -111,7 +112,7 @@ const PolygonDrawer = ({
             // 1. Kiểm tra nằm hoàn toàn trong chợ (Intersection của drawn và market == drawn)
             const intersectionWithMarket = polygonClipping.intersection(drawnPoly, marketPolyInput);
             if (intersectionWithMarket.length === 0) {
-                setErrorMsg(stallMode ? 'Sạp phải nằm bên trong ranh giới khu vực!' : 'Khu vực phải nằm bên trong ranh giới chợ!');
+                setErrorMsg(stallMode ? t('marketFloorPlan.polygonDrawer.stall_in_area') : t('marketFloorPlan.polygonDrawer.area_in_market'));
                 setIsClosed(false);
                 return;
             }
@@ -125,7 +126,7 @@ const PolygonDrawer = ({
             });
             // Cho phép sai số nhỏ 1px
             if (Math.abs(intersectionArea - areaPx) > 100) {
-                setErrorMsg(stallMode ? 'Sạp vẽ bị lọt ra ngoài ranh giới khu vực!' : 'Khu vực vẽ bị lọt ra ngoài ranh giới chợ!');
+                setErrorMsg(stallMode ? t('marketFloorPlan.polygonDrawer.stall_out_bounds') : t('marketFloorPlan.polygonDrawer.area_out_bounds'));
                 setIsClosed(false);
                 return;
             }
@@ -169,7 +170,7 @@ const PolygonDrawer = ({
             }
             
             if (hasOverlap) {
-                setErrorMsg(stallMode ? 'Sạp vẽ bị đè lấp lên sạp khác đã tồn tại!' : 'Khu vực vẽ bị đè lấp lên khu vực khác đã tồn tại!');
+                setErrorMsg(stallMode ? t('marketFloorPlan.polygonDrawer.stall_overlap') : t('marketFloorPlan.polygonDrawer.area_overlap'));
                 setIsClosed(false);
                 return;
             }
@@ -233,18 +234,16 @@ const PolygonDrawer = ({
             }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '24px 24px 16px 24px', borderBottom: '1px solid #e2e8f0' }}>
                     <div>
-                        <h2 style={{ margin: 0, color: '#0f172a' }}>{stallMode ? 'Vẽ Hình Dáng Sạp Thực Tế' : 'Vẽ Hình Dáng Khu Vực Thực Tế'}</h2>
+                        <h2 style={{ margin: 0, color: '#0f172a' }}>{stallMode ? t('marketFloorPlan.polygonDrawer.draw_stall') : t('marketFloorPlan.polygonDrawer.draw_area')}</h2>
                         <p style={{ margin: '4px 0 0 0', color: '#64748b', fontSize: '14px' }}>
-                            {stallMode 
-                                ? 'Di chuyển chuột lên bản đồ và vẽ. Khu vực không được đè lên khu vực khác và không vượt quá diện tích chợ.'
-                                : 'Di chuyển chuột lên bản đồ và vẽ. Khu vực không được đè lên khu vực khác và không vượt quá diện tích chợ.'}
+                            {t('marketFloorPlan.polygonDrawer.instruction')}
                         </p>
                         {errorMsg && <p style={{ margin: '8px 0 0 0', color: '#ef4444', fontWeight: 'bold', fontSize: '14px' }}>⚠️ {errorMsg}</p>}
                     </div>
                     <div style={{ display: 'flex', gap: '12px' }}>
-                        <button onClick={handleClear} style={{ padding: '8px 16px', border: '1px solid #cbd5e1', background: 'transparent', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>{'Xóa vẽ lại'}</button>
-                        <button onClick={handleFinish} disabled={points.length < 3 || !isClosed} style={{ padding: '8px 16px', border: 'none', background: (points.length >= 3 && isClosed) ? '#10b981' : '#94a3b8', color: 'white', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>{'Lưu Hình Dáng'}</button>
-                        <button onClick={onCancel} style={{ padding: '8px 16px', border: 'none', background: '#ef4444', color: 'white', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>{'Đóng'}</button>
+                        <button onClick={handleClear} style={{ padding: '8px 16px', border: '1px solid #cbd5e1', background: 'transparent', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>{t('marketFloorPlan.polygonDrawer.clear')}</button>
+                        <button onClick={handleFinish} disabled={points.length < 3 || !isClosed} style={{ padding: '8px 16px', border: 'none', background: (points.length >= 3 && isClosed) ? '#10b981' : '#94a3b8', color: 'white', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>{t('marketFloorPlan.polygonDrawer.save')}</button>
+                        <button onClick={onCancel} style={{ padding: '8px 16px', border: 'none', background: '#ef4444', color: 'white', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>{t('marketFloorPlan.polygonDrawer.close')}</button>
                     </div>
                 </div>
 

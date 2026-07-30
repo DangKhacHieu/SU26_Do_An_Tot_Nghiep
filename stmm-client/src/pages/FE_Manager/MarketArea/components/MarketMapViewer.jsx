@@ -25,8 +25,8 @@ const MarketMapViewer = ({ marketId, onBack }) => {
         }
     };
 
-    if (loading) return <div style={{ padding: 40, textAlign: 'center' }}>{'Đang tải bản đồ...'}</div>;
-    if (!marketData) return <div style={{ padding: 40, textAlign: 'center' }}>{'Không tìm thấy dữ liệu bản đồ.'}</div>;
+    if (loading) return <div style={{ padding: 40, textAlign: 'center' }}>{t('marketFloorPlan.viewer.loading')}</div>;
+    if (!marketData) return <div style={{ padding: 40, textAlign: 'center' }}>{t('marketFloorPlan.viewer.not_found')}</div>;
 
 
     let viewBox = "0 0 800 600";
@@ -82,13 +82,13 @@ const MarketMapViewer = ({ marketId, onBack }) => {
         <main className={styles.viewerContainer}>
             <header className={styles.viewerHeader}>
                 <div>
-                    <h1>Bản đồ chi tiết: {marketData.marketName}</h1>
+                    <h1>{t('marketFloorPlan.viewer.title', { name: marketData.marketName })}</h1>
                     <p style={{ color: 'var(--mw-text-muted)', margin: '8px 0 0 0' }}>
-                        📍 {marketData.address || 'Chưa cập nhật địa chỉ'} {marketData.size ? `• Diện tích: ${marketData.size}m²` : ''}
+                        📍 {marketData.address || t('marketFloorPlan.viewer.no_address')} {marketData.size ? `• ${t('marketFloorPlan.viewer.area_size', { size: marketData.size })}` : ''}
                     </p>
                 </div>
-                <button className={styles.secondaryBtn} onClick={onBack} aria-label={'Quay lại danh sách chợ'}>
-                    {'← Quay lại'}</button>
+                <button className={styles.secondaryBtn} onClick={onBack} aria-label={t('marketFloorPlan.viewer.back')}>
+                    {t('marketFloorPlan.viewer.back')}</button>
             </header>
             
             <section className={styles.viewerContent}>
@@ -102,7 +102,7 @@ const MarketMapViewer = ({ marketId, onBack }) => {
                                 backgroundImage: 'linear-gradient(#e2e8f0 1px, transparent 1px), linear-gradient(90deg, #e2e8f0 1px, transparent 1px)',
                                 backgroundSize: '40px 40px'
                             }}
-                            aria-label={'Bản đồ trực quan của chợ ${marketData.marketName}'}
+                            aria-label={t('marketFloorPlan.viewer.title', { name: marketData.marketName })}
                             role="img"
                         >
                         {/* Render Market Polygon */}
@@ -119,10 +119,12 @@ const MarketMapViewer = ({ marketId, onBack }) => {
                         {/* Render Areas and Stalls */}
                         {areas?.map((area, aIdx) => {
                             const isSelected = selectedAreaId === (area.areaId || aIdx);
-                            const pathD = area.svgPath || (area.minX != null && area.maxX != null && area.minY != null && area.maxY != null ? `M 0,0 L ${area.maxX - area.minX},0 L ${area.maxX - area.minX},${area.maxY - area.minY} L 0,${area.maxY - area.minY} Z` : null);
+                            const width = area.maxX != null && area.minX != null ? area.maxX - area.minX : 180;
+                            const height = area.maxY != null && area.minY != null ? area.maxY - area.minY : 140;
+                            const pathD = area.svgPath || (area.minX != null && area.minY != null ? `M 0,0 L ${width},0 L ${width},${height} L 0,${height} Z` : null);
                             
                             return (
-                                <g key={area.areaId || aIdx} id={`area-${area.areaId || aIdx}`}>
+                                <g key={area.areaId || aIdx} id={`area-${area.areaId || aIdx}`} transform={`translate(${area.minX || 0}, ${area.minY || 0})`}>
                                     {pathD && (
                                         <path
                                             d={pathD}
@@ -137,8 +139,8 @@ const MarketMapViewer = ({ marketId, onBack }) => {
                                     {/* Render stalls always, not just when selected */}
                                     <g>
                                         {area.stalls?.map((stall, sIdx) => {
-                                            const renderX = (area.minX || 0) + (stall.mapX || 0);
-                                            const renderY = (area.minY || 0) + (stall.mapY || 0);
+                                            const renderX = stall.mapX || 0;
+                                            const renderY = stall.mapY || 0;
 
                                             return (
                                             <g key={stall.stallId || sIdx} transform={`translate(${renderX}, ${renderY})`} id={`stall-${stall.stallId || stall.code}`}>
@@ -191,36 +193,36 @@ const MarketMapViewer = ({ marketId, onBack }) => {
                     <div className={styles.statGrid}>
                         <div className={styles.statCard}>
                             <div className={styles.statValue}>{totalAreas}</div>
-                            <div className={styles.statLabel}>{'Khu vực'}</div>
+                            <div className={styles.statLabel}>{t('marketFloorPlan.viewer.areas')}</div>
                         </div>
                         <div className={styles.statCard}>
                             <div className={styles.statValue}>{totalStalls}</div>
-                            <div className={styles.statLabel}>{'Sạp hàng'}</div>
+                            <div className={styles.statLabel}>{t('marketFloorPlan.viewer.stalls')}</div>
                         </div>
                     </div>
 
-                    <div className={styles.legendTitle}>{'Chú giải bản đồ'}</div>
+                    <div className={styles.legendTitle}>{t('marketFloorPlan.viewer.legend')}</div>
                     
                     <div className={styles.viewerLegendItem}>
                         <div className={styles.legendBox} style={{ background: 'rgba(5,150,105,.15)', border: '2px solid #059669' }}></div>
                         <div className={styles.legendItemText}>
-                            <strong>{'Khu vực chợ'}</strong>
-                            <small>{'Click để xem sạp bên trong'}</small>
+                            <strong>{t('marketFloorPlan.viewer.market_area')}</strong>
+                            <small>{t('marketFloorPlan.viewer.market_area_desc')}</small>
                         </div>
                     </div>
 
                     <div className={styles.viewerLegendItem}>
                         <div className={styles.legendBox} style={{ background: '#3b82f6', border: '2px solid #2563eb', borderRadius: 4 }}></div>
                         <div className={styles.legendItemText}>
-                            <strong>{'Sạp hàng'}</strong>
-                            <small>{'Vị trí gian hàng'}</small>
+                            <strong>{t('marketFloorPlan.viewer.stall')}</strong>
+                            <small>{t('marketFloorPlan.viewer.stall_desc')}</small>
                         </div>
                     </div>
 
-                    {selectedAreaId !== null && (
+                    {selectedAreaId && (
                         <div className={styles.activeAreaBanner}>
-                            <strong>{'✓ Đang xem khu vực'}</strong>
-                            <span>{'Các sạp trong khu vực này đang được hiển thị trên bản đồ.'}</span>
+                            <strong>{t('marketFloorPlan.viewer.viewing_area')}</strong>
+                            <span>{t('marketFloorPlan.viewer.viewing_area_desc')}</span>
                         </div>
                     )}
                 </aside>

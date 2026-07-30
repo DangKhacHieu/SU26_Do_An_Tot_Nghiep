@@ -1,0 +1,143 @@
+--- MarketMapViewer.jsx ---
+28: if (loading) return <div style={{ padding: 40, textAlign: 'center' }}>{'Đang tải bản đồ...'}</div>;
+29: if (!marketData) return <div style={{ padding: 40, textAlign: 'center' }}>{'Không tìm thấy dữ liệu bản đồ.'}</div>;
+85: <h1>Bản đồ chi tiết: {marketData.marketName}</h1>
+87: 📍 {marketData.address || 'Chưa cập nhật địa chỉ'} {marketData.size ? `• Diện tích: ${marketData.size}m²` : ''}
+90: <button className={styles.secondaryBtn} onClick={onBack} aria-label={'Quay lại danh sách chợ'}>
+91: {'← Quay lại'}</button>
+105: aria-label={'Bản đồ trực quan của chợ ${marketData.marketName}'}
+196: <div className={styles.statLabel}>{'Khu vực'}</div>
+200: <div className={styles.statLabel}>{'Sạp hàng'}</div>
+204: <div className={styles.legendTitle}>{'Chú giải bản đồ'}</div>
+209: <strong>{'Khu vực chợ'}</strong>
+210: <small>{'Click để xem sạp bên trong'}</small>
+217: <strong>{'Sạp hàng'}</strong>
+218: <small>{'Vị trí gian hàng'}</small>
+224: <strong>{'✓ Đang xem khu vực'}</strong>
+225: <span>{'Các sạp trong khu vực này đang được hiển thị trên bản đồ.'}</span>
+--- MarketAreaList.jsx ---
+107: if (!window.confirm('Bạn có chắc chắn muốn ngưng hoạt động chợ này để tạo sơ đồ mới? LƯU Ý: Hành động này chỉ thực hiện được nếu không có hợp đồng nào đang hoạt động.')) return;
+121: const msg = error.response?.data?.message || 'Lỗi khi ngưng hoạt động chợ.';
+164: setDeleteSuccess('Đã xóa khu vực thành công!');
+169: setErrorMessage('Không thể xóa khu vực này! Có thể bên trong khu vực đang có sạp được thuê.');
+211: 'Thời trang': '#9333ea',
+212: 'Ẩm thực': '#eab308',
+213: 'Vui chơi': '#3b82f6',
+214: 'Trang sức': '#ec4899',
+215: 'Đồ gia dụng': '#f97316'
+417: setErrorMessage('Không thể di chuyển: Khu vực này bị kéo ra ngoài ranh giới của Chợ!');
+423: setErrorMessage('Không thể di chuyển: Khu vực này bị chồng lấp lên Khu vực khác!');
+447: setErrorMessage('Có lỗi xảy ra khi lưu kích thước Khu vực.');
+470: setErrorMessage('Không thể thay đổi kích thước: Khu vực này bị chồng lấp lên Khu vực khác!');
+476: setErrorMessage('Không thể thay đổi kích thước: Khu vực này bị chồng lấp lên Khu vực khác!');
+504: setErrorMessage('Không thể thay đổi kích thước Khu vực: ${error.response.data.message}');
+506: setErrorMessage('Có lỗi xảy ra khi lưu kích thước Khu vực.');
+530: <h3>{t('marketAreaList.no_areas', 'Bạn chưa có chợ nào')}</h3>
+531: <p>{t('marketAreaList.create_market_first', 'Hãy tạo một chợ mới ở mục Đăng ký Chợ để bắt đầu.')}</p>
+538: <h3 style={{ color: 'var(--warning, #faad14)' }}>{'Chợ của bạn đang chờ phê duyệt'}</h3>
+539: <p>{'Hệ thống đã ghi nhận yêu cầu tạo chợ của bạn. Vui lòng chờ Admin phê duyệt (trạng thái Active) để có thể vào quản lý và thiết kế mặt bằng.'}</p>
+546: <h3 style={{ color: 'var(--danger, #ff4d4f)' }}>{'Chợ của bạn đã bị từ chối'}</h3>
+547: <p>{'Yêu cầu tạo chợ của bạn không được phê duyệt. Vui lòng liên hệ Admin để biết thêm chi tiết.'}</p>
+553: <p>{'Đang tải dữ liệu mặt bằng...'}</p>
+581: <h3 style={{marginTop: 0, color: 'var(--text-primary)', fontSize: '24px'}}>{t('marketAreaList.confirm_delete_area', 'Xác nhận xóa Khu vực')}</h3>
+582: <p style={{color: 'var(--text-secondary)', fontSize: '15px', lineHeight: '1.5'}}>{t('marketAreaList.confirm_delete_area_desc', 'Bạn có chắc chắn muốn xóa khu vực này? Tất cả sạp bên trong sẽ bị xóa theo nếu chưa được thuê.')}<br/>{t('marketAreaList.cannot_undo', 'Hành động này không thể hoàn tác.')}</p>
+584: <button onClick={() => setDeleteConfirmId(null)} style={{padding: '10px 24px', border: '1px solid var(--border-color)', background: 'transparent', borderRadius: '8px', cursor: 'pointer', color: 'var(--text-primary)', fontWeight: 'bold', fontSize: '14px', transition: 'all 0.2s'}}>{t('marketAreaList.cancel', 'Hủy')}</button>
+585: <button onClick={confirmDelete} style={{padding: '10px 24px', border: 'none', background: 'var(--danger, #ff4d4f)', color: 'white', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px', boxShadow: '0 4px 12px rgba(255, 77, 79, 0.3)', transition: 'all 0.2s'}}>{t('marketAreaList.delete_area', 'Xóa Khu vực')}</button>
+596: <h3 style={{marginTop: 0, color: 'var(--danger, #ff4d4f)', fontSize: '24px'}}>{t('marketAreaList.error', 'Lỗi')}</h3>
+599: <button onClick={() => setErrorMessage(null)} style={{padding: '10px 32px', border: 'none', background: 'var(--color-primary)', color: 'white', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px', transition: 'all 0.2s'}}>{t('marketAreaList.close', 'Đóng lại')}</button>
+610: <h3 style={{marginTop: 0, color: 'var(--success, #4caf50)', fontSize: '24px'}}>{t('marketAreaList.success', 'Thành công!')}</h3>
+621: <h3 style={{margin: 0, color: 'var(--color-primary)', fontSize: '20px'}}>{t('marketAreaList.area_info', 'Thông tin Khu vực')}</h3>
+625: <p style={{margin: '12px 0', color: 'var(--text-primary)', fontSize: '15px'}}><strong>{t('marketAreaList.area_name_label', 'Tên khu vực:')}</strong> {infoArea.name}</p>
+626: <p style={{margin: '12px 0', color: 'var(--text-primary)', fontSize: '15px'}}><strong>{t('marketAreaList.description_label', 'Mô tả:')}</strong> {infoArea.description || t('marketAreaList.no_description', 'Không có mô tả')}</p>
+627: <p style={{margin: '12px 0', color: 'var(--text-primary)', fontSize: '15px'}}><strong>{t('marketAreaList.category_label', 'Thể loại hàng hóa:')}</strong> {infoArea.categoryName || t('marketAreaList.none', 'Không có')}</p>
+628: <p style={{margin: '12px 0', color: 'var(--text-primary)', fontSize: '15px'}}><strong>{t('marketAreaList.stall_count_label', 'Số lượng sạp hiện có:')}</strong> {infoAreaStallCount === null ? t('marketAreaList.loading', 'Đang tải...') : `${infoAreaStallCount} ${t('marketAreaList.stalls', 'sạp')}`}</p>
+629: <p style={{margin: '12px 0', color: 'var(--text-primary)', fontSize: '15px'}}><strong>{t('marketAreaList.area_size_label', 'Diện tích:')}</strong> {infoArea.size ? `${infoArea.size} m²` : t('marketAreaList.updating', 'Đang cập nhật')}</p>
+632: <button onClick={() => setInfoArea(null)} style={{padding: '10px 24px', border: 'none', background: 'var(--color-primary)', color: 'white', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold'}}>{t('marketAreaList.close', 'Đóng lại')}</button>
+641: <span style={{ color: 'var(--text-secondary)' }}>Tổng diện tích chợ:</span>
+646: <span style={{ color: 'var(--text-secondary)' }}>Đã quy hoạch khu vực:</span>
+651: <span style={{ color: 'var(--text-secondary)' }}>Còn trống:</span>
+659: {t('marketAreaList.market_floor_plan', 'SƠ ĐỒ MẶT BẰNG CHỢ')}
+667: <button onClick={handleZoomOut} style={{background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 16, width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-primary)'}} title={'Thu nhỏ'}>-</button>
+669: <button onClick={handleZoomIn} style={{background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 16, width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-primary)'}} title={'Phóng to'}>+</button>
+670: <button onClick={handleResetZoom} style={{background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 12, marginLeft: 4, color: 'var(--color-primary)'}} title={'Khôi phục'}>↺</button>
+673: <button onClick={handleAddNew} style={{background: '#517594', color: 'white', padding: '8px 20px', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold'}}>{t('marketAreaList.add_area', '+ THÊM KHU VỰC')}</button>
+705: 🛑 {t('marketAreaList.deactivate_market', 'NGƯNG HOẠT ĐỘNG CHỢ')}
+713: <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#1e293b', borderBottom: '1px solid #cbd5e1', paddingBottom: '8px' }}>{t('marketAreaList.category_legend', 'CHÚ THÍCH DANH MỤC')}</h4>
+922: {/* Cầu nối vô hình giúp chống flickr khi di chuột */}
+--- MarketAreaForm.jsx ---
+99: const PX_PER_M2 = 900; // 1 m2 = 900 pixels vuông
+140: setError('Tên khu vực không được để trống.');
+150: setError('Tên khu vực đã tồn tại! Vui lòng chọn tên khác.');
+155: setError('Kích thước chiều rộng và chiều dài phải lớn hơn 50px.');
+160: setError(`Diện tích khu vực (${formData.size} m²) vượt quá diện tích còn trống của chợ (còn lại khoảng ${Math.round(maxAllowedAreaSize * 100) / 100} m²).`);
+196: <span>{initialData ? '✎' : '+'}</span> {initialData ? 'SỬA KHU VỰC' : 'THÊM KHU VỰC'}
+203: <label>TÊN KHU VỰC <span style={{color: 'red'}}>*</span></label>
+210: placeholder={'VD: Khu A, Khu Ẩm Thực...'}
+215: <label>MÔ TẢ</label>
+221: placeholder={'Nhập mô tả ngắn gọn...'}></textarea>
+225: <label>DIỆN TÍCH VẬT LÝ (m²)</label>
+226: {hasStalls && <div style={{color: '#e11d48', fontSize: '12px', marginBottom: '4px'}}>* Khu vực đã có sạp, không thể đổi diện tích.</div>}
+243: <label>CHIỀU RỘNG (px) <span style={{color: 'red'}}>*</span></label>
+257: <label>CHIỀU DÀI (px) <span style={{color: 'red'}}>*</span></label>
+273: <label>HÌNH DÁNG (ĐA GIÁC)</label>
+274: {hasStalls && <div style={{color: '#e11d48', fontSize: '12px', marginBottom: '4px'}}>* Khu vực đã có sạp, không thể vẽ lại hình dáng.</div>}
+286: {formData.svgPath ? 'Sửa Hình Dáng' : 'Vẽ Hình Dáng'}
+289: <span style={{ fontSize: '14px', color: '#10b981', fontWeight: 'bold' }}>{'✓ Đã tạo hình dáng'}</span>
+295: <label>NGÀNH HÀNG</label>
+296: {hasStalls && <div style={{color: '#e11d48', fontSize: '12px', marginBottom: '4px'}}>* Khu vực đã có sạp, không thể đổi ngành hàng.</div>}
+305: <option value="">{'-- Chọn ngành hàng --'}</option>
+316: <button className={styles.btnPrimary} onClick={handleSave}>LƯU THÔNG TIN</button>
+317: <button className={styles.btnSecondary} onClick={onCancel}>HỦY BỎ</button>
+--- StallForm.jsx ---
+94: const PX_PER_M2 = 900; // 1 m2 = 900 pixels vuông (30px * 30px)
+141: setError(`Diện tích sạp (${requestedSize} m²) làm tổng diện tích vượt quá Khu vực! (còn trống ${Math.max(0, Math.round((parseFloat(areaSize) - currentTotal) * 100) / 100)} m²)`);
+215: errorMessage = 'Lỗi kết nối tới Server: ${err.message}. Vui lòng kiểm tra lại Backend đã chạy chưa.';
+223: errorMessage = 'Lỗi Server (500): ${err.response.data.title}';
+237: <span>✎</span> {initialData ? 'Chỉnh sửa Sạp' : 'Thêm Sạp mới'}
+243: <span style={{ fontSize: '13px', color: '#64748b' }}>Hình dáng sạp thực tế</span>
+245: ✎ Vẽ lại hình dáng
+255: <label htmlFor="code" style={inline ? { fontSize: '13px' } : {}}>{'Mã sạp (Stall Code)'}</label>
+260: value={'Sẽ được tự động tạo'}
+267: <label htmlFor="code" style={inline ? { fontSize: '13px' } : {}}>{'Mã sạp (Stall Code)'}</label>
+275: title={'Không được phép sửa Mã sạp'}
+283: {'Tên sạp / Ngành hàng (Category)'}<span style={{color: '#ff4d4f'}}>*</span>
+284: {areaCategory && <span style={{fontSize: '11px', color: '#10b981', marginLeft: '8px'}}>(Kế thừa từ khu vực)</span>}
+296: <option value="">{'-- Chọn ngành hàng --'}</option>
+306: <label htmlFor="size" style={inline ? { fontSize: '13px' } : {}}>{'Diện tích vật lý (m²)'}<span style={{color: '#ff4d4f'}}>*</span></label>
+307: {<div style={{color: '#64748b', fontSize: '11px', marginBottom: '4px'}}>* Diện tích được tự động tính toán khi vẽ sạp.</div>}
+321: title="Vui lòng dùng công cụ Vẽ lại hình dáng để thay đổi diện tích"
+326: <label htmlFor="description" style={inline ? { fontSize: '13px' } : {}}>{'Người đang thuê (Tenant Name)'}</label>
+336: placeholder={'Chưa có người thuê...'}
+337: title={'Tên người thuê được tự động cập nhật từ hệ thống Hợp đồng'}
+342: <label htmlFor="status" style={inline ? { fontSize: '13px' } : {}}>Tình trạng (Status) {initialData?.tenantName && <span style={{color: '#ff4d4f', fontSize: 10}}>{'(Đã khóa bởi Hợp đồng)'}</span>}</label>
+352: <option value="Available">Còn trống (Available)</option>
+353: <option value="Maintenance">Đang bảo trì (Maintenance)</option>
+354: {initialData?.tenantName && <option value="Rented">Đã thuê (Rented)</option>}
+360: <label htmlFor="electricityMeterId" style={inline ? { fontSize: '13px' } : {}}>Đồng hồ Điện {!initialData && <span style={{color: '#ff4d4f'}}>*</span>}</label>
+370: <option value="">-- Chọn ĐH Điện --</option>
+373: {initialData.electricityMeterSerial || `ĐH hiện tại (${initialData.electricityMeterId})`}
+382: <label htmlFor="waterMeterId" style={inline ? { fontSize: '13px' } : {}}>Đồng hồ Nước {!initialData && <span style={{color: '#ff4d4f'}}>*</span>}</label>
+392: <option value="">-- Chọn ĐH Nước --</option>
+395: {initialData.waterMeterSerial || `ĐH hiện tại (${initialData.waterMeterId})`}
+408: <label htmlFor="width" style={inline ? { fontSize: '13px' } : {}}>{'Chiều dài hiển thị (px)'}</label>
+409: {<div style={{color: '#64748b', fontSize: '11px', marginBottom: '4px'}}>* Tự động tính toán khi vẽ sạp.</div>}
+419: title="Vui lòng dùng công cụ Vẽ lại hình dáng để thay đổi kích thước"
+425: <label htmlFor="height" style={inline ? { fontSize: '13px' } : {}}>{'Chiều rộng hiển thị (px)'}</label>
+426: {<div style={{color: '#64748b', fontSize: '11px', marginBottom: '4px'}}>* Tự động tính toán khi vẽ sạp.</div>}
+436: title="Vui lòng dùng công cụ Vẽ lại hình dáng để thay đổi kích thước"
+446: {loading ? 'Đang lưu...' : 'Lưu Sạp'}
+449: {'Hủy bỏ'}</button>
+--- PolygonDrawer.jsx ---
+85: setErrorMsg('Bạn cần vẽ ít nhất 3 điểm!');
+99: setErrorMsg(`Diện tích vượt quá giới hạn cho phép! (Vẽ: ${Math.round(areaM2)} m², Tối đa: ${Math.round(maxAllowedAreaSize)} m²)`);
+114: setErrorMsg(stallMode ? 'Sạp phải nằm bên trong ranh giới khu vực!' : 'Khu vực phải nằm bên trong ranh giới chợ!');
+128: setErrorMsg(stallMode ? 'Sạp vẽ bị lọt ra ngoài ranh giới khu vực!' : 'Khu vực vẽ bị lọt ra ngoài ranh giới chợ!');
+172: setErrorMsg(stallMode ? 'Sạp vẽ bị đè lấp lên sạp khác đã tồn tại!' : 'Khu vực vẽ bị đè lấp lên khu vực khác đã tồn tại!');
+236: <h2 style={{ margin: 0, color: '#0f172a' }}>{stallMode ? 'Vẽ Hình Dáng Sạp Thực Tế' : 'Vẽ Hình Dáng Khu Vực Thực Tế'}</h2>
+239: ? 'Di chuyển chuột lên bản đồ và vẽ. Khu vực không được đè lên khu vực khác và không vượt quá diện tích chợ.'
+240: : 'Di chuyển chuột lên bản đồ và vẽ. Khu vực không được đè lên khu vực khác và không vượt quá diện tích chợ.'}
+245: <button onClick={handleClear} style={{ padding: '8px 16px', border: '1px solid #cbd5e1', background: 'transparent', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>{'Xóa vẽ lại'}</button>
+246: <button onClick={handleFinish} disabled={points.length < 3 || !isClosed} style={{ padding: '8px 16px', border: 'none', background: (points.length >= 3 && isClosed) ? '#10b981' : '#94a3b8', color: 'white', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>{'Lưu Hình Dáng'}</button>
+247: <button onClick={onCancel} style={{ padding: '8px 16px', border: 'none', background: '#ef4444', color: 'white', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>{'Đóng'}</button>
+268: {/* Ranh giới chợ */}
+317: {/* Hình đang vẽ */}

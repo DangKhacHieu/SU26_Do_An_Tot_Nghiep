@@ -134,12 +134,19 @@ namespace STMM.Business.Services
                 }
             }
 
-            // Check code uniqueness globally (DB enforces unique constraint on Code column)
+            // Check code uniqueness per market (including system-wide/null market)
             var codeUpper = request.Code.Trim().ToUpper();
-            var codeExists = await _context.BusinessCategories.AnyAsync(c => c.Code.ToUpper() == codeUpper, ct);
+            var codeExists = await _context.BusinessCategories.AnyAsync(c => c.Code.ToUpper() == codeUpper && c.MarketId == targetMarketId, ct);
             if (codeExists)
             {
-                throw new InvalidOperationException($"Mã code '{codeUpper}' đã tồn tại trong hệ thống. Vui lòng chọn mã code khác.");
+                if (targetMarketId.HasValue)
+                {
+                    throw new InvalidOperationException($"Mã code '{codeUpper}' đã tồn tại trong chợ này. Vui lòng chọn mã code khác.");
+                }
+                else
+                {
+                    throw new InvalidOperationException($"Mã code '{codeUpper}' đã tồn tại trong danh mục mặc định của hệ thống. Vui lòng chọn mã code khác.");
+                }
             }
 
             // Check name uniqueness per market

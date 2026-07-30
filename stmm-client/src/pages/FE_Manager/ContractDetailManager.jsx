@@ -6,6 +6,9 @@ import "./ContractDetailManager.css";
 const API_BASE = "http://localhost:5056/api/manager/contracts";
 const API_UPLOAD = "http://localhost:5056/api/files/upload";
 
+const getAuthHeaders = () => ({
+  "Authorization": `Bearer ${localStorage.getItem('accessToken') || localStorage.getItem('token')}`
+});
 
 export default function ContractDetailManager({ contractId, navigate, addToast }) {
   const { t } = useTranslation();
@@ -38,7 +41,9 @@ export default function ContractDetailManager({ contractId, navigate, addToast }
   const fetchContractDetails = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/${contractId}`);
+      const res = await fetch(`${API_BASE}/${contractId}`, {
+        headers: getAuthHeaders()
+      });
       if (res.ok) {
         const data = await res.json();
         setContract(data);
@@ -82,7 +87,8 @@ export default function ContractDetailManager({ contractId, navigate, addToast }
     setActionLoading(true);
     try {
       const res = await fetch(`${API_BASE}/${contractId}/terminate`, {
-        method: "PUT"
+        method: "PUT",
+        headers: getAuthHeaders()
       });
 
       if (res.ok) {
@@ -134,7 +140,8 @@ export default function ContractDetailManager({ contractId, navigate, addToast }
       const res = await fetch(`${API_BASE}/${contractId}/renew`, {
         method: "PUT",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          ...getAuthHeaders()
         },
         body: JSON.stringify(payload)
       });
@@ -191,7 +198,8 @@ export default function ContractDetailManager({ contractId, navigate, addToast }
       const saveRes = await fetch(`${API_BASE}/${contractId}/files`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          ...getAuthHeaders()
         },
         body: JSON.stringify({ fileUrls: [imageUrl] })
       });
