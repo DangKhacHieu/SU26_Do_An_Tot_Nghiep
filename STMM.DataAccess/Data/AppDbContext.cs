@@ -556,7 +556,7 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => e.StallId, "idx_meters_stall_id");
 
-            entity.HasIndex(e => e.SerialNumber, "meters_serial_number_key").IsUnique();
+            entity.HasIndex(e => new { e.MarketId, e.SerialNumber }, "meters_serial_number_key").IsUnique();
 
             entity.HasIndex(e => e.MarketId, "idx_meters_market_id");
 

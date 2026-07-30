@@ -137,7 +137,7 @@ namespace STMM.Business.Services
             }
 
             // Verify if vendor has a contract for this stall
-            var contracts = await _contractRepository.FindAsync(c => c.VendorId == vendorId && c.StallId == dto.StallId && c.IsDeleted != true && c.Status != "Terminated" && c.Status != "Expired");
+            var contracts = await _contractRepository.FindAsync(c => c.VendorId == vendorId && c.StallId == dto.StallId && c.IsDeleted != true && c.Status != "Terminated" && c.Status != "TerminatedEarly" && c.Status != "Expired");
             if (!contracts.Any())
             {
                 throw new BadRequestException("Bạn không có quyền tạo yêu cầu cho sạp này vì không có hợp đồng hợp lệ.");

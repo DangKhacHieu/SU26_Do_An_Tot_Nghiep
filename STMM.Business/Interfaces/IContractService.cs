@@ -12,7 +12,7 @@ namespace STMM.Business.Interfaces
         Task<ContractDto?> GetContractByIdAsync(int contractId, int? currentUserId = null, CancellationToken ct = default);
         Task<ContractDto> CreateContractAsync(CreateContractRequest request, int? currentUserId = null, CancellationToken ct = default);
         Task<ContractDto> RenewContractAsync(int contractId, RenewContractRequest request, CancellationToken ct = default);
-        Task<ContractDto> TerminateContractAsync(int contractId, CancellationToken ct = default);
+        Task<ContractDto> TerminateContractAsync(int contractId, DateOnly? terminationDate = null, int? currentUserId = null, CancellationToken ct = default);
         Task<IEnumerable<ContractVendorDto>> GetContractVendorsAsync(int? currentUserId = null, CancellationToken ct = default);
         Task<IEnumerable<StallDto>> GetAvailableStallsAsync(int? currentUserId = null, CancellationToken ct = default);
         Task<ContractDto> AttachSignedFilesAsync(int contractId, AttachContractFilesRequest request, CancellationToken ct);

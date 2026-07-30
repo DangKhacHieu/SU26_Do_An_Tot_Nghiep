@@ -61,6 +61,8 @@ export default function ContractListManager({ navigate, addToast }) {
         return <span className="status-badge status-expired">{t('contractlistmanager.expired')}</span>;
       case "Terminated":
         return <span className="status-badge status-terminated">{t('contractlistmanager.terminated')}</span>;
+      case "TerminatedEarly":
+        return <span className="status-badge status-terminated-early">{t('contractlistmanager.terminated_early')}</span>;
       default:
         return <span className="status-badge">{status}</span>;
     }

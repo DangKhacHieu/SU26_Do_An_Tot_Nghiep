@@ -28,18 +28,18 @@ const IconX = () => (
 );
 
 const TYPE_META = {
-  FacilityIssue:   { label: 'Sự cố hạ tầng',      cls: 'type-facility'  },
-  ViolationAppeal: { label: 'Kháng nghị vi phạm',  cls: 'type-violation' },
-  InvoiceDispute:  { label: 'Khiếu nại hóa đơn',   cls: 'type-invoice'   },
+  FacilityIssue:   { labelKey: 'infrastructure_failure', labelFallback: 'Sự cố hạ tầng',      cls: 'type-facility'  },
+  ViolationAppeal: { labelKey: 'protest_violations',      labelFallback: 'Kháng nghị vi phạm',  cls: 'type-violation' },
+  InvoiceDispute:  { labelKey: 'invoice_complaints',     labelFallback: 'Khiếu nại hóa đơn',   cls: 'type-invoice'   },
 };
 
 const STATUS_META = {
-  PendingManagerReview: { label: 'Báo giá chờ quyết định', cls: 'status-review' },
-  Pending:   { label: 'Chờ xử lý',       cls: 'status-pending'   },
-  Quoted:    { label: 'Báo giá',          cls: 'status-quoted'    },
-  Approved:  { label: 'Đã duyệt',        cls: 'status-approved'  },
-  Completed: { label: 'Hoàn thành',      cls: 'status-completed' },
-  Rejected:  { label: 'Từ chối',         cls: 'status-rejected'  },
+  PendingManagerReview: { labelKey: 'quote_awaiting_decision', labelFallback: 'Báo giá chờ quyết định', cls: 'status-review' },
+  Pending:   { labelKey: 'waiting_for_processing', labelFallback: 'Chờ xử lý',       cls: 'status-pending'   },
+  Quoted:    { labelKey: 'quote',                  labelFallback: 'Báo giá',          cls: 'status-quoted'    },
+  Approved:  { labelKey: 'approved',               labelFallback: 'Đã duyệt',        cls: 'status-approved'  },
+  Completed: { labelKey: 'complete',               labelFallback: 'Hoàn thành',      cls: 'status-completed' },
+  Rejected:  { labelKey: 'refuse',                 labelFallback: 'Từ chối',         cls: 'status-rejected'  },
 };
 
 /* ── Icons ── */
@@ -238,8 +238,8 @@ export default function RequestDetailManager({ requestId, baseUrl, navigate, add
     );
   }
 
-  const tm = TYPE_META[request.requestType]  || { label: request.requestType, cls: 'type-other' };
-  const sm = STATUS_META[request.status]     || { label: request.status,      cls: 'status-pending' };
+  const tm = TYPE_META[request.requestType]  || { labelKey: '', labelFallback: request.requestType, cls: 'type-other' };
+  const sm = STATUS_META[request.status]     || { labelKey: '', labelFallback: request.status,      cls: 'status-pending' };
   const hasQuotation = request.quotationText || request.quotationAmount !== null && request.quotationAmount !== undefined;
   const hasReference = request.violationId   || request.invoiceId;
   const hasRating    = request.status === 'Completed' && (request.repairRating !== null || request.repairComment);
@@ -262,8 +262,8 @@ export default function RequestDetailManager({ requestId, baseUrl, navigate, add
             <IconArrowLeft /> {t('requestdetailmanager.list_of_requests')}</button>
 
           <div className="rd-header-badges">
-            <span className={`rd-type-badge ${tm.cls}`}>{tm.label}</span>
-            <span className={`rd-status-badge ${sm.cls}`}>{sm.label}</span>
+            <span className={`rd-type-badge ${tm.cls}`}>{tm.labelKey ? t('requestdetailmanager.' + tm.labelKey) : tm.labelFallback}</span>
+            <span className={`rd-status-badge ${sm.cls}`}>{sm.labelKey ? t('requestdetailmanager.' + sm.labelKey) : sm.labelFallback}</span>
           </div>
         </div>
 
