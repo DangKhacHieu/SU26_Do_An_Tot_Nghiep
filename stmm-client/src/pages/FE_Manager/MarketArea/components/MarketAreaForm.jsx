@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect } from 'react';
 import styles from './MarketAreaForm.module.css';
 import PolygonDrawer from './PolygonDrawer';
+import { getAllStallsByAreaId } from '../api/stallApi';
 
 const MarketAreaForm = ({ 
   initialData, 
@@ -29,6 +30,19 @@ const MarketAreaForm = ({
   });
   const [error, setError] = useState(null);
   const [isDrawing, setIsDrawing] = useState(false);
+  const [hasStalls, setHasStalls] = useState(false);
+
+  useEffect(() => {
+    if (initialData?.areaId) {
+      getAllStallsByAreaId(initialData.areaId)
+        .then(stalls => {
+          setHasStalls(stalls && stalls.length > 0);
+        })
+        .catch(err => console.error('Error fetching stalls for area:', err));
+    } else {
+      setHasStalls(false);
+    }
+  }, [initialData]);
 
   useEffect(() => {
     if (initialData) {
@@ -123,7 +137,7 @@ const MarketAreaForm = ({
 
   const handleSave = () => {
     if (!formData.name.trim()) {
-        setError('Tên khu vực không được để trống.');
+        setError(t('marketFloorPlan.areaForm.empty_name'));
         return;
     }
     
@@ -133,17 +147,17 @@ const MarketAreaForm = ({
         a.areaId !== initialData?.areaId
     );
     if (isDuplicate) {
-        setError('Tên khu vực đã tồn tại! Vui lòng chọn tên khác.');
+        setError(t('marketFloorPlan.areaForm.duplicate_name'));
         return;
     }
 
     if (formData.width < 50 || formData.height < 50) {
-        setError('Kích thước chiều rộng và chiều dài phải lớn hơn 50px.');
+        setError(t('marketFloorPlan.areaForm.min_size'));
         return;
     }
 
     if (formData.size && parseFloat(formData.size) > maxAllowedAreaSize) {
-        setError(`Diện tích khu vực (${formData.size} m²) vượt quá diện tích còn trống của chợ (còn lại khoảng ${Math.round(maxAllowedAreaSize * 100) / 100} m²).`);
+        setError(t('marketFloorPlan.areaForm.exceeds_size', { size: formData.size, max: Math.round(maxAllowedAreaSize * 100) / 100 }));
         return;
     }
 
@@ -169,7 +183,7 @@ const MarketAreaForm = ({
           minY: result.minY,
           width: result.width,
           height: result.height,
-          size: prev.size ? prev.size : Math.round(result.areaM2 * 100) / 100
+          size: Math.round(result.areaM2 * 100) / 100
       }));
       setIsDrawing(false);
   };
@@ -179,36 +193,37 @@ const MarketAreaForm = ({
       <div className={styles.panel}>
         <div className={styles.section}>
           <h2 className={styles.title}>
-            <span>{initialData ? '✎' : '+'}</span> {initialData ? 'SỬA KHU VỰC' : 'THÊM KHU VỰC'}
+            <span>{initialData ? '✎' : '+'}</span> {initialData ? t('marketFloorPlan.areaForm.edit_title') : t('marketFloorPlan.areaForm.add_title')}
           </h2>
           <button onClick={onCancel} style={{position: 'absolute', top: 24, right: 24, background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 20}}>&times;</button>
           
           {error && <div style={{background: '#ffe4e6', color: '#e11d48', padding: '10px', borderRadius: '6px', marginBottom: '16px', fontSize: '14px', fontWeight: 'bold'}}>{error}</div>}
           
           <div className={styles.formGroup}>
-            <label>TÊN KHU VỰC <span style={{color: 'red'}}>*</span></label>
+            <label>{t('marketFloorPlan.areaForm.name')} <span style={{color: 'red'}}>*</span></label>
             <input 
               className={styles.input} 
               type="text" 
               name="name"
               value={formData.name}
               onChange={handleChange}
-              placeholder={'VD: Khu A, Khu Ẩm Thực...'} 
+              placeholder={t('marketFloorPlan.areaForm.name_placeholder')} 
             />
           </div>
 
           <div className={styles.formGroup}>
-            <label>MÔ TẢ</label>
+            <label>{t('marketFloorPlan.areaForm.desc')}</label>
             <textarea 
               className={styles.textarea} 
               name="description"
               value={formData.description}
               onChange={handleChange}
-              placeholder={'Nhập mô tả ngắn gọn...'}></textarea>
+              placeholder={t('marketFloorPlan.areaForm.desc_placeholder')}></textarea>
           </div>
 
           <div className={styles.formGroup}>
-            <label>DIỆN TÍCH VẬT LÝ (m²)</label>
+            <label>{t('marketFloorPlan.areaForm.physical_size')}</label>
+            {hasStalls && <div style={{color: '#e11d48', fontSize: '12px', marginBottom: '4px'}}>{t('marketFloorPlan.areaForm.no_resize_stall')}</div>}
             <input 
               className={styles.input} 
               type="number" 
@@ -218,12 +233,14 @@ const MarketAreaForm = ({
               min="1"
               step="any"
               placeholder="VD: 50" 
+              disabled={hasStalls}
+              style={hasStalls ? {background: '#f3f4f6', cursor: 'not-allowed'} : {}}
             />
           </div>
 
           <div style={{display: 'flex', gap: '12px'}}>
               <div className={styles.formGroup} style={{flex: 1}}>
-                <label>CHIỀU RỘNG (px) <span style={{color: 'red'}}>*</span></label>
+                <label>{t('marketFloorPlan.areaForm.width')} <span style={{color: 'red'}}>*</span></label>
                 <input 
                   className={styles.input} 
                   type="number" 
@@ -232,11 +249,12 @@ const MarketAreaForm = ({
                   onChange={handleChange}
                   min="50"
                   placeholder="VD: 200" 
-                  disabled={!!formData.svgPath}
+                  disabled={!!formData.svgPath || hasStalls}
+                  style={hasStalls ? {background: '#f3f4f6', cursor: 'not-allowed'} : {}}
                 />
               </div>
               <div className={styles.formGroup} style={{flex: 1}}>
-                <label>CHIỀU DÀI (px) <span style={{color: 'red'}}>*</span></label>
+                <label>{t('marketFloorPlan.areaForm.height')} <span style={{color: 'red'}}>*</span></label>
                 <input 
                   className={styles.input} 
                   type="number" 
@@ -245,40 +263,46 @@ const MarketAreaForm = ({
                   onChange={handleChange}
                   min="50"
                   placeholder="VD: 150" 
-                  disabled={!!formData.svgPath}
+                  disabled={!!formData.svgPath || hasStalls}
+                  style={hasStalls ? {background: '#f3f4f6', cursor: 'not-allowed'} : {}}
                 />
               </div>
           </div>
           
           <div className={styles.formGroup}>
-            <label>HÌNH DÁNG (ĐA GIÁC)</label>
+            <label>{t('marketFloorPlan.areaForm.shape')}</label>
+            {hasStalls && <div style={{color: '#e11d48', fontSize: '12px', marginBottom: '4px'}}>{t('marketFloorPlan.areaForm.no_reshape_stall')}</div>}
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                 <button 
                     onClick={() => setIsDrawing(true)}
+                    disabled={hasStalls}
                     style={{ 
-                        background: '#3b82f6', color: 'white', border: 'none', 
-                        padding: '10px 16px', borderRadius: '8px', cursor: 'pointer', 
+                        background: hasStalls ? '#9ca3af' : '#3b82f6', color: 'white', border: 'none', 
+                        padding: '10px 16px', borderRadius: '8px', cursor: hasStalls ? 'not-allowed' : 'pointer', 
                         fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' 
                     }}
                 >
                     <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
-                    {formData.svgPath ? 'Sửa Hình Dáng' : 'Vẽ Hình Dáng'}
+                    {formData.svgPath ? t('marketFloorPlan.areaForm.edit_shape') : t('marketFloorPlan.areaForm.draw_shape')}
                 </button>
                 {formData.svgPath && (
-                    <span style={{ fontSize: '14px', color: '#10b981', fontWeight: 'bold' }}>{'✓ Đã tạo hình dáng'}</span>
+                    <span style={{ fontSize: '14px', color: '#10b981', fontWeight: 'bold' }}>{t('marketFloorPlan.areaForm.shape_created')}</span>
                 )}
             </div>
           </div>
 
           <div className={styles.formGroup}>
-            <label>NGÀNH HÀNG</label>
+            <label>{t('marketFloorPlan.areaForm.category')}</label>
+            {hasStalls && <div style={{color: '#e11d48', fontSize: '12px', marginBottom: '4px'}}>{t('marketFloorPlan.areaForm.no_category_stall')}</div>}
             <select 
               className={styles.input} 
               name="categoryName"
               value={formData.categoryName}
               onChange={handleChange}
+              disabled={hasStalls}
+              style={hasStalls ? {background: '#f3f4f6', cursor: 'not-allowed'} : {}}
             >
-              <option value="">{'-- Chọn ngành hàng --'}</option>
+              <option value="">{t('marketFloorPlan.areaForm.select_category')}</option>
               {(marketCategories || []).map(c => (
                 <option key={c.categoryId || c.id} value={c.name}>
                   {c.name}
@@ -289,8 +313,8 @@ const MarketAreaForm = ({
         </div>
 
         <div className={styles.actions}>
-          <button className={styles.btnPrimary} onClick={handleSave}>LƯU THÔNG TIN</button>
-          <button className={styles.btnSecondary} onClick={onCancel}>HỦY BỎ</button>
+          <button className={styles.btnPrimary} onClick={handleSave}>{t('marketFloorPlan.areaForm.save')}</button>
+          <button className={styles.btnSecondary} onClick={onCancel}>{t('marketFloorPlan.areaForm.cancel')}</button>
         </div>
       </div>
       

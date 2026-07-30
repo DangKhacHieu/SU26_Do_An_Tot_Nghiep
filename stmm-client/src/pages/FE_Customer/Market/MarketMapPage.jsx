@@ -583,10 +583,13 @@ export default function MarketMapPage({
                       {/* Render Areas & Stalls directly from DB svgPath or coordinates */}
                       {marketMap.areas &&
                         marketMap.areas.map((area) => {
+                          const width = area.maxX != null && area.minX != null ? area.maxX - area.minX : 180;
+                          const height = area.maxY != null && area.minY != null ? area.maxY - area.minY : 140;
+
                           const pathD =
                             area.svgPath ||
-                            (area.minX != null && area.maxX != null && area.minY != null && area.maxY != null
-                              ? `M 0,0 L ${area.maxX - area.minX},0 L ${area.maxX - area.minX},${area.maxY - area.minY} L 0,${area.maxY - area.minY} Z`
+                            (area.minX != null && area.minY != null
+                              ? `M 0,0 L ${width},0 L ${width},${height} L 0,${height} Z`
                               : null);
 
                           let areaLabelX = 15;
@@ -602,7 +605,7 @@ export default function MarketMapPage({
                           }
 
                           return (
-                            <g key={area.areaId} className="area-group">
+                            <g key={area.areaId} className="area-group" transform={`translate(${area.minX || 0}, ${area.minY || 0})`}>
                               {/* Area Outline directly from DB */}
                               {pathD && (
                                 <path
@@ -630,11 +633,12 @@ export default function MarketMapPage({
                                 area.stalls.map((stall) => {
                                   const isSelected = selectedStall?.stallId === stall.stallId;
                                   const isHighlighted = highlightedStallId === stall.stallId;
-                                  const isOccupied = stall.status === "Occupied";
-                                  const isAvailable = stall.status === "Available";
+                                  const stallStatus = stall.status || "Available";
+                                  const isOccupied = stallStatus === "Occupied" || stallStatus === "Rented";
+                                  const isAvailable = stallStatus === "Available";
 
-                                  let renderX = (area.minX || 0) + (stall.mapX ?? 0);
-                                  let renderY = (area.minY || 0) + (stall.mapY ?? 0);
+                                  let renderX = (stall.mapX ?? 0);
+                                  let renderY = (stall.mapY ?? 0);
 
                                   const stallWidth = stall.width || 60;
                                   const stallHeight = stall.height || 40;
@@ -731,16 +735,16 @@ export default function MarketMapPage({
                       <span className="stall-badge-code">{selectedStall.code}</span>
                       <span
                         className={`status-pill ${
-                          selectedStall.status === "Occupied"
+                          (selectedStall.status === "Occupied" || selectedStall.status === "Rented")
                             ? "pill-occupied"
-                            : selectedStall.status === "Available"
+                            : (selectedStall.status === "Available" || !selectedStall.status)
                             ? "pill-available"
                             : "pill-maintenance"
                         }`}
                       >
-                        {selectedStall.status === "Occupied"
+                        {(selectedStall.status === "Occupied" || selectedStall.status === "Rented")
                           ? t("marketmappage.status_occupied")
-                          : selectedStall.status === "Available"
+                          : (selectedStall.status === "Available" || !selectedStall.status)
                           ? t("marketmappage.status_available")
                           : t("marketmappage.status_maintenance")}
                       </span>

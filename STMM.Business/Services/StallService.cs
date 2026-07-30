@@ -113,6 +113,7 @@ namespace STMM.Business.Services
                 var electricityMeter = stalls[i].Meters.FirstOrDefault(m => m.Type == "Electricity" && m.IsActive == true);
                 if (electricityMeter != null)
                 {
+                    dtos[i].ElectricityMeterId = electricityMeter.MeterId;
                     dtos[i].ElectricityMeterSerial = electricityMeter.SerialNumber;
                     var latestReading = electricityMeter.MeterReadings.OrderByDescending(r => r.RecordedAt).FirstOrDefault();
                     if (latestReading != null) dtos[i].CurrentElectricityIndex = latestReading.NewValue;
@@ -121,6 +122,7 @@ namespace STMM.Business.Services
                 var waterMeter = stalls[i].Meters.FirstOrDefault(m => m.Type == "Water" && m.IsActive == true);
                 if (waterMeter != null)
                 {
+                    dtos[i].WaterMeterId = waterMeter.MeterId;
                     dtos[i].WaterMeterSerial = waterMeter.SerialNumber;
                     var latestReading = waterMeter.MeterReadings.OrderByDescending(r => r.RecordedAt).FirstOrDefault();
                     if (latestReading != null) dtos[i].CurrentWaterIndex = latestReading.NewValue;
@@ -160,6 +162,7 @@ namespace STMM.Business.Services
             var electricityMeter = stall.Meters.FirstOrDefault(m => m.Type == "Electricity" && m.IsActive == true);
             if (electricityMeter != null)
             {
+                dto.ElectricityMeterId = electricityMeter.MeterId;
                 dto.ElectricityMeterSerial = electricityMeter.SerialNumber;
                 var latestReading = electricityMeter.MeterReadings.OrderByDescending(r => r.RecordedAt).FirstOrDefault();
                 if (latestReading != null) dto.CurrentElectricityIndex = latestReading.NewValue;
@@ -168,6 +171,7 @@ namespace STMM.Business.Services
             var waterMeter = stall.Meters.FirstOrDefault(m => m.Type == "Water" && m.IsActive == true);
             if (waterMeter != null)
             {
+                dto.WaterMeterId = waterMeter.MeterId;
                 dto.WaterMeterSerial = waterMeter.SerialNumber;
                 var latestReading = waterMeter.MeterReadings.OrderByDescending(r => r.RecordedAt).FirstOrDefault();
                 if (latestReading != null) dto.CurrentWaterIndex = latestReading.NewValue;
@@ -256,11 +260,19 @@ namespace STMM.Business.Services
 
             var stall = _mapper.Map<Stall>(createStallDto);
             
-            // Resolve Category Name to ID
-            var resolvedCategoryId = await ResolveCategoryAsync(createStallDto.CategoryId, createStallDto.CategoryName, area.MarketId);
-            if (resolvedCategoryId.HasValue)
+            // If the Area has a category, the Stall MUST inherit it.
+            if (area.CategoryId.HasValue)
             {
-                stall.CategoryId = resolvedCategoryId.Value;
+                stall.CategoryId = area.CategoryId.Value;
+            }
+            else
+            {
+                // Resolve Category Name to ID if Area doesn't have a category
+                var resolvedCategoryId = await ResolveCategoryAsync(createStallDto.CategoryId, createStallDto.CategoryName, area.MarketId);
+                if (resolvedCategoryId.HasValue)
+                {
+                    stall.CategoryId = resolvedCategoryId.Value;
+                }
             }
 
             await ValidateStallSizeAsync(stall);
@@ -303,6 +315,7 @@ namespace STMM.Business.Services
                 if (eMeter != null && eMeter.StallId == null)
                 {
                     eMeter.StallId = stall.StallId;
+                    eMeter.InstalledAt = DateOnly.FromDateTime(DateTime.UtcNow);
                     _meterRepository.Update(eMeter);
                 }
             }
@@ -312,6 +325,7 @@ namespace STMM.Business.Services
                 if (wMeter != null && wMeter.StallId == null)
                 {
                     wMeter.StallId = stall.StallId;
+                    wMeter.InstalledAt = DateOnly.FromDateTime(DateTime.UtcNow);
                     _meterRepository.Update(wMeter);
                 }
             }
@@ -358,7 +372,52 @@ namespace STMM.Business.Services
                 stall.Status = "Rented";
             }
 
+            // Manage Electricity Meter
+            var currentEMeter = await _meterRepository.Query().FirstOrDefaultAsync(m => m.StallId == id && m.Type == "Electricity");
+            if (currentEMeter?.MeterId != updateStallDto.ElectricityMeterId)
+            {
+                if (currentEMeter != null)
+                {
+                    currentEMeter.StallId = null;
+                    currentEMeter.InstalledAt = null;
+                    _meterRepository.Update(currentEMeter);
+                }
+                if (updateStallDto.ElectricityMeterId.HasValue)
+                {
+                    var newEMeter = await _meterRepository.GetByIdAsync(updateStallDto.ElectricityMeterId.Value);
+                    if (newEMeter != null && newEMeter.StallId == null)
+                    {
+                        newEMeter.StallId = id;
+                        newEMeter.InstalledAt = DateOnly.FromDateTime(DateTime.UtcNow);
+                        _meterRepository.Update(newEMeter);
+                    }
+                }
+            }
+
+            // Manage Water Meter
+            var currentWMeter = await _meterRepository.Query().FirstOrDefaultAsync(m => m.StallId == id && m.Type == "Water");
+            if (currentWMeter?.MeterId != updateStallDto.WaterMeterId)
+            {
+                if (currentWMeter != null)
+                {
+                    currentWMeter.StallId = null;
+                    currentWMeter.InstalledAt = null;
+                    _meterRepository.Update(currentWMeter);
+                }
+                if (updateStallDto.WaterMeterId.HasValue)
+                {
+                    var newWMeter = await _meterRepository.GetByIdAsync(updateStallDto.WaterMeterId.Value);
+                    if (newWMeter != null && newWMeter.StallId == null)
+                    {
+                        newWMeter.StallId = id;
+                        newWMeter.InstalledAt = DateOnly.FromDateTime(DateTime.UtcNow);
+                        _meterRepository.Update(newWMeter);
+                    }
+                }
+            }
+
             _stallRepository.Update(stall);
+            await _meterRepository.SaveChangesAsync();
             await _stallRepository.SaveChangesAsync();
 
             return await GetStallByIdAsync(id) ?? _mapper.Map<StallDto>(stall);

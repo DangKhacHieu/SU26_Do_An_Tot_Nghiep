@@ -267,7 +267,7 @@ export default function VendorFeedbackList({ stallId, rentedStalls }) {
                 <div className="reply-modal-overlay" onClick={closeReplyModal}>
                     <div className="reply-modal" onClick={(e) => e.stopPropagation()}>
                         <div className="reply-modal-header">
-                            <h3>💬 Phản hồi đánh giá</h3>
+                            <h3>💬Review Feedback</h3>
                             <button className="modal-close-btn" onClick={closeReplyModal}>✕</button>
                         </div>
 
@@ -290,23 +290,23 @@ export default function VendorFeedbackList({ stallId, rentedStalls }) {
 
                         {/* Form nhập câu trả lời */}
                         <div className="reply-form">
-                            <label htmlFor="reply-textarea">Nội dung phản hồi của bạn:</label>
+                            <label htmlFor="reply-textarea">Your feedback content:</label>
                             <textarea
                                 id="reply-textarea"
                                 className="reply-textarea"
-                                placeholder="Nhập câu trả lời cho khách hàng..."
+                                placeholder="Enter a response for the customer..."
                                 value={replyText}
                                 onChange={(e) => setReplyText(e.target.value)}
                                 rows={4}
                                 maxLength={1000}
                                 disabled={replyLoading}
                             />
-                            <div className="reply-char-count">{replyText.length}/1000 ký tự</div>
+                            <div className="reply-char-count">{replyText.length}/1000 characters</div>
                         </div>
 
                         <div className="reply-modal-footer">
                             <button className="btn-cancel-reply" onClick={closeReplyModal} disabled={replyLoading}>
-                                Hủy
+                                Cancel
                             </button>
                             <button
                                 className="btn-submit-reply"
@@ -314,9 +314,9 @@ export default function VendorFeedbackList({ stallId, rentedStalls }) {
                                 disabled={replyLoading || !replyText.trim()}
                             >
                                 {replyLoading ? (
-                                    <><span className="spinner-sm"></span> Đang gửi...</>
+                                    <><span className="spinner-sm"></span> Sending...</>
                                 ) : (
-                                    '📤 Gửi phản hồi'
+                                    '📤 Send feedback'
                                 )}
                             </button>
                         </div>

@@ -137,7 +137,7 @@ const MarketWizard = ({ onCancel, onComplete }) => {
 
                 const res = await getGridPreview(requestPayload);
                 if (res && res.isValid === false) {
-                    setGridError(res.errorMessage || "Không thể tạo lưới.");
+                    setGridError(res.errorMessage || t("marketFloorPlan.wizard.err_grid"));
                     setGridStats(res);
                     setAreas([]);
                 } else if (res && res.isValid) {
@@ -145,11 +145,14 @@ const MarketWizard = ({ onCancel, onComplete }) => {
                     // Map preview zones back to areas
                     const newAreas = res.zones.map(z => {
                         const bbox = getBoundingBox(z.polygon);
+                        // Normalize polygon points to origin (0,0) for svgPath storage
+                        // Viewers use translate(minX, minY) + svgPath, so svgPath must be relative
+                        const normalizedPoints = z.polygon.map(p => [p[0] - bbox.minX, p[1] - bbox.minY]);
                         return {
                             name: z.name,
                             categoryName: gridConfig.categoryName,
                             points: z.polygon,
-                            svgPath: pointsToSvgPath(z.polygon, true),
+                            svgPath: pointsToSvgPath(normalizedPoints, true),
                             minX: bbox.minX,
                             minY: bbox.minY,
                             maxX: bbox.maxX,
@@ -162,7 +165,7 @@ const MarketWizard = ({ onCancel, onComplete }) => {
                 }
             } catch (err) {
                 console.error("Preview error", err);
-                setGridError("Lỗi kết nối khi lấy dữ liệu xem trước.");
+                setGridError(t("marketFloorPlan.wizard.err_preview_conn"));
             }
         }, 300);
 
@@ -276,9 +279,11 @@ const MarketWizard = ({ onCancel, onComplete }) => {
                 const updated = [...prev];
                 const area = updated[indexToUpdate];
                 const bbox = getBoundingBox(area.points);
+                // Normalize svgPath to origin (0,0) - viewers use translate(minX, minY)
+                const normalizedPoints = area.points.map(p => [p[0] - bbox.minX, p[1] - bbox.minY]);
                 updated[indexToUpdate] = {
                     ...area,
-                    svgPath: pointsToSvgPath(area.points, true),
+                    svgPath: pointsToSvgPath(normalizedPoints, true),
                     minX: bbox.minX,
                     minY: bbox.minY,
                     maxX: bbox.maxX,
@@ -339,7 +344,7 @@ const MarketWizard = ({ onCancel, onComplete }) => {
         const area = newAreas[selectedAreaIndex];
         
         let maxNum = 0;
-        let mostCommonPrefix = 'Sạp';
+        let mostCommonPrefix = t("marketFloorPlan.wizard.stall_prefix");
         
         if (area.stalls.length > 0) {
             const firstCode = area.stalls[0].code;
@@ -425,19 +430,19 @@ const MarketWizard = ({ onCancel, onComplete }) => {
     // Final Save
     const handleNextStep1 = () => {
         if (!marketInfo.name || marketInfo.name.length < 5) {
-            alert("Tên chợ phải dài ít nhất 5 ký tự.");
+            alert(t("marketFloorPlan.wizard.err_name_len"));
             return;
         }
         if (!marketInfo.address) {
-            alert("Vui lòng nhập địa chỉ chợ.");
+            alert(t("marketFloorPlan.wizard.err_address"));
             return;
         }
         if (!marketInfo.size || parseFloat(marketInfo.size) <= 0) {
-            alert("Vui lòng nhập tổng diện tích hợp lệ.");
+            alert(t("marketFloorPlan.wizard.err_area"));
             return;
         }
         if (!marketInfo.isClosed) {
-            alert("Vui lòng vẽ ranh giới chợ và nhấn t('marketwizard.closed') trước khi đi tiếp.");
+            alert(t("marketFloorPlan.wizard.err_draw_boundary"));
             return;
         }
         
@@ -446,7 +451,7 @@ const MarketWizard = ({ onCancel, onComplete }) => {
         const declaredSize = parseFloat(marketInfo.size);
         
         if (drawnAreaM2 > declaredSize * 1.5) {
-            alert(`Lỗi: Diện tích hình vẽ thực tế (${Math.round(drawnAreaM2)}m²) lớn hơn quá nhiều so với diện tích bạn khai báo (${declaredSize}m²). Vui lòng vẽ lại nhỏ hơn hoặc tăng diện tích khai báo!`);
+            alert(t("marketFloorPlan.wizard.err_area_mismatch", { drawn: Math.round(drawnAreaM2), declared: declaredSize }));
             return;
         }
 
@@ -455,7 +460,7 @@ const MarketWizard = ({ onCancel, onComplete }) => {
 
     const handleNextStep2 = () => {
         if (areas.length === 0) {
-            alert("Vui lòng tạo ít nhất 1 khu vực.");
+            alert(t("marketFloorPlan.wizard.err_min_area"));
             return;
         }
         
@@ -479,7 +484,7 @@ const MarketWizard = ({ onCancel, onComplete }) => {
                         diffArea += getPolygonArea(ring.slice(0, -1));
                     }));
                     if (diffArea > 500) { // Tolerance 0.5m^2
-                        alert(`Lỗi ranh giới: Khu vực "${a.name}" đang lồi ra khỏi ranh giới chợ! Vui lòng kéo các điểm vào bên trong.`);
+                        alert(t("marketFloorPlan.wizard.err_area_out", { name: a.name }));
                         return;
                     }
                 }
@@ -494,7 +499,7 @@ const MarketWizard = ({ onCancel, onComplete }) => {
                             overlapArea += getPolygonArea(ring.slice(0, -1));
                         }));
                         if (overlapArea > 500) {
-                            alert(`Lỗi chồng lấp: Khu vực "${a.name}t('marketwizard.is_pressing_on_the')${areas[j].name}"! Vui lòng tách chúng ra.`);
+                            alert(t("marketFloorPlan.wizard.err_area_overlap", { name1: a.name, name2: areas[j].name }));
                             return;
                         }
                     }
@@ -505,7 +510,7 @@ const MarketWizard = ({ onCancel, onComplete }) => {
         }
         
         if (totalAreasSize > declaredMarketSize) {
-            alert(`Lỗi sức chứa: Tổng diện tích các khu vực (${Math.round(totalAreasSize)}m²) vượt quá tổng diện tích chợ (${declaredMarketSize}m²). Vui lòng điều chỉnh hoặc xóa bớt khu vực!`);
+            alert(t("marketFloorPlan.wizard.err_capacity_total", { total: Math.round(totalAreasSize), max: declaredMarketSize }));
             return;
         }
         setStep(3);
@@ -551,7 +556,7 @@ const MarketWizard = ({ onCancel, onComplete }) => {
         } catch (error) {
             console.error("Error creating market", error);
             const errorData = error.response?.data;
-            let errorMsg = 'Có lỗi xảy ra khi lưu chợ.';
+            let errorMsg = t('marketFloorPlan.wizard.err_save');
             if (errorData) {
                 if (errorData.message) errorMsg = errorData.message;
                 else if (errorData.title) {
@@ -563,7 +568,7 @@ const MarketWizard = ({ onCancel, onComplete }) => {
                 }
                 else errorMsg = JSON.stringify(errorData);
             }
-            alert(`Lỗi: ${errorMsg}\n\n[Chi tiết kỹ thuật: ${error.message} | HTTP ${error.response?.status}]`);
+            alert(t("marketFloorPlan.wizard.err_save_detail", { msg: errorMsg, detail: error.message, status: error.response?.status }));
         } finally {
             setLoading(false);
         }
@@ -574,14 +579,14 @@ const MarketWizard = ({ onCancel, onComplete }) => {
             {/* SEO-correct top navigation */}
             <header className={styles.wizardNav}>
                 <div className={styles.wizardNavBrand}>
-                    {'🏪 Tạo'}<span>{'Chợ Mới'}</span>
+                    {'🏪 ' + t('marketFloorPlan.wizard.create')}<span>{t('marketFloorPlan.wizard.new_market')}</span>
                 </div>
 
                 {/* Step indicator */}
-                <nav aria-label={'Các bước tạo chợ'} className={styles.stepsIndicator}>
+                <nav aria-label={t('marketFloorPlan.wizard.steps')} className={styles.stepsIndicator}>
                     {[
-                        { num: 1, label: 'Thông tin & Bản đồ' },
-                        { num: 2, label: 'Phân khu vực' }
+                        { num: 1, label: t('marketFloorPlan.wizard.step_info') },
+                        { num: 2, label: t('marketFloorPlan.wizard.step_area') }
                         // { num: 3, label: 'Sinh sạp tự động' } // HIDDEN
                     ].map((s, i) => (
                         <React.Fragment key={s.num}>
@@ -596,8 +601,8 @@ const MarketWizard = ({ onCancel, onComplete }) => {
                     ))}
                 </nav>
 
-                <button className={styles.secondaryBtn} onClick={onCancel} aria-label={'Hủy tạo chợ'}>
-                    {'← Hủy'}</button>
+                <button className={styles.secondaryBtn} onClick={onCancel} aria-label={t('marketFloorPlan.wizard.cancel_title')}>
+                    {'← ' + t('marketFloorPlan.wizard.cancel')}</button>
             </header>
 
             {/* Body */}
@@ -609,21 +614,21 @@ const MarketWizard = ({ onCancel, onComplete }) => {
                         {/* STEP 1 */}
                         {step === 1 && (
                             <>
-                                <h2 className={styles.sidebarTitle}>{'📋 Thông tin chung'}</h2>
+                                <h2 className={styles.sidebarTitle}>{'📋 ' + t('marketFloorPlan.wizard.general_info')}</h2>
                                 <div className={styles.formGroup}>
-                                    <label htmlFor="market-name">{'Tên chợ'}<span style={{color:'var(--mw-danger)'}}>*</span></label>
+                                    <label htmlFor="market-name">{t('marketFloorPlan.wizard.market_name')}<span style={{color:'var(--mw-danger)'}}>*</span></label>
                                     <input id="market-name" className={styles.formInput} value={marketInfo.name}
                                         onChange={e => setMarketInfo({...marketInfo, name: e.target.value})}
-                                        placeholder={'Vd: Chợ Bến Thành'} autoComplete="off" />
+                                        placeholder={t('marketFloorPlan.wizard.market_name_ph')} autoComplete="off" />
                                 </div>
                                 <div className={styles.formGroup}>
-                                    <label htmlFor="market-address">{'Địa chỉ'}</label>
+                                    <label htmlFor="market-address">{t('marketFloorPlan.wizard.address')}</label>
                                     <input id="market-address" className={styles.formInput} value={marketInfo.address}
                                         onChange={e => setMarketInfo({...marketInfo, address: e.target.value})}
-                                        placeholder={'Vd: Quận 1, TP.HCM'} autoComplete="off" />
+                                        placeholder={t('marketFloorPlan.wizard.address_ph')} autoComplete="off" />
                                 </div>
                                 <div className={styles.formGroup}>
-                                    <label htmlFor="market-size">{'Tổng diện tích (m²)'}</label>
+                                    <label htmlFor="market-size">{t('marketFloorPlan.wizard.total_area')}</label>
                                     <input id="market-size" className={styles.formInput} type="number" min="0"
                                         value={marketInfo.size}
                                         onChange={e => handleMarketSizeChange(e.target.value)}
@@ -632,20 +637,20 @@ const MarketWizard = ({ onCancel, onComplete }) => {
 
                                 <hr style={{border:'none', borderTop:'1.5px solid var(--mw-border)', margin:'4px 0'}} />
 
-                                <h2 className={styles.sidebarTitle}>{'Vẽ ranh giới chợ'}</h2>
+                                <h2 className={styles.sidebarTitle}>{t('marketFloorPlan.wizard.draw_boundary')}</h2>
                                 <div className={styles.infoBox}>
-                                    {'Click liên tiếp lên vùng bản đồ bên phải để đặt các điểm góc, sau đó nhấn'}<strong>{'Khép kín'}</strong>.
+                                    {t('marketFloorPlan.wizard.draw_inst_1')}<strong>{t('marketFloorPlan.wizard.close_shape')}</strong>.
                                 </div>
 
                                 {marketInfo.points.length > 0 && !marketInfo.isClosed && (
                                     <button className={styles.primaryBtn} style={{width:'100%'}} onClick={closeMarketShape}>
-                                        ✔ Khép kín ({marketInfo.points.length} điểm)
+                                        ✔ {t('marketFloorPlan.wizard.close_shape')} ({marketInfo.points.length} {t('marketFloorPlan.wizard.points')})
                                     </button>
                                 )}
                                 {marketInfo.isClosed && (
                                     <>
-                                        <div className={`${styles.infoBox} ${styles.success}`}>{'✅ Đã hoàn thành hình dạng chợ!'}</div>
-                                        <button className={styles.secondaryBtn} onClick={resetMarketShape}>{'↺ Vẽ lại'}</button>
+                                        <div className={`${styles.infoBox} ${styles.success}`}>{'✅ ' + t('marketFloorPlan.wizard.shape_done')}</div>
+                                        <button className={styles.secondaryBtn} onClick={resetMarketShape}>{'↺ ' + t('marketFloorPlan.wizard.redraw')}</button>
                                     </>
                                 )}
                             </>
@@ -654,19 +659,19 @@ const MarketWizard = ({ onCancel, onComplete }) => {
                         {/* STEP 2 */}
                         {step === 2 && (
                             <>
-                                <h2 className={styles.sidebarTitle}>{'🗺️ Phân lô khu vực (Lưới)'}</h2>
+                                <h2 className={styles.sidebarTitle}>{'🗺️ ' + t('marketFloorPlan.wizard.grid_area')}</h2>
 
-                                <div className={styles.infoBox}>{'Hệ thống sẽ tự động rải đều các khu vực lên mặt bằng chợ.'}</div>
+                                <div className={styles.infoBox}>{t('marketFloorPlan.wizard.grid_desc')}</div>
 
                                 <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
                                     <div className={styles.formGroup} style={{ flex: 1, marginBottom: 0 }}>
-                                        <label>SỐ DÒNG</label>
+                                        <label>{t('marketFloorPlan.wizard.rows')}</label>
                                         <input className={styles.formInput} type="number" min="1" max="10"
                                             value={gridConfig.rows}
                                             onChange={e => setGridConfig({...gridConfig, rows: parseInt(e.target.value) || 1})} />
                                     </div>
                                     <div className={styles.formGroup} style={{ flex: 1, marginBottom: 0 }}>
-                                        <label>SỐ CỘT</label>
+                                        <label>{t('marketFloorPlan.wizard.cols')}</label>
                                         <input className={styles.formInput} type="number" min="1" max="10"
                                             value={gridConfig.cols}
                                             onChange={e => setGridConfig({...gridConfig, cols: parseInt(e.target.value) || 1})} />
@@ -675,40 +680,40 @@ const MarketWizard = ({ onCancel, onComplete }) => {
 
                                 <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
                                     <div className={styles.formGroup} style={{ flex: 1, marginBottom: 0 }}>
-                                        <label>BẮT ĐẦU TỪ</label>
+                                        <label>{t('marketFloorPlan.wizard.start_from')}</label>
                                         <select className={styles.formInput} 
                                             value={gridConfig.startPoint}
                                             onChange={e => setGridConfig({...gridConfig, startPoint: e.target.value})}>
-                                            <option value="TopLeft">Góc Trái - Trên</option>
-                                            <option value="TopRight">Góc Phải - Trên</option>
-                                            <option value="BottomLeft">Góc Trái - Dưới</option>
-                                            <option value="BottomRight">Góc Phải - Dưới</option>
+                                            <option value="TopLeft">{t('marketFloorPlan.wizard.top_left')}</option>
+                                            <option value="TopRight">{t('marketFloorPlan.wizard.top_right')}</option>
+                                            <option value="BottomLeft">{t('marketFloorPlan.wizard.bottom_left')}</option>
+                                            <option value="BottomRight">{t('marketFloorPlan.wizard.bottom_right')}</option>
                                         </select>
                                     </div>
                                     <div className={styles.formGroup} style={{ flex: 1, marginBottom: 0 }}>
-                                        <label>HƯỚNG ĐÁNH SỐ</label>
+                                        <label>{t('marketFloorPlan.wizard.numbering_dir')}</label>
                                         <select className={styles.formInput} 
                                             value={gridConfig.orderStrategy}
                                             onChange={e => setGridConfig({...gridConfig, orderStrategy: e.target.value})}>
-                                            <option value="RowMajor">Theo Dòng (Ngang)</option>
-                                            <option value="ColMajor">Theo Cột (Dọc)</option>
+                                            <option value="RowMajor">{t('marketFloorPlan.wizard.by_row')}</option>
+                                            <option value="ColMajor">{t('marketFloorPlan.wizard.by_col')}</option>
                                         </select>
                                     </div>
                                 </div>
 
                                 <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
                                     <div className={styles.formGroup} style={{ flex: 1, marginBottom: 0 }}>
-                                        <label>CÁCH ĐẶT TÊN</label>
+                                        <label>{t('marketFloorPlan.wizard.naming_style')}</label>
                                         <select className={styles.formInput} 
                                             value={gridConfig.namingStrategy}
                                             onChange={e => setGridConfig({...gridConfig, namingStrategy: e.target.value})}>
-                                            <option value="Numeric">Số (1, 2, 3)</option>
-                                            <option value="Alphabetic">Chữ cái (A, B, C)</option>
-                                            <option value="AlphaNumeric">Chữ + Số (A1, A2)</option>
+                                            <option value="Numeric">{t('marketFloorPlan.wizard.num_only')}</option>
+                                            <option value="Alphabetic">{t('marketFloorPlan.wizard.letter_only')}</option>
+                                            <option value="AlphaNumeric">{t('marketFloorPlan.wizard.letter_num')}</option>
                                         </select>
                                     </div>
                                     <div className={styles.formGroup} style={{ flex: 1, marginBottom: 0 }}>
-                                        <label>ĐỘ RỘNG LỐI ĐI (px)</label>
+                                        <label>{t('marketFloorPlan.wizard.aisle_width')}</label>
                                         <input className={styles.formInput} type="number" min="0"
                                             value={gridConfig.gap}
                                             onChange={e => setGridConfig({...gridConfig, gap: parseInt(e.target.value) || 0})} />
@@ -717,17 +722,17 @@ const MarketWizard = ({ onCancel, onComplete }) => {
 
                                 <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
                                     <div className={styles.formGroup} style={{ flex: 1, marginBottom: 0 }}>
-                                        <label>TIỀN TỐ</label>
+                                        <label>{t('marketFloorPlan.wizard.prefix')}</label>
                                         <input className={styles.formInput} type="text"
                                             value={gridConfig.prefix}
                                             onChange={e => setGridConfig({...gridConfig, prefix: e.target.value})} />
                                     </div>
                                     <div className={styles.formGroup} style={{ flex: 1, marginBottom: 0 }}>
-                                        <label>NGÀNH HÀNG</label>
+                                        <label>{t('marketFloorPlan.wizard.category')}</label>
                                         <select className={styles.formInput} 
                                             value={gridConfig.categoryName}
                                             onChange={e => setGridConfig({...gridConfig, categoryName: e.target.value})}>
-                                            <option value="">{'Chọn ngành hàng...'}</option>
+                                            <option value="">{t('marketFloorPlan.wizard.select_cat')}</option>
                                             {categories.map(cat => (
                                                 <option key={cat.categoryId} value={cat.name}>{cat.name}</option>
                                             ))}
@@ -737,7 +742,7 @@ const MarketWizard = ({ onCancel, onComplete }) => {
 
                                 {/* REAL-TIME STATS PANEL */}
                                 <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px', marginBottom: '16px' }}>
-                                    <h4 style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#334155' }}>📊 Thông số xem trước</h4>
+                                    <h4 style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#334155' }}>📊 {t('marketFloorPlan.wizard.preview_stats')}</h4>
                                     
                                     {gridError ? (
                                         <div style={{ color: '#ef4444', fontSize: '14px', fontWeight: 'bold' }}>
@@ -745,17 +750,17 @@ const MarketWizard = ({ onCancel, onComplete }) => {
                                         </div>
                                     ) : gridStats ? (
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '13px', color: '#475569' }}>
-                                            <div>Tổng diện tích: <b>{gridStats.totalAreaM2} m²</b></div>
-                                            <div>Diện tích sử dụng: <b>{gridStats.usableAreaM2} m²</b></div>
-                                            <div>Diện tích lối đi: <b>{gridStats.aisleAreaM2} m²</b></div>
-                                            <div>Trung bình mỗi lô: <b>{gridStats.averageZoneAreaM2} m²</b></div>
+                                            <div>{t('marketFloorPlan.wizard.total_area_colon')} <b>{gridStats.totalAreaM2} m²</b></div>
+                                            <div>{t('marketFloorPlan.wizard.usable_area')} <b>{gridStats.usableAreaM2} m²</b></div>
+                                            <div>{t('marketFloorPlan.wizard.aisle_area')} <b>{gridStats.aisleAreaM2} m²</b></div>
+                                            <div>{t('marketFloorPlan.wizard.avg_lot_area')} <b>{gridStats.averageZoneAreaM2} m²</b></div>
                                             <div style={{ gridColumn: '1 / -1', marginTop: '4px' }}>
-                                                Số khu vực tạo ra: <b>{gridStats.generatedZones}</b> (Tối đa: {gridStats.maxAllowedZones})
+                                                {t('marketFloorPlan.wizard.lots_created')} <b>{gridStats.generatedZones}</b> ({t('marketFloorPlan.wizard.max_prefix')}: {gridStats.maxAllowedZones})
                                             </div>
                                         </div>
                                     ) : (
                                         <div style={{ color: '#94a3b8', fontSize: '13px', fontStyle: 'italic' }}>
-                                            Đang chờ cấu hình...
+                                            {t('marketFloorPlan.wizard.waiting_config')}
                                         </div>
                                     )}
                                 </div>
@@ -767,45 +772,45 @@ const MarketWizard = ({ onCancel, onComplete }) => {
                                         <article key={i} className={styles.areaItem} style={{display:'flex', justifyContent:'space-between', alignItems:'center', background: selectedAreaIndex === i ? 'rgba(139,92,246,.1)' : '#fff', border: selectedAreaIndex === i ? '1px solid #8b5cf6' : '1px solid var(--mw-border)'}}>
                                             <div onClick={() => setSelectedAreaIndex(i)} style={{ cursor: 'pointer', flex: 1 }}>
                                                 <h4>{a.name} {a.categoryName ? <span style={{fontSize: 12, fontWeight: 'normal', color: 'var(--text-secondary)'}}>({a.categoryName})</span> : ''}</h4>
-                                                <p>{a.size ? `${a.size} m² • ` : ''}{a.stalls?.length > 0 ? '${a.stalls.length} sạp bên trong' : 'Chưa có sạp'}</p>
+                                                <p>{a.size ? `${a.size} m² • ` : ''}{a.stalls?.length > 0 ? `${a.stalls.length} ${t('marketFloorPlan.wizard.stalls_inside')}` : t('marketFloorPlan.wizard.no_stalls')}</p>
                                             </div>
                                             <div>
                                                 <button onClick={() => {
                                                     setEditingAreaIndex(i);
                                                     setEditingAreaData({ name: a.name, size: a.size || '', categoryName: a.categoryName || '' });
                                                     setSelectedAreaIndex(i);
-                                                }} style={{background:'transparent', border:'none', color:'#3b82f6', cursor:'pointer', fontSize:16, marginRight: 8}} title={'Sửa'}>✏️</button>
+                                                }} style={{background:'transparent', border:'none', color:'#3b82f6', cursor:'pointer', fontSize:16, marginRight: 8}} title={t('marketFloorPlan.wizard.edit')}>✏️</button>
                                                 <button onClick={() => {
                                                     const newAreas = [...areas];
                                                     newAreas.splice(i, 1);
                                                     setAreas(newAreas);
                                                     if (selectedAreaIndex === i) setSelectedAreaIndex(null);
                                                     if (editingAreaIndex === i) setEditingAreaIndex(null);
-                                                }} style={{background:'transparent', border:'none', color:'var(--mw-danger)', cursor:'pointer', fontSize:16}} title={'Xóa'}>✕</button>
+                                                }} style={{background:'transparent', border:'none', color:'var(--mw-danger)', cursor:'pointer', fontSize:16}} title={t('marketFloorPlan.wizard.delete')}>✕</button>
                                             </div>
                                         </article>
                                     ))}
                                     {areas.length === 0 && (
-                                        <div style={{textAlign:'center', color:'var(--text-secondary)', fontSize: 13}}>{'Chưa có khu vực nào.'}</div>
+                                        <div style={{textAlign:'center', color:'var(--text-secondary)', fontSize: 13}}>{t('marketFloorPlan.wizard.no_areas')}</div>
                                     )}
                                 </div>
                                 {editingAreaIndex !== null && (
                                     <div style={{ padding: 12, border: '1px solid var(--mw-border)', borderRadius: 8, marginTop: 16, backgroundColor: '#f8fafc' }}>
-                                        <h4 style={{ margin: '0 0 12px 0', fontSize: 14 }}>{'✏️ Chỉnh sửa thông tin'}</h4>
+                                        <h4 style={{ margin: '0 0 12px 0', fontSize: 14 }}>{'✏️ ' + t('marketFloorPlan.wizard.edit_info')}</h4>
                                         <div className={styles.formGroup}>
-                                            <label>{'Tên khu vực'}</label>
+                                            <label>{t('marketFloorPlan.wizard.area_name')}</label>
                                             <input className={styles.formInput} value={editingAreaData.name} onChange={e => setEditingAreaData({...editingAreaData, name: e.target.value})} />
                                         </div>
                                         <div className={styles.formGroup}>
-                                            <label>{'Diện tích (m²)'}</label>
+                                            <label>{t('marketFloorPlan.wizard.area_size')}</label>
                                             <input className={styles.formInput} type="number" min="0" value={editingAreaData.size} onChange={e => setEditingAreaData({...editingAreaData, size: e.target.value})} />
                                         </div>
                                         <div className={styles.formGroup}>
-                                            <label>{'Ngành hàng'}</label>
+                                            <label>{t('marketFloorPlan.wizard.category')}</label>
                                             <select className={styles.formInput} 
                                                 value={editingAreaData.categoryName}
                                                 onChange={e => setEditingAreaData({...editingAreaData, categoryName: e.target.value})}>
-                                                <option value="">{'Không có'}</option>
+                                                <option value="">{t('marketFloorPlan.wizard.none')}</option>
                                                 {categories.map(cat => (
                                                     <option key={cat.categoryId} value={cat.name}>{cat.name}</option>
                                                 ))}
@@ -814,7 +819,7 @@ const MarketWizard = ({ onCancel, onComplete }) => {
                                         <div style={{ display: 'flex', gap: 8 }}>
                                             <button className={styles.primaryBtn} style={{ flex: 1, padding: '6px 12px', fontSize: 13 }} onClick={() => {
                                                 if (areas.some((a, idx) => idx !== editingAreaIndex && a.name.toLowerCase() === editingAreaData.name.trim().toLowerCase())) {
-                                                    alert("Tên khu vực này đã tồn tại trong lưới. Vui lòng chọn tên khác!");
+                                                    alert(t('marketFloorPlan.wizard.err_dup_name'));
                                                     return;
                                                 }
                                                 
@@ -830,7 +835,7 @@ const MarketWizard = ({ onCancel, onComplete }) => {
                                                 
                                                 if (currentTotalSize + targetSize > declaredMarketSize) {
                                                     const remaining = declaredMarketSize - currentTotalSize;
-                                                    alert(`Lỗi sức chứa: Quỹ đất còn trống của chợ chỉ còn ${Math.round(remaining)}m².\nBạn đang nhập ${targetSize}m² cho khu vực này, vượt quá mức cho phép! Vui lòng nhập số nhỏ hơn hoặc bằng ${Math.round(remaining)}m².`);
+                                                    alert(t('marketFloorPlan.wizard.err_capacity_area', { remaining: Math.round(remaining), target: targetSize }));
                                                     return;
                                                 }
 
@@ -881,12 +886,14 @@ const MarketWizard = ({ onCancel, onComplete }) => {
                                                                                 if (a > maxArea) { maxArea = a; maxPoly = p; }
                                                                             });
                                                                             otherArea.points = maxPoly[0].slice(0, -1);
-                                                                            otherArea.svgPath = pointsToSvgPath(otherArea.points, true);
-                                                                            const bbox = getBoundingBox(otherArea.points);
-                                                                            otherArea.minX = bbox.minX;
-                                                                            otherArea.minY = bbox.minY;
-                                                                            otherArea.maxX = bbox.maxX;
-                                                                            otherArea.maxY = bbox.maxY;
+                                                                            const otherBbox = getBoundingBox(otherArea.points);
+                                                                            // Normalize svgPath to origin (0,0)
+                                                                            const otherNormalized = otherArea.points.map(p => [p[0] - otherBbox.minX, p[1] - otherBbox.minY]);
+                                                                            otherArea.svgPath = pointsToSvgPath(otherNormalized, true);
+                                                                            otherArea.minX = otherBbox.minX;
+                                                                            otherArea.minY = otherBbox.minY;
+                                                                            otherArea.maxX = otherBbox.maxX;
+                                                                            otherArea.maxY = otherBbox.maxY;
                                                                             otherArea.size = Math.round((getPolygonArea(otherArea.points) / 900) * 100) / 100;
                                                                         } else {
                                                                             // otherArea was completely swallowed!
@@ -897,12 +904,14 @@ const MarketWizard = ({ onCancel, onComplete }) => {
                                                             });
                                                             
                                                             area.points = newPoints;
-                                                            area.svgPath = pointsToSvgPath(area.points, true);
-                                                            const bbox = getBoundingBox(area.points);
-                                                            area.minX = bbox.minX;
-                                                            area.minY = bbox.minY;
-                                                            area.maxX = bbox.maxX;
-                                                            area.maxY = bbox.maxY;
+                                                            const areaBbox = getBoundingBox(area.points);
+                                                            // Normalize svgPath to origin (0,0)
+                                                            const areaNormalized = area.points.map(p => [p[0] - areaBbox.minX, p[1] - areaBbox.minY]);
+                                                            area.svgPath = pointsToSvgPath(areaNormalized, true);
+                                                            area.minX = areaBbox.minX;
+                                                            area.minY = areaBbox.minY;
+                                                            area.maxX = areaBbox.maxX;
+                                                            area.maxY = areaBbox.maxY;
                                                             
                                                             // Recalculate physical size after clipping (it might be smaller than target if clipped)
                                                             const clippedM2 = Math.round((getPolygonArea(area.points) / 900) * 100) / 100;
@@ -916,8 +925,8 @@ const MarketWizard = ({ onCancel, onComplete }) => {
                                                     return updated.filter(a => a.points && a.points.length >= 3);
                                                 });
                                                 setEditingAreaIndex(null);
-                                            }}>{'Lưu'}</button>
-                                            <button className={styles.secondaryBtn} style={{ flex: 1, padding: '6px 12px', fontSize: 13 }} onClick={() => setEditingAreaIndex(null)}>{'← Hủy'}</button>
+                                            }}>{t('marketFloorPlan.wizard.save')}</button>
+                                            <button className={styles.secondaryBtn} style={{ flex: 1, padding: '6px 12px', fontSize: 13 }} onClick={() => setEditingAreaIndex(null)}>{'← ' + t('marketFloorPlan.wizard.cancel')}</button>
                                         </div>
                                     </div>
                                 )}
@@ -927,13 +936,13 @@ const MarketWizard = ({ onCancel, onComplete }) => {
                         {/* HIDDEN STEP 3:
                         {step === 3 && (
                             <>
-                                <h2 className={styles.sidebarTitle}>{'Sinh sạp tự động'}</h2>
+                                <h2 className={styles.sidebarTitle}>{t('marketFloorPlan.wizard.step_stall')}</h2>
                                 <div className={styles.formGroup}>
-                                    <label htmlFor="stall-area">{'-- Chọn khu vực --'}</label>
+                                    <label htmlFor="stall-area">{t('marketFloorPlan.wizard.select_area')}</label>
                                     <select id="stall-area" className={styles.formInput}
                                         value={selectedAreaIndex !== null ? selectedAreaIndex : ''}
                                         onChange={e => setSelectedAreaIndex(e.target.value === '' ? null : Number(e.target.value))}>
-                                        <option value="" disabled>{'-- Chọn khu vực --'}</option>
+                                        <option value="" disabled>{t('marketFloorPlan.wizard.select_area')}</option>
                                         {areas.map((a, i) => <option key={i} value={i}>{a.name}</option>)}
                                     </select>
                                 </div>
@@ -941,28 +950,28 @@ const MarketWizard = ({ onCancel, onComplete }) => {
                                 {selectedAreaIndex !== null && (
                                     <>
                                         <div className={styles.formGroup}>
-                                            <label htmlFor="stall-prefix">{'Tiền tố mã sạp'}</label>
+                                            <label htmlFor="stall-prefix">{t('marketFloorPlan.wizard.stall_prefix_lbl')}</label>
                                             <input id="stall-prefix" className={styles.formInput} value={stallsConfig.prefix}
                                                 onChange={e => setStallsConfig({...stallsConfig, prefix: e.target.value})}
                                                 placeholder="Vd: S, A, KV1…" />
                                         </div>
                                         <div className={styles.formGroup}>
-                                            <label htmlFor="stall-count">{'Số lượng sạp'}</label>
+                                            <label htmlFor="stall-count">{t('marketFloorPlan.wizard.stall_count')}</label>
                                             <input id="stall-count" type="number" min="1" className={styles.formInput}
                                                 value={stallsConfig.count}
                                                 onChange={e => setStallsConfig({...stallsConfig, count: e.target.value})} />
                                         </div>
                                         <div className={styles.formGroup}>
-                                            <label htmlFor="stall-size">{'Diện tích mỗi sạp (m²)'}</label>
+                                            <label htmlFor="stall-size">{t('marketFloorPlan.wizard.stall_size')}</label>
                                             <input id="stall-size" type="number" min="0" className={styles.formInput}
                                                 value={stallsConfig.size}
                                                 readOnly
                                                 style={{backgroundColor: 'var(--mw-gray-50)', color: 'var(--mw-gray-500)'}}
-                                                placeholder={'Tự động tính...'} />
+                                                placeholder={t('marketFloorPlan.wizard.auto_calc')} />
                                         </div>
                                         <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:12}}>
                                             <div className={styles.formGroup}>
-                                                <label htmlFor="stall-w">{'Rộng (m)'}</label>
+                                                <label htmlFor="stall-w">{t('marketFloorPlan.wizard.width_m')}</label>
                                                 <input id="stall-w" type="number" min="1" className={styles.formInput}
                                                     value={stallsConfig.width}
                                                     onChange={e => {
@@ -986,17 +995,17 @@ const MarketWizard = ({ onCancel, onComplete }) => {
                                         </div>
                                         <div style={{display:'flex', gap: 8, marginTop: 4}}>
                                             <button className={styles.primaryBtn} style={{flex: 1}} onClick={generateStalls}>
-                                                {'⚡ Sinh sạp ngay'}</button>
+                                                {'⚡ ' + t('marketFloorPlan.wizard.gen_stalls')}</button>
                                             <button 
                                                 className={styles.secondaryBtn} 
                                                 style={{flex: 1, backgroundColor: '#f1f5f9', color: '#334155', border: '1px solid #cbd5e1'}}
                                                 onClick={() => setIsDrawingStall(true)}
                                             >
-                                                {'🖊️ Vẽ sạp thủ công'}</button>
+                                                {'🖊️ ' + t('marketFloorPlan.wizard.draw_stalls')}</button>
                                         </div>
                                         {areas[selectedAreaIndex]?.stalls?.length > 0 && (
                                             <div className={`${styles.infoBox} ${styles.success}`}>
-                                                ✅ Đã sinh {areas[selectedAreaIndex].stalls.length} sạp.
+                                                ✅ {t('marketFloorPlan.wizard.generated')} {areas[selectedAreaIndex].stalls.length} {t('marketFloorPlan.wizard.stalls')}.
                                             </div>
                                         )}
                                     </>
@@ -1010,25 +1019,25 @@ const MarketWizard = ({ onCancel, onComplete }) => {
                     <div className={styles.sidebarActions}>
                         {step === 1 && (
                             <>
-                                <button className={styles.secondaryBtn} style={{flex:1}} onClick={onCancel}>{'← Hủy'}</button>
+                                <button className={styles.secondaryBtn} style={{flex:1}} onClick={onCancel}>{'← ' + t('marketFloorPlan.wizard.cancel')}</button>
                                 <button className={styles.primaryBtn} style={{flex:2}} onClick={handleNextStep1}
-                                    disabled={!marketInfo.name || !marketInfo.isClosed}>{'Tiếp theo →'}</button>
+                                    disabled={!marketInfo.name || !marketInfo.isClosed}>{t('marketFloorPlan.wizard.next') + ' →'}</button>
                             </>
                         )}
                         {step === 2 && (
                             <>
-                                <button className={styles.secondaryBtn} style={{flex:1}} onClick={() => setStep(1)}>{'← Quay lại'}</button>
+                                <button className={styles.secondaryBtn} style={{flex:1}} onClick={() => setStep(1)}>{'← ' + t('marketFloorPlan.wizard.back')}</button>
                                 <button className={styles.successBtn} style={{flex:2}} onClick={handleSave} disabled={loading || areas.length === 0}>
-                                    {loading ? '⏳ Đang lưu…' : '✅ Hoàn tất & Lưu'}
+                                    {loading ? '⏳ ' + t('marketFloorPlan.wizard.saving') : '✅ ' + t('marketFloorPlan.wizard.finish_save')}
                                 </button>
                             </>
                         )}
                         {/* HIDDEN STEP 3 ACTIONS
                         {step === 3 && (
                             <>
-                                <button className={styles.secondaryBtn} style={{flex:1}} onClick={() => setStep(2)}>{'← Quay lại'}</button>
+                                <button className={styles.secondaryBtn} style={{flex:1}} onClick={() => setStep(2)}>{'← ' + t('marketFloorPlan.wizard.back')}</button>
                                 <button className={styles.successBtn} style={{flex:2}} onClick={handleSave} disabled={loading}>
-                                    {loading ? '⏳ Đang lưu…' : '✅ Hoàn tất & Lưu'}
+                                    {loading ? '⏳ ' + t('marketFloorPlan.wizard.saving') : '✅ ' + t('marketFloorPlan.wizard.finish_save')}
                                 </button>
                             </>
                         )}
@@ -1042,18 +1051,18 @@ const MarketWizard = ({ onCancel, onComplete }) => {
                         <div className={styles.canvasLabel}>
                             🗺️&nbsp;
                             <span>
-                                {step === 1 ? 'Vẽ ranh giới chợ' : 'Xem trước bố cục khu vực'}
+                                {step === 1 ? t('marketFloorPlan.wizard.draw_boundary') : t('marketFloorPlan.wizard.preview_layout')}
                             </span>
                         </div>
                         {step === 1 && marketInfo.points.length > 0 && (
-                            <span className={styles.canvasBadge}>{marketInfo.points.length} điểm</span>
+                            <span className={styles.canvasBadge}>{marketInfo.points.length} {t('marketFloorPlan.wizard.points')}</span>
                         )}
                         {step === 2 && areas.length > 0 && (
-                            <span className={styles.canvasBadge}>{areas.length} khu vực</span>
+                            <span className={styles.canvasBadge}>{areas.length} {t('marketFloorPlan.wizard.areas')}</span>
                         )}
                         {/* HIDDEN:
                         {step === 3 && (
-                            <span className={styles.canvasBadge}>{areas.reduce((s, a) => s + a.stalls.length, 0)} sạp</span>
+                            <span className={styles.canvasBadge}>{areas.reduce((s, a) => s + a.stalls.length, 0)} {t('marketFloorPlan.wizard.stalls')}</span>
                         )}
                         */}
                     </div>
@@ -1081,7 +1090,7 @@ const MarketWizard = ({ onCancel, onComplete }) => {
                                 display: 'block'
                             }}
                             viewBox="0 0 4000 4000"
-                            role="img" aria-label={'Vùng vẽ bản đồ chợ tương tác'}>
+                            role="img" aria-label={t('marketFloorPlan.wizard.canvas_region')}>
 
                         {/* Market outline */}
                         {marketInfo.points.length > 0 && (
@@ -1099,7 +1108,7 @@ const MarketWizard = ({ onCancel, onComplete }) => {
                         {/* Saved areas (memoized for performance) */}
                         {useMemo(() => areas.map((a, i) => (
                             <g key={`area-${i}`}>
-                                <path d={a.svgPath}
+                                <path d={pointsToSvgPath(a.points, true)}
                                     fill={selectedAreaIndex === i ? 'rgba(139,92,246,.18)' : 'rgba(5,150,105,.12)'}
                                     stroke={selectedAreaIndex === i ? '#8b5cf6' : '#059669'}
                                     strokeWidth="2" strokeLinejoin="round" 

@@ -26,8 +26,10 @@ namespace STMM.Business.DTOs.Stall
 
         // Meter information
         public string? ElectricityMeterSerial { get; set; }
+        public int? ElectricityMeterId { get; set; }
         public double? CurrentElectricityIndex { get; set; }
         public string? WaterMeterSerial { get; set; }
+        public int? WaterMeterId { get; set; }
         public double? CurrentWaterIndex { get; set; }
     }
 }

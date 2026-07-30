@@ -104,7 +104,7 @@ const MarketAreaList = ({ user }) => {
   };
 
   const handleDeactivateMarket = async () => {
-    if (!window.confirm('Bạn có chắc chắn muốn ngưng hoạt động chợ này để tạo sơ đồ mới? LƯU Ý: Hành động này chỉ thực hiện được nếu không có hợp đồng nào đang hoạt động.')) return;
+    if (!window.confirm(t('marketFloorPlan.areaList.confirm_deactivate'))) return;
     
     try {
       await deactivateMarket(marketId);
@@ -161,12 +161,12 @@ const MarketAreaList = ({ user }) => {
         setIsFormVisible(false);
       }
       setDeleteConfirmId(null);
-      setDeleteSuccess('Đã xóa khu vực thành công!');
+      setDeleteSuccess(t('marketFloorPlan.areaList.delete_success'));
       setTimeout(() => setDeleteSuccess(null), 3000);
     } catch (error) {
       console.error('Error deleting area:', error);
       setDeleteConfirmId(null);
-      setErrorMessage('Không thể xóa khu vực này! Có thể bên trong khu vực đang có sạp được thuê.');
+      setErrorMessage(t('marketFloorPlan.areaList.delete_error'));
     }
   };
 
@@ -414,13 +414,13 @@ const MarketAreaList = ({ user }) => {
       }
 
       if (!isRectInsidePolygon(dbX, dbY, dbX + width, dbY + height, marketPolygon)) {
-          setErrorMessage('Không thể di chuyển: Khu vực này bị kéo ra ngoài ranh giới của Chợ!');
+          setErrorMessage(t('marketFloorPlan.areaList.move_out_bounds'));
           setRenderKey(prev => prev + 1); // Force Rnd to revert
           return;
       }
 
       if (checkOverlap(area.areaId, dbX, dbY, dbX + width, dbY + height)) {
-          setErrorMessage('Không thể di chuyển: Khu vực này bị chồng lấp lên Khu vực khác!');
+          setErrorMessage(t('marketFloorPlan.areaList.move_overlap'));
           setRenderKey(prev => prev + 1); // Force Rnd to revert
           return;
       }
@@ -444,7 +444,7 @@ const MarketAreaList = ({ user }) => {
       await updateArea(area.areaId, updateData);
     } catch (error) {
       console.error('Error updating position:', error);
-      setErrorMessage('Có lỗi xảy ra khi lưu kích thước Khu vực.');
+      setErrorMessage(t('marketFloorPlan.areaList.resize_error'));
       fetchAreas(); // revert on error
     }
   };
@@ -467,13 +467,13 @@ const MarketAreaList = ({ user }) => {
           Math.abs(oldWidth - width) <= 2 && Math.abs(oldHeight - height) <= 2) return;
       
       if (!isRectInsidePolygon(dbX, dbY, dbX + width, dbY + height, marketPolygon)) {
-          setErrorMessage('Không thể thay đổi kích thước: Khu vực này bị chồng lấp lên Khu vực khác!');
+          setErrorMessage(t('marketFloorPlan.areaList.resize_overlap'));
           setRenderKey(prev => prev + 1); // Force Rnd to revert
           return;
       }
 
       if (checkOverlap(area.areaId, dbX, dbY, dbX + width, dbY + height)) {
-          setErrorMessage('Không thể thay đổi kích thước: Khu vực này bị chồng lấp lên Khu vực khác!');
+          setErrorMessage(t('marketFloorPlan.areaList.resize_overlap'));
           setRenderKey(prev => prev + 1); // Force Rnd to revert
           return;
       }
@@ -501,9 +501,9 @@ const MarketAreaList = ({ user }) => {
     } catch (error) {
       console.error('Error updating size:', error);
       if (error.response?.data?.message) {
-          setErrorMessage('Không thể thay đổi kích thước Khu vực: ${error.response.data.message}');
+          setErrorMessage(t('marketFloorPlan.areaList.resize_error_msg', { msg: error.response.data.message }));
       } else {
-          setErrorMessage('Có lỗi xảy ra khi lưu kích thước Khu vực.');
+          setErrorMessage(t('marketFloorPlan.areaList.resize_error'));
       }
       fetchAreas(); // revert on error
     }
@@ -527,30 +527,30 @@ const MarketAreaList = ({ user }) => {
         {!marketId && (
           <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-secondary)' }}>
             <div style={{ fontSize: '48px', marginBottom: '16px' }}>🏪</div>
-            <h3>{t('marketAreaList.no_areas', 'Bạn chưa có chợ nào')}</h3>
-            <p>{t('marketAreaList.create_market_first', 'Hãy tạo một chợ mới ở mục Đăng ký Chợ để bắt đầu.')}</p>
+            <h3>{t('marketFloorPlan.areaList.no_areas')}</h3>
+            <p>{t('marketFloorPlan.areaList.create_market_first')}</p>
           </div>
         )}
         
         {marketId && marketStatus === 'Pending' && (
           <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-secondary)' }}>
             <div style={{ fontSize: '48px', marginBottom: '16px' }}>⏳</div>
-            <h3 style={{ color: 'var(--warning, #faad14)' }}>{'Chợ của bạn đang chờ phê duyệt'}</h3>
-            <p>{'Hệ thống đã ghi nhận yêu cầu tạo chợ của bạn. Vui lòng chờ Admin phê duyệt (trạng thái Active) để có thể vào quản lý và thiết kế mặt bằng.'}</p>
+            <h3 style={{ color: 'var(--warning, #faad14)' }}>{t('marketFloorPlan.areaList.market_pending')}</h3>
+            <p>{t('marketFloorPlan.areaList.market_pending_desc')}</p>
           </div>
         )}
 
         {marketId && marketStatus === 'Rejected' && (
           <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-secondary)' }}>
             <div style={{ fontSize: '48px', marginBottom: '16px' }}>❌</div>
-            <h3 style={{ color: 'var(--danger, #ff4d4f)' }}>{'Chợ của bạn đã bị từ chối'}</h3>
-            <p>{'Yêu cầu tạo chợ của bạn không được phê duyệt. Vui lòng liên hệ Admin để biết thêm chi tiết.'}</p>
+            <h3 style={{ color: 'var(--danger, #ff4d4f)' }}>{t('marketFloorPlan.areaList.market_rejected')}</h3>
+            <p>{t('marketFloorPlan.areaList.market_rejected_desc')}</p>
           </div>
         )}
 
         {marketId && marketStatus === null && (
            <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-secondary)' }}>
-              <p>{'Đang tải dữ liệu mặt bằng...'}</p>
+              <p>{t('marketFloorPlan.areaList.loading_plan')}</p>
            </div>
         )}
 
@@ -578,11 +578,11 @@ const MarketAreaList = ({ user }) => {
           <div style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', zIndex: 9999, display: 'flex', justifyContent: 'center', alignItems: 'center'}}>
             <div style={{background: 'var(--bg-panel)', padding: '32px', borderRadius: '16px', minWidth: '400px', boxShadow: '0 10px 30px rgba(0,0,0,0.2)', textAlign: 'center'}}>
               <div style={{fontSize: '48px', marginBottom: '16px'}}>🗑️</div>
-              <h3 style={{marginTop: 0, color: 'var(--text-primary)', fontSize: '24px'}}>{t('marketAreaList.confirm_delete_area', 'Xác nhận xóa Khu vực')}</h3>
-              <p style={{color: 'var(--text-secondary)', fontSize: '15px', lineHeight: '1.5'}}>{t('marketAreaList.confirm_delete_area_desc', 'Bạn có chắc chắn muốn xóa khu vực này? Tất cả sạp bên trong sẽ bị xóa theo nếu chưa được thuê.')}<br/>{t('marketAreaList.cannot_undo', 'Hành động này không thể hoàn tác.')}</p>
+              <h3 style={{marginTop: 0, color: 'var(--text-primary)', fontSize: '24px'}}>{t('marketFloorPlan.areaList.confirm_delete_area')}</h3>
+              <p style={{color: 'var(--text-secondary)', fontSize: '15px', lineHeight: '1.5'}}>{t('marketFloorPlan.areaList.confirm_delete_area_desc')}<br/>{t('marketFloorPlan.areaList.cannot_undo')}</p>
               <div style={{display: 'flex', justifyContent: 'center', gap: '16px', marginTop: '32px'}}>
-                <button onClick={() => setDeleteConfirmId(null)} style={{padding: '10px 24px', border: '1px solid var(--border-color)', background: 'transparent', borderRadius: '8px', cursor: 'pointer', color: 'var(--text-primary)', fontWeight: 'bold', fontSize: '14px', transition: 'all 0.2s'}}>{t('marketAreaList.cancel', 'Hủy')}</button>
-                <button onClick={confirmDelete} style={{padding: '10px 24px', border: 'none', background: 'var(--danger, #ff4d4f)', color: 'white', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px', boxShadow: '0 4px 12px rgba(255, 77, 79, 0.3)', transition: 'all 0.2s'}}>{t('marketAreaList.delete_area', 'Xóa Khu vực')}</button>
+                <button onClick={() => setDeleteConfirmId(null)} style={{padding: '10px 24px', border: '1px solid var(--border-color)', background: 'transparent', borderRadius: '8px', cursor: 'pointer', color: 'var(--text-primary)', fontWeight: 'bold', fontSize: '14px', transition: 'all 0.2s'}}>{t('marketFloorPlan.areaList.cancel')}</button>
+                <button onClick={confirmDelete} style={{padding: '10px 24px', border: 'none', background: 'var(--danger, #ff4d4f)', color: 'white', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px', boxShadow: '0 4px 12px rgba(255, 77, 79, 0.3)', transition: 'all 0.2s'}}>{t('marketFloorPlan.areaList.delete_area')}</button>
               </div>
             </div>
           </div>
@@ -593,10 +593,10 @@ const MarketAreaList = ({ user }) => {
           <div style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', zIndex: 9999, display: 'flex', justifyContent: 'center', alignItems: 'center'}}>
             <div style={{background: 'var(--bg-panel)', padding: '32px', borderRadius: '16px', minWidth: '400px', maxWidth: '500px', boxShadow: '0 10px 30px rgba(0,0,0,0.2)', textAlign: 'center'}}>
               <div style={{fontSize: '48px', marginBottom: '16px'}}>⚠️</div>
-              <h3 style={{marginTop: 0, color: 'var(--danger, #ff4d4f)', fontSize: '24px'}}>{t('marketAreaList.error', 'Lỗi')}</h3>
+              <h3 style={{marginTop: 0, color: 'var(--danger, #ff4d4f)', fontSize: '24px'}}>{t('marketFloorPlan.areaList.error')}</h3>
               <p style={{color: 'var(--text-secondary)', fontSize: '15px', lineHeight: '1.5'}}>{errorMessage}</p>
               <div style={{marginTop: 32}}>
-                <button onClick={() => setErrorMessage(null)} style={{padding: '10px 32px', border: 'none', background: 'var(--color-primary)', color: 'white', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px', transition: 'all 0.2s'}}>{t('marketAreaList.close', 'Đóng lại')}</button>
+                <button onClick={() => setErrorMessage(null)} style={{padding: '10px 32px', border: 'none', background: 'var(--color-primary)', color: 'white', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px', transition: 'all 0.2s'}}>{t('marketFloorPlan.areaList.close')}</button>
               </div>
             </div>
           </div>
@@ -607,7 +607,7 @@ const MarketAreaList = ({ user }) => {
           <div style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', zIndex: 9999, display: 'flex', justifyContent: 'center', alignItems: 'center'}}>
             <div style={{background: 'var(--bg-panel)', padding: '32px', borderRadius: '16px', minWidth: '400px', boxShadow: '0 10px 30px rgba(0,0,0,0.2)', textAlign: 'center', animation: 'popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)'}}>
               <div style={{fontSize: '48px', marginBottom: '16px'}}>✅</div>
-              <h3 style={{marginTop: 0, color: 'var(--success, #4caf50)', fontSize: '24px'}}>{t('marketAreaList.success', 'Thành công!')}</h3>
+              <h3 style={{marginTop: 0, color: 'var(--success, #4caf50)', fontSize: '24px'}}>{t('marketFloorPlan.areaList.success')}</h3>
               <p style={{color: 'var(--text-secondary)', fontSize: '15px'}}>{deleteSuccess}</p>
             </div>
           </div>
@@ -618,18 +618,18 @@ const MarketAreaList = ({ user }) => {
           <div style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', zIndex: 9999, display: 'flex', justifyContent: 'center', alignItems: 'center'}}>
             <div style={{background: 'var(--bg-panel)', padding: '32px', borderRadius: '16px', minWidth: '400px', maxWidth: '500px', boxShadow: '0 10px 30px rgba(0,0,0,0.2)'}}>
               <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '16px'}}>
-                <h3 style={{margin: 0, color: 'var(--color-primary)', fontSize: '20px'}}>{t('marketAreaList.area_info', 'Thông tin Khu vực')}</h3>
+                <h3 style={{margin: 0, color: 'var(--color-primary)', fontSize: '20px'}}>{t('marketFloorPlan.areaList.area_info')}</h3>
                 <button onClick={() => setInfoArea(null)} style={{background: 'transparent', border: 'none', fontSize: '24px', cursor: 'pointer', color: 'var(--text-secondary)'}}>&times;</button>
               </div>
               <div style={{marginTop: '24px'}}>
-                <p style={{margin: '12px 0', color: 'var(--text-primary)', fontSize: '15px'}}><strong>{t('marketAreaList.area_name_label', 'Tên khu vực:')}</strong> {infoArea.name}</p>
-                <p style={{margin: '12px 0', color: 'var(--text-primary)', fontSize: '15px'}}><strong>{t('marketAreaList.description_label', 'Mô tả:')}</strong> {infoArea.description || t('marketAreaList.no_description', 'Không có mô tả')}</p>
-                <p style={{margin: '12px 0', color: 'var(--text-primary)', fontSize: '15px'}}><strong>{t('marketAreaList.category_label', 'Thể loại hàng hóa:')}</strong> {infoArea.categoryName || t('marketAreaList.none', 'Không có')}</p>
-                <p style={{margin: '12px 0', color: 'var(--text-primary)', fontSize: '15px'}}><strong>{t('marketAreaList.stall_count_label', 'Số lượng sạp hiện có:')}</strong> {infoAreaStallCount === null ? t('marketAreaList.loading', 'Đang tải...') : `${infoAreaStallCount} ${t('marketAreaList.stalls', 'sạp')}`}</p>
-                <p style={{margin: '12px 0', color: 'var(--text-primary)', fontSize: '15px'}}><strong>{t('marketAreaList.area_size_label', 'Diện tích:')}</strong> {infoArea.size ? `${infoArea.size} m²` : t('marketAreaList.updating', 'Đang cập nhật')}</p>
+                <p style={{margin: '12px 0', color: 'var(--text-primary)', fontSize: '15px'}}><strong>{t('marketFloorPlan.areaList.area_name_label')}</strong> {infoArea.name}</p>
+                <p style={{margin: '12px 0', color: 'var(--text-primary)', fontSize: '15px'}}><strong>{t('marketFloorPlan.areaList.description_label')}</strong> {infoArea.description || t('marketFloorPlan.areaList.no_description')}</p>
+                <p style={{margin: '12px 0', color: 'var(--text-primary)', fontSize: '15px'}}><strong>{t('marketFloorPlan.areaList.category_label')}</strong> {infoArea.categoryName || t('marketFloorPlan.areaList.none')}</p>
+                <p style={{margin: '12px 0', color: 'var(--text-primary)', fontSize: '15px'}}><strong>{t('marketFloorPlan.areaList.stall_count_label')}</strong> {infoAreaStallCount === null ? t('marketFloorPlan.areaList.loading') : `${infoAreaStallCount} ${t('marketFloorPlan.areaList.stalls')}`}</p>
+                <p style={{margin: '12px 0', color: 'var(--text-primary)', fontSize: '15px'}}><strong>{t('marketFloorPlan.areaList.area_size_label')}</strong> {infoArea.size ? `${infoArea.size} m²` : t('marketFloorPlan.areaList.updating')}</p>
               </div>
               <div style={{display: 'flex', justifyContent: 'flex-end', marginTop: '32px'}}>
-                <button onClick={() => setInfoArea(null)} style={{padding: '10px 24px', border: 'none', background: 'var(--color-primary)', color: 'white', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold'}}>{t('marketAreaList.close', 'Đóng lại')}</button>
+                <button onClick={() => setInfoArea(null)} style={{padding: '10px 24px', border: 'none', background: 'var(--color-primary)', color: 'white', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold'}}>{t('marketFloorPlan.areaList.close')}</button>
               </div>
             </div>
           </div>
@@ -638,17 +638,17 @@ const MarketAreaList = ({ user }) => {
         <div style={{ padding: '12px 24px', backgroundColor: 'var(--bg-panel)', borderBottom: '1px solid var(--border-color)', display: 'flex', gap: '32px', alignItems: 'center', flexWrap: 'wrap' }}>
            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#3b82f6' }}></div>
-              <span style={{ color: 'var(--text-secondary)' }}>Tổng diện tích chợ:</span>
+              <span style={{ color: 'var(--text-secondary)' }}>{t('marketFloorPlan.areaList.total_size')}</span>
               <strong style={{ fontSize: '16px', color: 'var(--text-primary)' }}>{marketSize} m²</strong>
            </div>
            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#10b981' }}></div>
-              <span style={{ color: 'var(--text-secondary)' }}>Đã quy hoạch khu vực:</span>
+              <span style={{ color: 'var(--text-secondary)' }}>{t('marketFloorPlan.areaList.planned_size')}</span>
               <strong style={{ fontSize: '16px', color: 'var(--text-primary)' }}>{totalUsedArea} m²</strong>
            </div>
            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: remainingArea > 0 ? '#eab308' : '#ef4444' }}></div>
-              <span style={{ color: 'var(--text-secondary)' }}>Còn trống:</span>
+              <span style={{ color: 'var(--text-secondary)' }}>{t('marketFloorPlan.areaList.empty_size')}</span>
               <strong style={{ fontSize: '16px', color: remainingArea > 0 ? 'var(--text-primary)' : '#ef4444' }}>{remainingArea} m²</strong>
            </div>
         </div>
@@ -656,10 +656,10 @@ const MarketAreaList = ({ user }) => {
         <div className={styles.actionsBar}>
           <div>
             <h3 className={styles.sectionTitle}>
-               {t('marketAreaList.market_floor_plan', 'SƠ ĐỒ MẶT BẰNG CHỢ')}
+               {t('marketFloorPlan.areaList.title')}
             </h3>
              <p style={{fontSize: '12px', color: 'var(--text-secondary)', margin: 0, marginTop: '4px'}}>
-               {isEditMode ? t('marketAreaList.edit_mode_desc') : t('marketAreaList.view_mode_desc')}
+               {isEditMode ? t('marketFloorPlan.areaList.edit_mode_desc') : t('marketFloorPlan.areaList.view_mode_desc')}
              </p>
           </div>
           <div className={styles.actionsRight} style={{display: 'flex', alignItems: 'center', gap: 12}}>
@@ -670,7 +670,7 @@ const MarketAreaList = ({ user }) => {
                  <button onClick={handleResetZoom} style={{background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 12, marginLeft: 4, color: 'var(--color-primary)'}} title={'Khôi phục'}>↺</button>
               </div>
               {isEditMode && (
-                <button onClick={handleAddNew} style={{background: '#517594', color: 'white', padding: '8px 20px', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold'}}>{t('marketAreaList.add_area', '+ THÊM KHU VỰC')}</button>
+                <button onClick={handleAddNew} style={{background: '#517594', color: 'white', padding: '8px 20px', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold'}}>{t('marketFloorPlan.areaList.add_area')}</button>
               )}
               <button 
                 onClick={() => setIsEditMode(!isEditMode)}
@@ -679,7 +679,7 @@ const MarketAreaList = ({ user }) => {
                   color: 'white', padding: '8px 20px', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold'
                 }}
               >
-                {isEditMode ? '✓ ' + t('marketAreaList.save_changes') : '✏️ ' + t('marketAreaList.edit_plan')}
+                {isEditMode ? '✓ ' + t('marketFloorPlan.areaList.save_changes') : '✏️ ' + t('marketFloorPlan.areaList.edit_plan')}
               </button>
               
               {!isEditMode && (
@@ -702,7 +702,7 @@ const MarketAreaList = ({ user }) => {
                     e.currentTarget.style.background = 'transparent';
                   }}
                 >
-                  🛑 {t('marketAreaList.deactivate_market', 'NGƯNG HOẠT ĐỘNG CHỢ')}
+                  🛑 {t('marketFloorPlan.areaList.deactivate')}
                 </button>
               )}
           </div>
@@ -710,7 +710,7 @@ const MarketAreaList = ({ user }) => {
 
         {/* Legend Overlay */}
         <div style={{ position: 'absolute', right: 24, bottom: 24, background: 'rgba(255, 255, 255, 0.95)', padding: '16px', borderRadius: '12px', boxShadow: '0 4px 16px rgba(0,0,0,0.1)', zIndex: 900, minWidth: '220px', border: '1px solid #e2e8f0' }}>
-           <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#1e293b', borderBottom: '1px solid #cbd5e1', paddingBottom: '8px' }}>{t('marketAreaList.category_legend', 'CHÚ THÍCH DANH MỤC')}</h4>
+           <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#1e293b', borderBottom: '1px solid #cbd5e1', paddingBottom: '8px' }}>{t('marketFloorPlan.areaList.category_legend')}</h4>
            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {Object.entries(categoryColors).map(([name, color]) => (
                  <div key={name} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -840,6 +840,7 @@ const MarketAreaList = ({ user }) => {
                         border: area.svgPath ? 'none' : '1px solid #10b981',
                         borderRadius: area.svgPath ? '0' : '2px',
                         background: area.svgPath ? 'transparent' : 'rgba(16, 185, 129, 0.05)',
+                        pointerEvents: area.svgPath ? 'none' : 'auto',
                       }}
                       onMouseEnter={() => setHoveredAreaId(area.areaId)}
                       onMouseLeave={() => setHoveredAreaId(null)}
@@ -861,13 +862,23 @@ const MarketAreaList = ({ user }) => {
                                  return "0 0 100 100";
                              })()}
                         >
-                          <path d={area.svgPath} fill={getCategoryColor(area.categoryName)} stroke="rgba(255,255,255,0.5)" strokeWidth="2" strokeDasharray="none" vectorEffect="non-scaling-stroke" strokeLinejoin="round" />
+                          <path 
+                            d={area.svgPath} 
+                            fill={getCategoryColor(area.categoryName)} 
+                            stroke="rgba(255,255,255,0.5)" 
+                            strokeWidth="2" 
+                            strokeDasharray="none" 
+                            vectorEffect="non-scaling-stroke" 
+                            strokeLinejoin="round" 
+                            style={{ pointerEvents: 'auto', cursor: !isEditMode ? 'pointer' : (isInteractive ? 'move' : 'default') }}
+                            onClick={(e) => { if (!isEditMode) toggleAreaExpand(e, area.areaId); }}
+                          />
                         </svg>
                       )}
 
                       <div 
-                        style={{ width: '100%', height: '100%', position: 'relative', display: 'flex', flexDirection: 'column', cursor: !isEditMode ? 'pointer' : 'default' }}
-                        onClick={(e) => { if (!isEditMode) toggleAreaExpand(e, area.areaId); }}
+                        style={{ width: '100%', height: '100%', position: 'relative', display: 'flex', flexDirection: 'column', cursor: !isEditMode ? 'pointer' : 'default', pointerEvents: area.svgPath ? 'none' : 'auto' }}
+                        onClick={(e) => { if (!isEditMode && !area.svgPath) toggleAreaExpand(e, area.areaId); }}
                       >
                         {/* Area Label Overlay */}
                         {!expandedAreas.includes(area.areaId) && hoveredAreaId !== area.areaId && (
@@ -898,7 +909,6 @@ const MarketAreaList = ({ user }) => {
                           </div>
                         )}
 
-                        {/* Hover Action Menu */}
                         {hoveredAreaId === area.areaId && (
                           <div style={{ 
                             position: 'absolute', 
@@ -906,7 +916,8 @@ const MarketAreaList = ({ user }) => {
                             left: expandedAreas.includes(area.areaId) ? 'auto' : '50%', 
                             right: expandedAreas.includes(area.areaId) ? 0 : 'auto', 
                             transform: expandedAreas.includes(area.areaId) ? 'none' : 'translate(-50%, -50%)',
-                            display: 'flex', gap: '4px', background: 'rgba(255,255,255,0.95)', padding: '4px', borderRadius: '4px', boxShadow: '0 2px 8px rgba(0,0,0,0.15)', zIndex: 100 
+                            display: 'flex', gap: '4px', background: 'rgba(255,255,255,0.95)', padding: '4px', borderRadius: '4px', boxShadow: '0 2px 8px rgba(0,0,0,0.15)', zIndex: 100,
+                            pointerEvents: 'auto' 
                           }}>
                             {/* Cầu nối vô hình giúp chống flickr khi di chuột */}
                             {expandedAreas.includes(area.areaId) && (
@@ -916,24 +927,24 @@ const MarketAreaList = ({ user }) => {
                               {area.name}
                             </div>
                             
-                            <button onMouseDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); toggleAreaExpand(e, area.areaId); }} style={{background: '#10b981', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', padding: '2px 8px', fontSize: '11px', fontWeight: 'bold'}} title={expandedAreas.includes(area.areaId) ? t('marketAreaList.hide') : t('marketAreaList.show_stall')}>
-                              {expandedAreas.includes(area.areaId) ? `👁️‍🗨️ ${t('marketAreaList.hide')}` : `👁️ ${t('marketAreaList.show_stall')}`}
+                            <button onMouseDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); toggleAreaExpand(e, area.areaId); }} style={{background: '#10b981', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', padding: '2px 8px', fontSize: '11px', fontWeight: 'bold'}} title={expandedAreas.includes(area.areaId) ? t('marketFloorPlan.areaList.hide') : t('marketFloorPlan.areaList.show_stall')}>
+                              {expandedAreas.includes(area.areaId) ? `👁️‍🗨️ ${t('marketFloorPlan.areaList.hide')}` : `👁️ ${t('marketFloorPlan.areaList.show_stall')}`}
                             </button>
                             
                             {isEditMode ? (
                               <>
-                                <button onMouseDown={(e) => e.stopPropagation()} onClick={(e) => handleEdit(e, area)} style={{background: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', padding: '2px 8px', fontSize: '11px', fontWeight: 'bold'}} title={t('marketAreaList.edit')}>✎ {t('marketAreaList.edit')}</button>
-                                <button onMouseDown={(e) => e.stopPropagation()} onClick={(e) => requestDelete(e, area.areaId)} style={{background: '#ef4444', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', padding: '2px 8px', fontSize: '11px', fontWeight: 'bold'}} title={t('marketAreaList.delete')}>✕ {t('marketAreaList.delete')}</button>
+                                <button onMouseDown={(e) => e.stopPropagation()} onClick={(e) => handleEdit(e, area)} style={{background: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', padding: '2px 8px', fontSize: '11px', fontWeight: 'bold'}} title={t('marketFloorPlan.areaList.edit')}>✎ {t('marketFloorPlan.areaList.edit')}</button>
+                                <button onMouseDown={(e) => e.stopPropagation()} onClick={(e) => requestDelete(e, area.areaId)} style={{background: '#ef4444', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', padding: '2px 8px', fontSize: '11px', fontWeight: 'bold'}} title={t('marketFloorPlan.areaList.delete')}>✕ {t('marketFloorPlan.areaList.delete')}</button>
                               </>
                             ) : (
-                              <button onMouseDown={(e) => e.stopPropagation()} onClick={(e) => handleShowInfo(e, area)} style={{background: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', padding: '2px 8px', fontSize: '11px', fontWeight: 'bold'}} title={t('marketAreaList.area_info')}>ℹ {t('marketAreaList.detail')}</button>
+                              <button onMouseDown={(e) => e.stopPropagation()} onClick={(e) => handleShowInfo(e, area)} style={{background: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', padding: '2px 8px', fontSize: '11px', fontWeight: 'bold'}} title={t('marketFloorPlan.areaList.area_info')}>ℹ {t('marketFloorPlan.areaList.detail')}</button>
                             )}
                           </div>
                         )}
                         
                         {/* Conditionally show StallLayoutEditor only if expanded */}
                         {(isEditMode || zoom > 0.7) && expandedAreas.includes(area.areaId) && (
-                          <div style={{ flex: 1, position: 'relative', overflow: 'visible' }}>
+                          <div style={{ flex: 1, position: 'relative', overflow: 'visible', pointerEvents: 'auto' }}>
                             <StallLayoutEditor 
                               areaId={area.areaId} 
                               areaName={area.name}
@@ -956,7 +967,7 @@ const MarketAreaList = ({ user }) => {
 
                 {areas.length === 0 && (
                   <div style={{color: 'var(--text-secondary)', position: 'absolute', top: '24px', left: '24px'}}>
-                    {t('marketAreaList.no_areas_found')}
+                    {t('marketFloorPlan.areaList.no_areas_found')}
                   </div>
                 )}
 
