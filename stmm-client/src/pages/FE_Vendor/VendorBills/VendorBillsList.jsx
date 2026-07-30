@@ -21,7 +21,7 @@ export default function VendorBillsList({ vendorId, stallId }) {
 
     // Pagination state
     const [pageNumber, setPageNumber] = useState(1);
-    const [pageSize, setPageSize] = useState(10);
+    const [pageSize, setPageSize] = useState(5);
     const [totalPages, setTotalPages] = useState(1);
     const [totalCount, setTotalCount] = useState(0);
 
@@ -125,6 +125,23 @@ export default function VendorBillsList({ vendorId, stallId }) {
         }
     };
 
+    const getInvoiceInfo = (inv) => {
+        let name = (t('vendorbillslist.invoice_month') || 'Hóa đơn tháng') + ` ${inv.month}/${inv.year}`;
+        let type = t('vendorbillslist.periodic') || 'Định kỳ';
+
+        if (inv.details && inv.details.length > 0) {
+            const hasPenalty = inv.details.some(d => d.feeTypeName?.toLowerCase().includes('phạt') || d.feeTypeName?.toLowerCase().includes('penalty'));
+            if (hasPenalty) {
+                name = t('vendorbillslist.penalty_invoice') || 'Hóa đơn tiền phạt';
+                type = t('vendorbillslist.penalty') || 'Phạt vi phạm';
+            } else if (inv.details.length === 1 && !['điện', 'nước', 'rác', 'bảo vệ', 'thuê', 'electric', 'water', 'waste', 'rent', 'security'].some(k => inv.details[0].feeTypeName?.toLowerCase().includes(k))) {
+                name = inv.details[0].feeTypeName || (t('vendorbillslist.ad_hoc_invoice') || 'Hóa đơn phát sinh');
+                type = t('vendorbillslist.ad_hoc') || 'Phát sinh';
+            }
+        }
+        return { name, type };
+    };
+
     if (isDisputing) {
         return <VendorRequestCreate 
             onBack={() => setIsDisputing(false)} 
@@ -184,6 +201,8 @@ export default function VendorBillsList({ vendorId, stallId }) {
                             <thead>
                                 <tr>
                                     <th>STT</th>
+                                    <th>{t('vendorbillslist.invoice_name') || 'Tên hóa đơn'}</th>
+                                    <th>{t('vendorbillslist.invoice_type') || 'Loại hóa đơn'}</th>
                                     <th>{t('vendorbillslist.fall_semester_monthyear') || 'Kỳ (Tháng/Năm)'}</th>
                                     <th>{t('vendorbillslist.total_amount_vnd') || 'Tổng tiền'}</th>
                                     <th>{t('vendorbillslist.due_date') || 'Hạn chót'}</th>
@@ -207,9 +226,13 @@ export default function VendorBillsList({ vendorId, stallId }) {
                                         statusText = t('vendorbillslist.overdue') || 'Quá hạn';
                                     }
 
+                                    const { name: invName, type: invType } = getInvoiceInfo(inv);
+
                                     return (
                                     <tr key={inv.invoiceId}>
                                         <td className="fw-bold">#{(pageNumber - 1) * pageSize + index + 1}</td>
+                                        <td><span style={{ fontWeight: 600 }}>{invName}</span></td>
+                                        <td><span className="premium-badge premium-badge-neutral">{invType}</span></td>
                                         <td>{inv.month}/{inv.year}</td>
                                         <td className="fw-bold" style={{ color: '#ef4444' }}>{formatCurrency(inv.totalAmount)}</td>
                                         <td>{inv.dueDate || '-'}</td>
@@ -253,12 +276,24 @@ export default function VendorBillsList({ vendorId, stallId }) {
                                     >
                                         {t('vendorbillslist.previous_page') || 'Trước'}
                                     </button>
+                                    
+                                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                                        <button 
+                                            key={page} 
+                                            className={`premium-page-btn ${pageNumber === page ? 'active' : ''}`}
+                                            style={pageNumber === page ? { backgroundColor: '#1e40af', color: 'white', borderColor: '#1e40af' } : {}}
+                                            onClick={() => setPageNumber(page)}
+                                        >
+                                            {page}
+                                        </button>
+                                    ))}
+
                                     <button 
                                         className="premium-page-btn"
                                         disabled={pageNumber >= totalPages}
                                         onClick={() => setPageNumber(prev => Math.min(totalPages, prev + 1))}
                                     >
-                                        Sau
+                                        {t('vendorbillslist.next_page') || 'Sau'}
                                     </button>
                                 </div>
                             </div>

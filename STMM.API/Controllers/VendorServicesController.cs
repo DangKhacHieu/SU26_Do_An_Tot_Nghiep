@@ -120,13 +120,9 @@ public class VendorServicesController : ControllerBase
             await _vendorServiceManagement.CancelServiceAsync(vendorId, id, ct);
             return Ok(new { message = "Yêu cầu hủy dịch vụ đã được ghi nhận thành công." });
         }
-        catch (ArgumentException ex)
+        catch (Exception ex)
         {
-            return BadRequest(new { message = ex.Message });
-        }
-        catch (BadRequestException ex)
-        {
-            return BadRequest(new { message = ex.Message });
+            return BadRequest(new { message = ex.ToString() });
         }
     }
 }
