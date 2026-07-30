@@ -3640,6 +3640,8 @@
     "make_money": "Make money",
     "scan_the_momo_qr": "Scan the MoMo QR code",
     "atm_card_payment": "ATM Card Payment",
+    "pay_via_vnpay": "Pay via VNPay",
+    "error_initiating_vnpay_payment": "Error initiating VNPay payment:",
     "close": "Close",
     "view_invoice_details": "View invoice details",
     "error_loading_invoice": "Error loading invoice:",

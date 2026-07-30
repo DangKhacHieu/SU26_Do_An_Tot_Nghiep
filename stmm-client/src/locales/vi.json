@@ -3640,6 +3640,8 @@
     "make_money": "Thành tiền",
     "scan_the_momo_qr": "Quét mã QR MoMo",
     "atm_card_payment": "Thanh toán Thẻ ATM",
+    "pay_via_vnpay": "Thanh toán qua VNPay",
+    "error_initiating_vnpay_payment": "Lỗi khởi tạo thanh toán VNPay:",
     "close": "Đóng",
     "view_invoice_details": "Xem chi tiết hóa đơn",
     "error_loading_invoice": "Lỗi khi tải hóa đơn:",

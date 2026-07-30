@@ -86,7 +86,23 @@ export default function VendorBillsList({ vendorId, stallId }) {
         } catch (err) {
             console.error(t('vendorbillslist.error_initiating_momo_payment'), err);
             const errorMsg = err.response?.data?.message || err.message;
-            alert('Đã xảy ra lỗi khi tạo yêu cầu thanh toán MoMo: ' + errorMsg);
+            showError(t('vendorbillslist.failure'), 'Đã xảy ra lỗi khi tạo yêu cầu thanh toán MoMo: ' + errorMsg);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleVnpayPayment = async (invoiceId) => {
+        try {
+            setLoading(true);
+            const { payUrl } = await paymentApi.createVnpayPayment(invoiceId);
+            if (payUrl) {
+                window.location.href = payUrl; // Chuyển hướng sang VNPay
+            }
+        } catch (err) {
+            console.error(t('vendorbillslist.error_initiating_vnpay_payment'), err);
+            const errorMsg = err.response?.data?.message || err.message;
+            showError(t('vendorbillslist.failure'), 'Đã xảy ra lỗi khi tạo yêu cầu thanh toán VNPay: ' + errorMsg);
         } finally {
             setLoading(false);
         }
@@ -306,7 +322,7 @@ export default function VendorBillsList({ vendorId, stallId }) {
                                 }}>
                                 {i18n.language === 'en' ? 'Invoice Complaint' : 'Khiếu nại hóa đơn'}
                             </button>
-                            {selectedInvoice.status?.toLowerCase() !== 'paid' && (
+                             {selectedInvoice.status?.toLowerCase() !== 'paid' && (
                                 <div className="payment-options" style={{ display: 'flex', gap: '10px' }}>
                                     <button 
                                         className="btn-pay-momo" 
@@ -319,6 +335,12 @@ export default function VendorBillsList({ vendorId, stallId }) {
                                         style={{ backgroundColor: '#334155', color: 'white', padding: '8px 16px', borderRadius: '4px', border: 'none', cursor: 'pointer' }}
                                         onClick={() => handlePayment(selectedInvoice.invoiceId, 'payWithATM')}>
                                         {t('vendorbillslist.atm_card_payment')}
+                                    </button>
+                                    <button 
+                                        className="btn-pay-vnpay" 
+                                        style={{ backgroundColor: '#005baa', color: 'white', padding: '8px 16px', borderRadius: '4px', border: 'none', cursor: 'pointer' }}
+                                        onClick={() => handleVnpayPayment(selectedInvoice.invoiceId)}>
+                                        {t('vendorbillslist.pay_via_vnpay')}
                                     </button>
                                 </div>
                             )}

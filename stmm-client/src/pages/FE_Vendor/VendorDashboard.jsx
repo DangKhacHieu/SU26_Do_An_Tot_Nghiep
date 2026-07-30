@@ -15,6 +15,7 @@ import VendorBillsList from "./VendorBills/VendorBillsList";
 import VendorNotificationList from "./VendorNotifications/VendorNotificationList";
 import VendorFeedbackList from "./VendorFeedbacks/VendorFeedbackList";
 import notificationService from "../../services/notificationService";
+import { showSuccess, showError } from '../../utils/alert';
 
 // Icons
 const IconHome = () => (
@@ -275,10 +276,10 @@ export default function VendorDashboard({ user, onBack, onLogout }) {
     }
     
     if (paymentParam === 'success') {
-      setTimeout(() => alert('Thanh toán hóa đơn qua MoMo thành công!'), 500);
+      setTimeout(() => showSuccess('Thanh toán hóa đơn thành công!'), 500);
       window.history.replaceState({}, '', '/vendor/dashboard');
     } else if (paymentParam === 'error') {
-      setTimeout(() => alert('Thanh toán thất bại hoặc có lỗi xảy ra!'), 500);
+      setTimeout(() => showError('Thanh toán thất bại hoặc có lỗi xảy ra!'), 500);
       window.history.replaceState({}, '', '/vendor/dashboard');
     }
   }, []);
