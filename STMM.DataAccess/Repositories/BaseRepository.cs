@@ -41,6 +41,11 @@ namespace STMM.DataAccess.Repositories
             await _dbSet.AddAsync(entity, cancellationToken);
         }
 
+        public virtual async Task AddRangeAsync(IEnumerable<T> entities, CancellationToken cancellationToken = default)
+        {
+            await _dbSet.AddRangeAsync(entities, cancellationToken);
+        }
+
         public virtual void Update(T entity)
         {
             _dbSet.Attach(entity);

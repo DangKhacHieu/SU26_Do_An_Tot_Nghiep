@@ -33,6 +33,7 @@ namespace STMM.Business.Services
         private readonly ISystemConfigRepository _systemConfigRepository;
         private readonly IServiceRegistrationRepository _serviceRegistrationRepository;
         private readonly IStallRepository _stallRepository;
+        private readonly IAuditLogRepository _auditLogRepository;
         private readonly ILogger<BillingService> _logger;
         private readonly FluentValidation.IValidator<ReceiveCashPaymentRequest> _paymentValidator;
 
@@ -52,6 +53,7 @@ namespace STMM.Business.Services
             ISystemConfigRepository systemConfigRepository,
             IServiceRegistrationRepository serviceRegistrationRepository,
             IStallRepository stallRepository,
+            IAuditLogRepository auditLogRepository,
             ILogger<BillingService> logger,
             FluentValidation.IValidator<ReceiveCashPaymentRequest> paymentValidator)
         {
@@ -70,6 +72,7 @@ namespace STMM.Business.Services
             _systemConfigRepository = systemConfigRepository;
             _serviceRegistrationRepository = serviceRegistrationRepository;
             _stallRepository = stallRepository;
+            _auditLogRepository = auditLogRepository;
             _logger = logger;
             _paymentValidator = paymentValidator;
         }
@@ -487,14 +490,17 @@ namespace STMM.Business.Services
             return true;
         }
 
-        /// <summary>
-        /// Manual mapping — tránh phức tạp AutoMapper cho nested multi-level relations.
-        /// </summary>
         private static InvoiceDto MapInvoiceToDto(Invoice invoice)
         {
             var stall = invoice.Contract?.Stall;
             var vendor = invoice.Contract?.Vendor;
             var vendorUser = vendor?.User;
+
+            // Rule: Tab 1 (Periodic) vs Tab 2 (Irregular).
+            // Invoices with any of the following manual fee types are considered Irregular (Tab 2).
+            var irregularKeywords = new[] { "phạt", "vi phạm", "sửa chữa", "bồi thường", "truy thu" };
+            var isIrregular = invoice.InvoiceDetails.Any(d => d.FeeType != null && 
+                irregularKeywords.Any(k => d.FeeType.Name.Contains(k, StringComparison.OrdinalIgnoreCase)));
 
             return new InvoiceDto
             {
@@ -511,6 +517,7 @@ namespace STMM.Business.Services
                 StallCategory = stall?.Category?.Name ?? string.Empty,
                 VendorName = vendor?.BusinessName ?? vendorUser?.Name ?? string.Empty,
                 VendorPhone = vendorUser?.Phone ?? string.Empty,
+                InvoiceType = isIrregular ? "Irregular" : "Periodic",
                 Details = invoice.InvoiceDetails.Select(d => new InvoiceDetailDto
                 {
                     InvoiceDetailId = d.InvoiceDetailId,
@@ -629,6 +636,49 @@ namespace STMM.Business.Services
 
             await _invoiceRepository.SaveChangesAsync(ct);
             return true;
+        }
+
+        /// <inheritdoc />
+        public async Task<IEnumerable<STMM.Business.DTOs.Vendor.AccountantVendorDto>> GetVendorsForAccountantAsync(int accountantUserId, CancellationToken ct = default)
+        {
+            int? marketId = null;
+            var user = await _userRepository.GetByIdAsync(accountantUserId, ct);
+            if (user != null) marketId = user.MarketId;
+
+            var vendors = await _userRepository.Query()
+                .Include(u => u.Vendor)
+                    .ThenInclude(v => v!.ServiceRegistrations)
+                        .ThenInclude(sr => sr.Service)
+                .Include(u => u.Vendor)
+                    .ThenInclude(v => v!.Contracts)
+                        .ThenInclude(c => c.Stall)
+                .Where(u => u.Role.Name == "Vendor" && u.MarketId == marketId && u.IsDeleted == false)
+                .ToListAsync(ct);
+
+            var result = vendors.Where(u => u.Vendor != null).Select(u => new STMM.Business.DTOs.Vendor.AccountantVendorDto
+            {
+                VendorId = u.Vendor!.VendorId,
+                BusinessName = u.Vendor.BusinessName,
+                OwnerName = u.Name,
+                Phone = u.Phone,
+                Email = u.Email,
+                TaxCode = u.Vendor.TaxCode,
+                BankAccount = u.Vendor.BankAccount,
+                BankName = u.Vendor.BankName,
+                Status = u.Status,
+                RegisteredServices = u.Vendor.ServiceRegistrations
+                    .Where(sr => sr.Status == "Active")
+                    .Select(sr => sr.Service?.Name ?? "Dịch vụ")
+                    .Distinct()
+                    .ToList(),
+                StallCodes = u.Vendor.Contracts
+                    .Where(c => c.Status == "Active" && c.Stall != null)
+                    .Select(c => c.Stall!.Code)
+                    .Distinct()
+                    .ToList()
+            }).ToList();
+
+            return result;
         }
 
         /// <inheritdoc />
@@ -941,32 +991,65 @@ namespace STMM.Business.Services
         /// <inheritdoc />
         public async Task<int> AutoGenerateMonthlyInvoicesAsync(int month, int year, CancellationToken ct = default)
         {
-            // 1. Get all active contracts
-            var activeContracts = await _contractRepository.GetAllActiveContractsWithDetailsAsync(ct);
+            var activeContracts = await _contractRepository.GetActiveContractsForBillingAsync(month, year, ct);
 
-            // Get invoice due days from config
             var dueDaysConfig = await _systemConfigRepository.GetSystemConfigByKeyAsync("invoice_due_days", null, ct);
             int dueDays = dueDaysConfig != null && int.TryParse(dueDaysConfig.ConfigValue, out var parsedDays) ? parsedDays : 15;
 
-            // Get fee types to link correctly
             var rentFeeType = await _feeTypeRepository.GetRentFeeTypeAsync(null, ct);
             int rentFeeTypeId = rentFeeType?.FeeTypeId ?? 1;
 
             int count = 0;
+            var newInvoices = new List<Invoice>();
+
+            var existingInvoices = await _invoiceRepository.Query()
+                .Where(i => i.Month == month && i.Year == year && i.IsDeleted != true && i.Status != "Canceled")
+                .SelectMany(i => i.InvoiceDetails)
+                .Where(d => d.FeeTypeId == rentFeeTypeId)
+                .Select(d => d.Invoice.ContractId)
+                .ToListAsync(ct);
+            var existingContractIds = new HashSet<int>(existingInvoices);
 
             foreach (var contract in activeContracts)
             {
-                // Check if invoice already exists for this month/year/contract
-                var exists = await _invoiceRepository.ExistsInvoiceForContractAsync(contract.ContractId, month, year, ct);
+                if (existingContractIds.Contains(contract.ContractId)) continue;
 
-                if (exists) continue;
+                decimal rentAmount = CalculateProratedAmount(contract.RentFee, contract.StartDate.ToDateTime(TimeOnly.MinValue), contract.EndDate.ToDateTime(TimeOnly.MinValue), month, year);
+                if (rentAmount <= 0) continue;
 
-                // Find active service registrations for this stall
-                var activeServices = await _serviceRegistrationRepository.GetActiveServiceRegistrationsByStallIdAsync(contract.StallId, ct);
+                decimal totalAmount = rentAmount;
+                var activeServices = contract.Stall?.ServiceRegistrations?.Where(sr => sr.Status == "Active").ToList() ?? new List<ServiceRegistration>();
+                var validServices = new List<(ServiceRegistration Reg, decimal Amount)>();
 
-                decimal totalAmount = contract.RentFee + activeServices.Sum(s => s.Service.Price);
+                foreach (var reg in activeServices)
+                {
+                    if (reg.Service == null) continue;
 
-                // Create a new Invoice (Draft status)
+                    bool shouldBill = false;
+                    decimal serviceAmount = 0;
+                    var regDate = reg.RegisteredAt ?? contract.StartDate.ToDateTime(TimeOnly.MinValue);
+
+                    if (string.Equals(reg.Service.BillingCycle, "Yearly", StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (regDate.Month == month)
+                        {
+                            shouldBill = true;
+                            serviceAmount = reg.Service.Price;
+                        }
+                    }
+                    else
+                    {
+                        shouldBill = true;
+                        serviceAmount = CalculateProratedAmount(reg.Service.Price, regDate, reg.EndDate, month, year);
+                    }
+
+                    if (shouldBill && serviceAmount > 0)
+                    {
+                        totalAmount += serviceAmount;
+                        validServices.Add((reg, serviceAmount));
+                    }
+                }
+
                 var invoice = new Invoice
                 {
                     ContractId = contract.ContractId,
@@ -979,41 +1062,122 @@ namespace STMM.Business.Services
                     IsDeleted = false
                 };
 
-                await _invoiceRepository.AddAsync(invoice, ct);
-                await _invoiceRepository.SaveChangesAsync(ct);
-
-                // Add Rent Fee detail line
                 var rentDetail = new InvoiceDetail
                 {
-                    InvoiceId = invoice.InvoiceId,
                     FeeTypeId = rentFeeTypeId,
-                    Description = $"Tiền thuê sạp {contract.Stall.Code} tháng {month}/{year}",
+                    Description = $"Tiền thuê sạp {contract.Stall?.Code} tháng {month}/{year}",
                     Quantity = 1,
                     UnitPrice = contract.RentFee,
-                    Amount = contract.RentFee
+                    Amount = rentAmount
                 };
                 invoice.InvoiceDetails.Add(rentDetail);
 
-                // Add detail lines for registered services
-                foreach (var reg in activeServices)
+                foreach (var srv in validServices)
                 {
                     var srvDetail = new InvoiceDetail
                     {
-                        InvoiceId = invoice.InvoiceId,
-                        FeeTypeId = reg.Service.FeeTypeId,
-                        Description = $"{reg.Service.Name} tháng {month}/{year}",
+                        FeeTypeId = srv.Reg.Service.FeeTypeId,
+                        Description = $"{srv.Reg.Service.Name} tháng {month}/{year}",
                         Quantity = 1,
-                        UnitPrice = reg.Service.Price,
-                        Amount = reg.Service.Price
+                        UnitPrice = srv.Reg.Service.Price,
+                        Amount = srv.Amount
                     };
                     invoice.InvoiceDetails.Add(srvDetail);
                 }
 
+                newInvoices.Add(invoice);
+            }
+
+            if (newInvoices.Any())
+            {
+                await _invoiceRepository.AddRangeAsync(newInvoices, ct);
                 await _invoiceRepository.SaveChangesAsync(ct);
-                count++;
+                count = newInvoices.Count;
+            }
+
+            // Log history
+            if (count > 0)
+            {
+                var auditLog = new AuditLog
+                {
+                    UserId = 1, // System or Admin
+                    Action = $"AutoGenerateInvoices_M{month}_Y{year}_C{count}",
+                    CreatedAt = DateTime.UtcNow
+                };
+                await _auditLogRepository.AddAsync(auditLog, ct);
+                await _auditLogRepository.SaveChangesAsync(ct);
             }
 
             return count;
+        }
+
+        public async Task<IEnumerable<AutoGenerateHistoryDto>> GetAutoGenerateHistoryAsync(CancellationToken ct = default)
+        {
+            var logs = await _auditLogRepository.Query()
+                .Where(l => l.Action.StartsWith("AutoGenerateInvoices_"))
+                .OrderByDescending(l => l.CreatedAt)
+                .Take(50)
+                .ToListAsync(ct);
+
+            var history = new List<AutoGenerateHistoryDto>();
+            foreach (var log in logs)
+            {
+                var parts = log.Action.Split('_');
+                if (parts.Length >= 4 && int.TryParse(parts[1].Replace("M", ""), out int m) && int.TryParse(parts[2].Replace("Y", ""), out int y))
+                {
+                    int.TryParse(parts[3].Replace("C", ""), out int count);
+
+                    history.Add(new AutoGenerateHistoryDto
+                    {
+                        LogId = log.LogId,
+                        Action = log.Action,
+                        CreatedAt = log.CreatedAt,
+                        Month = m,
+                        Year = y,
+                        InvoicesGenerated = count
+                    });
+                }
+            }
+            return history;
+        }
+
+        public async Task<int> TriggerAutoGenerateAsync(int month, int year, int triggerUserId, CancellationToken ct = default)
+        {
+            int count = await AutoGenerateMonthlyInvoicesAsync(month, year, ct);
+
+            // If manual trigger generated something, log it specifically
+            if (count > 0)
+            {
+                var auditLog = new AuditLog
+                {
+                    UserId = triggerUserId,
+                    Action = $"ManualTriggerInvoices_M{month}_Y{year}_C{count}",
+                    CreatedAt = DateTime.UtcNow
+                };
+                await _auditLogRepository.AddAsync(auditLog, ct);
+                await _auditLogRepository.SaveChangesAsync(ct);
+            }
+
+            return count;
+        }
+
+        private decimal CalculateProratedAmount(decimal fullAmount, DateTime startDate, DateTime? endDate, int targetMonth, int targetYear)
+        {
+            var targetStart = new DateTime(targetYear, targetMonth, 1);
+            var targetEnd = new DateTime(targetYear, targetMonth, DateTime.DaysInMonth(targetYear, targetMonth));
+
+            if (startDate > targetEnd) return 0;
+            if (endDate.HasValue && endDate.Value < targetStart) return 0;
+
+            var actualStart = startDate > targetStart ? startDate : targetStart;
+            var actualEnd = endDate.HasValue && endDate.Value < targetEnd ? endDate.Value : targetEnd;
+
+            int activeDays = (actualEnd - actualStart).Days + 1;
+            int totalDaysInMonth = DateTime.DaysInMonth(targetYear, targetMonth);
+
+            if (activeDays >= totalDaysInMonth) return fullAmount;
+
+            return Math.Round((fullAmount / totalDaysInMonth) * activeDays, 0);
         }
 
         /// <inheritdoc />

@@ -13,6 +13,7 @@ namespace STMM.DataAccess.IRepositories
         Task<List<Stall>> GetStallsWithDebtAsync(int? accountantMarketId = null, string? search = null, CancellationToken ct = default);
         Task<Stall?> GetStallWithDebtDetailsAsync(int stallId, CancellationToken ct = default);
         Task<List<Contract>> GetAllActiveContractsWithDetailsAsync(CancellationToken ct = default);
+        Task<List<Contract>> GetActiveContractsForBillingAsync(int targetMonth, int targetYear, CancellationToken ct = default);
     }
 }
 

@@ -6,11 +6,11 @@ import {
   CheckCircle, FileText
 } from 'lucide-react';
 
-const getCategoryBadge = (name) => {
+const getCategoryBadge = (name, t) => {
   const n = name.toLowerCase();
-  if (n.includes('Điện') || n.includes('bóng đèn') || n.includes('led') || n.includes('ổ cắm')) return { cls: 'badge badge-warning', label: 'Điện' };
-  if (n.includes('Nước') || n.includes('vòi') || n.includes('ống') || n.includes('thoát')) return { cls: 'badge badge-info', label: 'Nước' };
-  return { cls: 'badge badge-neutral', label: 'Xây dựng' };
+  if (n.includes('Điện') || n.includes('bóng đèn') || n.includes('led') || n.includes('ổ cắm')) return { cls: 'badge badge-warning', label: t('repairprice.electricity_category') };
+  if (n.includes('Nước') || n.includes('vòi') || n.includes('ống') || n.includes('thoát')) return { cls: 'badge badge-info', label: t('repairprice.water_category') };
+  return { cls: 'badge badge-neutral', label: t('repairprice.construction_category') };
 };
 
 const formatDate = (d) => {
@@ -86,6 +86,19 @@ export default function RepairPrice() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    
+    // Validation for item name
+    if (!formState.itemName || formState.itemName.trim() === '') {
+      setModalError(t('repairprice.please_enter_item_name'));
+      return;
+    }
+    
+    // Validation for price
+    if (!formState.price || parseFloat(formState.price) <= 0) {
+      setModalError(t('repairprice.price_must_be_positive'));
+      return;
+    }
+    
     const isEdit = activeModal === 'edit';
     const url = isEdit ? `http://localhost:5056/api/accountant/repair-prices/${selectedItem.repairPriceId}` : 'http://localhost:5056/api/accountant/repair-prices';
     if (isMock) {
@@ -112,7 +125,7 @@ export default function RepairPrice() {
   const handleDelete = () => {
     if (isMock) {
       if (selectedItem.usageCount > 0) {
-        setModalError(`Không thể xóa hạng mục '${selectedItem.itemName}' vì đã được sử dụng trong các lịch sử sửa chữa.`);
+        setModalError(t('repairprice.cannot_delete_item_used', { itemName: selectedItem.itemName }));
       } else {
         setRepairItems(p => p.filter(i => i.repairPriceId !== selectedItem.repairPriceId));
         showNotification('success', t('repairprice.repair_category_removed'));
@@ -168,7 +181,7 @@ export default function RepairPrice() {
       )}
 
       {/* Search */}
-      <div className="acc-card" style={{ padding: "20px" }} style={{ padding: '14px 20px' }}>
+      <div className="acc-card" style={{ padding: '14px 20px' }}>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           <div className="search-wrapper" style={{ flex: '1 1 220px' }}>
             <Search size={14} className="search-icon-inner" />
@@ -176,7 +189,7 @@ export default function RepairPrice() {
               placeholder={t('repairprice.find_names_of_materials')}
               value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
           </div>
-          <span className="acc-badge neutral">{activeTab === 'prices' ? filteredPrices.length : filteredUsed.length} kết quả</span>
+          <span className="acc-badge neutral">{t('repairprice.results_count', { count: activeTab === 'prices' ? filteredPrices.length : filteredUsed.length })}</span>
         </div>
       </div>
 
@@ -185,7 +198,7 @@ export default function RepairPrice() {
         {[{ id: 'prices', label: t('repairprice.list_of_unit_prices'), icon: Wrench }, { id: 'history', label: t('repairprice.supplies_used'), icon: History }].map(tab => {
           const Icon = tab.icon;
           return (
-            <button key={tab.id} className={`tab-btn ${activeTab === tab.id ? 'active' : ''}`} onClick={() => setActiveTab(tab.id)}>
+            <button key={tab.id} className={`acc-tab-btn ${activeTab === tab.id ? 'active' : ''}`} onClick={() => setActiveTab(tab.id)}>
               <Icon size={15} /> {tab.label}
             </button>
           );
@@ -202,6 +215,12 @@ export default function RepairPrice() {
           {/* TAB 1: PRICES */}
           {activeTab === 'prices' && (
             <div className="card" style={{ overflow: 'hidden' }}>
+              <div style={{ padding: '20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h3 style={{ fontSize: '16px', fontWeight: '700', margin: 0 }}>{t('repairprice.list_of_unit_prices')}</h3>
+                <button className="acc-btn-primary btn-sm" onClick={() => { setSelectedItem(null); setFormState({ itemName: '', unit: t('repairprice.female'), price: 0, description: '', isActive: true }); setModalError(null); setActiveModal('add'); }}>
+                  <Plus size={15} /> {t('repairprice.add_categories')}
+                </button>
+              </div>
               <table className="acc-table">
                 <thead>
                   <tr>
@@ -217,14 +236,14 @@ export default function RepairPrice() {
                 </thead>
                 <tbody>
                   {filteredPrices.length > 0 ? filteredPrices.slice((pricesPage - 1) * itemsPerPage, pricesPage * itemsPerPage).map(item => {
-                    const catBadge = getCategoryBadge(item.itemName);
+                    const catBadge = getCategoryBadge(item.itemName, t);
                     return (
                       <tr key={item.repairPriceId} style={{ opacity: item.isActive ? 1 : 0.55 }}>
                         <td><strong style={{ fontSize: 13.5 }}>{item.itemName}</strong></td>
                         <td><span className={catBadge.cls}>{catBadge.label}</span></td>
                         <td><span className="acc-badge neutral">{item.unit}</span></td>
                         <td className="text-right"><strong style={{ color: 'var(--primary)' }}>{item.price.toLocaleString('vi-VN')} ₫</strong></td>
-                        <td><span style={{ color: 'var(--text-muted)', fontSize: 13 }}>{item.usageCount || 0} lần</span></td>
+                        <td><span style={{ color: 'var(--text-muted)', fontSize: 13 }}>{t('repairprice.times_count', { count: item.usageCount || 0 })}</span></td>
                         <td><span style={{ color: 'var(--text-muted)', fontSize: 13 }}>{item.description || '—'}</span></td>
                         <td>
                           <span className={item.isActive ? 'badge badge-success' : 'badge badge-neutral'}>
@@ -251,7 +270,7 @@ export default function RepairPrice() {
               {filteredPrices.length > itemsPerPage && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, padding: '16px' }}>
                   <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-                    Hiển thị {((pricesPage - 1) * itemsPerPage) + 1} - {Math.min(pricesPage * itemsPerPage, filteredPrices.length)} trong tổng số {filteredPrices.length} hạng mục
+                    {t('repairprice.show_paginated_prices', { start: ((pricesPage - 1) * itemsPerPage) + 1, end: Math.min(pricesPage * itemsPerPage, filteredPrices.length), total: filteredPrices.length })}
                   </span>
                   <div style={{ display: 'flex', gap: 6 }}>
                     <button 
@@ -318,7 +337,7 @@ export default function RepairPrice() {
               {filteredUsed.length > itemsPerPage && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, padding: '16px' }}>
                   <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-                    Hiển thị {((usedPage - 1) * itemsPerPage) + 1} - {Math.min(usedPage * itemsPerPage, filteredUsed.length)} trong tổng số {filteredUsed.length} lượt cấp phát
+                    {t('repairprice.display')} {((usedPage - 1) * itemsPerPage) + 1} - {Math.min(usedPage * itemsPerPage, filteredUsed.length)} {t('repairprice.out_of')} {filteredUsed.length} {t('repairprice.issued_times')}
                   </span>
                   <div style={{ display: 'flex', gap: 6 }}>
                     <button 
@@ -356,7 +375,7 @@ export default function RepairPrice() {
         <div className="acc-modal-overlay" onClick={() => setActiveModal(null)}>
           <div className="acc-modal-container" onClick={e => e.stopPropagation()}>
             <div className="acc-modal-header">
-              <span className="acc-modal-title">{activeModal === 'edit' ? t('repairprice.edit') : t('repairprice.more')} Hạng mục Sửa chữa</span>
+              <span className="acc-modal-title">{activeModal === 'edit' ? t('repairprice.edit') : t('repairprice.more')} {t('repairprice.repair_item')}</span>
               <button className="acc-modal-close" onClick={() => setActiveModal(null)}><X size={16} /></button>
             </div>
             <form onSubmit={handleSubmit}>

@@ -18,7 +18,9 @@ import {
   Info,
   CheckCircle,
   X,
-  Receipt
+  Receipt,
+  Users,
+  Search
 } from 'lucide-react';
 
 export default function FinancialConfig() {
@@ -32,9 +34,12 @@ export default function FinancialConfig() {
   const [systemConfigs, setSystemConfigs] = useState([]);
   const [electricTiers, setElectricTiers] = useState([]);
   const [waterTiers, setWaterTiers] = useState([]);
+  const [vendors, setVendors] = useState([]);
+  const [vendorsSearch, setVendorsSearch] = useState('');
   
   const [feeTypesPage, setFeeTypesPage] = useState(1);
   const [servicesPage, setServicesPage] = useState(1);
+  const [vendorsPage, setVendorsPage] = useState(1);
   const itemsPerPage = 5;
   
   const [loading, setLoading] = useState(true);
@@ -52,8 +57,8 @@ export default function FinancialConfig() {
   // Form states
   // react-hook-form setup for Fee Form
   const feeSchema = yup.object().shape({
-    name: yup.string().trim().required('Tên phí không được để trống.'),
-    unit: yup.string().trim().required('Đơn vị tính không được để trống.'),
+    name: yup.string().trim().required(t('financialconfig.fee_name_required')),
+    unit: yup.string().trim().required(t('financialconfig.unit_required')),
     description: yup.string().trim().nullable()
   });
   
@@ -105,14 +110,17 @@ export default function FinancialConfig() {
       fetch('http://localhost:5056/api/accountant/config/services', { headers }).then(r => r.json()),
       fetch('http://localhost:5056/api/accountant/config/system-configs', { headers }).then(r => r.json()),
       fetch('http://localhost:5056/api/accountant/config/tiers/electricity_tiers', { headers }).then(r => r.json()),
-      fetch('http://localhost:5056/api/accountant/config/tiers/water_tiers', { headers }).then(r => r.json())
+      fetch('http://localhost:5056/api/accountant/config/tiers/water_tiers', { headers }).then(r => r.json()),
+      fetch('http://localhost:5056/api/accountant/billing/vendors', { headers }).then(r => r.json())
     ])
-    .then(([fees, srvs, sys, elec, water]) => {
+    .then(([fees, srvs, sys, elec, water, vends]) => {
       setFeeTypes(fees);
       setServices(srvs);
       setSystemConfigs(sys);
       setElectricTiers(elec);
       setWaterTiers(water);
+      // Handle cases where the backend might return error or non-array for vendors
+      setVendors(Array.isArray(vends) ? vends : []);
       setLoading(false);
     })
     .catch(err => {
@@ -124,6 +132,7 @@ export default function FinancialConfig() {
         setSystemConfigs(getMockSys());
         setElectricTiers(getMockElectricTiers());
         setWaterTiers(getMockWaterTiers());
+        setVendors(getMockVendors());
         setIsMock(true);
         setLoading(false);
       }, 600);
@@ -163,6 +172,12 @@ export default function FinancialConfig() {
     { configId: 1, configKey: 'invoice_due_days', configValue: '15', description: t('financialconfig.the_number_of_days') },
     { configId: 2, configKey: 'vat_rate', configValue: '10', description: t('financialconfig.value_added_tax') },
     { configId: 3, configKey: 'auto_invoice_day', configValue: '5', description: t('financialconfig.day_of_the_month') },
+  ];
+
+  const getMockVendors = () => [
+    { vendorId: 1, businessName: 'Sạp Trái Cây Cô Ba', ownerName: 'Nguyễn Thị Ba', phone: '0901234567', registeredServices: ['Thu gom rác', 'Bảo vệ'], stallCodes: ['A01', 'A02'], status: 'Active' },
+    { vendorId: 2, businessName: 'Thịt Heo Sạch Chú Tư', ownerName: 'Trần Văn Tư', phone: '0909876543', registeredServices: ['Thu gom rác'], stallCodes: ['B05'], status: 'Active' },
+    { vendorId: 3, businessName: 'Tạp Hóa Bà Bảy', ownerName: 'Lê Thị Bảy', phone: '0912345678', registeredServices: [], stallCodes: ['C12'], status: 'Active' },
   ];
 
   const getMockElectricTiers = () => [
@@ -279,6 +294,25 @@ export default function FinancialConfig() {
   // 2. Services
   const handleServiceSubmit = (e) => {
     e.preventDefault();
+    
+    // Validation for service name
+    if (!serviceForm.name || serviceForm.name.trim() === '') {
+      setModalError(t('financialconfig.please_enter_service_name'));
+      return;
+    }
+    
+    // Validation for price
+    if (!serviceForm.price || parseFloat(serviceForm.price) <= 0) {
+      setModalError(t('financialconfig.price_must_be_positive'));
+      return;
+    }
+    
+    // Validation for fee type
+    if (!serviceForm.feeTypeId) {
+      setModalError(t('financialconfig.please_select_fee_type'));
+      return;
+    }
+    
     const nameTrimmed = serviceForm.name ? serviceForm.name.trim() : '';
     const descTrimmed = serviceForm.description ? serviceForm.description.trim() : '';
     const priceVal = parseFloat(serviceForm.price);
@@ -497,6 +531,7 @@ export default function FinancialConfig() {
     { id: 'system', label: t('financialconfig.general_configuration_ladder'), icon: Settings },
     { id: 'fees', label: t('financialconfig.fee_list'), icon: CreditCard },
     { id: 'services', label: t('financialconfig.registration_services'), icon: FileText },
+    { id: 'vendors', label: t('financialconfig.list_of_small_businesses'), icon: Users },
   ];
 
   return (
@@ -684,14 +719,14 @@ export default function FinancialConfig() {
                       {electricTiers.map(tierItem => (
                         <tr key={tierItem.step}>
                           <td>
-                            <span className="acc-badge warning">Bậc {tierItem.step}</span>
+                            <span className="acc-badge warning">{t('financialconfig.tier_badge', { step: tierItem.step })}</span>
                           </td>
                           <td style={{ fontWeight: '600', color: 'var(--text-title)' }}>{tierItem.from}</td>
                           <td style={{ color: 'var(--text-muted)' }}>
                             {tierItem.to === null ? <span className="acc-badge neutral">{t('financialconfig.infinite')}</span> : tierItem.to}
                           </td>
                           <td className="text-right" style={{ fontWeight: '700', color: 'var(--warning)' }}>
-                            {tierItem.price.toLocaleString('vi-VN')} đ
+                            {tierItem.price.toLocaleString('vi-VN')} {t('dashboard.currency_unit')}
                           </td>
                           <td className="text-right">
                             {tierItem.step === electricTiers.length && tierItem.step > 1 && (
@@ -755,14 +790,14 @@ export default function FinancialConfig() {
                       {waterTiers.map(tierItem => (
                         <tr key={tierItem.step}>
                           <td>
-                            <span className="acc-badge info">Bậc {tierItem.step}</span>
+                            <span className="acc-badge info">{t('financialconfig.tier_badge', { step: tierItem.step })}</span>
                           </td>
                           <td style={{ fontWeight: '600', color: 'var(--text-title)' }}>{tierItem.from}</td>
                           <td style={{ color: 'var(--text-muted)' }}>
                             {tierItem.to === null ? <span className="acc-badge neutral">{t('financialconfig.infinite')}</span> : tierItem.to}
                           </td>
                           <td className="text-right" style={{ fontWeight: '700', color: 'var(--info)' }}>
-                            {tierItem.price.toLocaleString('vi-VN')} đ
+                            {tierItem.price.toLocaleString('vi-VN')} {t('dashboard.currency_unit')}
                           </td>
                           <td className="text-right">
                             {tierItem.step === waterTiers.length && tierItem.step > 1 && (
@@ -793,7 +828,7 @@ export default function FinancialConfig() {
                   <h3 style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-title)', letterSpacing: '-0.02em' }}>
                     {t('financialconfig.manage_fee_category')}</h3>
                   <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                    {feeTypes.length} loại phí đã được cấu hình trong hệ thống.
+                    {t('financialconfig.fee_configured_count', { count: feeTypes.length })}
                   </p>
                 </div>
                 <button
@@ -866,7 +901,7 @@ export default function FinancialConfig() {
               {feeTypes.length > itemsPerPage && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 }}>
                   <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-                    Hiển thị {((feeTypesPage - 1) * itemsPerPage) + 1} - {Math.min(feeTypesPage * itemsPerPage, feeTypes.length)} trong tổng số {feeTypes.length} loại phí
+                    {t('financialconfig.show_paginated_fees', { start: ((feeTypesPage - 1) * itemsPerPage) + 1, end: Math.min(feeTypesPage * itemsPerPage, feeTypes.length), total: feeTypes.length })}
                   </span>
                   <div style={{ display: 'flex', gap: 6 }}>
                     <button 
@@ -905,7 +940,7 @@ export default function FinancialConfig() {
                   <h3 style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-title)', letterSpacing: '-0.02em' }}>
                     {t('financialconfig.list_of_subscription_services')}</h3>
                   <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                    {services.length} dịch vụ đang hoạt động trong hệ thống.
+                    {t('financialconfig.service_active_count', { count: services.length })}
                   </p>
                 </div>
                 <button
@@ -988,7 +1023,7 @@ export default function FinancialConfig() {
               {services.length > itemsPerPage && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 }}>
                   <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-                    Hiển thị {((servicesPage - 1) * itemsPerPage) + 1} - {Math.min(servicesPage * itemsPerPage, services.length)} trong tổng số {services.length} dịch vụ
+                    {t('financialconfig.show_paginated_services', { start: ((servicesPage - 1) * itemsPerPage) + 1, end: Math.min(servicesPage * itemsPerPage, services.length), total: services.length })}
                   </span>
                   <div style={{ display: 'flex', gap: 6 }}>
                     <button 
@@ -1010,6 +1045,120 @@ export default function FinancialConfig() {
                       className="acc-btn-secondary btn-sm" 
                       onClick={() => setServicesPage(prev => Math.min(prev + 1, Math.ceil(services.length / itemsPerPage)))} 
                       disabled={servicesPage === Math.ceil(services.length / itemsPerPage)}
+                    >
+                      Sau
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ─── TAB 4: VENDORS ─── */}
+          {activeTab === 'vendors' && (
+            <div className="acc-card" style={{ padding: "20px" }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <div>
+                  <h3 style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-title)', letterSpacing: '-0.02em' }}>
+                    {t('financialconfig.list_of_small_businesses')}
+                  </h3>
+                  <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                    {t('financialconfig.vendor_active_count', { count: vendors.length })}
+                  </p>
+                </div>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <div className="acc-search" style={{ width: '250px', position: 'relative' }}>
+                    <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                    <input 
+                      type="text" 
+                      placeholder={t('financialconfig.search_vendor_placeholder')} 
+                      value={vendorsSearch}
+                      onChange={e => setVendorsSearch(e.target.value)}
+                      style={{ width: '100%', padding: '6px 10px 6px 30px', borderRadius: '6px', border: '1px solid var(--border)', fontSize: '13px' }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <table className="acc-table">
+                <thead>
+                  <tr>
+                    <th>{t('financialconfig.store_name')}</th>
+                    <th>{t('financialconfig.owner')}</th>
+                    <th>{t('financialconfig.contact')}</th>
+                    <th>{t('financialconfig.registered_services')}</th>
+                    <th>{t('financialconfig.stall_code')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {vendors
+                    .filter(v => v.businessName.toLowerCase().includes(vendorsSearch.toLowerCase()) || v.phone.includes(vendorsSearch))
+                    .slice((vendorsPage - 1) * itemsPerPage, vendorsPage * itemsPerPage)
+                    .map(v => (
+                    <tr key={v.vendorId}>
+                      <td style={{ fontWeight: '700', color: 'var(--text-title)' }}>{v.businessName}</td>
+                      <td>{v.ownerName}</td>
+                      <td>
+                        <div style={{ fontSize: '13px' }}>{v.phone}</div>
+                        <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{v.email}</div>
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                          {v.registeredServices.length > 0 ? (
+                            v.registeredServices.map(srv => (
+                              <span key={srv} className="acc-badge info" style={{ backgroundColor: 'var(--primary)', color: '#fff', fontSize: '11px', padding: '2px 6px', borderRadius: '4px' }}>{srv}</span>
+                            ))
+                          ) : (
+                            <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>{t('financialconfig.none')}</span>
+                          )}
+                        </div>
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                          {v.stallCodes.map(code => (
+                            <span key={code} className="acc-badge neutral" style={{ backgroundColor: 'var(--surface-mixed)', border: '1px solid var(--border)', fontSize: '11px', padding: '2px 6px', borderRadius: '4px', color: 'var(--text-secondary)' }}>{code}</span>
+                          ))}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {vendors.filter(v => v.businessName.toLowerCase().includes(vendorsSearch.toLowerCase()) || v.phone.includes(vendorsSearch)).length === 0 && (
+                    <tr>
+                      <td colSpan="5" className="text-center" style={{ padding: '20px', color: 'var(--text-muted)' }}>
+                        {t('financialconfig.vendor_not_found')}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+
+              {vendors.filter(v => v.businessName.toLowerCase().includes(vendorsSearch.toLowerCase()) || v.phone.includes(vendorsSearch)).length > itemsPerPage && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 }}>
+                  <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+                    {t('financialconfig.show_paginated_vendors', { start: ((vendorsPage - 1) * itemsPerPage) + 1, end: Math.min(vendorsPage * itemsPerPage, vendors.filter(v => v.businessName.toLowerCase().includes(vendorsSearch.toLowerCase()) || v.phone.includes(vendorsSearch)).length), total: vendors.length })}
+                  </span>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button 
+                      className="acc-btn-secondary btn-sm" 
+                      onClick={() => setVendorsPage(prev => Math.max(prev - 1, 1))} 
+                      disabled={vendorsPage === 1}
+                    >
+                      {t('financialconfig.before')}
+                    </button>
+                    {Array.from({ length: Math.ceil(vendors.filter(v => v.businessName.toLowerCase().includes(vendorsSearch.toLowerCase()) || v.phone.includes(vendorsSearch)).length / itemsPerPage) }, (_, i) => i + 1).map(page => (
+                      <button 
+                        key={page} 
+                        className={`acc-btn-secondary btn-sm ${vendorsPage === page ? 'active' : ''}`}
+                        onClick={() => setVendorsPage(page)}
+                        style={vendorsPage === page ? { backgroundColor: 'var(--primary)', color: '#fff', borderColor: 'var(--primary)' } : {}}
+                      >
+                        {page}
+                      </button>
+                    ))}
+                    <button 
+                      className="acc-btn-secondary btn-sm" 
+                      onClick={() => setVendorsPage(prev => Math.min(prev + 1, Math.ceil(vendors.filter(v => v.businessName.toLowerCase().includes(vendorsSearch.toLowerCase()) || v.phone.includes(vendorsSearch)).length / itemsPerPage)))} 
+                      disabled={vendorsPage === Math.ceil(vendors.filter(v => v.businessName.toLowerCase().includes(vendorsSearch.toLowerCase()) || v.phone.includes(vendorsSearch)).length / itemsPerPage)}
                     >
                       Sau
                     </button>
@@ -1326,7 +1475,7 @@ export default function FinancialConfig() {
                       onChange={e => setSysForm({ ...sysForm, configValue: e.target.value })}
                     >
                       {Array.from({ length: 28 }, (_, i) => i + 1).map(day => (
-                        <option key={day} value={String(day)}>Ngày {day} hàng tháng</option>
+                        <option key={day} value={String(day)}>{t('financialconfig.day_of_month_each', { day })}</option>
                       ))}
                     </select>
                   ) : (
@@ -1385,8 +1534,8 @@ export default function FinancialConfig() {
                           <span><strong>{t('financialconfig.update_ladder')}</strong></span>
                         </div>
                         <span style={{ fontSize: '12.5px' }}>
-                          Bậc {lastStep.step} hiện tại (từ {lastStep.from} đến Vô cùng) sẽ được gán giới hạn kết thúc mới.
-                          Bậc {lastStep.step + 1} mới sẽ tự động được tạo và áp dụng từ giới hạn đó + 1 đến **Vô cùng**.
+                          {t('financialconfig.new_tier_end_limit_note', { step: lastStep.step, from: lastStep.from })}
+                          {t('financialconfig.new_tier_infinity_note', { nextStep: lastStep.step + 1 })}
                         </span>
                       </div>
                     ) : (
@@ -1399,7 +1548,7 @@ export default function FinancialConfig() {
                     {hasTiers && (
                       <div>
                         <label className="acc-form-label">
-                          Giới hạn kết thúc mới cho Bậc {lastStep.step} <span style={{ color: 'var(--danger)' }}>*</span>
+                          {t('financialconfig.new_tier_end_limit_label', { step: lastStep.step })} <span style={{ color: 'var(--danger)' }}>*</span>
                         </label>
                         <input
                           className="acc-input"
@@ -1415,7 +1564,7 @@ export default function FinancialConfig() {
 
                     <div>
                       <label className="acc-form-label">
-                        Đơn giá áp dụng cho {hasTiers ? `Bậc ${lastStep.step + 1} mới (từ ${newTierLimit ? parseInt(newTierLimit) + 1 : '...'} trở đi)` : t('financialconfig.level_1_from_0')} (đ/{selectedTierKey === 'electricity_tiers' ? 'kWh' : 'm³'}) <span style={{ color: 'var(--danger)' }}>*</span>
+                        {t('financialconfig.new_tier_price_label', { tierLabel: hasTiers ? t('financialconfig.new_tier_from', { step: lastStep.step + 1, from: newTierLimit ? parseInt(newTierLimit) + 1 : '...' }) : t('financialconfig.level_1_from_0'), unit: selectedTierKey === 'electricity_tiers' ? 'kWh' : 'm³' })} <span style={{ color: 'var(--danger)' }}>*</span>
                       </label>
                       <input
                         className="acc-input"

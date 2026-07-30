@@ -198,6 +198,8 @@ namespace STMM.DataAccess.Repositories
                 .Include(i => i.Contract)
                     .ThenInclude(c => c.Vendor)
                         .ThenInclude(v => v.User)
+                .Include(i => i.InvoiceDetails)
+                    .ThenInclude(d => d.FeeType)
                 .Where(i => i.IsDeleted != true);
 
             if (accountantMarketId.HasValue)
@@ -278,6 +280,18 @@ namespace STMM.DataAccess.Repositories
                                i.Year == year && 
                                i.IsDeleted != true && 
                                i.Status != "Canceled", ct);
+        }
+
+        public async Task<bool> ExistsInvoiceWithFeeTypeForContractAsync(int contractId, int month, int year, int feeTypeId, CancellationToken ct = default)
+        {
+            return await _context.Invoices
+                .Where(i => i.ContractId == contractId && 
+                            i.Month == month && 
+                            i.Year == year && 
+                            i.IsDeleted != true && 
+                            i.Status != "Canceled")
+                .SelectMany(i => i.InvoiceDetails)
+                .AnyAsync(d => d.FeeTypeId == feeTypeId, ct);
         }
     }
 }

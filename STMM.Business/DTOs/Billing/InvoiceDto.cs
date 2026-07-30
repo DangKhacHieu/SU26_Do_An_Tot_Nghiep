@@ -23,5 +23,8 @@ namespace STMM.Business.DTOs.Billing
         // Nested details
         public IEnumerable<InvoiceDetailDto> Details { get; set; } = Enumerable.Empty<InvoiceDetailDto>();
         public IEnumerable<PaymentSummaryDto> Payments { get; set; } = Enumerable.Empty<PaymentSummaryDto>();
+
+        // Computed logic
+        public string InvoiceType { get; set; } = "Periodic";
     }
 }

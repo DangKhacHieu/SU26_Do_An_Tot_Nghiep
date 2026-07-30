@@ -91,7 +91,7 @@ export default function Dashboard() {
           </tr>
           <tr>
             <td colspan="2">{t('dashboard.revenue_this_month')}</td>
-            <td colspan="3" class="number">${data.revenueThisMonth.toLocaleString('vi-VN')} đ</td>
+            <td colspan="3" class="number">${data.revenueThisMonth.toLocaleString('vi-VN')} {t('dashboard.currency_unit')}</td>
           </tr>
           <tr>
             <td colspan="2">{t('dashboard.recurring_invoices')}</td>
@@ -99,11 +99,11 @@ export default function Dashboard() {
           </tr>
           <tr>
             <td colspan="2">{t('dashboard.incident_repair_costs')}</td>
-            <td colspan="3" class="number">${data.repairCostThisMonth.toLocaleString('vi-VN')} đ</td>
+            <td colspan="3" class="number">${data.repairCostThisMonth.toLocaleString('vi-VN')} {t('dashboard.currency_unit')}</td>
           </tr>
           <tr>
             <td colspan="2">{t('dashboard.violation_fines')}</td>
-            <td colspan="3" class="number">${data.violationFinesThisMonth.toLocaleString('vi-VN')} đ</td>
+            <td colspan="3" class="number">${data.violationFinesThisMonth.toLocaleString('vi-VN')} {t('dashboard.currency_unit')}</td>
           </tr>
           <tr><td colspan="5" style="border: none;"></td></tr>
           
@@ -197,7 +197,7 @@ export default function Dashboard() {
   const stats = [
     {
       title: t('dashboard.revenue_this_month'),
-      value: (data.revenueThisMonth || 0).toLocaleString('vi-VN') + ' ₫',
+      value: (data.revenueThisMonth || 0).toLocaleString('vi-VN') + ' ' + t('dashboard.currency_unit'),
       change: data.revenueChangePercent,
       isPositive: data.isRevenuePositive,
       icon: DollarSign,
@@ -217,7 +217,7 @@ export default function Dashboard() {
     },
     {
       title: t('dashboard.problems_repairs'),
-      value: (data.repairCostThisMonth || 0).toLocaleString('vi-VN') + ' ₫',
+      value: (data.repairCostThisMonth || 0).toLocaleString('vi-VN') + ' ' + t('dashboard.currency_unit'),
       change: data.repairCostChangePercent,
       isPositive: data.isRepairCostPositive,
       icon: Wrench,
@@ -227,7 +227,7 @@ export default function Dashboard() {
     },
     {
       title: t('dashboard.violation_fines'),
-      value: (data.violationFinesThisMonth || 0).toLocaleString('vi-VN') + ' ₫',
+      value: (data.violationFinesThisMonth || 0).toLocaleString('vi-VN') + ' ' + t('dashboard.currency_unit'),
       change: data.violationFinesChangePercent,
       isPositive: data.isViolationFinesPositive,
       icon: FileWarning,

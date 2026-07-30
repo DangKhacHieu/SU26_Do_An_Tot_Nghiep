@@ -20,6 +20,14 @@ namespace STMM.API.Controllers
             _billingService = billingService;
         }
 
+        [HttpGet("vendors")]
+        public async Task<IActionResult> GetVendorsForAccountant(CancellationToken ct)
+        {
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("userId")?.Value ?? "0");
+            var result = await _billingService.GetVendorsForAccountantAsync(userId, ct);
+            return Ok(result);
+        }
+
         /// <summary>
         /// Lấy danh sách hóa đơn theo các bộ lọc (Month, Year, Status, Search).
         /// </summary>
@@ -45,6 +53,21 @@ namespace STMM.API.Controllers
             var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("userId")?.Value ?? "0");
             var result = await _billingService.GetInvoiceDetailForAccountantAsync(invoiceId, userId, ct);
             return Ok(result);
+        }
+
+        [HttpGet("auto-generate-history")]
+        public async Task<IActionResult> GetAutoGenerateHistory(CancellationToken ct)
+        {
+            var result = await _billingService.GetAutoGenerateHistoryAsync(ct);
+            return Ok(result);
+        }
+
+        [HttpPost("trigger-auto-generate")]
+        public async Task<IActionResult> TriggerAutoGenerate([FromQuery] int month, [FromQuery] int year, CancellationToken ct)
+        {
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("userId")?.Value ?? "0");
+            var count = await _billingService.TriggerAutoGenerateAsync(month, year, userId, ct);
+            return Ok(new { Message = $"Đã tạo thành công {count} hóa đơn định kỳ cho tháng {month}/{year}", Count = count });
         }
 
         /// <summary>
