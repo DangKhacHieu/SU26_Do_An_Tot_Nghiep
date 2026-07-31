@@ -452,13 +452,13 @@ export default function MeterManagement({ addToast }) {
         <div className="modal-overlay" onClick={handleCloseModal}>
           <div className="modal-box" onClick={(e) => e.stopPropagation()}>
             <div className="modal-head">
-              <h3>{t('metermanagement.add_meters_to_availability')}</h3>
+              <h3>{t('metermanagement.add_meters_to_availability', 'Thêm công tơ vào kho')}</h3>
               <button className="modal-close" onClick={handleCloseModal}>×</button>
             </div>
             <form onSubmit={handleCreateMeter}>
               <div className="modal-body">
                 <div className="form-group">
-                  <label className="form-label">{t('metermanagement.meter_type')}<span className="text-danger">*</span></label>
+                  <label className="form-label">{t('metermanagement.meter_type', 'Loại công tơ')}<span className="text-danger">*</span></label>
                   <div className="radio-group">
                     <label className="radio-label">
                       <input
@@ -468,7 +468,7 @@ export default function MeterManagement({ addToast }) {
                         checked={formValues.type === 'Electricity'}
                         onChange={(e) => setFormValues(prev => ({ ...prev, type: e.target.value }))}
                       />
-                      {t('metermanagement.electricity')}</label>
+                      {t('metermanagement.electricity', 'Điện')}</label>
                     <label className="radio-label">
                       <input
                         type="radio"
@@ -477,29 +477,29 @@ export default function MeterManagement({ addToast }) {
                         checked={formValues.type === 'Water'}
                         onChange={(e) => setFormValues(prev => ({ ...prev, type: e.target.value }))}
                       />
-                      {t('metermanagement.water')}</label>
+                      {t('metermanagement.water', 'Nước')}</label>
                   </div>
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">{t('metermanagement.serial_number')}<span className="text-danger">*</span></label>
+                  <label className="form-label">{t('metermanagement.serial_number', 'Số Seri')}<span className="text-danger">*</span></label>
                   <input
                     type="text"
                     className={`form-input ${formErrors.serialNumber ? 'is-invalid' : ''}`}
-                    placeholder={t('metermanagement.for_example_elec99882_wat33291')}
+                    placeholder={t('metermanagement.for_example_elec99882_wat33291', 'Ví dụ: ELEC-001, WAT-001')}
                     value={formValues.serialNumber}
                     onChange={(e) => setFormValues(prev => ({ ...prev, serialNumber: e.target.value }))}
                   />
                   {formErrors.serialNumber && (
                     <span className="invalid-feedback">{formErrors.serialNumber}</span>
                   )}
-                  <p className="form-help-text">{t('metermanagement.serial_code_must_be')}</p>
+                  <p className="form-help-text">{t('metermanagement.serial_code_must_be', 'Mã Seri phải là duy nhất trong chợ này.')}</p>
                 </div>
               </div>
               <div className="modal-foot">
-                <button type="button" className="btn-secondary" onClick={handleCloseModal} disabled={actionLoading}>{t('metermanagement.cancel')}</button>
+                <button type="button" className="btn-secondary" onClick={handleCloseModal} disabled={actionLoading}>{t('metermanagement.cancel', 'Hủy')}</button>
                 <button type="submit" className="btn-primary" disabled={actionLoading}>
-                  {actionLoading ? t('metermanagement.creating') : t('metermanagement.create_meters')}
+                  {actionLoading ? t('metermanagement.creating', 'Đang tạo...') : t('metermanagement.create_meters', 'Tạo công tơ')}
                 </button>
               </div>
             </form>
@@ -512,29 +512,29 @@ export default function MeterManagement({ addToast }) {
         <div className="modal-overlay" onClick={handleCloseModal}>
           <div className="modal-box" onClick={(e) => e.stopPropagation()}>
             <div className="modal-head">
-              <h3>{t('metermanagement.edit_meter_information')}</h3>
+              <h3>{t('metermanagement.edit_meter_information', 'Chỉnh sửa thông tin công tơ')}</h3>
               <button className="modal-close" onClick={handleCloseModal}>×</button>
             </div>
             <form onSubmit={handleUpdateMeter}>
               <div className="modal-body">
                 <div className="form-group">
-                  <label className="form-label">{t('metermanagement.meter_type')}</label>
+                  <label className="form-label">{t('metermanagement.meter_type', 'Loại công tơ')}</label>
                   <select
                     className="form-input"
                     value={formValues.type}
                     onChange={(e) => setFormValues(prev => ({ ...prev, type: e.target.value }))}
                     disabled={selectedMeter.stallId !== null}
                   >
-                    <option value="Electricity">{t('metermanagement.electricity')}</option>
-                    <option value="Water">{t('metermanagement.water')}</option>
+                    <option value="Electricity">{t('metermanagement.electricity', 'Điện')}</option>
+                    <option value="Water">{t('metermanagement.water', 'Nước')}</option>
                   </select>
                   {selectedMeter.stallId !== null && (
-                    <p className="form-help-text text-warning">{t('metermanagement.it_is_not_possible')}</p>
+                    <p className="form-help-text text-warning">{t('metermanagement.it_is_not_possible', 'Không thể thay đổi loại của công tơ đã được gán vào sạp.')}</p>
                   )}
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">{t('metermanagement.serial_number')}<span className="text-danger">*</span></label>
+                  <label className="form-label">{t('metermanagement.serial_number', 'Số Seri')}<span className="text-danger">*</span></label>
                   <input
                     type="text"
                     className={`form-input ${formErrors.serialNumber ? 'is-invalid' : ''}`}
@@ -548,9 +548,9 @@ export default function MeterManagement({ addToast }) {
 
               </div>
               <div className="modal-foot">
-                <button type="button" className="btn-secondary" onClick={handleCloseModal} disabled={actionLoading}>{t('metermanagement.cancel')}</button>
+                <button type="button" className="btn-secondary" onClick={handleCloseModal} disabled={actionLoading}>{t('metermanagement.cancel', 'Hủy')}</button>
                 <button type="submit" className="btn-primary" disabled={actionLoading}>
-                  {actionLoading ? t('metermanagement.saving') : t('metermanagement.save_changes')}
+                  {actionLoading ? t('metermanagement.saving', 'Đang lưu...') : t('metermanagement.save_changes', 'Lưu thay đổi')}
                 </button>
               </div>
             </form>

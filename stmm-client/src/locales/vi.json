@@ -5449,6 +5449,15 @@
     "saving": "Đang lưu...",
     "cancel": "Hủy",
     "edit_meters": "Chỉnh sửa công tơ",
-    "deactivate_error_unassign_first": "Cần gỡ sạp hoặc thay thế công tơ này trước khi ngưng hoạt động."
+    "deactivate_error_unassign_first": "Cần gỡ sạp hoặc thay thế công tơ này trước khi ngưng hoạt động.",
+    "edit_meter_information": "Chỉnh sửa thông tin công tơ",
+    "meter_type": "Loại công tơ",
+    "it_is_not_possible": "Không thể thay đổi loại của công tơ đã được gán vào sạp.",
+    "save_changes": "Lưu thay đổi",
+    "add_meters_to_availability": "Thêm công tơ vào kho",
+    "create_meters": "Tạo công tơ",
+    "creating": "Đang tạo...",
+    "for_example_elec99882_wat33291": "Ví dụ: ELEC-001, WAT-001",
+    "serial_code_must_be": "Mã Seri phải là duy nhất trong chợ này."
   }
 }

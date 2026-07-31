@@ -5451,6 +5451,15 @@
     "saving": "Saving...",
     "cancel": "Cancel",
     "edit_meters": "Edit Meter",
-    "deactivate_error_unassign_first": "Replace or unassign this meter from the stall before deactivating it."
+    "deactivate_error_unassign_first": "Replace or unassign this meter from the stall before deactivating it.",
+    "edit_meter_information": "Edit Meter Information",
+    "meter_type": "Meter Type",
+    "it_is_not_possible": "Cannot change type of a meter assigned to a stall.",
+    "save_changes": "Save Changes",
+    "add_meters_to_availability": "Add Meter to Inventory",
+    "create_meters": "Create Meter",
+    "creating": "Creating...",
+    "for_example_elec99882_wat33291": "For example: ELEC-001, WAT-001",
+    "serial_code_must_be": "Serial code must be unique in this market."
   }
 }
