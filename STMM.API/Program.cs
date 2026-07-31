@@ -268,4 +268,4 @@ app.UseAuthorization();
 app.MapControllers();
 app.MapHub<STMM.Business.Hubs.AuditLogHub>("/hubs/audit-logs");
 
-app.Run();
+app.Run();public partial class Program { }

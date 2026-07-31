@@ -1,6 +1,7 @@
 
 using STMM.Business.DTOs.Dashboard;
 using STMM.Business.Interfaces;
+using STMM.Business.Exceptions;
 using STMM.DataAccess.IRepositories;
 using STMM.DataAccess.Entities;
 using System;
@@ -48,11 +49,12 @@ namespace STMM.Business.Services
             int? marketId = null;
             if (accountantUserId.HasValue)
             {
-                var user = await _userRepository.GetByIdAsync(accountantUserId.Value, ct);
-                if (user?.MarketId != null)
-                {
-                    marketId = user.MarketId;
-                }
+                var user = await _userRepository.GetUserByIdWithRoleAsync(accountantUserId.Value, ct);
+                if (user == null)
+                    throw new ForbiddenException("Account not found.");
+                if (user.Role?.Name == "Accountant" && !user.MarketId.HasValue)
+                    throw new ForbiddenException("Accountant is not assigned to a market.");
+                marketId = user.MarketId;
             }
 
             // 2. Revenue (actual cash received from Payments)

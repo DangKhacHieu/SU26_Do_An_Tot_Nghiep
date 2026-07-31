@@ -13,12 +13,14 @@ namespace STMM.DataAccess.Repositories
 
         public async Task<decimal> GetTotalRevenueAsync(DateTime startDate, DateTime endDate, int? marketId = null, CancellationToken ct = default)
         {
-            var query = _context.Payments.Where(p => p.PaidAt >= startDate && p.PaidAt < endDate);
+            var query = _context.Payments.Where(p =>
+                p.PaidAt >= startDate && p.PaidAt < endDate &&
+                (p.Status == "Verified" || p.Status == "Refunded"));
             if (marketId.HasValue)
             {
                 query = query.Where(p => p.Invoice.Contract.Stall.Area.MarketId == marketId.Value);
             }
-            return await query.SumAsync(p => (decimal?)p.Amount, ct) ?? 0;
+            return await query.SumAsync(p => p.Status == "Refunded" ? -(decimal?)p.Amount : (decimal?)p.Amount, ct) ?? 0;
         }
 
         public async Task<List<Payment>> GetRecentPaymentsAsync(int count, int? marketId = null, CancellationToken ct = default)
@@ -31,6 +33,7 @@ namespace STMM.DataAccess.Repositories
                     .ThenInclude(i => i.Contract)
                         .ThenInclude(c => c.Vendor)
                             .ThenInclude(v => v.User)
+                .Where(p => p.Status == "Verified" || p.Status == "Refunded")
                 .AsQueryable();
 
             if (marketId.HasValue)
@@ -39,6 +42,7 @@ namespace STMM.DataAccess.Repositories
             }
 
             return await query
+                .Where(p => p.Status == "Pending" && p.Invoice.Status == "Pending Confirmation")
                 .OrderByDescending(p => p.PaidAt)
                 .Take(count)
                 .AsNoTracking()

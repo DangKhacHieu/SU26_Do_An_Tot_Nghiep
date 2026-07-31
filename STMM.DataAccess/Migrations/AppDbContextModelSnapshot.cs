@@ -466,6 +466,10 @@ namespace STMM.DataAccess.Migrations
                         .HasColumnName("due_date")
                         .HasComment("Hạn chót thanh toán");
 
+                    b.Property<string>("InvoiceType")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<bool?>("IsDeleted")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
@@ -490,6 +494,16 @@ namespace STMM.DataAccess.Migrations
                         .HasColumnName("total_amount")
                         .HasComment("Tổng số tiền phải nộp (VNĐ)");
 
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.Property<int?>("ViolationId")
+                        .HasColumnType("integer")
+                        .HasColumnName("violation_id");
+
                     b.Property<int>("Year")
                         .HasColumnType("integer")
                         .HasColumnName("year")
@@ -497,6 +511,8 @@ namespace STMM.DataAccess.Migrations
 
                     b.HasKey("InvoiceId")
                         .HasName("invoices_pkey");
+
+                    b.HasIndex("ViolationId");
 
                     b.HasIndex(new[] { "AdjustedFromId" }, "idx_invoices_adjusted_from_id");
 
@@ -927,6 +943,10 @@ namespace STMM.DataAccess.Migrations
                         .HasColumnName("method")
                         .HasComment("Phương thức nộp tiền (Momo, Cash)");
 
+                    b.Property<int?>("OriginalPaymentId")
+                        .HasColumnType("integer")
+                        .HasColumnName("original_payment_id");
+
                     b.Property<DateTime?>("PaidAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
@@ -934,13 +954,42 @@ namespace STMM.DataAccess.Migrations
                         .HasDefaultValueSql("CURRENT_TIMESTAMP")
                         .HasComment("Thời điểm thanh toán");
 
+                    b.Property<DateTime?>("RejectedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("rejected_at");
+
+                    b.Property<int?>("RejectedByUserId")
+                        .HasColumnType("integer")
+                        .HasColumnName("rejected_by_user_id");
+
+                    b.Property<string>("RejectionReason")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<string>("TransactionCode")
                         .HasColumnType("text")
                         .HasColumnName("transaction_code")
                         .HasComment("Mã giao dịch hoặc mã biên nhận");
 
+                    b.Property<DateTime?>("VerifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("VerifiedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
                     b.HasKey("PaymentId")
                         .HasName("payments_pkey");
+
+                    b.HasIndex("OriginalPaymentId");
 
                     b.HasIndex(new[] { "InvoiceId" }, "idx_payments_invoice_id");
 
@@ -1133,6 +1182,12 @@ namespace STMM.DataAccess.Migrations
                         .HasColumnType("character varying(1000)")
                         .HasColumnName("vendor_reject_reason")
                         .HasComment("Lý do Vendor từ chối báo giá gần nhất");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
 
                     b.Property<int?>("ViolationId")
                         .HasColumnType("integer")
@@ -2185,9 +2240,17 @@ namespace STMM.DataAccess.Migrations
                         .IsRequired()
                         .HasConstraintName("fk_invoices_contracts");
 
+                    b.HasOne("STMM.DataAccess.Entities.Violation", "Violation")
+                        .WithMany("Invoices")
+                        .HasForeignKey("ViolationId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_invoices_violations");
+
                     b.Navigation("AdjustedFrom");
 
                     b.Navigation("Contract");
+
+                    b.Navigation("Violation");
                 });
 
             modelBuilder.Entity("STMM.DataAccess.Entities.InvoiceDetail", b =>
@@ -2304,7 +2367,15 @@ namespace STMM.DataAccess.Migrations
                         .IsRequired()
                         .HasConstraintName("fk_payments_invoices");
 
+                    b.HasOne("STMM.DataAccess.Entities.Payment", "OriginalPayment")
+                        .WithMany("RefundPayments")
+                        .HasForeignKey("OriginalPaymentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_payments_original_payment");
+
                     b.Navigation("Invoice");
+
+                    b.Navigation("OriginalPayment");
                 });
 
             modelBuilder.Entity("STMM.DataAccess.Entities.RepairPrice", b =>
@@ -2642,6 +2713,11 @@ namespace STMM.DataAccess.Migrations
                     b.Navigation("MeterReadings");
                 });
 
+            modelBuilder.Entity("STMM.DataAccess.Entities.Payment", b =>
+                {
+                    b.Navigation("RefundPayments");
+                });
+
             modelBuilder.Entity("STMM.DataAccess.Entities.RepairPrice", b =>
                 {
                     b.Navigation("TaskMaterials");
@@ -2724,6 +2800,8 @@ namespace STMM.DataAccess.Migrations
 
             modelBuilder.Entity("STMM.DataAccess.Entities.Violation", b =>
                 {
+                    b.Navigation("Invoices");
+
                     b.Navigation("Requests");
                 });
 

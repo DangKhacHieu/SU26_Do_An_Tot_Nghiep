@@ -527,13 +527,18 @@ namespace STMM.Business.Services
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["Key"]!));
             var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-            var claims = new[]
+            var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
                 new Claim(ClaimTypes.Email, user.Email),
                 new Claim(ClaimTypes.Name, user.Name),
                 new Claim(ClaimTypes.Role, user.Role?.Name ?? "Unknown")
             };
+
+            if (user.MarketId.HasValue)
+            {
+                claims.Add(new Claim("MarketId", user.MarketId.Value.ToString()));
+            }
 
             var token = new JwtSecurityToken(
                 issuer: jwtSettings["Issuer"],

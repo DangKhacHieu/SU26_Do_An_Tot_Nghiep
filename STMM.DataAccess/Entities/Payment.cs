@@ -1,5 +1,6 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 
 namespace STMM.DataAccess.Entities;
 
@@ -38,5 +39,25 @@ public partial class Payment
     /// </summary>
     public DateTime? PaidAt { get; set; }
 
+    /// <summary>Pending, Verified, Rejected or Refunded.</summary>
+    public string Status { get; set; } = "Pending";
+
+    public int? VerifiedByUserId { get; set; }
+
+    public DateTime? VerifiedAt { get; set; }
+
+    public string? RejectionReason { get; set; }
+
+    public DateTime? RejectedAt { get; set; }
+
+    public int? RejectedByUserId { get; set; }
+
+    public int? OriginalPaymentId { get; set; }
+
+    public uint Version { get; set; } // For PostgreSQL xmin concurrency
+
     public virtual Invoice Invoice { get; set; } = null!;
+
+    public virtual Payment? OriginalPayment { get; set; }
+    public virtual ICollection<Payment> RefundPayments { get; set; } = new List<Payment>();
 }

@@ -70,5 +70,10 @@ namespace STMM.DataAccess.Repositories
         {
             return await _context.SaveChangesAsync(cancellationToken);
         }
+
+        public virtual async Task<Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default)
+        {
+            return await _context.Database.BeginTransactionAsync(cancellationToken);
+        }
     }
 }

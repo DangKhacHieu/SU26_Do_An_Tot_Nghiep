@@ -136,6 +136,8 @@ namespace STMM.DataAccess.Repositories
             // Includes all necessary relations to avoid N+1 during billing
             return await _dbSet
                 .Include(c => c.Stall)
+                    .ThenInclude(s => s.Area)
+                .Include(c => c.Stall)
                     .ThenInclude(s => s.ServiceRegistrations)
                         .ThenInclude(sr => sr.Service)
                 .Where(c => c.Status == "Active" && c.IsDeleted != true)

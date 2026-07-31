@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
 using STMM.Business.Interfaces;
+using STMM.API.Extensions;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -8,6 +10,7 @@ namespace STMM.API.Controllers
 {
     [ApiController]
     [Route("api/accountant/dashboard")]
+    [Authorize(Roles = "Accountant,Admin")]
     public class DashboardController : ControllerBase
     {
         private readonly IDashboardService _dashboardService;
@@ -23,9 +26,9 @@ namespace STMM.API.Controllers
         [HttpGet]
         public async Task<IActionResult> GetDashboardData(CancellationToken ct)
         {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("userId")?.Value;
-            var userId = int.Parse(userIdClaim ?? "0");
-            var result = await _dashboardService.GetAccountantDashboardDataAsync(userId, ct);
+            var userId = User.GetUserId();
+            if (!userId.HasValue) return Unauthorized();
+            var result = await _dashboardService.GetAccountantDashboardDataAsync(userId.Value, ct);
             return Ok(result);
         }
 
@@ -35,10 +38,10 @@ namespace STMM.API.Controllers
         [HttpGet("export")]
         public async Task<IActionResult> ExportDashboardData(CancellationToken ct)
         {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("userId")?.Value;
-            var userId = int.Parse(userIdClaim ?? "0");
+            var userId = User.GetUserId();
+            if (!userId.HasValue) return Unauthorized();
             
-            var fileContent = await _dashboardService.ExportDashboardReportAsync(userId, ct);
+            var fileContent = await _dashboardService.ExportDashboardReportAsync(userId.Value, ct);
             
             return File(
                 fileContent, 

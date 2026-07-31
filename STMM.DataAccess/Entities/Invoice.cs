@@ -1,5 +1,6 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 
 namespace STMM.DataAccess.Entities;
 
@@ -38,6 +39,9 @@ public partial class Invoice
     /// </summary>
     public string? Status { get; set; }
 
+    /// <summary>Periodic, AdHoc, Violation or Adjustment.</summary>
+    public string InvoiceType { get; set; } = "Periodic";
+
     /// <summary>
     /// Hạn chót thanh toán
     /// </summary>
@@ -48,15 +52,21 @@ public partial class Invoice
     /// </summary>
     public int? AdjustedFromId { get; set; }
 
+    public int? ViolationId { get; set; }
+
     public DateTime? CreatedAt { get; set; }
 
     public bool? IsDeleted { get; set; }
 
     public DateTime? DeletedAt { get; set; }
 
+    public uint Version { get; set; } // For PostgreSQL xmin concurrency
+
     public virtual Invoice? AdjustedFrom { get; set; }
 
     public virtual Contract Contract { get; set; } = null!;
+
+    public virtual Violation? Violation { get; set; }
 
     public virtual ICollection<Invoice> InverseAdjustedFrom { get; set; } = new List<Invoice>();
 

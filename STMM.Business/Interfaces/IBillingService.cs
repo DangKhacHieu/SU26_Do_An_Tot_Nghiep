@@ -89,7 +89,7 @@ namespace STMM.Business.Interfaces
         /// <summary>
         /// Tự động lập hóa đơn nháp kỳ hàng tháng cho tất cả các sạp có hợp đồng hoạt động và phí dịch vụ đăng ký tương ứng.
         /// </summary>
-        Task<int> AutoGenerateMonthlyInvoicesAsync(int month, int year, CancellationToken ct = default);
+        Task<int> AutoGenerateMonthlyInvoicesAsync(int month, int year, int? marketId = null, CancellationToken ct = default);
 
         /// <summary>
         /// Hủy hóa đơn (Chỉ áp dụng cho hóa đơn Draft hoặc Unpaid).

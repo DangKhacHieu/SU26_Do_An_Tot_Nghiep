@@ -404,6 +404,13 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Year)
                 .HasComment("Năm tính hóa đơn")
                 .HasColumnName("year");
+            entity.Property(e => e.ViolationId)
+                .HasColumnName("violation_id");
+            entity.Property(e => e.Version)
+                .HasColumnName("xmin")
+                .HasColumnType("xid")
+                .ValueGeneratedOnAddOrUpdate()
+                .IsConcurrencyToken();
 
             entity.HasOne(d => d.AdjustedFrom).WithMany(p => p.InverseAdjustedFrom)
                 .HasForeignKey(d => d.AdjustedFromId)
@@ -413,6 +420,11 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.ContractId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("fk_invoices_contracts");
+
+            entity.HasOne(d => d.Violation).WithMany(p => p.Invoices)
+                .HasForeignKey(d => d.ViolationId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("fk_invoices_violations");
         });
 
         modelBuilder.Entity<InvoiceDetail>(entity =>
@@ -724,11 +736,24 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.TransactionCode)
                 .HasComment("Mã giao dịch hoặc mã biên nhận")
                 .HasColumnName("transaction_code");
+            entity.Property(e => e.RejectedAt).HasColumnName("rejected_at");
+            entity.Property(e => e.RejectedByUserId).HasColumnName("rejected_by_user_id");
+            entity.Property(e => e.OriginalPaymentId).HasColumnName("original_payment_id");
+            entity.Property(e => e.Version)
+                .HasColumnName("xmin")
+                .HasColumnType("xid")
+                .ValueGeneratedOnAddOrUpdate()
+                .IsConcurrencyToken();
 
             entity.HasOne(d => d.Invoice).WithMany(p => p.Payments)
                 .HasForeignKey(d => d.InvoiceId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("fk_payments_invoices");
+
+            entity.HasOne(d => d.OriginalPayment).WithMany(p => p.RefundPayments)
+                .HasForeignKey(d => d.OriginalPaymentId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("fk_payments_original_payment");
         });
 
         modelBuilder.Entity<RepairPrice>(entity =>
@@ -858,6 +883,11 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.ViolationId)
                 .HasComment("Điền nếu Kháng nghị vi phạm")
                 .HasColumnName("violation_id");
+            entity.Property(e => e.Version)
+                .HasColumnName("xmin")
+                .HasColumnType("xid")
+                .ValueGeneratedOnAddOrUpdate()
+                .IsConcurrencyToken();
 
             entity.HasOne(d => d.Invoice).WithMany(p => p.Requests)
                 .HasForeignKey(d => d.InvoiceId)

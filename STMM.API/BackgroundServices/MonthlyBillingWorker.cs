@@ -55,7 +55,7 @@ namespace STMM.API.BackgroundServices
                             {
                                 _logger.LogInformation($"Today is Day {today.Day}, which meets or exceeds auto_invoice_day ({targetDay}). Starting auto generation of monthly invoices.");
                                 
-                                int generatedCount = await billingService.AutoGenerateMonthlyInvoicesAsync(today.Month, today.Year, stoppingToken);
+                                int generatedCount = await billingService.AutoGenerateMonthlyInvoicesAsync(today.Month, today.Year, null, stoppingToken);
                                 
                                 _logger.LogInformation($"Auto monthly invoice generation completed. Generated {generatedCount} invoices for {today.Month}/{today.Year}.");
 
