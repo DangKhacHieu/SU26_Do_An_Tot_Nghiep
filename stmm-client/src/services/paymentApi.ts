@@ -26,5 +26,13 @@ export const paymentApi = {
         };
         const response = await axios.post(url, payload, getAuthHeaders());
         return response.data;
+    },
+    createVnpayPayment: async (invoiceId: number) => {
+        const url = `${BASE_URL}/payments/vnpay/create`;
+        const payload = {
+            invoiceId
+        };
+        const response = await axios.post(url, payload, getAuthHeaders());
+        return response.data;
     }
 };

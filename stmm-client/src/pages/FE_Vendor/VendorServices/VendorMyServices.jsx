@@ -13,6 +13,9 @@ export default function VendorMyServices({ vendorId, searchTerm = '', setSearchT
     const [loadingDetailId, setLoadingDetailId] = useState(null);
     const [statusFilter, setStatusFilter] = useState('All');
 
+    const [pageNumber, setPageNumber] = useState(1);
+    const [pageSize] = useState(5);
+
     const fetchMyServices = async () => {
         try {
             const token = localStorage.getItem('accessToken');
@@ -35,7 +38,9 @@ export default function VendorMyServices({ vendorId, searchTerm = '', setSearchT
     const handleCancelClick = async (service) => {
         const text = service.status === 'Pending' 
             ? t('vendormyservices.are_you_sure_you') 
-            : `Dịch vụ này sẽ không được gia hạn vào tháng tới, nhưng bạn vẫn có thể sử dụng đến hết ngày ${service.endDate ? new Date(service.endDate).toLocaleDateString('vi-VN') : t('vendormyservices.end_of_term')}. Bạn có chắc chắn muốn hủy?`;
+            : t('vendormyservices.confirm_cancel_active', {
+                  date: service.endDate ? new Date(service.endDate).toLocaleDateString('vi-VN') : t('vendormyservices.end_of_term')
+              });
         
         const result = await showConfirm(t('vendormyservices.confirm_cancel'), text);
         if (result.isConfirmed) {
@@ -72,6 +77,10 @@ export default function VendorMyServices({ vendorId, searchTerm = '', setSearchT
         }
     };
 
+    useEffect(() => {
+        setPageNumber(1);
+    }, [searchTerm, statusFilter]);
+
     if (loading) return <div style={{ padding: '24px' }}>{t('vendormyservices.loading_data')}</div>;
 
     const filteredMyServices = myServices.filter(s => 
@@ -79,6 +88,10 @@ export default function VendorMyServices({ vendorId, searchTerm = '', setSearchT
         (s?.stallCode?.toLowerCase() || '').includes(searchTerm.toLowerCase())) &&
         (statusFilter === 'All' || s.status === statusFilter)
     );
+
+    const totalCount = filteredMyServices.length;
+    const totalPages = Math.ceil(totalCount / pageSize) || 1;
+    const paginatedServices = filteredMyServices.slice((pageNumber - 1) * pageSize, pageNumber * pageSize);
 
     return (
         <div className="premium-page-container">
@@ -100,16 +113,16 @@ export default function VendorMyServices({ vendorId, searchTerm = '', setSearchT
                     <label className="premium-filter-label">{t('vendormyservices.search_for_services') || 'Tìm kiếm dịch vụ'}</label>
                     <div className="premium-input-wrapper">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                        <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Nhập tên dịch vụ hoặc mã sạp..." className="premium-input has-icon" />
+                        <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder={t('vendormyservices.search_placeholder') || 'Nhập tên dịch vụ hoặc mã sạp...'} className="premium-input has-icon" />
                     </div>
                 </div>
                 <div className="premium-filter-group" style={{ flex: 1 }}>
                     <label className="premium-filter-label">{t('vendormyservices.status') || 'Trạng thái'}</label>
                     <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="premium-select">
-                        <option value="All">Tất cả</option>
-                        <option value="Active">Đang hoạt động</option>
-                        <option value="Pending">Chờ duyệt</option>
-                        <option value="Cancelled">Đã hủy</option>
+                        <option value="All">{t('vendormyservices.all') || 'Tất cả'}</option>
+                        <option value="Active">{t('vendormyservices.active') || 'Đang hoạt động'}</option>
+                        <option value="Pending">{t('vendormyservices.waiting_for_approval') || 'Chờ duyệt'}</option>
+                        <option value="Cancelled">{t('vendormyservices.canceled') || 'Đã hủy'}</option>
                     </select>
                 </div>
             </div>
@@ -127,35 +140,35 @@ export default function VendorMyServices({ vendorId, searchTerm = '', setSearchT
                         </tr>
                     </thead>
                     <tbody>
-                        {filteredMyServices.length === 0 ? (
+                        {paginatedServices.length === 0 ? (
                             <tr>
                                 <td colSpan="6" style={{ padding: '32px', textAlign: 'center', color: '#94a3b8' }}>
                                     {t('vendormyservices.no_matching_data_found') || 'Không tìm thấy dữ liệu'}
                                 </td>
                             </tr>
                         ) : (
-                            filteredMyServices.map((service, index) => {
+                            paginatedServices.map((service, index) => {
                                 let badgeClass = 'premium-badge-neutral';
                                 let statusText = 'N/A';
                                 if (service.status === 'Active' && service.isAutoRenew !== false) {
                                     badgeClass = 'premium-badge-success';
-                                    statusText = 'Đang hoạt động';
+                                    statusText = t('vendormyservices.active') || 'Đang hoạt động';
                                 } else if (service.status === 'Active' && service.isAutoRenew === false) {
                                     badgeClass = 'premium-badge-warning';
-                                    statusText = 'Đã hủy gia hạn';
+                                    statusText = t('vendormyservices.renewal_canceled') || 'Đã hủy gia hạn';
                                 } else if (service.status === 'Pending') {
                                     badgeClass = 'premium-badge-warning';
-                                    statusText = 'Chờ duyệt';
+                                    statusText = t('vendormyservices.waiting_for_approval') || 'Chờ duyệt';
                                 } else if (service.status === 'Cancelled') {
                                     badgeClass = 'premium-badge-danger';
-                                    statusText = 'Đã hủy';
+                                    statusText = t('vendormyservices.canceled') || 'Đã hủy';
                                 }
 
                                 return (
                                 <tr key={service.registrationId}>
-                                    <td>{index + 1}</td>
+                                    <td>{(pageNumber - 1) * pageSize + index + 1}</td>
                                     <td className="fw-bold">{service.serviceName}</td>
-                                    <td>{service.isMandatory ? 'Bắt buộc' : 'Tự chọn'}</td>
+                                    <td>{service.isMandatory ? (t('vendormyservices.obligatory') || 'Bắt buộc') : (t('vendormyservices.selfselect') || 'Tự chọn')}</td>
                                     <td>{new Date(service.registeredAt).toLocaleDateString('vi-VN')}</td>
                                     <td>
                                         <span className={`premium-badge ${badgeClass}`}>
@@ -168,13 +181,13 @@ export default function VendorMyServices({ vendorId, searchTerm = '', setSearchT
                                                 onClick={() => handleViewDetailClick(service)}
                                                 disabled={loadingDetailId === service.registrationId}
                                                 className="premium-btn-action">
-                                                {loadingDetailId === service.registrationId ? 'Đang tải...' : 'Chi tiết'}
+                                                {loadingDetailId === service.registrationId ? (t('vendormyservices.loading') || 'Đang tải...') : (t('vendormyservices.detail') || 'Chi tiết')}
                                             </button>
                                             {service.status !== 'Cancelled' && !(service.status === 'Active' && service.isAutoRenew === false) && (
                                                 <button 
                                                     onClick={() => handleCancelClick(service)}
                                                     className="premium-btn-danger">
-                                                    Hủy
+                                                    {t('vendormyservices.cancel') || 'Hủy'}
                                                 </button>
                                             )}
                                         </div>
@@ -183,21 +196,50 @@ export default function VendorMyServices({ vendorId, searchTerm = '', setSearchT
                                 );
                             })
                         )}
-                        {filteredMyServices.length < 5 && Array.from({ length: Math.max(0, 5 - filteredMyServices.length) }).map((_, i) => (
+                        {paginatedServices.length < pageSize && Array.from({ length: Math.max(0, pageSize - paginatedServices.length) }).map((_, i) => (
                              <tr key={`empty-${i}`} style={{ height: '52px' }}>
                                 <td colSpan="6"></td>
                              </tr>
                         ))}
                     </tbody>
                 </table>
+                {totalCount > 0 && totalPages > 1 && (
                 <div className="premium-pagination">
-                    <span className="premium-pagination-info">Hiển thị 1-{Math.max(1, filteredMyServices.length)} trong số {filteredMyServices.length} dịch vụ</span>
+                    <span className="premium-pagination-info">
+                        {t('vendormyservices.showing_pagination', {
+                            start: (pageNumber - 1) * pageSize + 1,
+                            end: Math.min(pageNumber * pageSize, totalCount),
+                            total: totalCount
+                        }) || `Hiển thị ${(pageNumber - 1) * pageSize + 1}-${Math.min(pageNumber * pageSize, totalCount)} trong số ${totalCount} dịch vụ`}
+                    </span>
                     <div className="premium-pagination-buttons">
-                        <button className="premium-page-btn" disabled>&lt;</button>
-                        <button className="premium-page-btn active">1</button>
-                        <button className="premium-page-btn" disabled>&gt;</button>
+                        <button 
+                            className="premium-page-btn" 
+                            disabled={pageNumber === 1}
+                            onClick={() => setPageNumber(prev => Math.max(1, prev - 1))}
+                        >
+                            &lt;
+                        </button>
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                            <button 
+                                key={page} 
+                                className={`premium-page-btn ${pageNumber === page ? 'active' : ''}`}
+                                style={pageNumber === page ? { backgroundColor: '#1e40af', color: 'white', borderColor: '#1e40af' } : {}}
+                                onClick={() => setPageNumber(page)}
+                            >
+                                {page}
+                            </button>
+                        ))}
+                        <button 
+                            className="premium-page-btn" 
+                            disabled={pageNumber === totalPages}
+                            onClick={() => setPageNumber(prev => Math.min(totalPages, prev + 1))}
+                        >
+                            &gt;
+                        </button>
                     </div>
                 </div>
+                )}
             </div>
 
             {viewMyService && (

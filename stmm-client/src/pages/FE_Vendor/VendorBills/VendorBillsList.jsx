@@ -21,7 +21,7 @@ export default function VendorBillsList({ vendorId, stallId }) {
 
     // Pagination state
     const [pageNumber, setPageNumber] = useState(1);
-    const [pageSize, setPageSize] = useState(10);
+    const [pageSize, setPageSize] = useState(5);
     const [totalPages, setTotalPages] = useState(1);
     const [totalCount, setTotalCount] = useState(0);
 
@@ -86,7 +86,23 @@ export default function VendorBillsList({ vendorId, stallId }) {
         } catch (err) {
             console.error(t('vendorbillslist.error_initiating_momo_payment'), err);
             const errorMsg = err.response?.data?.message || err.message;
-            alert('Đã xảy ra lỗi khi tạo yêu cầu thanh toán MoMo: ' + errorMsg);
+            showError(t('vendorbillslist.failure'), 'Đã xảy ra lỗi khi tạo yêu cầu thanh toán MoMo: ' + errorMsg);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleVnpayPayment = async (invoiceId) => {
+        try {
+            setLoading(true);
+            const { payUrl } = await paymentApi.createVnpayPayment(invoiceId);
+            if (payUrl) {
+                window.location.href = payUrl; // Chuyển hướng sang VNPay
+            }
+        } catch (err) {
+            console.error(t('vendorbillslist.error_initiating_vnpay_payment'), err);
+            const errorMsg = err.response?.data?.message || err.message;
+            showError(t('vendorbillslist.failure'), 'Đã xảy ra lỗi khi tạo yêu cầu thanh toán VNPay: ' + errorMsg);
         } finally {
             setLoading(false);
         }
@@ -107,6 +123,23 @@ export default function VendorBillsList({ vendorId, stallId }) {
             default:
                 return <span className="bill-badge badge-secondary">{status}</span>;
         }
+    };
+
+    const getInvoiceInfo = (inv) => {
+        let name = (t('vendorbillslist.invoice_month') || 'Hóa đơn tháng') + ` ${inv.month}/${inv.year}`;
+        let type = t('vendorbillslist.periodic') || 'Định kỳ';
+
+        if (inv.details && inv.details.length > 0) {
+            const hasPenalty = inv.details.some(d => d.feeTypeName?.toLowerCase().includes('phạt') || d.feeTypeName?.toLowerCase().includes('penalty'));
+            if (hasPenalty) {
+                name = t('vendorbillslist.penalty_invoice') || 'Hóa đơn tiền phạt';
+                type = t('vendorbillslist.penalty') || 'Phạt vi phạm';
+            } else if (inv.details.length === 1 && !['điện', 'nước', 'rác', 'bảo vệ', 'thuê', 'electric', 'water', 'waste', 'rent', 'security'].some(k => inv.details[0].feeTypeName?.toLowerCase().includes(k))) {
+                name = inv.details[0].feeTypeName || (t('vendorbillslist.ad_hoc_invoice') || 'Hóa đơn phát sinh');
+                type = t('vendorbillslist.ad_hoc') || 'Phát sinh';
+            }
+        }
+        return { name, type };
     };
 
     if (isDisputing) {
@@ -168,6 +201,8 @@ export default function VendorBillsList({ vendorId, stallId }) {
                             <thead>
                                 <tr>
                                     <th>STT</th>
+                                    <th>{t('vendorbillslist.invoice_name') || 'Tên hóa đơn'}</th>
+                                    <th>{t('vendorbillslist.invoice_type') || 'Loại hóa đơn'}</th>
                                     <th>{t('vendorbillslist.fall_semester_monthyear') || 'Kỳ (Tháng/Năm)'}</th>
                                     <th>{t('vendorbillslist.total_amount_vnd') || 'Tổng tiền'}</th>
                                     <th>{t('vendorbillslist.due_date') || 'Hạn chót'}</th>
@@ -191,9 +226,13 @@ export default function VendorBillsList({ vendorId, stallId }) {
                                         statusText = t('vendorbillslist.overdue') || 'Quá hạn';
                                     }
 
+                                    const { name: invName, type: invType } = getInvoiceInfo(inv);
+
                                     return (
                                     <tr key={inv.invoiceId}>
                                         <td className="fw-bold">#{(pageNumber - 1) * pageSize + index + 1}</td>
+                                        <td><span style={{ fontWeight: 600 }}>{invName}</span></td>
+                                        <td><span className="premium-badge premium-badge-neutral">{invType}</span></td>
                                         <td>{inv.month}/{inv.year}</td>
                                         <td className="fw-bold" style={{ color: '#ef4444' }}>{formatCurrency(inv.totalAmount)}</td>
                                         <td>{inv.dueDate || '-'}</td>
@@ -237,12 +276,24 @@ export default function VendorBillsList({ vendorId, stallId }) {
                                     >
                                         {t('vendorbillslist.previous_page') || 'Trước'}
                                     </button>
+                                    
+                                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                                        <button 
+                                            key={page} 
+                                            className={`premium-page-btn ${pageNumber === page ? 'active' : ''}`}
+                                            style={pageNumber === page ? { backgroundColor: '#1e40af', color: 'white', borderColor: '#1e40af' } : {}}
+                                            onClick={() => setPageNumber(page)}
+                                        >
+                                            {page}
+                                        </button>
+                                    ))}
+
                                     <button 
                                         className="premium-page-btn"
                                         disabled={pageNumber >= totalPages}
                                         onClick={() => setPageNumber(prev => Math.min(totalPages, prev + 1))}
                                     >
-                                        Sau
+                                        {t('vendorbillslist.next_page') || 'Sau'}
                                     </button>
                                 </div>
                             </div>
@@ -306,7 +357,7 @@ export default function VendorBillsList({ vendorId, stallId }) {
                                 }}>
                                 {i18n.language === 'en' ? 'Invoice Complaint' : 'Khiếu nại hóa đơn'}
                             </button>
-                            {selectedInvoice.status?.toLowerCase() !== 'paid' && (
+                             {selectedInvoice.status?.toLowerCase() !== 'paid' && (
                                 <div className="payment-options" style={{ display: 'flex', gap: '10px' }}>
                                     <button 
                                         className="btn-pay-momo" 
@@ -319,6 +370,12 @@ export default function VendorBillsList({ vendorId, stallId }) {
                                         style={{ backgroundColor: '#334155', color: 'white', padding: '8px 16px', borderRadius: '4px', border: 'none', cursor: 'pointer' }}
                                         onClick={() => handlePayment(selectedInvoice.invoiceId, 'payWithATM')}>
                                         {t('vendorbillslist.atm_card_payment')}
+                                    </button>
+                                    <button 
+                                        className="btn-pay-vnpay" 
+                                        style={{ backgroundColor: '#005baa', color: 'white', padding: '8px 16px', borderRadius: '4px', border: 'none', cursor: 'pointer' }}
+                                        onClick={() => handleVnpayPayment(selectedInvoice.invoiceId)}>
+                                        {t('vendorbillslist.pay_via_vnpay')}
                                     </button>
                                 </div>
                             )}

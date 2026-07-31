@@ -28,6 +28,10 @@ export default function ContractDetailManager({ contractId, navigate, addToast }
   });
   const [renewErrors, setRenewErrors] = useState({});
 
+  // Terminate states
+  const [showTerminateModal, setShowTerminateModal] = useState(false);
+  const [terminationDate, setTerminationDate] = useState(new Date().toISOString().split("T")[0]);
+
   // File upload states
   const [uploadingFile, setUploadingFile] = useState(false);
   const fileInputRef = useRef(null);
@@ -79,20 +83,18 @@ export default function ContractDetailManager({ contractId, navigate, addToast }
     return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(val);
   };
 
-  const handleTerminate = async () => {
-    if (!window.confirm(t('contractdetailmanager.are_you_sure_you'))) {
-      return;
-    }
-
+  const handleTerminateSubmit = async (e) => {
+    e.preventDefault();
     setActionLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/${contractId}/terminate`, {
+      const res = await fetch(`${API_BASE}/${contractId}/terminate?terminationDate=${terminationDate}`, {
         method: "PUT",
         headers: getAuthHeaders()
       });
 
       if (res.ok) {
         addToast("Hợp đồng đã chấm dứt thành công và giải phóng mặt bằng.", "success");
+        setShowTerminateModal(false);
         fetchContractDetails();
       } else {
         const error = await res.json();
@@ -107,7 +109,17 @@ export default function ContractDetailManager({ contractId, navigate, addToast }
 
   const validateRenew = () => {
     const errs = {};
-    if (!renewData.startDate) errs.startDate = t('contractdetailmanager.please_select_a_start');
+    if (!renewData.startDate) {
+      errs.startDate = t('contractdetailmanager.please_select_a_start');
+    } else if (contract?.endDate) {
+      const currentEndDate = new Date(contract.endDate);
+      currentEndDate.setHours(0, 0, 0, 0);
+      const inputDate = new Date(renewData.startDate);
+      inputDate.setHours(0, 0, 0, 0);
+      if (inputDate <= currentEndDate) {
+        errs.startDate = t('contractdetailmanager.renewal_start_date_must_be_after_current_end');
+      }
+    }
     if (!renewData.endDate) errs.endDate = t('contractdetailmanager.please_select_an_end');
     if (renewData.startDate && renewData.endDate) {
       if (new Date(renewData.startDate) >= new Date(renewData.endDate)) {
@@ -225,6 +237,8 @@ export default function ContractDetailManager({ contractId, navigate, addToast }
         return <span className="status-badge status-expired">{t('contractdetailmanager.expired')}</span>;
       case "Terminated":
         return <span className="status-badge status-terminated">{t('contractdetailmanager.terminated')}</span>;
+      case "TerminatedEarly":
+        return <span className="status-badge status-terminated-early">{t('contractdetailmanager.terminated_early')}</span>;
       default:
         return <span className="status-badge">{status}</span>;
     }
@@ -263,7 +277,7 @@ export default function ContractDetailManager({ contractId, navigate, addToast }
             <>
               <button 
                 className="btn-action-terminate" 
-                onClick={handleTerminate}
+                onClick={() => setShowTerminateModal(true)}
                 disabled={actionLoading}
               >
                 {t('contractdetailmanager.chm_dt_trc_hn')}</button>
@@ -290,7 +304,7 @@ export default function ContractDetailManager({ contractId, navigate, addToast }
           {/* Card 1: Contract Details */}
           <div className="detail-card">
             <div className="card-header">
-              <h3>HỢP ĐỒNG {contract.contractId}</h3>
+              <h3>{t('contractdetailmanager.contract_title', { id: contract.contractId })}</h3>
               {renderStatusBadge(contract.status)}
             </div>
             <div className="card-content">
@@ -509,6 +523,64 @@ export default function ContractDetailManager({ contractId, navigate, addToast }
                   disabled={actionLoading}
                 >
                   {actionLoading ? t('contractdetailmanager.processing') : t('contractdetailmanager.confirm_extension')}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* TERMINATE MODAL */}
+      {showTerminateModal && (
+        <div className="modal-overlay-custom no-print">
+          <div className="modal-container-custom">
+            <div className="modal-header-custom">
+              <h3>{t('contractdetailmanager.terminate_contract_title')}</h3>
+              <button className="btn-close-modal" onClick={() => setShowTerminateModal(false)}>✕</button>
+            </div>
+            
+            <form onSubmit={handleTerminateSubmit} className="modal-form-custom">
+              <div className="modal-form-grid" style={{ gridTemplateColumns: "1fr" }}>
+                
+                <div className="form-group-custom">
+                  <label>{t('contractdetailmanager.termination_date_label')}</label>
+                  <input
+                    type="date"
+                    value={terminationDate}
+                    onChange={(e) => setTerminationDate(e.target.value)}
+                    required
+                  />
+                </div>
+
+                {contract.endDate && terminationDate && (
+                  new Date(terminationDate) < new Date(contract.endDate) ? (
+                    <div className="terminate-alert-custom warning">
+                      {t('contractdetailmanager.early_termination_warning')}
+                    </div>
+                  ) : (
+                    <div className="terminate-alert-custom info">
+                      {t('contractdetailmanager.normal_termination_info')}
+                    </div>
+                  )
+                )}
+
+              </div>
+
+              <div className="modal-actions-custom">
+                <button 
+                  type="button" 
+                  className="btn-cancel" 
+                  onClick={() => setShowTerminateModal(false)}
+                  disabled={actionLoading}
+                >
+                  {t('contractdetailmanager.cancel')}</button>
+                <button 
+                  type="submit" 
+                  className="btn-submit"
+                  disabled={actionLoading}
+                  style={{ backgroundColor: "#dc2626" }}
+                >
+                  {actionLoading ? t('contractdetailmanager.processing') : t('contractdetailmanager.confirm_termination')}
                 </button>
               </div>
             </form>

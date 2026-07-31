@@ -8,18 +8,18 @@ const getAuthHeaders = () => ({
 });
 
 const TYPE_META = {
-  FacilityIssue:   { label: 'Sự cố hạ tầng',      color: 'type-facility' },
-  ViolationAppeal: { label: 'Kháng nghị vi phạm',  color: 'type-violation' },
-  InvoiceDispute:  { label: 'Khiếu nại hóa đơn',   color: 'type-invoice' },
+  FacilityIssue:   { labelKey: 'infrastructure_failure', labelFallback: 'Sự cố hạ tầng',      color: 'type-facility' },
+  ViolationAppeal: { labelKey: 'protest_violations',      labelFallback: 'Kháng nghị vi phạm',  color: 'type-violation' },
+  InvoiceDispute:  { labelKey: 'invoice_complaints',     labelFallback: 'Khiếu nại hóa đơn',   color: 'type-invoice' },
 };
 
 const STATUS_META = {
-  PendingManagerReview: { label: 'Báo giá chờ quyết định', cls: 'status-review' },
-  Pending:   { label: 'Chờ xử lý',       cls: 'status-pending'   },
-  Quoted:    { label: 'Báo giá',          cls: 'status-quoted'    },
-  Approved:  { label: 'Đã duyệt',        cls: 'status-approved'  },
-  Completed: { label: 'Hoàn thành',      cls: 'status-completed' },
-  Rejected:  { label: 'Từ chối',         cls: 'status-rejected'  },
+  PendingManagerReview: { labelKey: 'quote_awaiting_decision', labelFallback: 'Báo giá chờ quyết định', cls: 'status-review' },
+  Pending:   { labelKey: 'waiting_for_processing', labelFallback: 'Chờ xử lý',       cls: 'status-pending'   },
+  Quoted:    { labelKey: 'quote',                  labelFallback: 'Báo giá',          cls: 'status-quoted'    },
+  Approved:  { labelKey: 'approved',               labelFallback: 'Đã duyệt',        cls: 'status-approved'  },
+  Completed: { labelKey: 'complete',               labelFallback: 'Hoàn thành',      cls: 'status-completed' },
+  Rejected:  { labelKey: 'refuse',                 labelFallback: 'Từ chối',         cls: 'status-rejected'  },
 };
 
 /* ── Icons ── */
@@ -56,7 +56,7 @@ const IconFilter = () => (
 );
 
 export default function RequestListManager({ baseUrl, navigate, addToast }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const [requests, setRequests] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
@@ -129,7 +129,7 @@ export default function RequestListManager({ baseUrl, navigate, addToast }) {
             <IconFilter />
             <select className="rl-select" value={typeFilter} onChange={e => setTypeFilter(e.target.value)}>
               <option value="">{t('requestlistmanager.all_types')}</option>
-              {Object.entries(TYPE_META).map(([k,v]) => <option key={k} value={k}>{v.label}</option>)}
+              {Object.entries(TYPE_META).map(([k,v]) => <option key={k} value={k}>{t('requestlistmanager.' + v.labelKey)}</option>)}
             </select>
           </div>
 
@@ -137,13 +137,13 @@ export default function RequestListManager({ baseUrl, navigate, addToast }) {
             <IconFilter />
             <select className="rl-select" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
               <option value="">{t('requestlistmanager.all_status')}</option>
-              {Object.entries(STATUS_META).map(([k,v]) => <option key={k} value={k}>{v.label}</option>)}
+              {Object.entries(STATUS_META).map(([k,v]) => <option key={k} value={k}>{t('requestlistmanager.' + v.labelKey)}</option>)}
             </select>
           </div>
         </div>
 
         <div className="rl-count-badge">
-          {loading ? '—' : totalCount} yêu cầu
+          {t('requestlistmanager.requests_count', { count: loading ? '—' : totalCount })}
         </div>
       </div>
 
@@ -176,13 +176,13 @@ export default function RequestListManager({ baseUrl, navigate, addToast }) {
                   <th>{t('requestlistmanager.title')}</th>
                   <th>{t('requestlistmanager.creation_date')}</th>
                   <th>{t('requestlistmanager.status')}</th>
-                  <th style={{textAlign:'center'}}>Xem</th>
+                  <th style={{textAlign:'center'}}>{t('requestlistmanager.view')}</th>
                 </tr>
               </thead>
               <tbody>
                 {requests.map(item => {
-                  const tm = TYPE_META[item.requestType] || { label: item.requestType, color: 'type-other' };
-                  const sm = STATUS_META[item.status]    || { label: item.status,       cls: 'status-pending' };
+                  const tm = TYPE_META[item.requestType] || { labelKey: '', labelFallback: item.requestType, color: 'type-other' };
+                  const sm = STATUS_META[item.status]    || { labelKey: '', labelFallback: item.status,       cls: 'status-pending' };
                   return (
                     <tr
                       key={item.requestId}
@@ -202,7 +202,7 @@ export default function RequestListManager({ baseUrl, navigate, addToast }) {
                         </div>
                       </td>
                       <td>
-                        <span className={`rl-type-badge ${tm.color}`}>{tm.label}</span>
+                        <span className={`rl-type-badge ${tm.color}`}>{tm.labelKey ? t('requestlistmanager.' + tm.labelKey) : tm.labelFallback}</span>
                       </td>
                       <td>
                         <div className="rl-title-cell">
@@ -214,7 +214,7 @@ export default function RequestListManager({ baseUrl, navigate, addToast }) {
                         <span className="rl-date">{formatDate(item.createdAt)}</span>
                       </td>
                       <td>
-                        <span className={`rl-status-badge ${sm.cls}`}>{sm.label}</span>
+                        <span className={`rl-status-badge ${sm.cls}`}>{sm.labelKey ? t('requestlistmanager.' + sm.labelKey) : sm.labelFallback}</span>
                       </td>
                       <td style={{textAlign:'center'}}>
                         <button
@@ -252,7 +252,7 @@ export default function RequestListManager({ baseUrl, navigate, addToast }) {
               }
             </div>
             <button className="rl-page-btn" onClick={() => setPage(p => Math.min(p+1, totalPages))} disabled={page === totalPages}>
-              Sau <IconChevronRight />
+              {t('requestlistmanager.next')} <IconChevronRight />
             </button>
           </div>
         </>

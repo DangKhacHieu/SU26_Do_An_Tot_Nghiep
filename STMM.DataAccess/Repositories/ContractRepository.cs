@@ -40,7 +40,14 @@ namespace STMM.DataAccess.Repositories
 
             if (!string.IsNullOrWhiteSpace(status))
             {
-                query = query.Where(c => c.Status == status);
+                if (status == "Terminated")
+                {
+                    query = query.Where(c => c.Status == "Terminated" || c.Status == "TerminatedEarly");
+                }
+                else
+                {
+                    query = query.Where(c => c.Status == status);
+                }
             }
 
             return await query.OrderByDescending(c => c.CreatedAt).ToListAsync(ct);

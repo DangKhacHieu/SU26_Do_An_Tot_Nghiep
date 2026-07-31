@@ -1,3 +1,4 @@
+using System;
 using FluentValidation;
 using STMM.Business.DTOs.Contract;
 
@@ -16,7 +17,8 @@ namespace STMM.Business.Validators
                 .GreaterThan(0).WithMessage("Tài khoản tiểu thương không hợp lệ.");
 
             RuleFor(x => x.StartDate)
-                .NotEmpty().WithMessage("Ngày bắt đầu không được để trống.");
+                .NotEmpty().WithMessage("Ngày bắt đầu không được để trống.")
+                .GreaterThanOrEqualTo(DateOnly.FromDateTime(DateTime.Today)).WithMessage("Ngày bắt đầu hợp đồng không được trước ngày hôm nay.");
 
             RuleFor(x => x.EndDate)
                 .NotEmpty().WithMessage("Ngày kết thúc không được để trống.")

@@ -470,7 +470,35 @@
 }
 
 .status-terminated {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  color: #64748b;
+}
+
+.status-terminated-early {
   background: #fef2f2;
   border: 1px solid #fecdd3;
   color: #dc2626;
+}
+
+/* Terminate Modal styles */
+.terminate-alert-custom {
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+  margin-top: 12px;
+}
+
+.terminate-alert-custom.warning {
+  background-color: #fff1f2;
+  border: 1px solid #fecdd3;
+  color: #be123c;
+}
+
+.terminate-alert-custom.info {
+  background-color: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #15803d;
 }

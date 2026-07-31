@@ -185,105 +185,107 @@ export default function SidebarManager({ currentPage, navigate, user, onLogout }
 
   return (
     <aside className="app-sidebar">
-      {/* Brand */}
-      <div className="brand-section">
-        <div className="brand-logo">MH</div>
-        <div className="brand-name">
-          <span className="brand-title">MHMS</span>
-          <span className="brand-subtitle">Manager Console</span>
-        </div>
-      </div>
-
-      {/* Navigation groups */}
-      {NAV_GROUPS.map((group) => (
-        <div key={group.label}>
-          <p className="sidebar-section-label">{group.label}</p>
-          <nav className="sidebar-menu">
-            {group.items.map((item) => (
-              <div
-                key={item.key}
-                className={`menu-item ${isActive(item) ? 'active' : ''}`}
-                onClick={() => navigate(item.key)}
-              >
-                <span className="menu-icon">{item.icon}</span>
-                <span className="menu-label">{item.label}</span>
-              </div>
-            ))}
-          </nav>
-        </div>
-      ))}
-
-      {/* Footer: current user info */}
-      <div className="sidebar-footer">
-        <div 
-          className={`user-profile-summary ${currentPage === 'manager-profile' ? 'active' : ''}`}
-          onClick={() => navigate('manager-profile')}
-          title={t('sidebarmanager.view_personal_profile')}
-          style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '10px', 
-            flexGrow: 1, 
-            cursor: 'pointer',
-            padding: '6px',
-            borderRadius: '8px',
-            transition: 'background-color 0.15s ease'
-          }}
-          onMouseEnter={(e) => {
-            if (currentPage !== 'manager-profile') {
-              e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
-            }
-          }}
-          onMouseLeave={(e) => {
-            if (currentPage !== 'manager-profile') {
-              e.currentTarget.style.backgroundColor = 'transparent';
-            }
-          }}
-        >
-          <div className="user-avatar">
-            {user?.name ? user.name[0].toUpperCase() : 'M'}
-          </div>
-          <div className="user-info">
-            <span className="user-name">{user?.name || 'Manager'}</span>
-            <span className="user-role">{user?.roleName || t('sidebarmanager.administrator')}</span>
+      <div className="sidebar-sticky-content">
+        {/* Brand */}
+        <div className="brand-section">
+          <div className="brand-logo">MH</div>
+          <div className="brand-name">
+            <span className="brand-title">MHMS</span>
+            <span className="brand-subtitle">Manager Console</span>
           </div>
         </div>
-        {onLogout && (
-          <button 
-            onClick={(e) => {
-              e.stopPropagation();
-              onLogout();
-            }}
-            className="logout-icon-btn"
-            title={t('sidebarmanager.sign_out')}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: '#94a3b8',
+
+        {/* Navigation groups */}
+        {NAV_GROUPS.map((group) => (
+          <div key={group.label}>
+            <p className="sidebar-section-label">{group.label}</p>
+            <nav className="sidebar-menu">
+              {group.items.map((item) => (
+                <div
+                  key={item.key}
+                  className={`menu-item ${isActive(item) ? 'active' : ''}`}
+                  onClick={() => navigate(item.key)}
+                >
+                  <span className="menu-icon">{item.icon}</span>
+                  <span className="menu-label">{item.label}</span>
+                </div>
+              ))}
+            </nav>
+          </div>
+        ))}
+
+        {/* Footer: current user info */}
+        <div className="sidebar-footer">
+          <div 
+            className={`user-profile-summary ${currentPage === 'manager-profile' ? 'active' : ''}`}
+            onClick={() => navigate('manager-profile')}
+            title={t('sidebarmanager.view_personal_profile')}
+            style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '10px', 
+              flexGrow: 1, 
               cursor: 'pointer',
               padding: '6px',
-              borderRadius: '6px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              transition: 'all 0.15s ease',
+              borderRadius: '8px',
+              transition: 'background-color 0.15s ease'
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.color = '#ef4444';
-              e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.08)';
+              if (currentPage !== 'manager-profile') {
+                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
+              }
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.color = '#94a3b8';
-              e.currentTarget.style.backgroundColor = 'transparent';
+              if (currentPage !== 'manager-profile') {
+                e.currentTarget.style.backgroundColor = 'transparent';
+              }
             }}
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-              <polyline points="16 17 21 12 16 7" />
-              <line x1="21" y1="12" x2="9" y2="12" />
-            </svg>
-          </button>
-        )}
+            <div className="user-avatar">
+              {user?.name ? user.name[0].toUpperCase() : 'M'}
+            </div>
+            <div className="user-info">
+              <span className="user-name">{user?.name || 'Manager'}</span>
+              <span className="user-role">{user?.roleName || t('sidebarmanager.administrator')}</span>
+            </div>
+          </div>
+          {onLogout && (
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                onLogout();
+              }}
+              className="logout-icon-btn"
+              title={t('sidebarmanager.sign_out')}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#94a3b8',
+                cursor: 'pointer',
+                padding: '6px',
+                borderRadius: '6px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.15s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = '#ef4444';
+                e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.08)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = '#94a3b8';
+                e.currentTarget.style.backgroundColor = 'transparent';
+              }}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+            </button>
+          )}
+        </div>
       </div>
     </aside>
   );
