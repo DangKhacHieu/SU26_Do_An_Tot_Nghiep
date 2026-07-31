@@ -188,25 +188,50 @@ public class VendorServiceManagement : IVendorServiceManagement
             }
         }
 
-        // A.4.2 Duplicate Service Check
+        // A.4.2 Duplicate Service Check & Re-register Logic
         var existingRegistration = (await _serviceRegistrationRepository.FindAsync(
-            r => r.VendorId == vendorId && r.StallId == request.StallId && r.ServiceId == request.ServiceId && (r.Status == "Active" || r.Status == "Pending"),
+            r => r.VendorId == vendorId && r.StallId == request.StallId && r.ServiceId == request.ServiceId && (r.Status == "Active" || r.Status == "Pending" || r.Status == "PendingCancellation"),
             ct)).FirstOrDefault();
 
         if (existingRegistration != null)
         {
-            throw new BadRequestException("Bạn đã đăng ký dịch vụ này rồi. Vui lòng kiểm tra lại trong phần Dịch vụ của tôi.");
+            if (service.BillingCycle == "One-time")
+            {
+                throw new BadRequestException("Bạn đang có dịch vụ này đang hoạt động và chưa hoàn tất, không thể đăng ký thêm.");
+            }
+
+            if (existingRegistration.IsAutoRenew)
+            {
+                throw new BadRequestException("Bạn đã đăng ký dịch vụ này rồi. Vui lòng kiểm tra lại trong phần Dịch vụ của tôi.");
+            }
+            else
+            {
+                // Business Logic: Nếu dịch vụ định kỳ đã bị tắt gia hạn nhưng vẫn còn hạn sử dụng (Status = PendingCancellation)
+                // User không được phép đăng ký lại ngay mà phải đợi hết hạn.
+                string endDateStr = existingRegistration.EndDate.HasValue 
+                    ? existingRegistration.EndDate.Value.ToString("dd/MM/yyyy") 
+                    : "cuối kỳ";
+                throw new BadRequestException($"PENDING_CANCELLATION_ERROR|{endDateStr}");
+            }
         }
 
-        // Register as Pending
+        bool isOneTime = service.BillingCycle == "One-time";
+
+        DateTime? initialEndDate = null;
+        if (service.BillingCycle == "Monthly")
+            initialEndDate = DateTime.UtcNow.AddMonths(1);
+        else if (service.BillingCycle == "Yearly")
+            initialEndDate = DateTime.UtcNow.AddYears(1);
+
         var registration = new ServiceRegistration
         {
             ServiceId = request.ServiceId,
             VendorId = vendorId,
             StallId = request.StallId,
-            Status = "Active",
+            Status = "Active", // Đăng ký thành công luôn không cần duyệt
             RegisteredAt = DateTime.UtcNow,
-            IsAutoRenew = true // default to true until approved
+            IsAutoRenew = !isOneTime, // Dịch vụ 1 lần không có gia hạn
+            EndDate = initialEndDate
         };
 
         await _serviceRegistrationRepository.AddAsync(registration, ct);
@@ -243,9 +268,6 @@ public class VendorServiceManagement : IVendorServiceManagement
             throw new BadRequestException("Dịch vụ này đã được hủy.");
         }
 
-        // Prevent canceling mandatory services
-        // Assuming "Basic Garbage Collection" might have FeeTypeId = 1 or something, but we check name/description for now.
-        // Or we could add IsMandatory to Service. For now, let's assume it checks name.
         var service = await _serviceRepository.GetByIdAsync(registration.ServiceId, ct);
         if (service != null && (service.Name.Contains("bắt buộc", StringComparison.OrdinalIgnoreCase) || service.Name.Contains("Vệ sinh chung", StringComparison.OrdinalIgnoreCase)))
         {
@@ -254,14 +276,32 @@ public class VendorServiceManagement : IVendorServiceManagement
 
         if (registration.Status == "Pending")
         {
-            // A.3.1 Cancel a Pending Request
             registration.Status = "Cancelled";
             registration.CancelledAt = DateTime.UtcNow;
-        }
-        else if (registration.Status == "Active")
-        {
-            // A.Cancel an Active Subscription
             registration.IsAutoRenew = false;
+        }
+        else if (registration.Status == "Active" || registration.Status == "PendingCancellation")
+        {
+            bool isOneTime = service != null && service.BillingCycle == "One-time";
+
+            if (isOneTime)
+            {
+                // Dịch vụ 1 lần không quản lý theo ngày, hủy là Cancel luôn, để họ có thể đăng ký lại cái mới.
+                registration.Status = "Cancelled";
+                registration.CancelledAt = DateTime.UtcNow;
+                registration.IsAutoRenew = false;
+            }
+            else
+            {
+                // Business Logic: Với dịch vụ định kỳ, yêu cầu hủy mang ý nghĩa tắt gia hạn 
+                // Đổi trạng thái thành PendingCancellation để dễ nhận biết trên UI, user vẫn dùng được cho đến hết kỳ hiện tại.
+                if (registration.Status == "PendingCancellation" || !registration.IsAutoRenew)
+                {
+                    throw new BadRequestException("Dịch vụ này đã được yêu cầu hủy gia hạn từ trước.");
+                }
+                registration.Status = "PendingCancellation";
+                registration.IsAutoRenew = false;
+            }
         }
 
         _serviceRegistrationRepository.Update(registration);

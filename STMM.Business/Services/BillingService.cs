@@ -997,6 +997,16 @@ namespace STMM.Business.Services
                 // Add detail lines for registered services
                 foreach (var reg in activeServices)
                 {
+                    if (reg.Status == "PendingCancellation")
+                    {
+                        // Hết chu kỳ cũ, đến chu kỳ mới nhưng user đã hủy gia hạn
+                        // Cập nhật trạng thái thành Cancelled và không tính phí tháng này
+                        reg.Status = "Cancelled";
+                        reg.CancelledAt = DateTime.UtcNow;
+                        _serviceRegistrationRepository.Update(reg);
+                        continue;
+                    }
+
                     var srvDetail = new InvoiceDetail
                     {
                         InvoiceId = invoice.InvoiceId,

@@ -101,6 +101,10 @@ public class VendorServicesController : ControllerBase
             var result = await _vendorServiceManagement.RegisterServiceAsync(vendorId, request, ct);
             return Ok(new { message = "Đăng ký dịch vụ thành công.", data = result });
         }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
         catch (ArgumentException ex)
         {
             return BadRequest(new { message = ex.Message });
@@ -120,9 +124,17 @@ public class VendorServicesController : ControllerBase
             await _vendorServiceManagement.CancelServiceAsync(vendorId, id, ct);
             return Ok(new { message = "Yêu cầu hủy dịch vụ đã được ghi nhận thành công." });
         }
-        catch (Exception ex)
+        catch (UnauthorizedAccessException)
         {
-            return BadRequest(new { message = ex.ToString() });
+            return Forbid();
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (BadRequestException ex)
+        {
+            return BadRequest(new { message = ex.Message });
         }
     }
 }

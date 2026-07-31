@@ -42,6 +42,7 @@ export default function VendorRequestCreate({ onBack, onSuccess, prefillViolatio
         switch (status) {
             case 'Paid': return t('vendorrequestcreate.paid');
             case 'Overdue': return t('vendorrequestcreate.overdue');
+            case 'Disputed': return t('vendorrequestcreate.disputed') || 'Đang khiếu nại';
             case 'Pending':
             case 'Unpaid': return t('vendorrequestcreate.not_yet_paid');
             default: return status || t('vendorrequestcreate.not_yet_paid');
@@ -74,7 +75,7 @@ export default function VendorRequestCreate({ onBack, onSuccess, prefillViolatio
                 const invoicesRes = await axios.get('http://localhost:5056/api/vendor/invoices?pageSize=100', config);
                 const invoicesData = invoicesRes.data?.items || (Array.isArray(invoicesRes.data) ? invoicesRes.data : []);
                 setInvoices(invoicesData);
-                if (invoicesData.length > 0) {
+                if (invoicesData.length > 0 && !prefillInvoiceId) {
                     setInvoiceId(invoicesData[0].invoiceId);
                 }
 

@@ -129,6 +129,14 @@ namespace STMM.Business.Services
                 var invoice = await _invoiceRepository.GetByIdAsync(dto.InvoiceId.Value);
                 if (invoice == null)
                     throw new BadRequestException("Không tìm thấy hóa đơn cần khiếu nại.");
+
+                if (invoice.Status == "Disputed" || invoice.Status == "Adjusted")
+                {
+                    throw new BadRequestException("Hóa đơn này đang được khiếu nại hoặc đã được điều chỉnh, không thể khiếu nại lại.");
+                }
+
+                invoice.Status = "Disputed";
+                _invoiceRepository.Update(invoice);
             }
             else
             {
