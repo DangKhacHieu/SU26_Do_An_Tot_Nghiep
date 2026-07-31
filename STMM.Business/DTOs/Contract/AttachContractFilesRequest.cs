@@ -4,6 +4,6 @@ namespace STMM.Business.DTOs.Contract
 {
     public class AttachContractFilesRequest
     {
-        public List<string> FileUrls { get; set; } = new List<string>();
+        public List<Microsoft.AspNetCore.Http.IFormFile>? Files { get; set; }
     }
 }

@@ -4,7 +4,6 @@ import ContractPrintPreview from "./ContractPrintPreview";
 import "./ContractDetailManager.css";
 
 const API_BASE = "http://localhost:5056/api/manager/contracts";
-const API_UPLOAD = "http://localhost:5056/api/files/upload";
 
 const getAuthHeaders = () => ({
   "Authorization": `Bearer ${localStorage.getItem('accessToken') || localStorage.getItem('token')}`
@@ -178,42 +177,26 @@ export default function ContractDetailManager({ contractId, navigate, addToast }
 
     setUploadingFile(true);
     const formData = new FormData();
-    formData.append("file", file);
+    formData.append("files", file);
 
     try {
-      // 1. Upload to Cloudinary via backend api/files/upload
-      const uploadRes = await fetch(API_UPLOAD, {
-        method: "POST",
-        body: formData
-      });
-
-      if (!uploadRes.ok) {
-        throw new Error(t('contractdetailmanager.upload_failed'));
-      }
-
-      const uploadResult = await uploadRes.json();
-      const imageUrl = uploadResult.imageUrl;
-
-      // 2. Save file url to contract_files
       const saveRes = await fetch(`${API_BASE}/${contractId}/files`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...getAuthHeaders()
-        },
-        body: JSON.stringify({ fileUrls: [imageUrl] })
+        headers: getAuthHeaders(),
+        body: formData
       });
 
       if (saveRes.ok) {
         addToast("Tải bản quét đã ký lên thành công!", "success");
         fetchContractDetails();
       } else {
-        throw new Error(t('contractdetailmanager.error_saving_scan_link'));
+        throw new Error(t('contractdetailmanager.upload_failed'));
       }
     } catch (err) {
       addToast(err.message || t('contractdetailmanager.error_uploading_photos_to'), "error");
     } finally {
       setUploadingFile(false);
+      if (e.target) e.target.value = '';
     }
   };
 

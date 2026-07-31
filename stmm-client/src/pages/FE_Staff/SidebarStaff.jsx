@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Bell, ClipboardCheck, LayoutDashboard, LogOut, Radio, Store, TriangleAlert } from 'lucide-react';
+import { Bell, ClipboardCheck, LayoutDashboard, LogOut, Radio, Store, TriangleAlert, UserRound } from 'lucide-react';
 import './SidebarStaff.css';
 
 export default function SidebarStaff({ currentView, setView, user, onLogout, unreadNotificationsCount = 0 }) {
@@ -24,6 +24,10 @@ export default function SidebarStaff({ currentView, setView, user, onLogout, unr
     {
       label: t('sidebarstaff.management'),
       items: [{ key: 'stall-list', label: t('sidebarstaff.stall_list'), icon: Store, childKeys: ['stall-invoices', 'meters', 'meter-details'] }],
+    },
+    {
+      label: t('sidebarstaff.account', 'Tài khoản'),
+      items: [{ key: 'profile', label: t('sidebarstaff.personal_profile', 'Hồ sơ cá nhân'), icon: UserRound }],
     },
   ];
 

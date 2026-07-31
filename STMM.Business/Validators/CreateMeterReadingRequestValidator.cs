@@ -23,14 +23,9 @@ namespace STMM.Business.Validators
                 .Must(val => DateOnly.TryParseExact(val, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out _))
                 .WithMessage("RecordedAt must be a valid date (yyyy-MM-dd).");
 
-            RuleFor(x => x.ImageUrl)
-                .NotEmpty()
-                .WithMessage("Image URL is required (photo of meter face).");
-
-            RuleFor(x => x.ImageUrl)
-                .Must(url => Uri.TryCreate(url, UriKind.Absolute, out _))
-                .When(x => !string.IsNullOrEmpty(x.ImageUrl))
-                .WithMessage("Image URL format is invalid.");
+            RuleFor(x => x.Image)
+                .NotNull()
+                .WithMessage("Meter reading evidence image is required.");
         }
     }
 }

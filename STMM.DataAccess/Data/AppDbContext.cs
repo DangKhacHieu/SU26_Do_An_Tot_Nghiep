@@ -1261,7 +1261,7 @@ public partial class AppDbContext : DbContext
                 .HasComment("Vòng đời: Pending → PendingApproval → In_Progress → Completed | Cancelled")
                 .HasColumnName("status");
             entity.Property(e => e.TaskType)
-                .HasComment("Repair, Maintenance, UtilityReading, CashCollection")
+                .HasComment("Repair, Maintenance, UtilityReading")
                 .HasColumnName("task_type");
             entity.Property(e => e.Title)
                 .HasComment("Tiêu đề tác vụ")

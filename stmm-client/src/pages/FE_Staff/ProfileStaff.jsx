@@ -71,8 +71,6 @@ export default function ProfileStaff({ userId, baseUrl, onShowNotification }) {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState('info');
-
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
 
@@ -218,27 +216,9 @@ export default function ProfileStaff({ userId, baseUrl, onShowNotification }) {
         </div>
       </div>
 
-      <div className="sp2-tabs">
-        <button
-          className={`sp2-tab ${activeTab === 'info' ? 'sp2-tab-active' : ''}`}
-          onClick={() => setActiveTab('info')}
-        >
-          <IconUser /> {t('profilestaff.personal_information')}</button>
-        <button
-          className={`sp2-tab ${activeTab === 'security' ? 'sp2-tab-active' : ''}`}
-          onClick={() => setActiveTab('security')}
-        >
-          <IconShield /> {t('profilestaff.security_password')}</button>
-        <button
-          className={`sp2-tab ${activeTab === 'activity' ? 'sp2-tab-active' : ''}`}
-          onClick={() => setActiveTab('activity')}
-        >
-          <IconClock /> {t('profilestaff.account_activity')}</button>
-      </div>
+      <div className="sp2-panel">
 
-      <div className="sp2-panel" key={activeTab}>
-
-        {activeTab === 'info' && (
+        {true && (
           <form onSubmit={handleSaveChanges} className="sp2-form">
             <div className="sp2-section-title">
               <IconUser /> {t('profilestaff.edit_information')}</div>
@@ -305,7 +285,7 @@ export default function ProfileStaff({ userId, baseUrl, onShowNotification }) {
           </form>
         )}
 
-        {activeTab === 'security' && (
+        {true && (
           <form onSubmit={handleChangePassword} className="sp2-form">
             <div className="sp2-section-title">
               <IconKey /> {t('profilestaff.change_password')}</div>
@@ -354,7 +334,7 @@ export default function ProfileStaff({ userId, baseUrl, onShowNotification }) {
           </form>
         )}
 
-        {activeTab === 'activity' && (
+        {false && (
           <div className="sp2-activity">
             <div className="sp2-section-title"><IconClock /> {t('profilestaff.account_activity')}</div>
             <div className="sp2-timeline">

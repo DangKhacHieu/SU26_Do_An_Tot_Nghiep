@@ -19,7 +19,7 @@ import { TASK_STATUS, TASK_TYPE } from '../../constants/taskEnums';
 import { TASK_STATUS_TONE } from '../../constants/enumMaps';
 import './TaskList.css';
 
-const PAGE_SIZE = 9;
+const PAGE_SIZE = 6;
 const FINISHED_STATUSES = new Set([TASK_STATUS.COMPLETED, TASK_STATUS.CANCELLED]);
 
 const readProblemDetail = async (response, t) => {
@@ -54,7 +54,6 @@ export default function TaskList({ baseUrl, onViewDetails, onMapView }) {
 
   const TYPE_LABELS = useMemo(() => ({
     [TASK_TYPE.REPAIR]: t('tasklist.repair'),
-    [TASK_TYPE.MAINTENANCE]: t('tasklist.maintenance'),
     [TASK_TYPE.UTILITY_READING]: t('tasklist.utility_reading'),
   }), [t]);
 
@@ -70,6 +69,7 @@ export default function TaskList({ baseUrl, onViewDetails, onMapView }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [pageNumber, setPageNumber] = useState(1);
 
   const fetchTasks = useCallback(async () => {
@@ -119,12 +119,16 @@ export default function TaskList({ baseUrl, onViewDetails, onMapView }) {
         ].some((value) => String(value ?? '').toLocaleLowerCase().includes(term)))
       : tasks;
 
-    return [...matchingTasks].sort((left, right) => {
+    const statusTasks = statusFilter === 'all'
+      ? matchingTasks
+      : matchingTasks.filter((task) => task.status === statusFilter);
+
+    return [...statusTasks].sort((left, right) => {
       const finishedDifference = Number(FINISHED_STATUSES.has(left.status)) - Number(FINISHED_STATUSES.has(right.status));
       if (finishedDifference !== 0) return finishedDifference;
       return new Date(right.createdAt || 0).getTime() - new Date(left.createdAt || 0).getTime();
     });
-  }, [searchQuery, tasks, STATUS_LABELS]);
+  }, [searchQuery, statusFilter, tasks, STATUS_LABELS]);
 
   const totalPages = Math.max(1, Math.ceil(filteredTasks.length / PAGE_SIZE));
   const safePageNumber = Math.min(pageNumber, totalPages);
@@ -157,17 +161,17 @@ export default function TaskList({ baseUrl, onViewDetails, onMapView }) {
         </div>
       </header>
 
-      <section className="staff-task-stats" aria-label={t('tasklist.task_statistics')}>
-        {STAT_CARDS.map(({ status, label, icon: Icon, tone }) => (
-          <article className={`staff-task-stat staff-task-stat--${tone}`} key={status}>
-            <div className="staff-task-stat__icon"><Icon size={20} aria-hidden="true" /></div>
-            <div>
-              <span>{label}</span>
-              <strong>{stats[status]}</strong>
-            </div>
-          </article>
+
+      <nav className="staff-data-tabs" aria-label={t('tasklist.task_statistics')}>
+        <button type="button" className={statusFilter === 'all' ? 'active' : ''} onClick={() => { setStatusFilter('all'); setPageNumber(1); }}>
+          {t('tasklist.all', 'All')} <span>{tasks.length}</span>
+        </button>
+        {STAT_CARDS.map(({ status, label }) => (
+          <button type="button" key={status} className={statusFilter === status ? 'active' : ''} onClick={() => { setStatusFilter(status); setPageNumber(1); }}>
+            {label} <span>{stats[status]}</span>
+          </button>
         ))}
-      </section>
+      </nav>
 
       <section className="staff-task-list__toolbar" aria-label={t('tasklist.search_assigned_tasks')}>
         <div className="staff-task-search">

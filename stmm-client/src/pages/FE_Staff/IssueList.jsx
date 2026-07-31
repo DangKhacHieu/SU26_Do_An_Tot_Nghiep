@@ -4,7 +4,7 @@ import { getAuthHeaders } from '../../utils/authHeaders';
 import { getEnumCls, getEnumLabel, ISSUE_STATUS_MAP } from '../../constants/enumMaps';
 import './IssueList.css';
 
-const PAGE_SIZE = 8;
+const PAGE_SIZE = 5;
 
 const readProblemDetail = async (response, t) => {
   try {

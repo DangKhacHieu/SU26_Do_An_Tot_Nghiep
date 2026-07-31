@@ -89,13 +89,25 @@ namespace STMM.Business.Services
 
             var repairPrice = await LoadRepairPriceOrThrowAsync(request.RepairPriceId, marketId, ct);
             var unitPrice = ResolveUnitPrice(repairPrice, request);
-            var material = CreateTaskMaterial(taskId, repairPrice, request, unitPrice);
+            var materials = await _materialRepository.GetByTaskIdForUpdateAsync(taskId, ct);
+            var existingMaterial = materials.FirstOrDefault(material =>
+                material.RepairPriceId == request.RepairPriceId &&
+                material.UnitPrice == unitPrice);
 
-            await _materialRepository.AddAsync(material, ct);
+            if (existingMaterial == null)
+            {
+                var material = CreateTaskMaterial(taskId, repairPrice, request, unitPrice);
+                await _materialRepository.AddAsync(material, ct);
+                materials.Add(material);
+            }
+            else
+            {
+                existingMaterial.Quantity += request.Quantity;
+                existingMaterial.Amount = (decimal)existingMaterial.Quantity * existingMaterial.UnitPrice;
+            }
+
             await _materialRepository.SaveChangesAsync(ct);
-
-            var updatedMaterials = await _materialRepository.GetByTaskIdAsync(taskId, ct);
-            return BuildQuotationSummary(task, updatedMaterials);
+            return BuildQuotationSummary(task, materials);
         }
 
         public async Task<QuotationSummaryDto> RemoveMaterialAsync(
@@ -254,7 +266,8 @@ namespace STMM.Business.Services
                 ItemName = repairPrice.ItemName,
                 Quantity = request.Quantity,
                 UnitPrice = unitPrice,
-                Amount = (decimal)request.Quantity * unitPrice
+                Amount = (decimal)request.Quantity * unitPrice,
+                RepairPrice = repairPrice
             };
         }
 

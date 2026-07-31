@@ -66,9 +66,8 @@ namespace STMM.DataAccess.Repositories
                 t.AreaId == areaId &&
                 t.TaskType == "UtilityReading" &&
                 t.Status != "Cancelled" &&
-                t.CreatedAt.HasValue &&
-                t.CreatedAt.Value >= periodStartUtc &&
-                t.CreatedAt.Value < periodEndUtc,
+                ((t.CreatedAt.HasValue && t.CreatedAt.Value >= periodStartUtc && t.CreatedAt.Value < periodEndUtc) ||
+                 (t.CompletedAt.HasValue && t.CompletedAt.Value >= periodStartUtc && t.CompletedAt.Value < periodEndUtc)),
                 ct);
         }
 
@@ -115,9 +114,19 @@ namespace STMM.DataAccess.Repositories
                 .FirstOrDefaultAsync(t => t.TaskId == taskId, ct);
         }
 
-        public async Task<StaffTask?> GetTaskByIdForStaffAsync(int taskId, int staffUserId, CancellationToken ct = default)
+        public Task<StaffTask?> GetTaskByIdForStaffAsync(
+            int taskId,
+            int staffUserId,
+            CancellationToken ct = default) =>
+            GetTaskByIdForStaffAsync(taskId, staffUserId, includeMaterials: true, ct);
+
+        public async Task<StaffTask?> GetTaskByIdForStaffAsync(
+            int taskId,
+            int staffUserId,
+            bool includeMaterials,
+            CancellationToken ct = default)
         {
-            return await BuildTaskQuery()
+            return await BuildTaskQuery(includeMaterials)
                 .FirstOrDefaultAsync(t => t.TaskId == taskId && t.AssignedToUserId == staffUserId, ct);
         }
 

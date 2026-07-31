@@ -27,6 +27,18 @@ namespace STMM.DataAccess.Repositories
         }
 
         /// <inheritdoc />
+        public async Task<List<TaskMaterial>> GetByTaskIdForUpdateAsync(
+            int taskId,
+            CancellationToken ct = default)
+        {
+            return await _context.TaskMaterials
+                .Include(m => m.RepairPrice)
+                .Where(m => m.TaskId == taskId)
+                .OrderBy(m => m.Id)
+                .ToListAsync(ct);
+        }
+
+        /// <inheritdoc />
         public async Task<TaskMaterial?> GetMaterialByIdAsync(int id, CancellationToken ct = default)
         {
             return await _context.TaskMaterials

@@ -69,12 +69,14 @@ export default function QuotationPanel({ taskId, baseUrl, taskStatus, initialMat
     if (isEditMode) {
       fetchQuotation();
       fetchCatalog();
-    } else {
-      const total = (initialMaterials || []).reduce((sum, item) => sum + (item.amount || 0), 0);
+    } else if (initialMaterials && initialMaterials.length > 0) {
+      const total = initialMaterials.reduce((sum, item) => sum + (item.amount || 0), 0);
       setQuotation({
-        materials: initialMaterials || [],
+        materials: initialMaterials,
         totalAmount: total
       });
+    } else {
+      fetchQuotation();
     }
   }, [fetchCatalog, fetchQuotation, initialMaterials, isEditMode]);
 
@@ -205,10 +207,7 @@ export default function QuotationPanel({ taskId, baseUrl, taskStatus, initialMat
     <div className="quotation-panel">
       <div className="panel-header-with-action">
         <h3 className="card-section-title">🔧 {t('quotationpanel.repair_materials_quotation')}</h3>
-      </div>
-
-      {isEditMode && quotation.materials.length > 0 && (
-        <div style={{ marginBottom: '16px', textAlign: 'right' }}>
+        {isEditMode && quotation.materials.length > 0 && (
           <button 
             type="button" 
             onClick={handleSubmitQuotation} 
@@ -217,8 +216,8 @@ export default function QuotationPanel({ taskId, baseUrl, taskStatus, initialMat
           >
             {submittingQuotation ? t('quotationpanel.sending') : `🚀 ${t('quotationpanel.submit_for_approval')}`}
           </button>
-        </div>
-      )}
+        )}
+      </div>
 
       {isEditMode && (
         <form onSubmit={handleAddMaterial} className="add-material-form">
@@ -275,13 +274,16 @@ export default function QuotationPanel({ taskId, baseUrl, taskStatus, initialMat
                 </div>
               )}
 
-              <button 
-                type="submit" 
-                disabled={submittingMaterial} 
-                className="btn-add-material-submit"
-              >
-                {submittingMaterial ? t('quotationpanel.adding') : `➕ ${t('quotationpanel.add_material')}`}
-              </button>
+              <div className="form-group add-material-btn-group">
+                <label className="form-label aria-hidden-spacer" aria-hidden="true">&nbsp;</label>
+                <button 
+                  type="submit" 
+                  disabled={submittingMaterial} 
+                  className="btn-add-material-submit"
+                >
+                  {submittingMaterial ? t('quotationpanel.adding') : `➕ ${t('quotationpanel.add_material')}`}
+                </button>
+              </div>
             </div>
           </div>
         </form>

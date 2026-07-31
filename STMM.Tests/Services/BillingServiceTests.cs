@@ -3,6 +3,7 @@ using FluentAssertions;
 using FluentValidation;
 using FluentValidation.Results;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.EntityFrameworkCore.Storage;
 using Moq;
 using STMM.Business.DTOs.Billing;
 using STMM.Business.DTOs.Notification;
@@ -62,6 +63,16 @@ namespace STMM.Tests.Services
             _userRepoMock.Setup(repository => repository.GetUserByIdWithRoleAsync(
                     It.IsAny<int>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new User { UserId = 1, MarketId = 10 });
+            var transaction = new Mock<IDbContextTransaction>();
+            transaction.Setup(item => item.CommitAsync(It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
+            transaction.Setup(item => item.RollbackAsync(It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
+            _invoiceRepoMock.Setup(repository => repository.BeginTransactionAsync(It.IsAny<CancellationToken>()))
+                .ReturnsAsync(transaction.Object);
+            _invoiceRepoMock.Setup(repository => repository.LockInvoiceForPaymentAsync(
+                    It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
 
             var mapperConfig = new MapperConfiguration(cfg =>
             {
@@ -228,6 +239,21 @@ namespace STMM.Tests.Services
 
             // Act & Assert
             await Assert.ThrowsAsync<NotFoundException>(() => _service.ReceiveCashPaymentAsync(staffUserId, request));
+        }
+
+        [Fact]
+        public async Task ReceiveCashPaymentAsync_WhenInvoiceIsLockedOutsideStaffMarket_ThrowsNotFoundWithoutCreatingPayment()
+        {
+            var request = new ReceiveCashPaymentRequest { InvoiceId = 999 };
+            _validatorMock.Setup(v => v.ValidateAsync(request, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new ValidationResult());
+            _invoiceRepoMock.Setup(r => r.LockInvoiceForPaymentAsync(999, 10, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(false);
+
+            await Assert.ThrowsAsync<NotFoundException>(() => _service.ReceiveCashPaymentAsync(10, request));
+
+            _paymentRepoMock.Verify(r => r.AddAsync(It.IsAny<Payment>(), It.IsAny<CancellationToken>()), Times.Never);
+            _invoiceRepoMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
         }
 
         private static Invoice CreateMockInvoice(int invoiceId, string status)

@@ -72,14 +72,6 @@ export default function TaskDetail({ taskId, baseUrl, onBack, onShowNotification
 
   const shouldShowCompleteForm = () => {
     if ([TASK_STATUS.COMPLETED, TASK_STATUS.CANCELLED].includes(task.status)) return false;
-
-    if (task.taskType === TASK_TYPE.REPAIR) {
-      const isLinked = task.requestId !== null || task.issueId !== null;
-      return isLinked
-        ? task.status === TASK_STATUS.IN_PROGRESS
-        : [TASK_STATUS.PENDING, TASK_STATUS.IN_PROGRESS].includes(task.status);
-    }
-
     return [TASK_STATUS.PENDING, TASK_STATUS.IN_PROGRESS].includes(task.status);
   };
 
@@ -101,7 +93,7 @@ export default function TaskDetail({ taskId, baseUrl, onBack, onShowNotification
         <button onClick={onBack} className="btn-secondary">&larr; {t('taskdetail.back_to_list')}</button>
       </header>
 
-      <div className="detail-layout">
+      <div className={`detail-layout ${task.taskType === TASK_TYPE.UTILITY_READING ? 'detail-layout--utility' : ''}`}>
         <section className="detail-left-col">
           <TaskInfoCard task={task} onViewIssueDetails={onViewIssueDetails} />
 
@@ -120,6 +112,7 @@ export default function TaskDetail({ taskId, baseUrl, onBack, onShowNotification
             <UtilityChecklist
               taskId={task.taskId}
               baseUrl={baseUrl}
+              taskStatus={task.status}
               onShowNotification={onShowNotification}
               onProgressChange={handleUtilityProgress}
             />

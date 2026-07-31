@@ -11,6 +11,8 @@ namespace STMM.DataAccess.IRepositories
         string StallStatus,
         bool HasElectricityMeter,
         bool HasWaterMeter,
+        bool HasElectricityReadingThisMonth,
+        bool HasWaterReadingThisMonth,
         bool HasReadingThisMonth);
 
     public record StallTaskSummaryQueryResult(
@@ -43,9 +45,22 @@ namespace STMM.DataAccess.IRepositories
             DateOnly effectiveDate,
             CancellationToken ct = default);
 
+        Task<IEnumerable<StaffStallLookupQueryResult>> GetStaffIssueStallLookupAsync(
+            int marketId,
+            string? search,
+            int limit,
+            DateOnly effectiveDate,
+            CancellationToken ct = default);
+
         Task<Stall?> GetStallForMarketAsync(int stallId, int marketId, CancellationToken ct = default);
 
         Task<Stall?> GetEligibleRentedStallForMarketAsync(
+            int stallId,
+            int marketId,
+            DateOnly effectiveDate,
+            CancellationToken ct = default);
+
+        Task<Stall?> GetEligibleIssueStallForMarketAsync(
             int stallId,
             int marketId,
             DateOnly effectiveDate,

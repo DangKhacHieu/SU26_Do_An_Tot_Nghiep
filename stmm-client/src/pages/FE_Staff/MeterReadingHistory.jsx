@@ -11,7 +11,7 @@ export default function MeterReadingHistory({ stallId, baseUrl, onViewMeterDetai
   const [totalCount, setTotalCount] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [pageNumber, setPageNumber] = useState(1);
-  const [pageSize] = useState(10);
+  const [pageSize] = useState(5);
   const [meterType, setMeterType] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);

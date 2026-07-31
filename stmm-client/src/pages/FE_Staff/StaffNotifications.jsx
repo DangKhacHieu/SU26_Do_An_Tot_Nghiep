@@ -1,9 +1,11 @@
 import { useTranslation } from 'react-i18next';
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Bell, CheckCheck, Check, Inbox, Trash2, X, Calendar, Info, Search, ShieldAlert, AlertTriangle, ClipboardCheck } from "lucide-react";
+import { Bell, CheckCheck, Check, ChevronLeft, ChevronRight, Inbox, Trash2, X, Calendar, Info, Search, ShieldAlert, AlertTriangle, ClipboardCheck } from "lucide-react";
 import notificationService from "../../services/notificationService";
 import { showConfirm, showError, showToast } from "../../utils/alert";
 import "./StaffNotifications.css";
+
+const PAGE_SIZE = 5;
 
 const formatDateTime = (value, locale) => {
   if (!value) return "";
@@ -35,6 +37,7 @@ export default function StaffNotifications({ onUnreadChange }) {
   const [errorKey, setErrorKey] = useState("");
   const [filter, setFilter] = useState("all"); // 'all' | 'unread' | 'read'
   const [searchQuery, setSearchQuery] = useState("");
+  const [pageNumber, setPageNumber] = useState(1);
   const [selectedNotification, setSelectedNotification] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
 
@@ -66,6 +69,21 @@ export default function StaffNotifications({ onUnreadChange }) {
         new Date(right.createdAt || 0) - new Date(left.createdAt || 0),
     );
   }, [notifications, filter, searchQuery]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredNotifications.length / PAGE_SIZE));
+  const safePageNumber = Math.min(pageNumber, totalPages);
+  const visibleNotifications = filteredNotifications.slice(
+    (safePageNumber - 1) * PAGE_SIZE,
+    safePageNumber * PAGE_SIZE,
+  );
+
+  useEffect(() => {
+    setPageNumber(1);
+  }, [filter, searchQuery]);
+
+  useEffect(() => {
+    if (pageNumber > totalPages) setPageNumber(totalPages);
+  }, [pageNumber, totalPages]);
 
   const loadNotifications = useCallback(async () => {
     try {
@@ -275,7 +293,7 @@ export default function StaffNotifications({ onUnreadChange }) {
 
         {!loading && filteredNotifications.length > 0 ? (
           <div className="staff-notifications-grid">
-            {filteredNotifications.map((item) => (
+            {visibleNotifications.map((item) => (
               <article
                 key={item.notiId}
                 className={`staff-notification-card ${item.isRead ? 'read' : 'unread'} ${deletingId === item.notiId ? 'deleting' : ''}`}
@@ -327,6 +345,23 @@ export default function StaffNotifications({ onUnreadChange }) {
           </div>
         ) : null}
       </section>
+
+      {!loading && filteredNotifications.length > PAGE_SIZE ? (
+        <nav className="staff-notification-pagination" aria-label={t('staffnotifications.notifications')}>
+          <span>
+            {(safePageNumber - 1) * PAGE_SIZE + 1}-{Math.min(safePageNumber * PAGE_SIZE, filteredNotifications.length)} / {filteredNotifications.length}
+          </span>
+          <div>
+            <button type="button" disabled={safePageNumber === 1} onClick={() => setPageNumber((page) => Math.max(1, page - 1))}>
+              <ChevronLeft size={16} aria-hidden="true" />
+            </button>
+            <strong>{safePageNumber} / {totalPages}</strong>
+            <button type="button" disabled={safePageNumber === totalPages} onClick={() => setPageNumber((page) => Math.min(totalPages, page + 1))}>
+              <ChevronRight size={16} aria-hidden="true" />
+            </button>
+          </div>
+        </nav>
+      ) : null}
 
       {/* Detail View Modal */}
       {selectedNotification && (

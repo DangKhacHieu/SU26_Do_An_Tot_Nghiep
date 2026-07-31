@@ -187,7 +187,6 @@ export default function TaskListManager({ baseUrl, navigate, addToast }) {
           >
             <option value="">{t('tasklistmanager.all_types')}</option>
             <option value="Repair">{t('tasklistmanager.repair')}</option>
-            <option value="Maintenance">{t('tasklistmanager.maintenance')}</option>
             <option value="UtilityReading">{t('tasklistmanager.utility_reading')}</option>
           </select>
 

@@ -28,6 +28,7 @@ namespace STMM.Business.Services
         private readonly IAreaRepository _areaRepository;
         private readonly INotificationService _notificationService;
         private readonly IMapper _mapper;
+        private readonly IFileUploadService _fileUploadService;
         private readonly IValidator<CreateTaskRequest> _createValidator;
         private readonly IValidator<UpdateTaskStatusRequest> _updateValidator;
         private readonly IValidator<CompleteTaskRequest> _completeValidator;
@@ -42,6 +43,7 @@ namespace STMM.Business.Services
             IAreaRepository areaRepository,
             INotificationService notificationService,
             IMapper mapper,
+            IFileUploadService fileUploadService,
             IValidator<CreateTaskRequest> createValidator,
             IValidator<UpdateTaskStatusRequest> updateValidator,
             IValidator<CompleteTaskRequest> completeValidator,
@@ -56,6 +58,7 @@ namespace STMM.Business.Services
             _areaRepository = areaRepository;
             _notificationService = notificationService;
             _mapper = mapper;
+            _fileUploadService = fileUploadService;
             _createValidator = createValidator;
             _updateValidator = updateValidator;
             _completeValidator = completeValidator;
@@ -124,7 +127,7 @@ namespace STMM.Business.Services
         /// <inheritdoc />
         public async Task<TaskDto> GetTaskByIdForStaffAsync(int taskId, int staffUserId, CancellationToken ct = default)
         {
-            var task = await _staffTaskRepository.GetTaskByIdForStaffAsync(taskId, staffUserId, ct);
+            var task = await _staffTaskRepository.GetTaskByIdForStaffAsync(taskId, staffUserId, includeMaterials: true, ct);
             if (task == null)
             {
                 throw new NotFoundException($"Task with ID {taskId} not found.");
@@ -321,7 +324,7 @@ namespace STMM.Business.Services
                     var issue = await _issueRepository.GetByIdAsync(task.IssueId.Value, ct);
                     if (issue != null)
                     {
-                        issue.Status = "Closed";
+                        issue.Status = "Reported";
                         _issueRepository.Update(issue);
                     }
                 }
@@ -402,36 +405,39 @@ namespace STMM.Business.Services
                 }
             }
 
-            if (task.TaskType == "Repair" && (task.RequestId.HasValue || task.IssueId.HasValue))
+            if (task.TaskType == "UtilityReading" && (req.ImageBefore != null || req.ImageAfter != null))
             {
-                if (currentStatus != "In_Progress")
-                {
-                    throw new BadRequestException("Repair tasks linked to a Request or Issue must be in In_Progress status to be completed.");
-                }
+                throw new BadRequestException("Utility reading tasks do not accept completion evidence images.");
             }
 
-            string? imageBefore = task.ImageBeforeUrl;
-            if (!string.IsNullOrEmpty(req.ImageBeforeUrl))
+            string? uploadedBeforeUrl = null;
+            string? uploadedAfterUrl = null;
+
+            if (req.ImageBefore != null)
             {
-                imageBefore = req.ImageBeforeUrl;
+                uploadedBeforeUrl = await _fileUploadService.UploadImageAsync(req.ImageBefore, "task-evidence", ct);
             }
 
-            if (task.TaskType == "Repair" || task.TaskType == "Maintenance")
+            if (req.ImageAfter != null)
             {
-                if (string.IsNullOrEmpty(imageBefore))
-                {
-                    throw new BadRequestException("Image before repair/maintenance is required to complete the task.");
-                }
+                uploadedAfterUrl = await _fileUploadService.UploadImageAsync(req.ImageAfter, "task-evidence", ct);
+            }
 
-                if (string.IsNullOrEmpty(req.ImageAfterUrl))
+            string? imageBefore = task.ImageBeforeUrl ?? uploadedBeforeUrl;
+            string? imageAfter = task.ImageAfterUrl ?? uploadedAfterUrl;
+
+            if (task.TaskType == "Repair")
+            {
+                if (string.IsNullOrEmpty(imageBefore) || string.IsNullOrEmpty(imageAfter))
                 {
-                    throw new BadRequestException("Image after repair/maintenance is required to complete the task.");
+                    await CleanupTaskImagesAsync(uploadedBeforeUrl, uploadedAfterUrl, ct);
+                    throw new BadRequestException("Before and after images are required to complete a repair task.");
                 }
             }
 
             task.Status = "Completed";
             task.ImageBeforeUrl = imageBefore;
-            task.ImageAfterUrl = req.ImageAfterUrl;
+            task.ImageAfterUrl = imageAfter;
             task.CompletedAt = DateTime.UtcNow;
 
             if (!string.IsNullOrWhiteSpace(req.CompletionNotes))
@@ -446,16 +452,19 @@ namespace STMM.Business.Services
                 if (task.Issue == null)
                 {
                     _logger.LogError("Task {TaskId} references missing issue {IssueId}.", task.TaskId, task.IssueId.Value);
+                    await CleanupTaskImagesAsync(uploadedBeforeUrl, uploadedAfterUrl, ct);
                     throw new InvalidOperationException($"Task {task.TaskId} has a missing linked issue.");
                 }
 
                 task.Issue.Status = "Resolved";
+                _issueRepository.Update(task.Issue);
             }
             else if (task.RequestId.HasValue)
             {
                 if (task.Request == null)
                 {
                     _logger.LogError("Task {TaskId} references missing request {RequestId}.", task.TaskId, task.RequestId.Value);
+                    await CleanupTaskImagesAsync(uploadedBeforeUrl, uploadedAfterUrl, ct);
                     throw new InvalidOperationException($"Task {task.TaskId} has a missing linked request.");
                 }
 
@@ -463,9 +472,60 @@ namespace STMM.Business.Services
                 task.Request.UpdatedAt = DateTime.UtcNow;
             }
 
-            _staffTaskRepository.Update(task);
-            await _staffTaskRepository.SaveChangesAsync(ct);
+            try
+            {
+                _staffTaskRepository.Update(task);
+                await _staffTaskRepository.SaveChangesAsync(ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to save Task completion status. Cleaning up uploaded task evidence images.");
+                await CleanupTaskImagesAsync(uploadedBeforeUrl, uploadedAfterUrl, ct);
+                throw;
+            }
+
             return _mapper.Map<TaskDto>(task);
+        }
+
+        private async Task CleanupTaskImagesAsync(string? beforeUrl, string? afterUrl, CancellationToken ct)
+        {
+            if (!string.IsNullOrEmpty(beforeUrl)) await _fileUploadService.DeleteImageAsync(beforeUrl, ct);
+            if (!string.IsNullOrEmpty(afterUrl)) await _fileUploadService.DeleteImageAsync(afterUrl, ct);
+        }
+
+        public async Task<List<UtilityStallChecklistDto>> GetStallsForUtilityTaskForManagerAsync(int taskId, int? managerUserId, CancellationToken ct = default)
+        {
+            var taskDto = await GetTaskByIdForManagerAsync(taskId, managerUserId, ct);
+            if (taskDto == null)
+            {
+                throw new NotFoundException($"Task with ID {taskId} not found.");
+            }
+
+            if (taskDto.TaskType != "UtilityReading" || !taskDto.AreaId.HasValue)
+            {
+                throw new BadRequestException("This task is not a utility reading task or has no Area associated.");
+            }
+
+            var localToday = DateTime.UtcNow.AddHours(7);
+            var effectiveDate = DateOnly.FromDateTime(localToday);
+            var results = await _stallRepository.GetStallsChecklistByAreaAsync(
+                taskDto.AreaId.Value,
+                effectiveDate,
+                localToday.Year,
+                localToday.Month,
+                ct);
+
+            return results.Select(r => new UtilityStallChecklistDto
+            {
+                StallId = r.StallId,
+                StallCode = r.StallCode,
+                StallStatus = r.StallStatus,
+                HasElectricityMeter = r.HasElectricityMeter,
+                HasWaterMeter = r.HasWaterMeter,
+                HasElectricityReadingThisMonth = r.HasElectricityReadingThisMonth,
+                HasWaterReadingThisMonth = r.HasWaterReadingThisMonth,
+                HasReadingThisMonth = r.HasReadingThisMonth
+            }).ToList();
         }
 
         /// <inheritdoc />

@@ -247,15 +247,23 @@ export default function StallList({ baseUrl, onShowNotification, onViewMeterHist
                     ⚠️ Violation
                   </button>
 
-                  {stall.stallStatus === STALL_STATUS.RENTED && (
-                    <button 
-                      className="btn-card-action meter-btn" 
-                      onClick={() => onViewMeterHistory(stall.stallId)}
-                      title={t('stalllist.view_meter_reading_history')}
-                    >
-                      ⚡ {t('stalllist.meter_history')}
-                    </button>
-                  )}
+                  {stall.stallStatus === STALL_STATUS.RENTED && (() => {
+                    const hasUtilityTask = (stall.taskTypes || []).includes(TASK_TYPE.UTILITY_READING);
+                    return (
+                      <button 
+                        className="btn-card-action meter-btn" 
+                        onClick={() => hasUtilityTask && onViewMeterHistory(stall.stallId)}
+                        disabled={!hasUtilityTask}
+                        title={hasUtilityTask 
+                          ? t('stalllist.view_meter_reading_history') 
+                          : (i18n.language?.startsWith('vi') 
+                              ? 'Sạp này hiện không có nhiệm vụ đo điện nước' 
+                              : 'No utility reading task assigned for this stall')}
+                      >
+                        ⚡ {t('stalllist.meter_history')}
+                      </button>
+                    );
+                  })()}
 
                   {stall.hasUnpaidInvoice && (
                     <button 

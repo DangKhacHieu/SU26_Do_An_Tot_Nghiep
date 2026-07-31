@@ -4518,7 +4518,32 @@
     "failed_to_load_the": "Không thể tải danh sách sạp cần ghi chỉ số.",
     "collapse": "Thu gọn",
     "view_stalls": "Xem danh sách sạp",
-    "meter_reading_for_stall": "Đã ghi nhận chỉ số đồng hồ cho sạp."
+    "meter_reading_for_stall": "Đã ghi nhận chỉ số đồng hồ cho sạp.",
+    "progress_summary": "Đã ghi {{completed}}/{{total}} sạp, còn {{pending}} sạp",
+    "completion_rate": "Tỷ lệ hoàn thành",
+    "completed": "hoàn thành",
+    "filter_by_reading_status": "Lọc theo trạng thái ghi chỉ số",
+    "all_count": "Tất cả ({{count}})",
+    "pending_count": "Chưa đo ({{count}})",
+    "recorded_count": "Đã đo ({{count}})",
+    "electricity": "Điện",
+    "water": "Nước",
+    "result": "Kết quả",
+    "no_meter": "Không có",
+    "not_recorded": "Chưa đo",
+    "incomplete": "Chưa hoàn thành",
+    "meter_setup_required": "Thiếu đồng hồ",
+    "review_required": "Cần kiểm tra",
+    "rented": "Đang thuê",
+    "available": "Còn trống",
+    "maintenance": "Bảo trì",
+    "unknown": "Không rõ",
+    "retry": "Thử lại",
+    "no_stalls_match_filter": "Không có sạp phù hợp với bộ lọc.",
+    "showing_range": "Hiển thị {{from}}-{{to}} trên {{total}} sạp",
+    "previous_page": "Trang trước",
+    "next_page": "Trang sau",
+    "page_of": "Trang {{page}}/{{total}}"
   },
   "repairprogressstepper": {
     "repair_workflow": "Quy trình sửa chữa",
@@ -4559,7 +4584,8 @@
     "meter_reading": "Ghi chỉ số đồng hồ",
     "location_not_specified": "Chưa xác định vị trí",
     "unassigned": "Chưa phân công",
-    "task_details": "Chi tiết công việc"
+    "task_details": "Chi tiết công việc",
+    "reading_period": "Kỳ ghi chỉ số:"
   },
   "completetaskform": {
     "drag_and_drop_an": "Kéo thả ảnh vào đây hoặc ",

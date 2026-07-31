@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import './TaskDetailManager.css';
 import AssignStaffModal from './AssignStaffModal';
 import UpdateTaskStatusModal from './UpdateTaskStatusModal';
+import UtilityChecklistManager from './UtilityChecklistManager';
 
 const getAuthHeaders = () => ({
   Authorization: `Bearer ${localStorage.getItem('accessToken')}`
@@ -317,6 +318,10 @@ export default function TaskDetailManager({ taskId, baseUrl, onBack, addToast, n
             <h3 className="spec-title">{t('taskdetailmanager.operational_specifications')}</h3>
             <p className="spec-desc-text">{task.description || t('taskdetailmanager.no_description')}</p>
           </div>
+
+          {task.taskType === 'UtilityReading' ? (
+            <UtilityChecklistManager taskId={task.taskId} baseUrl={baseUrl} />
+          ) : null}
 
           {/* Quotation Materials */}
           {(task.taskType === 'Repair' || task.taskType === 'Maintenance') && (

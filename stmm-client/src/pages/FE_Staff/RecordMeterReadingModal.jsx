@@ -21,11 +21,10 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, onClose, onS
     const dd = String(today.getDate()).padStart(2, '0');
     return `${yyyy}-${mm}-${dd}`;
   });
-  const [imageUrl, setImageUrl] = useState('');
+  const [selectedFile, setSelectedFile] = useState(null);
 
   const [loading, setLoading] = useState(false);
   const [loadingMeters, setLoadingMeters] = useState(false);
-  const [imageUploading, setImageUploading] = useState(false);
   const [imageError, setImageError] = useState(null);
   const [submitError, setSubmitError] = useState(null);
   const [formErrors, setFormErrors] = useState({});
@@ -56,6 +55,7 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, onClose, onS
   const handleMeterChange = (e) => {
     const id = e.target.value;
     setMeterId(id);
+    setFormErrors((prev) => ({ ...prev, meterId: null }));
     if (id) {
       const meterObj = meters.find(m => m.meterId === parseInt(id));
       setSelectedMeter(meterObj || null);
@@ -64,38 +64,20 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, onClose, onS
     }
   };
 
-  const uploadFile = async (file) => {
+  const selectImageFile = (file) => {
     if (!file) return;
     if (file.size > 5 * 1024 * 1024) {
       setImageError(t('recordmeterreadingmodal.file_size_must_not'));
       return;
     }
-
-    setImageUploading(true);
-    setImageError(null);
-
-    const formData = new FormData();
-    formData.append('file', file);
-
-    try {
-      const response = await fetch(`${baseUrl}/api/files/upload`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error(await readProblemDetail(response, t('recordmeterreadingmodal.unable_to_upload_image')));
-      }
-
-      const result = await response.json();
-      setImageUrl(result.imageUrl);
-    } catch (err) {
-      setImageError(err.message);
-      setImageUrl('');
-    } finally {
-      setImageUploading(false);
+    if (!file.type.startsWith("image/")) {
+      setImageError(t('recordmeterreadingmodal.only_image_files_are'));
+      return;
     }
+
+    setImageError(null);
+    setFormErrors((prev) => ({ ...prev, imageUrl: null }));
+    setSelectedFile(file);
   };
 
   const handleDrag = (e) => {
@@ -108,34 +90,24 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, onClose, onS
     }
   };
 
-  const handleDrop = async (e) => {
+  const handleDrop = (e) => {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
 
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      const file = e.dataTransfer.files[0];
-      if (file.type.startsWith("image/")) {
-        await uploadFile(file);
-      } else {
-        setImageError(t('recordmeterreadingmodal.only_image_files_are'));
-      }
+      selectImageFile(e.dataTransfer.files[0]);
     }
   };
 
-  const handleFileChange = async (e) => {
+  const handleFileChange = (e) => {
     if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      if (file.type.startsWith("image/")) {
-        await uploadFile(file);
-      } else {
-        setImageError(t('recordmeterreadingmodal.only_image_files_are'));
-      }
+      selectImageFile(e.target.files[0]);
     }
   };
 
   const removeImage = () => {
-    setImageUrl('');
+    setSelectedFile(null);
   };
 
   const onButtonClick = () => {
@@ -145,39 +117,26 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, onClose, onS
   const validateForm = () => {
     const errors = {};
     if (!meterId) {
-      errors.meterId = t('recordmeterreadingmodal.please_select_a_utility');
+      errors.meterId = 'Vui lòng chọn đồng hồ đo.';
     }
 
     if (newValue === '' || isNaN(Number(newValue)) || Number(newValue) < 0) {
-      errors.newValue = t('recordmeterreadingmodal.invalid_new_value');
+      errors.newValue = 'Chỉ số mới không được âm và phải là số hợp lệ.';
     } else if (selectedMeter && selectedMeter.lastReadingValue !== null && Number(newValue) < selectedMeter.lastReadingValue) {
-      errors.newValue = t('recordmeterreadingmodal.new_value_must_be', { previousValue: selectedMeter.lastReadingValue });
+      errors.newValue = `Chỉ số mới phải lớn hơn hoặc bằng chỉ số cũ (${selectedMeter.lastReadingValue}).`;
     }
 
     if (!recordedAt) {
-      errors.recordedAt = t('recordmeterreadingmodal.recorded_date_is_required');
+      errors.recordedAt = 'Vui lòng chọn ngày ghi nhận hợp lệ.';
     } else {
       const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
       if (!dateRegex.test(recordedAt)) {
-        errors.recordedAt = t('recordmeterreadingmodal.recorded_date_must_be');
+        errors.recordedAt = 'Ngày ghi nhận phải đúng định dạng YYYY-MM-DD.';
       }
     }
 
-    if (!imageUrl) {
-      errors.imageUrl = t('recordmeterreadingmodal.an_evidence_photo_of');
-    }
-
-    if (!recordedAt) {
-      errors.recordedAt = t('recordmeterreadingmodal.recorded_date_is_required');
-    } else {
-      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-      if (!dateRegex.test(recordedAt)) {
-        errors.recordedAt = t('recordmeterreadingmodal.recorded_date_must_be');
-      }
-    }
-
-    if (!imageUrl) {
-      errors.imageUrl = t('recordmeterreadingmodal.an_evidence_photo_of');
+    if (!selectedFile) {
+      errors.imageUrl = 'Vui lòng chụp ảnh mặt đồng hồ làm bằng chứng.';
     }
 
     setFormErrors(errors);
@@ -188,25 +147,24 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, onClose, onS
     e.preventDefault();
     setSubmitError(null);
 
-    if (!validateForm()) return;
+    if (!validateForm()) {
+      setSubmitError('Vui lòng kiểm tra và sửa các thông tin chưa hợp lệ bên dưới.');
+      return;
+    }
 
     setLoading(true);
 
-    const requestData = {
-      meterId: parseInt(meterId),
-      newValue: parseFloat(newValue),
-      recordedAt: recordedAt,
-      imageUrl: imageUrl
-    };
-
     try {
+      const formData = new FormData();
+      formData.append('meterId', meterId);
+      formData.append('newValue', newValue);
+      formData.append('recordedAt', recordedAt);
+      formData.append('image', selectedFile);
+
       const response = await fetch(`${baseUrl}/api/meter-readings`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...getAuthHeaders(),
-        },
-        body: JSON.stringify(requestData)
+        headers: getAuthHeaders(),
+        body: formData,
       });
 
       if (!response.ok) {
@@ -275,7 +233,10 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, onClose, onS
               step="any"
               placeholder={t('recordmeterreadingmodal.enter_current_meter_digit')}
               value={newValue}
-              onChange={(e) => setNewValue(e.target.value)}
+              onChange={(e) => {
+                setNewValue(e.target.value);
+                setFormErrors((prev) => ({ ...prev, newValue: null }));
+              }}
               className={`form-input ${formErrors.newValue ? 'error-border' : ''}`}
             />
             {formErrors.newValue && <span className="error-text">{formErrors.newValue}</span>}
@@ -286,7 +247,10 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, onClose, onS
             <input
               type="date"
               value={recordedAt}
-              onChange={(e) => setRecordedAt(e.target.value)}
+              onChange={(e) => {
+                setRecordedAt(e.target.value);
+                setFormErrors((prev) => ({ ...prev, recordedAt: null }));
+              }}
               className={`form-input ${formErrors.recordedAt ? 'error-border' : ''}`}
             />
             {formErrors.recordedAt && <span className="error-text">{formErrors.recordedAt}</span>}
@@ -304,32 +268,31 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, onClose, onS
             />
 
             <div 
-              className={`drag-drop-zone ${dragActive ? 'active' : ''} ${imageUrl ? 'disabled' : ''}`}
+              className={`drag-drop-zone ${dragActive ? 'active' : ''} ${selectedFile ? 'disabled' : ''} ${formErrors.imageUrl ? 'error-border' : ''}`}
               onDragEnter={handleDrag}
               onDragOver={handleDrag}
               onDragLeave={handleDrag}
               onDrop={handleDrop}
-              onClick={!imageUrl ? onButtonClick : undefined}
+              onClick={!selectedFile && !loading ? onButtonClick : undefined}
             >
               <div className="drag-drop-content">
                 <span className="upload-icon">📸</span>
-                {imageUrl ? (
+                {selectedFile ? (
                   <p>{t('recordmeterreadingmodal.image_uploaded_remove_the')}</p>
                 ) : (
-                  <p>{t('recordmeterreadingmodal.drag_and_drop_image')}<strong>{t('recordmeterreadingmodal.click_to_select')}</strong></p>
+                  <p>{t('recordmeterreadingmodal.drag_and_drop_image')}<strong style={{ color: '#4f46e5' }}>{t('recordmeterreadingmodal.click_to_select')}</strong></p>
                 )}
                 <span className="helper-text">{t('recordmeterreadingmodal.supports_jpg_png_webp')}</span>
               </div>
             </div>
 
-            {imageUploading && <div className="helper-text" style={{ color: '#0066cc' }}>{t('recordmeterreadingmodal.uploading_image_to_cloudinary')}</div>}
             {imageError && <div className="error-text">{t('recordmeterreadingmodal.upload_error')}: {imageError}</div>}
             {formErrors.imageUrl && <span className="error-text">{formErrors.imageUrl}</span>}
 
-            {imageUrl && (
+            {selectedFile && (
               <div className="preview-images-grid">
                 <div className="preview-image-card">
-                  <img src={imageUrl} alt={t('recordmeterreadingmodal.meter_evidence_preview')} className="preview-image-thumb" />
+                  <img src={URL.createObjectURL(selectedFile)} alt={t('recordmeterreadingmodal.meter_evidence_preview')} className="preview-image-thumb" />
                   <button 
                     type="button" 
                     className="preview-image-remove"
@@ -348,13 +311,13 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, onClose, onS
               type="button" 
               className="btn-secondary" 
               onClick={onClose}
-              disabled={loading || imageUploading}
+              disabled={loading}
             >
               {t('recordmeterreadingmodal.cancel')}</button>
             <button 
               type="submit" 
               className="btn-primary-dark"
-              disabled={loading || imageUploading}
+              disabled={loading}
             >
               {loading ? t('recordmeterreadingmodal.saving') : t('recordmeterreadingmodal.save_reading')}
             </button>

@@ -64,9 +64,10 @@ namespace STMM.API.Controllers
         }
 
         [HttpPatch("{id}/complete")]
+        [Consumes("multipart/form-data")]
         public async Task<IActionResult> CompleteTask(
             int id,
-            [FromBody] CompleteTaskRequest request,
+            [FromForm] CompleteTaskRequest request,
             CancellationToken ct)
         {
             var userId = GetUserId();

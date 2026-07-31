@@ -143,6 +143,7 @@ builder.Services.AddScoped<IQuotationService, QuotationService>();
 builder.Services.AddScoped<IMeterReadingService, MeterReadingService>();
 builder.Services.AddScoped<IMeterService, MeterService>();
 builder.Services.AddScoped<IFileStorageService, CloudinaryStorageService>();
+builder.Services.AddScoped<IFileUploadService, FileUploadService>();
 builder.Services.AddScoped<IVendorServiceManagement, VendorServiceManagement>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IFaqService, FaqService>();

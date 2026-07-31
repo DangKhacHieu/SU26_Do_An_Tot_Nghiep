@@ -2,10 +2,11 @@ import { useTranslation } from 'react-i18next';
 import LanguageSwitcher from './components/layout/LanguageSwitcher';
 import { useState, useEffect, useCallback } from "react";
 import { BrowserRouter, Routes, Route, Navigate, Outlet, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { Bell, UserRound } from "lucide-react";
+import { Bell } from "lucide-react";
 import "./App.css";
 import "./AppDashboard.css";
 import "./pages/FE_Staff/FE_Staff.css";
+import "./pages/FE_Staff/StaffDesignSystem.css";
 
 // FE Customer / Auth Imports
 import HomePage from "./pages/FE_Customer/HomePage.jsx";
@@ -990,15 +991,6 @@ function AppContent() {
                       {staffUnreadNotifications > 99 ? "99+" : staffUnreadNotifications}
                     </span>
                   )}
-                </button>
-                <button
-                  type="button"
-                  className="nav-icon"
-                  title="Profile"
-                  aria-label="Open profile"
-                  onClick={() => setCurrentStaffView("profile")}
-                >
-                  <UserRound size={20} aria-hidden="true" />
                 </button>
                 <div
                   className="user-profile-circle"

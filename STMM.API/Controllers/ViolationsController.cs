@@ -52,9 +52,10 @@ namespace STMM.API.Controllers
         }
 
         [HttpPost]
+        [Consumes("multipart/form-data")]
         [Authorize(Roles = "Staff")]
         public async Task<IActionResult> CreateViolation(
-            [FromBody] CreateViolationRequest request,
+            [FromForm] CreateViolationRequest request,
             CancellationToken ct)
         {
             var userId = GetUserId();

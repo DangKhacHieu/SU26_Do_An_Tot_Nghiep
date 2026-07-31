@@ -177,6 +177,51 @@ namespace STMM.DataAccess.Repositories
                 .ToListAsync(ct);
         }
 
+        public async Task<IEnumerable<StaffStallLookupQueryResult>> GetStaffIssueStallLookupAsync(
+            int marketId,
+            string? search,
+            int limit,
+            DateOnly effectiveDate,
+            CancellationToken ct = default)
+        {
+            var query = _context.Stalls
+                .Where(s => s.Area.MarketId == marketId &&
+                            s.IsDeleted != true &&
+                            (s.Status == "Maintenance" ||
+                             (s.Status == "Rented" &&
+                              s.Contracts.Any(c => c.IsDeleted != true &&
+                                                   c.Status == "Active" &&
+                                                   c.StartDate <= effectiveDate &&
+                                                   c.EndDate >= effectiveDate))));
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var term = search.Trim().ToLower();
+                query = query.Where(s =>
+                    s.Code.ToLower().Contains(term) ||
+                    s.Area.Name.ToLower().Contains(term) ||
+                    s.Contracts.Any(c => c.Status == "Active" && c.IsDeleted != true &&
+                                         c.StartDate <= effectiveDate && c.EndDate >= effectiveDate &&
+                                         (c.Vendor.User.Name.ToLower().Contains(term) || c.Vendor.BusinessName.ToLower().Contains(term))));
+            }
+
+            return await query
+                .OrderBy(s => s.Code)
+                .Take(limit)
+                .Select(s => new StaffStallLookupQueryResult(
+                    s.StallId,
+                    s.Code,
+                    s.Area.Name,
+                    s.Status == "Maintenance" ? null :
+                    s.Contracts.Where(c => c.Status == "Active" && c.IsDeleted != true && c.StartDate <= effectiveDate && c.EndDate >= effectiveDate)
+                               .OrderByDescending(c => c.StartDate)
+                               .ThenByDescending(c => c.ContractId)
+                               .Select(c => c.Vendor.User.Name ?? c.Vendor.BusinessName)
+                               .FirstOrDefault()))
+                .AsNoTracking()
+                .ToListAsync(ct);
+        }
+
         public Task<Stall?> GetStallForMarketAsync(int stallId, int marketId, CancellationToken ct = default)
         {
             return _context.Stalls
@@ -210,6 +255,28 @@ namespace STMM.DataAccess.Repositories
                     ct);
         }
 
+        public Task<Stall?> GetEligibleIssueStallForMarketAsync(
+            int stallId,
+            int marketId,
+            DateOnly effectiveDate,
+            CancellationToken ct = default)
+        {
+            return _context.Stalls
+                .Include(s => s.Area)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(s =>
+                    s.StallId == stallId &&
+                    s.IsDeleted != true &&
+                    s.Area.MarketId == marketId &&
+                    (s.Status == "Maintenance" ||
+                     (s.Status == "Rented" &&
+                      s.Contracts.Any(c => c.IsDeleted != true &&
+                                           c.Status == "Active" &&
+                                           c.StartDate <= effectiveDate &&
+                                           c.EndDate >= effectiveDate))),
+                    ct);
+        }
+
         public async Task<List<StallChecklistQueryResult>> GetStallsChecklistByAreaAsync(
             int areaId,
             DateOnly effectiveDate,
@@ -227,18 +294,28 @@ namespace STMM.DataAccess.Repositories
                         c.StartDate <= effectiveDate &&
                         c.EndDate >= effectiveDate))
                 .OrderBy(s => s.Code)
-                .Select(s => new StallChecklistQueryResult(
-                    s.StallId,
-                    s.Code,
-                    s.Status ?? string.Empty,
-                    s.Meters.Any(m => m.IsActive == true && m.Type == "Electricity"),
-                    s.Meters.Any(m => m.IsActive == true && m.Type == "Water"),
-                    s.Meters.Any(m => m.IsActive == true && m.Type == "Electricity") &&
-                    s.Meters.Any(m => m.IsActive == true && m.Type == "Water") &&
-                    s.Meters.Where(m =>
-                            m.IsActive == true &&
-                            (m.Type == "Electricity" || m.Type == "Water"))
-                        .All(m => m.MeterReadings.Any(mr => mr.RecordedAt.Year == year && mr.RecordedAt.Month == month))
+                .Select(s => new
+                {
+                    Stall = s,
+                    ElectricityMeters = s.Meters.Where(m => m.IsActive == true && m.Type == "Electricity"),
+                    WaterMeters = s.Meters.Where(m => m.IsActive == true && m.Type == "Water")
+                })
+                .Select(x => new StallChecklistQueryResult(
+                    x.Stall.StallId,
+                    x.Stall.Code,
+                    x.Stall.Status ?? string.Empty,
+                    x.ElectricityMeters.Any(),
+                    x.WaterMeters.Any(),
+                    x.ElectricityMeters.Any() && x.ElectricityMeters.All(m =>
+                        m.MeterReadings.Any(mr => mr.RecordedAt.Year == year && mr.RecordedAt.Month == month)),
+                    x.WaterMeters.Any() && x.WaterMeters.All(m =>
+                        m.MeterReadings.Any(mr => mr.RecordedAt.Year == year && mr.RecordedAt.Month == month)),
+                    x.ElectricityMeters.Any() &&
+                    x.WaterMeters.Any() &&
+                    x.ElectricityMeters.All(m =>
+                        m.MeterReadings.Any(mr => mr.RecordedAt.Year == year && mr.RecordedAt.Month == month)) &&
+                    x.WaterMeters.All(m =>
+                        m.MeterReadings.Any(mr => mr.RecordedAt.Year == year && mr.RecordedAt.Month == month))
                 ))
                 .ToListAsync(ct);
         }

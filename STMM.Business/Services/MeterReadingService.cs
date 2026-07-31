@@ -1,6 +1,7 @@
 using AutoMapper;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Npgsql;
 using STMM.Business.DTOs.Common;
 using STMM.Business.DTOs.Meter;
@@ -26,6 +27,8 @@ namespace STMM.Business.Services
         private readonly IUserRepository _userRepository;
         private readonly IStaffTaskRepository _staffTaskRepository;
         private readonly IStallRepository _stallRepository;
+        private readonly IFileUploadService _fileUploadService;
+        private readonly ILogger<MeterReadingService> _logger;
 
         public MeterReadingService(
             IMeterRepository meterRepo,
@@ -34,7 +37,9 @@ namespace STMM.Business.Services
             IValidator<CreateMeterReadingRequest> validator,
             IUserRepository userRepository,
             IStaffTaskRepository staffTaskRepository,
-            IStallRepository stallRepository)
+            IStallRepository stallRepository,
+            IFileUploadService fileUploadService,
+            ILogger<MeterReadingService> logger)
         {
             _meterRepo = meterRepo;
             _readingRepo = readingRepo;
@@ -43,6 +48,8 @@ namespace STMM.Business.Services
             _userRepository = userRepository;
             _staffTaskRepository = staffTaskRepository;
             _stallRepository = stallRepository;
+            _fileUploadService = fileUploadService;
+            _logger = logger;
         }
 
         public async Task<PagedResult<MeterReadingDto>> GetReadingsByStallIdAsync(
@@ -145,6 +152,8 @@ namespace STMM.Business.Services
             if (request.NewValue < oldValue)
                 throw new BadRequestException($"New value ({request.NewValue}) must be >= previous value ({oldValue}).");
 
+            var uploadedUrl = await _fileUploadService.UploadImageAsync(request.Image, "meter-readings", ct);
+
             var reading = new MeterReading
             {
                 MeterId = request.MeterId,
@@ -152,7 +161,7 @@ namespace STMM.Business.Services
                 NewValue = request.NewValue,
                 RecordedAt = recordedAt,
                 CreatedByUserId = userId,
-                ImageUrl = request.ImageUrl
+                ImageUrl = uploadedUrl
             };
 
             await _readingRepo.AddAsync(reading, ct);
@@ -160,9 +169,16 @@ namespace STMM.Business.Services
             {
                 await _readingRepo.SaveChangesAsync(ct);
             }
-            catch (DbUpdateException ex) when (IsMeterReadingUniqueViolation(ex))
+            catch (Exception ex)
             {
-                throw new BadRequestException($"A reading already exists for meter {meter.SerialNumber} on {request.RecordedAt}.");
+                _logger.LogError(ex, "Failed to save MeterReading entity. Cleaning up uploaded Cloudinary image.");
+                await _fileUploadService.DeleteImageAsync(uploadedUrl, ct);
+
+                if (ex is DbUpdateException dbEx && IsMeterReadingUniqueViolation(dbEx))
+                {
+                    throw new BadRequestException($"A reading already exists for meter {meter.SerialNumber} on {request.RecordedAt}.");
+                }
+                throw;
             }
 
             reading.Meter = meter;
