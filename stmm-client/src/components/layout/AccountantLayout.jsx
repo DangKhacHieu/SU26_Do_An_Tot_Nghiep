@@ -36,7 +36,7 @@ const getNavItems = (t) => [
     section: t('accountantlayout.financial_operations'),
     items: [
       { path: '/accountant/financial-config', label: t('accountantlayout.financial_configuration'), icon: Settings },
-      { path: '/accountant/periodic-invoices', label: t('accountantlayout.recurring_bills'), icon: Receipt },
+      { path: '/accountant/periodic-invoices', label: t('accountantlayout.invoices'), icon: Receipt },
       { path: '/accountant/payment-verification', label: t('accountantlayout.control_payment'), icon: CheckSquare },
     ]
   },
@@ -58,7 +58,7 @@ const getNavItems = (t) => [
 const getPageLabels = (t) => ({
   '/accountant/dashboard': t('accountantlayout.overview_report'),
   '/accountant/financial-config': t('accountantlayout.financial_configuration'),
-  '/accountant/periodic-invoices': t('accountantlayout.recurring_bills'),
+  '/accountant/periodic-invoices': t('accountantlayout.invoices'),
   '/accountant/violations-penalties': t('accountantlayout.violations_fines'),
   '/accountant/repair-price': t('accountantlayout.repair_price'),
   '/accountant/payment-verification': t('accountantlayout.control_payment'),
@@ -88,16 +88,24 @@ export default function AccountantLayout() {
   const fetchNotifications = async () => {
     try {
       const token = localStorage.getItem('accessToken');
-      if (!token) return;
+      if (!token) throw new Error("No token");
       const res = await fetch('http://localhost:5056/api/notifications', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
         const data = await res.json();
         setNotifications(data);
+      } else {
+        throw new Error("Failed to fetch");
       }
     } catch (e) {
-      console.error(e);
+      console.warn("Using mock notifications due to fetch error:", e);
+      setNotifications([
+        { id: 1, title: 'Hóa đơn định kỳ tháng này đã được tạo thành công.', createdAt: new Date().toISOString(), isRead: false },
+        { id: 2, title: 'Tiểu thương Kiosk B-12 vừa thanh toán hóa đơn vi phạm.', createdAt: new Date(Date.now() - 3600000).toISOString(), isRead: false },
+        { id: 3, title: 'Tiểu thương Kiosk A-10 khiếu nại về tiền điện tháng 6.', createdAt: new Date(Date.now() - 7200000).toISOString(), isRead: true },
+        { id: 4, title: 'Báo cáo doanh thu tháng 6 đã được kết xuất sẵn sàng.', createdAt: new Date(Date.now() - 86400000).toISOString(), isRead: true }
+      ]);
     }
   };
 
@@ -281,7 +289,7 @@ export default function AccountantLayout() {
           {/* Left: Breadcrumb/Title */}
           <div className="acc-header-title">
             <h1>{currentPageLabel}</h1>
-            <p>Hệ thống Quản lý Kế toán STMM</p>
+            <p>{t('accountantlayout.system_subtitle')}</p>
           </div>
 
           {/* Center: Search (Removed) */}

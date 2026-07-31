@@ -16,6 +16,22 @@ namespace STMM.Business.Validators
             RuleFor(x => x.NewValue)
                 .GreaterThanOrEqualTo(0).WithMessage("Chỉ số mới không được âm.")
                 .GreaterThanOrEqualTo(x => x.OldValue).WithMessage("Chỉ số mới không được nhỏ hơn chỉ số cũ.");
+                
+            RuleFor(x => x.MeterType)
+                .Must(x => x == "Electricity" || x == "Water").WithMessage("Loại đồng hồ phải là Electricity hoặc Water.");
+                
+            RuleFor(x => x.Month)
+                .InclusiveBetween(1, 12).WithMessage("Tháng phải từ 1 đến 12.");
+                
+            RuleFor(x => x.Year)
+                .InclusiveBetween(2000, 2100).WithMessage("Năm không hợp lệ.");
+                
+            RuleFor(x => x.Reason)
+                .NotEmpty().WithMessage("Lý do điều chỉnh không được để trống.");
+                
+            RuleFor(x => x.ImageUrl)
+                .NotEmpty().WithMessage("Ảnh chứng từ không được để trống.")
+                .NotEqual("N/A").WithMessage("Ảnh chứng từ không hợp lệ.");
         }
     }
 }

@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 using STMM.Business.DTOs.Profile;
 using STMM.Business.Interfaces;
 using System.Threading;
@@ -8,6 +10,7 @@ namespace STMM.API.Controllers
 {
     [ApiController]
     [Route("api/accountant/profile")]
+    [Authorize(Roles = "Accountant,Admin")]
     public class UserProfileController : ControllerBase
     {
         private readonly IUserProfileService _profileService;
@@ -17,24 +20,31 @@ namespace STMM.API.Controllers
             _profileService = profileService;
         }
 
-        [HttpGet]
-        public async Task<IActionResult> GetProfile([FromQuery] int userId, CancellationToken ct)
+        private int GetUserId()
         {
-            var result = await _profileService.GetProfileAsync(userId, ct);
+            if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
+                throw new UnauthorizedAccessException("User ID not found in token.");
+            return userId;
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetProfile(CancellationToken ct)
+        {
+            var result = await _profileService.GetProfileAsync(GetUserId(), ct);
             return Ok(result);
         }
 
         [HttpPut]
-        public async Task<IActionResult> UpdateProfile([FromQuery] int userId, [FromBody] UpdateProfileRequest request, CancellationToken ct)
+        public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequest request, CancellationToken ct)
         {
-            var result = await _profileService.UpdateProfileAsync(userId, request, ct);
+            var result = await _profileService.UpdateProfileAsync(GetUserId(), request, ct);
             return Ok(result);
         }
 
         [HttpPut("change-password")]
-        public async Task<IActionResult> ChangePassword([FromQuery] int userId, [FromBody] ChangePasswordRequest request, CancellationToken ct)
+        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request, CancellationToken ct)
         {
-            var result = await _profileService.ChangePasswordAsync(userId, request, ct);
+            var result = await _profileService.ChangePasswordAsync(GetUserId(), request, ct);
             return Ok(result);
         }
     }

@@ -126,7 +126,15 @@ namespace STMM.DataAccess.Repositories
 
             if (request.Violation != null)
             {
-                request.Violation.Status = isApproved ? "Approved" : "Rejected";
+                // Bất kể đồng ý hay từ chối kháng nghị, vi phạm đều chốt ở quyết định cuối cùng
+                request.Violation.Status = "FinalApproved";
+                
+                // Nếu đồng ý với kháng nghị (tiểu thương đúng), xóa mức phạt
+                if (isApproved)
+                {
+                    request.Violation.FineAmount = 0;
+                }
+                
                 request.Violation.UpdatedAt = DateTime.UtcNow;
             }
 

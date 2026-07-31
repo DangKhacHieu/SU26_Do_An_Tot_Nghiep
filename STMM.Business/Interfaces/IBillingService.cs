@@ -57,6 +57,11 @@ namespace STMM.Business.Interfaces
         Task<bool> VerifyPaymentAsync(int paymentId, VerifyPaymentRequest request, int accountantUserId, CancellationToken ct = default);
 
         /// <summary>
+        /// Retrieves all vendors in the accountant's market with their registered services.
+        /// </summary>
+        Task<IEnumerable<STMM.Business.DTOs.Vendor.AccountantVendorDto>> GetVendorsForAccountantAsync(int accountantUserId, CancellationToken ct = default);
+
+        /// <summary>
         /// Retrieves debt summary across all stalls.
         /// </summary>
         Task<IEnumerable<DebtOfStallDto>> GetStallsDebtListAsync(string? search, int? accountantUserId = null, CancellationToken ct = default);
@@ -84,11 +89,21 @@ namespace STMM.Business.Interfaces
         /// <summary>
         /// Tự động lập hóa đơn nháp kỳ hàng tháng cho tất cả các sạp có hợp đồng hoạt động và phí dịch vụ đăng ký tương ứng.
         /// </summary>
-        Task<int> AutoGenerateMonthlyInvoicesAsync(int month, int year, CancellationToken ct = default);
+        Task<int> AutoGenerateMonthlyInvoicesAsync(int month, int year, int? marketId = null, CancellationToken ct = default);
 
         /// <summary>
         /// Hủy hóa đơn (Chỉ áp dụng cho hóa đơn Draft hoặc Unpaid).
         /// </summary>
         Task<bool> CancelInvoiceAsync(int invoiceId, CancelInvoiceRequest request, int accountantUserId, CancellationToken ct = default);
+
+        /// <summary>
+        /// Retrieves the history of auto-generated monthly invoices from audit logs.
+        /// </summary>
+        Task<IEnumerable<AutoGenerateHistoryDto>> GetAutoGenerateHistoryAsync(CancellationToken ct = default);
+
+        /// <summary>
+        /// Manually triggers the auto-generation process for a specific month and year.
+        /// </summary>
+        Task<int> TriggerAutoGenerateAsync(int month, int year, int triggerUserId, CancellationToken ct = default);
     }
 }

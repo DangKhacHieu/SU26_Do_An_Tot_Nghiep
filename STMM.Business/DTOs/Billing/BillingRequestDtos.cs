@@ -27,5 +27,7 @@ namespace STMM.Business.DTOs.Billing
         public int Year { get; set; }
         public double OldValue { get; set; }
         public double NewValue { get; set; }
+        public string Reason { get; set; } = null!;
+        public string ImageUrl { get; set; } = null!;
     }
 }

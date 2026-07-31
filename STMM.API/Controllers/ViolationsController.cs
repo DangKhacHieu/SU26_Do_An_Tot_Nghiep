@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using STMM.Business.DTOs.Violation;
 using STMM.Business.Interfaces;
 using System.Security.Claims;
+using STMM.API.Extensions;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -24,12 +25,12 @@ namespace STMM.API.Controllers
 
         private int GetUserId()
         {
-            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
+            var userId = User.GetUserId();
+            if (!userId.HasValue)
             {
                 throw new System.UnauthorizedAccessException("User ID not found in token.");
             }
-            return userId;
+            return userId.Value;
         }
 
         [HttpGet]
@@ -132,6 +133,22 @@ namespace STMM.API.Controllers
             var managerUserId = GetUserId();
             var result = await _violationService.GetViolationByIdForManagerAsync(managerUserId, id, ct);
             return Ok(result);
+        }
+        /// <summary>
+        /// UC-xx: Finalize Violation for Manager — Manager chốt vi phạm.
+        /// </summary>
+        [HttpPost("~/api/manager/violations/{id:int}/finalize")]
+        [Authorize(Roles = "Manager")]
+        public async Task<IActionResult> FinalizeViolation(int id, CancellationToken ct)
+        {
+            var managerUserId = GetUserId();
+            var success = await _violationService.FinalizeViolationAsync(managerUserId, id, ct);
+            if (!success) return BadRequest(new { message = "Không thể chốt biên bản vi phạm này." });
+
+            var ipAddress = Request.HttpContext.Connection.RemoteIpAddress?.ToString();
+            await _auditLogService.LogAsync(managerUserId, $"Chốt quyết định cuối cùng cho biên bản vi phạm (ID: {id})", ipAddress, ct);
+
+            return Ok(new { message = "Chốt vi phạm thành công!" });
         }
 
         /// <summary>

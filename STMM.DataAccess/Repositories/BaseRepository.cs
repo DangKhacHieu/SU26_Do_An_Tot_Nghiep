@@ -41,6 +41,11 @@ namespace STMM.DataAccess.Repositories
             await _dbSet.AddAsync(entity, cancellationToken);
         }
 
+        public virtual async Task AddRangeAsync(IEnumerable<T> entities, CancellationToken cancellationToken = default)
+        {
+            await _dbSet.AddRangeAsync(entities, cancellationToken);
+        }
+
         public virtual void Update(T entity)
         {
             _dbSet.Attach(entity);
@@ -64,6 +69,11 @@ namespace STMM.DataAccess.Repositories
         public virtual async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         {
             return await _context.SaveChangesAsync(cancellationToken);
+        }
+
+        public virtual async Task<Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default)
+        {
+            return await _context.Database.BeginTransactionAsync(cancellationToken);
         }
     }
 }

@@ -9,13 +9,13 @@ namespace STMM.Business.Interfaces
     {
         Task<IEnumerable<RepairPriceDto>> GetRepairPricesAsync(int userId, CancellationToken ct = default);
         
-        Task<RepairPriceDto> GetRepairPriceByIdAsync(int id, CancellationToken ct = default);
+        Task<RepairPriceDto> GetRepairPriceByIdAsync(int userId, int id, CancellationToken ct = default);
         
         Task<RepairPriceDto> CreateRepairPriceAsync(int userId, CreateRepairPriceRequest request, CancellationToken ct = default);
         
-        Task<RepairPriceDto> UpdateRepairPriceAsync(int id, UpdateRepairPriceRequest request, CancellationToken ct = default);
+        Task<RepairPriceDto> UpdateRepairPriceAsync(int userId, int id, UpdateRepairPriceRequest request, CancellationToken ct = default);
         
-        Task<bool> DeleteRepairPriceAsync(int id, CancellationToken ct = default);
+        Task<bool> DeleteRepairPriceAsync(int userId, int id, CancellationToken ct = default);
         Task<IEnumerable<UsedRepairToolDto>> GetUsedRepairToolsAsync(int userId, CancellationToken ct = default);
     }
 }

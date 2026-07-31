@@ -62,7 +62,8 @@
   background-color: var(--acc-bg-app);
   color: var(--acc-text-main);
   margin: 0;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
   display: flex;
   width: 100%;
 }
@@ -77,10 +78,6 @@
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
-  position: sticky;
-  top: 0;
-  height: 100vh;
-  overflow-y: auto;
   z-index: 20;
   transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -312,7 +309,7 @@
   flex-grow: 1;
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  height: 100vh;
   overflow-y: auto;
 }
 

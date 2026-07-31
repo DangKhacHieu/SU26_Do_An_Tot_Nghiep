@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using STMM.Business.DTOs.Billing;
 using STMM.Business.Interfaces;
 using System.Security.Claims;
+using STMM.API.Extensions;
 
 namespace STMM.API.Controllers
 {
@@ -20,12 +21,12 @@ namespace STMM.API.Controllers
 
         private int GetUserId()
         {
-            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
+            var userId = User.GetUserId();
+            if (!userId.HasValue)
             {
                 throw new System.UnauthorizedAccessException("User ID not found in token.");
             }
-            return userId;
+            return userId.Value;
         }
 
         /// <summary>
