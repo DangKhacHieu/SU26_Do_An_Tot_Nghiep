@@ -143,86 +143,89 @@ namespace STMM.Business.Services
             }
 
             var marketId = await GetUserMarketIdAsync(staffUserId, ct);
-            var invoice = await _invoiceRepository.GetInvoiceWithRelationsForPaymentAsync(request.InvoiceId, marketId, ct);
+            Invoice invoice;
+            Payment payment;
 
-            if (invoice == null)
+            await using (var transaction = await _invoiceRepository.BeginTransactionAsync(ct))
             {
-                throw new NotFoundException($"Invoice with ID {request.InvoiceId} not found.");
-            }
-
-            if (invoice.Status != "Unpaid")
-            {
-                throw new BadRequestException(
-                    $"Invoice is in status '{invoice.Status}'. Payment can only be collected for 'Unpaid' invoices.");
-            }
-
-            using var transaction = await _invoiceRepository.BeginTransactionAsync(ct);
-            try
-            {
-                var transactionCode = $"CASH-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..8].ToUpper()}";
-                var payment = new Payment
-                {
-                    InvoiceId = invoice.InvoiceId,
-                    Amount = invoice.TotalAmount,
-                    Method = "Cash",
-                    TransactionCode = transactionCode,
-                    PaidAt = DateTime.UtcNow,
-                    Status = "Pending"
-                };
-
-                await _paymentRepository.AddAsync(payment, ct);
-
-                invoice.Status = "Pending Confirmation";
-
-                var vendor = invoice.Contract.Vendor;
-                var stall = invoice.Contract.Stall;
-
                 try
                 {
-                    await _notificationService.CreateAsync(new CreateNotificationRequest
+                    if (!await _invoiceRepository.LockInvoiceForPaymentAsync(request.InvoiceId, marketId, ct))
+                        throw new NotFoundException($"Invoice with ID {request.InvoiceId} not found.");
+
+                    invoice = await _invoiceRepository.GetInvoiceWithRelationsForPaymentAsync(request.InvoiceId, marketId, ct)
+                        ?? throw new NotFoundException($"Invoice with ID {request.InvoiceId} not found.");
+
+                    if (invoice.Status != "Unpaid")
                     {
-                        Title = "Cash Payment Recorded",
-                        Content = $"Staff recorded cash payment for invoice of month {invoice.Month}/{invoice.Year} " +
-                                  $"at stall {stall.Code} for amount {invoice.TotalAmount:#,##0} VND. " +
-                                  $"Please wait for accountant confirmation.",
-                        NotiType = "Invoice",
-                        CreatedByUserId = staffUserId,
-                        TargetUserId = vendor.UserId
-                    }, ct);
-                }
-                catch (Exception exception)
-                {
-                    _logger.LogError(
-                        exception,
-                        "Unable to notify vendor {VendorUserId} about cash payment for invoice {InvoiceId}.",
-                        vendor.UserId,
-                        invoice.InvoiceId);
-                }
+                        throw new BadRequestException(
+                            $"Invoice is in status '{invoice.Status}'. Payment can only be collected for 'Unpaid' invoices.");
+                    }
 
-                await _invoiceRepository.SaveChangesAsync(ct);
-                await transaction.CommitAsync(ct);
+                    payment = new Payment
+                    {
+                        InvoiceId = invoice.InvoiceId,
+                        Amount = invoice.TotalAmount,
+                        Method = "Cash",
+                        TransactionCode = $"CASH-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..8].ToUpper()}",
+                        PaidAt = DateTime.UtcNow,
+                        Status = "Pending"
+                    };
 
-                return new PaymentResultDto
+                    await _paymentRepository.AddAsync(payment, ct);
+                    invoice.Status = "Pending Confirmation";
+                    await _invoiceRepository.SaveChangesAsync(ct);
+                    await transaction.CommitAsync(ct);
+                }
+                catch (DbUpdateConcurrencyException)
                 {
-                    PaymentId = payment.PaymentId,
-                    InvoiceId = invoice.InvoiceId,
-                    Amount = payment.Amount,
-                    Method = payment.Method,
-                    TransactionCode = payment.TransactionCode,
-                    PaidAt = payment.PaidAt,
-                    NewInvoiceStatus = invoice.Status
-                };
+                    await transaction.RollbackAsync(ct);
+                    throw new ConflictException("Hóa đơn này đã được cập nhật bởi một người khác. Vui lòng tải lại trang.");
+                }
+                catch
+                {
+                    await transaction.RollbackAsync(ct);
+                    throw;
+                }
             }
-            catch (DbUpdateConcurrencyException)
+
+            var vendor = invoice.Contract.Vendor;
+            var stall = invoice.Contract.Stall;
+
+            // Notifying outside the transaction on purpose: a slow or failing notification must not
+            // hold the invoice row lock, nor roll back a payment that was already committed.
+            try
             {
-                await transaction.RollbackAsync(ct);
-                throw new ConflictException("Hóa đơn này đã được cập nhật bởi một người khác. Vui lòng tải lại trang.");
+                await _notificationService.CreateAsync(new CreateNotificationRequest
+                {
+                    Title = "Cash Payment Recorded",
+                    Content = $"Staff recorded cash payment for invoice of month {invoice.Month}/{invoice.Year} " +
+                              $"at stall {stall.Code} for amount {invoice.TotalAmount:#,##0} VND. " +
+                              $"Please wait for accountant confirmation.",
+                    NotiType = "Invoice",
+                    CreatedByUserId = staffUserId,
+                    TargetUserId = vendor.UserId
+                }, ct);
             }
-            catch (Exception)
+            catch (Exception exception)
             {
-                await transaction.RollbackAsync(ct);
-                throw;
+                _logger.LogError(
+                    exception,
+                    "Unable to notify vendor {VendorUserId} about cash payment for invoice {InvoiceId}.",
+                    vendor.UserId,
+                    invoice.InvoiceId);
             }
+
+            return new PaymentResultDto
+            {
+                PaymentId = payment.PaymentId,
+                InvoiceId = invoice.InvoiceId,
+                Amount = payment.Amount,
+                Method = payment.Method,
+                TransactionCode = payment.TransactionCode,
+                PaidAt = payment.PaidAt,
+                NewInvoiceStatus = invoice.Status
+            };
         }
 
         /// <inheritdoc />

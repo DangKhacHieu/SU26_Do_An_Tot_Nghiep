@@ -1,16 +1,9 @@
 import { useTranslation } from 'react-i18next';
 import { useEffect, useRef, useState } from 'react';
 import { getAuthHeaders } from '../../utils/authHeaders';
+import readProblemDetail from '../../utils/readProblemDetail';
+import { showToast } from '../../utils/alert';
 import './CreateIssueModal.css';
-
-const readProblemDetail = async (response, fallback) => {
-  try {
-    const problem = await response.json();
-    return problem.detail || problem.title || fallback;
-  } catch {
-    return fallback;
-  }
-};
 
 export default function CreateIssueModal({ baseUrl, onClose, onSuccess, prefilledStallId }) {
   const { t } = useTranslation();
@@ -19,9 +12,8 @@ export default function CreateIssueModal({ baseUrl, onClose, onSuccess, prefille
   const [stallId, setStallId] = useState(prefilledStallId ? String(prefilledStallId) : '');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [uploadedImages, setUploadedImages] = useState([]);
+  const [selectedImageFiles, setSelectedImageFiles] = useState([]);
   const [loadingStalls, setLoadingStalls] = useState(true);
-  const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [dragActive, setDragActive] = useState(false);
@@ -37,13 +29,13 @@ export default function CreateIssueModal({ baseUrl, onClose, onSuccess, prefille
     }
   };
 
-  const handleDrop = async (e) => {
+  const handleDrop = (e) => {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
 
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      await uploadFiles(e.dataTransfer.files);
+      addFiles(e.dataTransfer.files);
     }
   };
 
@@ -52,7 +44,7 @@ export default function CreateIssueModal({ baseUrl, onClose, onSuccess, prefille
 
     const loadStalls = async () => {
       try {
-        const response = await fetch(`${baseUrl}/api/staff/stalls/lookup`, { headers: getAuthHeaders() });
+        const response = await fetch(`${baseUrl}/api/staff/issues/stalls/lookup`, { headers: getAuthHeaders() });
         if (!response.ok) {
           throw new Error(await readProblemDetail(response, t('createissuemodal.unable_to_load_stalls')));
         }
@@ -67,70 +59,79 @@ export default function CreateIssueModal({ baseUrl, onClose, onSuccess, prefille
 
     loadStalls();
     return () => { active = false; };
-  }, [baseUrl]);
+  }, [baseUrl, t]);
 
-  const uploadFiles = async (files) => {
-    const available = 3 - uploadedImages.length;
-    const selectedFiles = Array.from(files).slice(0, available);
-    if (selectedFiles.length === 0) return;
+  const [fieldErrors, setFieldErrors] = useState({});
 
-    setUploading(true);
-    setError('');
-    try {
-      const urls = [];
-      for (const file of selectedFiles) {
-        if (!file.type.startsWith('image/') || file.size > 5 * 1024 * 1024) {
-          throw new Error(t('createissuemodal.each_attachment_must_be'));
-        }
-        const formData = new FormData();
-        formData.append('file', file);
-        const response = await fetch(`${baseUrl}/api/files/upload`, {
-          method: 'POST',
-          headers: getAuthHeaders(),
-          body: formData,
-        });
-        if (!response.ok) {
-          throw new Error(await readProblemDetail(response, t('createissuemodal.unable_to_upload_image')));
-        }
-        const result = await response.json();
-        urls.push(result.imageUrl);
-      }
-      setUploadedImages((current) => [...current, ...urls]);
-    } catch (uploadError) {
-      setError(uploadError.message);
-    } finally {
-      setUploading(false);
+  const validateForm = () => {
+    const errors = {};
+    if (!stallId) {
+      errors.stallId = 'Vui lòng chọn sạp/vị trí xảy ra sự cố.';
     }
+
+    const trimmedTitle = title.trim();
+    if (!trimmedTitle) {
+      errors.title = 'Tiêu đề sự cố không được để trống.';
+    } else if (trimmedTitle.length < 5 || trimmedTitle.length > 100) {
+      errors.title = `Tiêu đề sự cố phải từ 5 đến 100 ký tự (hiện tại: ${trimmedTitle.length} ký tự).`;
+    }
+
+    const trimmedDesc = description.trim();
+    if (!trimmedDesc) {
+      errors.description = 'Mô tả sự cố không được để trống.';
+    } else if (trimmedDesc.length < 10 || trimmedDesc.length > 500) {
+      errors.description = `Mô tả sự cố phải từ 10 đến 500 ký tự (hiện tại: ${trimmedDesc.length} ký tự).`;
+    }
+
+    setFieldErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const addFiles = (files) => {
+    const available = 3 - selectedImageFiles.length;
+    const newFiles = Array.from(files).slice(0, available);
+    if (newFiles.length === 0) return;
+
+    setError('');
+    for (const file of newFiles) {
+      if (!file.type.startsWith('image/') || file.size > 5 * 1024 * 1024) {
+        setError(t('createissuemodal.each_attachment_must_be'));
+        return;
+      }
+    }
+    setSelectedImageFiles((current) => [...current, ...newFiles]);
   };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
     setError('');
 
-    if (!stallId || title.trim().length < 5 || description.trim().length < 10) {
-      setError(t('createissuemodal.select_a_stall_and'));
+    if (!validateForm()) {
+      setError('Vui lòng kiểm tra và sửa các thông tin chưa hợp lệ bên dưới.');
       return;
     }
 
     setSubmitting(true);
     try {
+      const formData = new FormData();
+      formData.append('stallId', stallId);
+      formData.append('title', title.trim());
+      formData.append('description', description.trim());
+      selectedImageFiles.forEach((file) => {
+        formData.append('images', file);
+      });
+
       const response = await fetch(`${baseUrl}/api/staff/issues`, {
-        method: t('createissuemodal.post'),
-        headers: {
-          'Content-Type': 'application/json',
-          ...getAuthHeaders(),
-        },
-        body: JSON.stringify({
-          stallId: Number(stallId),
-          title: title.trim(),
-          description: description.trim(),
-          imageUrl: uploadedImages.join(';') || null,
-        }),
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: formData,
       });
       if (!response.ok) {
         throw new Error(await readProblemDetail(response, t('createissuemodal.unable_to_submit_issue')));
       }
-      onSuccess(await response.json());
+      const createdIssue = await response.json();
+      showToast(t('createissuemodal.issue_created_success', 'Báo cáo sự cố đã được gửi thành công!'), 'success');
+      onSuccess(createdIssue);
     } catch (submitError) {
       setError(submitError.message);
     } finally {
@@ -150,31 +151,56 @@ export default function CreateIssueModal({ baseUrl, onClose, onSuccess, prefille
           {error ? <div className="error-alert"><strong>{t('createissuemodal.error')}</strong> {error}</div> : null}
 
           <div className="form-group">
-            <label className="form-label required-field" htmlFor={t('createissuemodal.issuestall')}>{t('createissuemodal.location')}</label>
+            <label className="form-label required-field" htmlFor="issue-stall">{t('createissuemodal.location')}</label>
             <select
               id="issue-stall"
-              className="form-input"
+              className={`form-input ${fieldErrors.stallId ? 'error-border' : ''}`}
               value={stallId}
-              onChange={(event) => setStallId(event.target.value)}
+              onChange={(event) => {
+                setStallId(event.target.value);
+                setFieldErrors((prev) => ({ ...prev, stallId: null }));
+              }}
               disabled={loadingStalls}
             >
               <option value="">{loadingStalls ? t('createissuemodal.loading_stalls') : t('createissuemodal.select_a_stall')}</option>
               {stalls.map((stall) => (
                 <option key={stall.stallId} value={stall.stallId}>
-                  {stall.stallCode} - {stall.areaName}
+                  {stall.stallCode} - {stall.areaName}{stall.vendorName ? ` (${stall.vendorName})` : ` (${t('createissuemodal.under_maintenance', 'Đang bảo trì')})`}
                 </option>
               ))}
             </select>
+            {fieldErrors.stallId && <span className="error-text">{fieldErrors.stallId}</span>}
           </div>
 
           <div className="form-group">
-            <label className="form-label required-field" htmlFor={t('createissuemodal.issuetitle')}>{t('createissuemodal.issue_title')}</label>
-            <input id="issue-title" className="form-input" value={title} onChange={(event) => setTitle(event.target.value)} maxLength={500} />
+            <label className="form-label required-field" htmlFor="issue-title">{t('createissuemodal.issue_title')}</label>
+            <input
+              id="issue-title"
+              className={`form-input ${fieldErrors.title ? 'error-border' : ''}`}
+              value={title}
+              onChange={(event) => {
+                setTitle(event.target.value);
+                setFieldErrors((prev) => ({ ...prev, title: null }));
+              }}
+              maxLength={100}
+            />
+            {fieldErrors.title && <span className="error-text">{fieldErrors.title}</span>}
           </div>
 
           <div className="form-group">
-            <label className="form-label required-field" htmlFor={t('createissuemodal.issuedescription')}>{t('createissuemodal.detailed_description')}</label>
-            <textarea id="issue-description" className="form-input" rows="4" value={description} onChange={(event) => setDescription(event.target.value)} />
+            <label className="form-label required-field" htmlFor="issue-description">{t('createissuemodal.detailed_description')}</label>
+            <textarea
+              id="issue-description"
+              className={`form-input ${fieldErrors.description ? 'error-border' : ''}`}
+              rows="4"
+              value={description}
+              onChange={(event) => {
+                setDescription(event.target.value);
+                setFieldErrors((prev) => ({ ...prev, description: null }));
+              }}
+              maxLength={500}
+            />
+            {fieldErrors.description && <span className="error-text">{fieldErrors.description}</span>}
           </div>
 
           <div className="form-group">
@@ -182,24 +208,25 @@ export default function CreateIssueModal({ baseUrl, onClose, onSuccess, prefille
             <input
               ref={fileInputRef}
               type="file"
-              accept={t('createissuemodal.image')}
+              accept="image/*"
               multiple
               hidden
-              onChange={(event) => uploadFiles(event.target.files)}
+              onChange={(event) => {
+                if (event.target.files) addFiles(event.target.files);
+                event.target.value = '';
+              }}
             />
             <div 
-              className={`drag-drop-zone ${dragActive ? t('createissuemodal.active') : ''} ${uploadedImages.length >= 3 ? t('createissuemodal.disabled') : ''}`}
+              className={`drag-drop-zone ${dragActive ? 'active' : ''} ${selectedImageFiles.length >= 3 ? 'disabled' : ''}`}
               onDragEnter={handleDrag}
               onDragOver={handleDrag}
               onDragLeave={handleDrag}
               onDrop={handleDrop}
-              onClick={uploadedImages.length < 3 && !uploading ? () => fileInputRef.current?.click() : undefined}
+              onClick={selectedImageFiles.length < 3 && !submitting ? () => fileInputRef.current?.click() : undefined}
             >
               <div className="drag-drop-content">
                 <span className="upload-icon">📸</span>
-                {uploading ? (
-                  <p>{t('createissuemodal.uploading_images')}</p>
-                ) : uploadedImages.length >= 3 ? (
+                {selectedImageFiles.length >= 3 ? (
                   <p>{t('createissuemodal.maximum_3_evidence_images')}</p>
                 ) : (
                   <p>{t('createissuemodal.drag_and_drop_images')}<strong style={{ color: '#4f46e5' }}>{t('createissuemodal.click_to_select')}</strong></p>
@@ -207,12 +234,12 @@ export default function CreateIssueModal({ baseUrl, onClose, onSuccess, prefille
                 <span className="helper-text">{t('createissuemodal.supports_jpg_png_webp')}</span>
               </div>
             </div>
-            {uploadedImages.length > 0 ? (
+            {selectedImageFiles.length > 0 ? (
               <div className="preview-images-grid">
-                {uploadedImages.map((url, index) => (
-                  <div className="preview-image-card" key={url}>
-                    <img src={url} alt={`Issue evidence ${index + 1}`} className="preview-image-thumb" />
-                    <button type="button" className="preview-image-remove" onClick={() => setUploadedImages((current) => current.filter((_, itemIndex) => itemIndex !== index))}>&times;</button>
+                {selectedImageFiles.map((file, index) => (
+                  <div className="preview-image-card" key={`${file.name}-${index}`}>
+                    <img src={URL.createObjectURL(file)} alt={`Issue evidence ${index + 1}`} className="preview-image-thumb" />
+                    <button type="button" className="preview-image-remove" onClick={() => setSelectedImageFiles((current) => current.filter((_, itemIndex) => itemIndex !== index))}>&times;</button>
                   </div>
                 ))}
               </div>
@@ -221,7 +248,7 @@ export default function CreateIssueModal({ baseUrl, onClose, onSuccess, prefille
 
           <div className="modal-actions">
             <button type="button" className="btn-secondary" onClick={onClose} disabled={submitting}>{t('createissuemodal.cancel')}</button>
-            <button type="submit" className="btn-primary-dark" disabled={submitting || uploading || loadingStalls}>
+            <button type="submit" className="btn-primary-dark" disabled={submitting || loadingStalls}>
               {submitting ? t('createissuemodal.submitting') : t('createissuemodal.submit_report')}
             </button>
           </div>

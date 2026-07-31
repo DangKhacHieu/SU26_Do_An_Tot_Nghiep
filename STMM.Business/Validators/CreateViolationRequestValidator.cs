@@ -18,21 +18,22 @@ namespace STMM.Business.Validators
             RuleFor(x => x.Title)
                 .NotEmpty()
                 .WithMessage("Tiêu đề vi phạm không được để trống.")
-                .MaximumLength(500)
-                .WithMessage("Tiêu đề vi phạm không được vượt quá 500 ký tự.");
+                .MinimumLength(5)
+                .WithMessage("Tiêu đề vi phạm phải từ 5 đến 100 ký tự.")
+                .MaximumLength(100)
+                .WithMessage("Tiêu đề vi phạm không được vượt quá 100 ký tự.");
 
             RuleFor(x => x.Description)
                 .NotEmpty()
-                .WithMessage("Mô tả vi phạm không được để trống.");
+                .WithMessage("Mô tả vi phạm không được để trống.")
+                .MinimumLength(10)
+                .WithMessage("Mô tả vi phạm phải từ 10 đến 500 ký tự.")
+                .MaximumLength(500)
+                .WithMessage("Mô tả vi phạm không được vượt quá 500 ký tự.");
 
-            RuleFor(x => x.ImageUrl)
-                .NotEmpty()
-                .WithMessage("Ảnh minh chứng vi phạm là bắt buộc.");
-
-            RuleFor(x => x.ImageUrl)
-                .Must(url => Uri.TryCreate(url, UriKind.Absolute, out _))
-                .When(x => !string.IsNullOrEmpty(x.ImageUrl))
-                .WithMessage("URL ảnh không đúng định dạng.");
+            RuleFor(x => x.Image)
+                .NotNull()
+                .WithMessage("Violation evidence image is required.");
 
             RuleFor(x => x.FineAmount)
                 .GreaterThanOrEqualTo(0)

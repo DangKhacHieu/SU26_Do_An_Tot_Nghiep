@@ -47,8 +47,9 @@ namespace STMM.API.Controllers
         /// Record a new meter reading.
         /// </summary>
         [HttpPost]
+        [Consumes("multipart/form-data")]
         public async Task<IActionResult> CreateReading(
-            [FromBody] CreateMeterReadingRequest request,
+            [FromForm] CreateMeterReadingRequest request,
             CancellationToken ct)
         {
             var result = await _service.CreateReadingAsync(GetUserId(), request, ct);

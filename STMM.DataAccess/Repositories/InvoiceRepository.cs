@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using STMM.DataAccess.Data;
 using STMM.DataAccess.Entities;
 using STMM.DataAccess.IRepositories;
@@ -46,6 +47,41 @@ namespace STMM.DataAccess.Repositories
                 query = query.Where(i => i.Contract.Stall.Area.MarketId == marketId.Value);
 
             return await query.FirstOrDefaultAsync(ct);
+        }
+
+        public Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken ct = default)
+            => _context.Database.BeginTransactionAsync(ct);
+
+        public async Task<bool> LockInvoiceForPaymentAsync(int invoiceId, int marketId, CancellationToken ct = default)
+        {
+            var command = _context.Database.GetDbConnection().CreateCommand();
+            command.Transaction = _context.Database.CurrentTransaction?.GetDbTransaction();
+            command.CommandText = """
+                SELECT 1
+                FROM invoices i
+                INNER JOIN contracts c ON c.contract_id = i.contract_id
+                INNER JOIN stalls s ON s.stall_id = c.stall_id
+                INNER JOIN areas a ON a.area_id = s.area_id
+                WHERE i.invoice_id = @invoiceId
+                  AND i.is_deleted IS NOT TRUE
+                  AND a.market_id = @marketId
+                FOR UPDATE OF i
+                """;
+
+            var invoiceParameter = command.CreateParameter();
+            invoiceParameter.ParameterName = "@invoiceId";
+            invoiceParameter.Value = invoiceId;
+            command.Parameters.Add(invoiceParameter);
+            var marketParameter = command.CreateParameter();
+            marketParameter.ParameterName = "@marketId";
+            marketParameter.Value = marketId;
+            command.Parameters.Add(marketParameter);
+
+            if (command.Connection!.State != System.Data.ConnectionState.Open)
+                await command.Connection.OpenAsync(ct);
+
+            await using (command)
+                return await command.ExecuteScalarAsync(ct) != null;
         }
 
         public async Task<List<Invoice>> GetUnpaidInvoicesByStallAsync(int stallId, int? marketId = null, CancellationToken ct = default)

@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { getAuthHeaders } from '../../utils/authHeaders';
+import { ISSUE_STATUS_MAP, getEnumLabel, getEnumCls } from '../../constants/enumMaps';
 import './IssueDetails.css';
 
 export default function IssueDetails({ issueId, baseUrl, onBack }) {
@@ -33,7 +34,7 @@ export default function IssueDetails({ issueId, baseUrl, onBack }) {
     };
 
     fetchDetails();
-  }, [issueId, baseUrl]);
+  }, [issueId, baseUrl, t]);
 
   const formatDate = (dateString) => {
     if (!dateString) return t('issuedetails.na');
@@ -56,7 +57,7 @@ export default function IssueDetails({ issueId, baseUrl, onBack }) {
   };
 
   if (loading) return <div className="loading-state">{t('issuedetails.loading_issue_details')}</div>;
-  
+
   if (error) return (
     <div className="error-state">
       <p className="error-message">Error: {error}</p>
@@ -67,13 +68,17 @@ export default function IssueDetails({ issueId, baseUrl, onBack }) {
   if (!issue) return null;
 
   const imageUrls = issue.imageUrl ? issue.imageUrl.split(';').map(u => u.trim()).filter(Boolean) : [];
+  // CSS class dùng raw status, không dùng chuỗi đã dịch
+  const statusCls = getEnumCls(issue.status, ISSUE_STATUS_MAP, 'reported');
+  // Label hiển thị dịch tại render
+  const statusLabel = getEnumLabel(issue.status, ISSUE_STATUS_MAP, t);
 
   return (
     <div className="violation-details-container">
-      <div className="details-header" style={{ display: 'flex', justifyContent: t('issuedetails.spacebetween'), alignItems: t('issuedetails.center'), marginBottom: '20px' }}>
-        <h2 style={{ fontSize: '18px', fontWeight: '700', margin: 0, color: 'var(--text-main)' }}>ISSUE DETAILS: {issue.issueId}</h2>
+      <div className="details-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <h2 style={{ fontSize: '18px', fontWeight: '700', margin: 0, color: 'var(--text-main)' }}>{t('issuedetails.issue_details_label')}: {issue.issueId}</h2>
         <button className="btn-secondary" onClick={onBack}>
-          &larr; Back to List
+          {t('issuedetails.back_to_list')}
         </button>
       </div>
 
@@ -111,8 +116,9 @@ export default function IssueDetails({ issueId, baseUrl, onBack }) {
           <div className="info-block">
             <span className="info-label">{t('issuedetails.status')}</span>
             <div className="status-container">
-              <span className={`status-badge-large ${issue.status?.toLowerCase() || t('issuedetails.reported')}`}>
-                [STATUS: {issue.status?.toUpperCase() || t('issuedetails.reported')}]
+              {/* CSS class từ raw status — KHÔNG dùng chuỗi đã dịch */}
+              <span className={`status-badge-large ${statusCls}`}>
+                {statusLabel}
               </span>
             </div>
           </div>
@@ -133,12 +139,13 @@ export default function IssueDetails({ issueId, baseUrl, onBack }) {
                   </span>
                 </p>
                 <p style={{ margin: '16px 0 0 0', fontSize: '12px', color: '#555' }}>
-                  * This issue is currently assigned to a maintenance task. Check the Tasks list for execution details.
+                  {t('issuedetails.issue_assigned_to_task_note')}
                 </p>
               </div>
             ) : (
               <div>
-                <p style={{ margin: '0', color: '#555', fontStyle: t('issuedetails.italic') }}>
+                {/* fontStyle là CSS property — KHÔNG dịch */}
+                <p style={{ margin: '0', color: '#555', fontStyle: 'italic' }}>
                   {t('issuedetails.no_repair_task_assigned')}</p>
                 <p style={{ margin: '8px 0 0 0', fontSize: '12px', color: '#777' }}>
                   {t('issuedetails.a_manager_will_assign')}</p>
@@ -150,16 +157,16 @@ export default function IssueDetails({ issueId, baseUrl, onBack }) {
 
       <div style={{ marginTop: '24px', border: '2px solid #000000', padding: '32px', backgroundColor: '#ffffff' }}>
         <span className="info-label" style={{ display: 'block', marginBottom: '16px' }}>
-          VISUAL EVIDENCE ({imageUrls.length} Attachments)
+          {t('issuedetails.visual_evidence')} ({imageUrls.length} {t('issuedetails.attachments')})
         </span>
-        
+
         {imageUrls.length > 0 ? (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '20px' }}>
             {imageUrls.map((url, index) => (
               <div key={index} className="evidence-photo-box" style={{ margin: '0', height: '240px' }}>
-                <img 
-                  src={url} 
-                  alt={`Evidence ${index + 1}`} 
+                <img
+                  src={url}
+                  alt={`${t('issuedetails.evidence')} ${index + 1}`}
                   className="evidence-img"
                   onError={(event) => { event.currentTarget.hidden = true; }}
                 />
@@ -167,14 +174,14 @@ export default function IssueDetails({ issueId, baseUrl, onBack }) {
             ))}
           </div>
         ) : (
-          <div style={{ padding: '24px', border: '1px dashed #000000', textAlign: t('issuedetails.center'), color: '#555' }}>
-            [NO PHOTO ATTACHED]
+          <div style={{ padding: '24px', border: '1px dashed #000000', textAlign: 'center', color: '#555' }}>
+            {t('issuedetails.no_photo_attached')}
           </div>
         )}
       </div>
 
       <div className="audit-footer" style={{ marginTop: '24px' }}>
-        Logged by: {issue.createdByName || `Staff #${issue.createdByUserId}`} | Timestamp: {formatDate(issue.createdAt)} {formatTime(issue.createdAt)}
+        {t('issuedetails.logged_by')}: {issue.createdByName || t('issuedetails.staff_user', { userId: issue.createdByUserId })} | {t('issuedetails.timestamp')}: {formatDate(issue.createdAt)} {formatTime(issue.createdAt)}
       </div>
     </div>
   );

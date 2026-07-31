@@ -1,9 +1,10 @@
 import { useTranslation } from 'react-i18next';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getAuthHeaders } from '../../utils/authHeaders';
+import { getEnumCls, getEnumLabel, ISSUE_STATUS_MAP } from '../../constants/enumMaps';
 import './IssueList.css';
 
-const PAGE_SIZE = 8;
+const PAGE_SIZE = 5;
 
 const readProblemDetail = async (response, t) => {
   try {
@@ -15,7 +16,7 @@ const readProblemDetail = async (response, t) => {
 };
 
 export default function IssueList({ baseUrl, onViewDetails, onOpenCreateModal }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const [issues, setIssues] = useState([]);
   const [pageNumber, setPageNumber] = useState(1);
@@ -88,7 +89,7 @@ export default function IssueList({ baseUrl, onViewDetails, onOpenCreateModal })
             <button type="button" className="btn-filter-clear" onClick={() => { setSearchQuery(''); setAppliedSearch(''); setPageNumber(1); }}>{t('issuelist.clear')}</button>
           ) : null}
         </form>
-        <button type="button" className="btn-primary" onClick={onOpenCreateModal}>+ Report New Issue</button>
+        <button type="button" className="btn-primary" onClick={onOpenCreateModal}>+ {t('issuelist.report_new_issue')}</button>
       </div>
 
       {loading ? <div className="loading-state">{t('issuelist.loading_issues')}</div> : null}
@@ -97,7 +98,7 @@ export default function IssueList({ baseUrl, onViewDetails, onOpenCreateModal })
       {!loading && !error && visibleIssues.length > 0 ? (
         <>
           <div className="table-card">
-            <div className="table-card-header"><span className="table-card-title">{t('issuelist.issues')}</span><span className="table-count-badge">{totalCount} issues</span></div>
+            <div className="table-card-header"><span className="table-card-title">{t('issuelist.issues')}</span><span className="table-count-badge">{t('issuelist.issue_count', { count: totalCount })}</span></div>
             <div className="table-responsive">
               <table className="staff-table">
                 <thead><tr><th>{t('issuelist.id')}</th><th>{t('issuelist.issue')}</th><th>{t('issuelist.location')}</th><th>{t('issuelist.status')}</th><th>{t('issuelist.reported')}</th><th>{t('issuelist.action')}</th></tr></thead>
@@ -107,8 +108,8 @@ export default function IssueList({ baseUrl, onViewDetails, onOpenCreateModal })
                       <td><strong>#{issue.issueId}</strong></td>
                       <td>{issue.title}</td>
                       <td><span className="badge-stall">{issue.stallCode || t('issuelist.unknown_stall')}</span></td>
-                      <td><span className={`status-badge ${issue.status?.toLowerCase() || t('issuelist.reported')}`}>{issue.status || t('issuelist.reported')}</span></td>
-                      <td>{issue.createdAt ? new Date(issue.createdAt).toLocaleDateString(t('issuelist.enus')) : t('issuelist.na')}</td>
+                      <td><span className={`status-badge ${getEnumCls(issue.status, ISSUE_STATUS_MAP, 'reported')}`}>{getEnumLabel(issue.status || 'Reported', ISSUE_STATUS_MAP, t)}</span></td>
+                      <td>{issue.createdAt ? new Date(issue.createdAt).toLocaleDateString(i18n.resolvedLanguage?.startsWith('vi') ? 'vi-VN' : 'en-US') : t('issuelist.na')}</td>
                       <td><button type="button" className="btn-link" onClick={() => onViewDetails(issue.issueId)}>{t('issuelist.view_details')}</button></td>
                     </tr>
                   ))}
@@ -118,7 +119,7 @@ export default function IssueList({ baseUrl, onViewDetails, onOpenCreateModal })
           </div>
           {totalPages > 1 ? (
             <div className="pagination-wrapper">
-              <span className="pagination-info">Page {safePageNumber} of {totalPages}</span>
+              <span className="pagination-info">{t('issuelist.page_of', { page: safePageNumber, totalPages })}</span>
               <div className="pagination-buttons">
                 <button className="btn-page" onClick={() => setPageNumber((page) => Math.max(1, page - 1))} disabled={safePageNumber === 1}>{t('issuelist.prev')}</button>
                 <button className="btn-page" onClick={() => setPageNumber((page) => Math.min(totalPages, page + 1))} disabled={safePageNumber === totalPages}>{t('issuelist.next')}</button>
