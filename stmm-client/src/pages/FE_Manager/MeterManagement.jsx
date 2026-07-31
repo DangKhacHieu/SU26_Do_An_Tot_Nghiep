@@ -290,7 +290,7 @@ export default function MeterManagement({ addToast }) {
         </div>
 
         <button className="btn-primary" onClick={handleOpenCreateModal}>
-          <IconPlus /> {t('metermanagement.add_meter_to_inventory', '+ Thêm công tơ vào kho')}</button>
+          <IconPlus /> {t('metermanagement.add_meter_to_inventory', 'Thêm công tơ vào kho')}</button>
       </div>
 
       {/* ── Bảng dữ liệu ── */}
