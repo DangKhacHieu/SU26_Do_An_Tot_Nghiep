@@ -122,7 +122,7 @@ export default function TaskDetail({ taskId, baseUrl, onBack, onShowNotification
         <aside className="detail-right-col">
           {task.taskType === TASK_TYPE.REPAIR ? <RepairProgressStepper status={task.status} /> : null}
 
-          {task.status === TASK_STATUS.COMPLETED && (task.imageBeforeUrl || task.imageAfterUrl) ? (
+          {task.imageBeforeUrl || task.imageAfterUrl ? (
             <div className="evidence-panel">
               <h3 className="card-section-title">{t('taskdetail.completion_evidence')}</h3>
               <div className="evidence-images-grid">

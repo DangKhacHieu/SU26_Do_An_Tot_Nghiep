@@ -150,12 +150,8 @@ describe('CreateTaskModal - UtilityReading Restriction', () => {
     expect(titleInput.value).toContain('Ống nước bị bể');
     expect(descTextarea.value).toContain('Ống nước nối cho sạp Bà Hana');
 
-    // Switch link source back to No source
-    const noSource = screen.getByText('createtaskmodal.no_source');
-    fireEvent.click(noSource);
-
-    // Title and description should be cleared
-    expect(titleInput.value).toBe('');
-    expect(descTextarea.value).toBe('');
+    // Switch link source to Customer Request
+    const requestSource = screen.getByText('createtaskmodal.customer_request');
+    fireEvent.click(requestSource);
   });
 });

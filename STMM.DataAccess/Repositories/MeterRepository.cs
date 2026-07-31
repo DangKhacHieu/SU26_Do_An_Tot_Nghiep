@@ -78,6 +78,8 @@ namespace STMM.DataAccess.Repositories
                     m.Stall != null &&
                     m.Stall.IsDeleted != true &&
                     m.Stall.Area.MarketId == marketId &&
+                    // Must match GetStallsChecklistByAreaAsync exactly: a reading recorded for a
+                    // stall the checklist does not list would never reach an invoice.
                     m.Stall.Contracts.Any(c =>
                         c.IsDeleted != true &&
                         c.Status == "Active" &&
@@ -240,6 +242,36 @@ namespace STMM.DataAccess.Repositories
             }
 
             return await query.ToListAsync(ct);
+        }
+
+        public async Task<IReadOnlyList<(Meter Meter, MeterReading? LatestReading)>> GetUnassignedMetersWithLatestReadingAsync(string? type, int? marketId = null, CancellationToken ct = default)
+        {
+            var query = _context.Meters
+                .Where(m => m.StallId == null && m.IsActive == true);
+
+            if (marketId.HasValue)
+            {
+                query = query.Where(m => m.MarketId == marketId.Value);
+            }
+
+            if (!string.IsNullOrEmpty(type))
+            {
+                query = query.Where(m => m.Type == type);
+            }
+
+            var results = await query
+                .Select(m => new
+                {
+                    Meter = m,
+                    LatestReading = m.MeterReadings
+                        .OrderByDescending(r => r.RecordedAt)
+                        .ThenByDescending(r => r.MeterReadingId)
+                        .FirstOrDefault()
+                })
+                .AsNoTracking()
+                .ToListAsync(ct);
+
+            return results.Select(r => (r.Meter, r.LatestReading)).ToList();
         }
 
         public async Task<Meter?> GetMeterWithReadingsAsync(int meterId, CancellationToken ct = default)

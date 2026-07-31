@@ -44,7 +44,6 @@ export const TASK_STATUS_TONE = {
 // ─── Task Type CSS class tokens (static — KHÔNG dịch) ────────────────────────
 export const TASK_TYPE_CLASS = {
   Repair:         'type-repair',
-  Maintenance:    'type-maintenance',
   UtilityReading: 'type-utility',
 };
 

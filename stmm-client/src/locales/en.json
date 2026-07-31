@@ -4711,6 +4711,9 @@
     "task_completed_successfully": "Task completed successfully.",
     "before_photo": "Before Photo",
     "after_photo": "After Photo",
+    "photos_only_while_in_progress": "Evidence photos can only be attached while the task is in progress.",
+    "no_photo_attached_yet": "No photo attached",
+    "attach_all_required_evidence": "Please review and attach all the required evidence photos below.",
     "submitting": "Submitting...",
     "confirm_completion": "Confirm Completion"
   },

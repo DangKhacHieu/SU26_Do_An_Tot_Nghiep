@@ -4667,6 +4667,9 @@
     "task_completed_successfully": "Công việc đã được hoàn thành.",
     "before_photo": "Ảnh trước khi thực hiện",
     "after_photo": "Ảnh sau khi thực hiện",
+    "photos_only_while_in_progress": "Ảnh bằng chứng chỉ đính kèm được khi tác vụ đang thực hiện.",
+    "no_photo_attached_yet": "Chưa có ảnh",
+    "attach_all_required_evidence": "Vui lòng kiểm tra và đính kèm đầy đủ ảnh bằng chứng bên dưới.",
     "submitting": "Đang gửi...",
     "confirm_completion": "Xác nhận hoàn thành"
   },

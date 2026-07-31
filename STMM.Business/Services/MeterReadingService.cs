@@ -77,46 +77,7 @@ namespace STMM.Business.Services
             };
         }
 
-        public async Task<MeterDto> GetMeterByIdAsync(int userId, int meterId, CancellationToken ct = default)
-        {
-            var marketId = await GetStaffMarketIdAsync(userId, ct);
-            var result = await _meterRepo.GetMeterWithLatestReadingForMarketAsync(meterId, marketId, ct);
-            if (result == null)
-                throw new NotFoundException($"Meter with ID {meterId} not found.");
 
-            var dto = _mapper.Map<MeterDto>(result.Value.Meter);
-            dto.LastReadingValue = result.Value.LatestReading?.NewValue;
-            dto.LastReadingImageUrl = result.Value.LatestReading?.ImageUrl;
-
-            return dto;
-        }
-
-        public async Task<IEnumerable<MeterDto>> GetUnassignedMetersAsync(string? type, CancellationToken ct = default)
-        {
-            var meters = await _meterRepo.FindAsync(m => m.StallId == null && m.IsActive == true);
-            if (!string.IsNullOrEmpty(type))
-            {
-                meters = meters.Where(m => m.Type == type);
-            }
-            return _mapper.Map<IEnumerable<MeterDto>>(meters);
-        }
-
-        public async Task<IEnumerable<MeterDto>> GetMetersByStallIdAsync(int userId, int stallId, CancellationToken ct = default)
-        {
-            var marketId = await GetStaffMarketIdAsync(userId, ct);
-            var itemsWithLatest = await _meterRepo.GetMetersWithLatestReadingByStallForMarketAsync(stallId, marketId, ct);
-            if (itemsWithLatest.Count == 0)
-            {
-                throw new NotFoundException($"No active meters were found for stall {stallId} in your market.");
-            }
-
-            return itemsWithLatest.Select(x => {
-                var dto = _mapper.Map<MeterDto>(x.Meter);
-                dto.LastReadingValue = x.LatestReading?.NewValue;
-                dto.LastReadingImageUrl = x.LatestReading?.ImageUrl;
-                return dto;
-            }).ToList();
-        }
 
         public async Task<MeterReadingDto> CreateReadingAsync(
             int userId, CreateMeterReadingRequest request, CancellationToken ct = default)
@@ -126,9 +87,10 @@ namespace STMM.Business.Services
                 throw new BadRequestException(string.Join("; ", validation.Errors.Select(e => e.ErrorMessage)));
 
             var marketId = await GetStaffMarketIdAsync(userId, ct);
-            var effectiveDate = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
+            var recordedAt = DateOnly.ParseExact(request.RecordedAt, "yyyy-MM-dd", CultureInfo.InvariantCulture);
+
             var meter = await _meterRepo.GetEligibleMeterForReadingAsync(
-                request.MeterId, marketId, userId, effectiveDate, ct);
+                request.MeterId, marketId, userId, recordedAt, ct);
             if (meter == null)
             {
                 // Preserve the existing inactive-meter error without revealing
@@ -139,8 +101,6 @@ namespace STMM.Business.Services
 
                 throw new NotFoundException($"Meter with ID {request.MeterId} not found.");
             }
-
-            var recordedAt = DateOnly.ParseExact(request.RecordedAt, "yyyy-MM-dd", CultureInfo.InvariantCulture);
 
             var exists = await _readingRepo.ExistsByMeterAndDateAsync(request.MeterId, recordedAt, ct);
             if (exists)

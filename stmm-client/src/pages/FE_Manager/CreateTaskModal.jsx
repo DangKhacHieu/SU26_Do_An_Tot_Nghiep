@@ -626,7 +626,7 @@ export default function CreateTaskModal({
                 </div>
               )}
 
-              {preFilledIssueId && (taskType === 'Repair' || taskType === 'Maintenance') ? (
+              {preFilledIssueId && taskType === 'Repair' ? (
                 <div className="ctm-linked-panel">
                   <div className="ctm-linked-icon">
                     <Link2 size={15} />

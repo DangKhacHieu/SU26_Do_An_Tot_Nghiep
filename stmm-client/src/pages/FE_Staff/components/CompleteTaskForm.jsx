@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { useRef, useState } from 'react';
 import { Camera, CheckCircle2, UploadCloud, X } from 'lucide-react';
 import { getAuthHeaders } from '../../../utils/authHeaders';
-import { TASK_TYPE } from '../../../constants/taskEnums';
+import { TASK_STATUS, TASK_TYPE } from '../../../constants/taskEnums';
 
 const readProblemDetail = async (response, fallback) => {
   try {
@@ -12,6 +12,83 @@ const readProblemDetail = async (response, fallback) => {
     return fallback;
   }
 };
+
+/**
+ * Owns its own file input ref so the parent never has to pass one down through render.
+ */
+function EvidenceUploadZone({ label, fileValue, error, isDragging, onDragChange, onPick, onClear, t }) {
+  const inputRef = useRef(null);
+  const openPicker = () => inputRef.current?.click();
+
+  return (
+    <div className="form-group">
+      <label className="form-label required-field">{label}</label>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        onChange={(event) => {
+          if (event.target.files?.[0]) onPick(event.target.files[0]);
+          event.target.value = '';
+        }}
+        hidden
+      />
+      <div
+        className={`drag-drop-zone ${isDragging ? 'active' : ''} ${fileValue ? 'has-file' : ''}`}
+        onDragEnter={(event) => { event.preventDefault(); onDragChange(true); }}
+        onDragOver={(event) => event.preventDefault()}
+        onDragLeave={(event) => { event.preventDefault(); onDragChange(false); }}
+        onDrop={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          onDragChange(false);
+          if (event.dataTransfer.files?.[0]) onPick(event.dataTransfer.files[0]);
+        }}
+        onClick={openPicker}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') openPicker(); }}
+      >
+        {fileValue ? (
+          <div className="uploaded-preview-container" onClick={(event) => event.stopPropagation()}>
+            <img src={URL.createObjectURL(fileValue)} alt={`${label} preview`} className="uploaded-thumb" />
+            <button type="button" className="btn-remove-uploaded" onClick={onClear} aria-label={`Remove ${label.toLowerCase()}`}>
+              <X size={16} />
+            </button>
+          </div>
+        ) : (
+          <div className="drag-drop-content">
+            <UploadCloud className="upload-icon" size={30} aria-hidden="true" />
+            <p>{t('completetaskform.drag_and_drop_an')}<strong>{t('completetaskform.click_to_select')}</strong></p>
+            <span className="helper-text">{t('completetaskform.jpg_png_or_webp')}</span>
+          </div>
+        )}
+      </div>
+      {error ? <div className="error-text">{error}</div> : null}
+    </div>
+  );
+}
+
+/** Stored evidence shown outside the In_Progress window: visible, never interactive. */
+function EvidencePhotoPreview({ label, storedUrl, t }) {
+  return (
+    <div className="form-group">
+      <label className="form-label">{label}</label>
+      <div className="drag-drop-zone is-readonly">
+        {storedUrl ? (
+          <div className="uploaded-preview-container">
+            <img src={storedUrl} alt={`${label} preview`} className="uploaded-thumb" />
+          </div>
+        ) : (
+          <div className="drag-drop-content">
+            <UploadCloud className="upload-icon" size={30} aria-hidden="true" />
+            <span className="helper-text">{t('completetaskform.no_photo_attached_yet', 'Chưa có ảnh')}</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default function CompleteTaskForm({ task, baseUrl, onRefreshTask, onShowNotification, utilityProgress }) {
   const { t } = useTranslation();
@@ -23,11 +100,16 @@ export default function CompleteTaskForm({ task, baseUrl, onRefreshTask, onShowN
   const [uploadErrors, setUploadErrors] = useState({ before: null, after: null });
   const [loading, setLoading] = useState(false);
   const [submitError, setSubmitError] = useState(null);
-  const beforeInputRef = useRef(null);
-  const afterInputRef = useRef(null);
 
-  const requiresPhotos = [TASK_TYPE.REPAIR, TASK_TYPE.MAINTENANCE].includes(task.taskType);
-  const requiresBeforeUpload = requiresPhotos && !task.imageBeforeUrl;
+  const requiresPhotos = task.taskType === TASK_TYPE.REPAIR;
+  // Evidence photos may only be attached while the task is actually being worked on. Outside that
+  // window the stored photos stay visible but read-only.
+  const canEditPhotos = task.status === TASK_STATUS.IN_PROGRESS;
+  const requiresBeforeUpload = requiresPhotos && canEditPhotos && !task.imageBeforeUrl;
+  const hasStoredPhotos = Boolean(task.imageBeforeUrl) && Boolean(task.imageAfterUrl);
+  // A repair task still needs both photos on the server, so it can only be completed outside
+  // In_Progress when both were already stored.
+  const photoEvidenceBlocked = requiresPhotos && !canEditPhotos && !hasStoredPhotos;
   const isUtilityReading = task.taskType === TASK_TYPE.UTILITY_READING;
   const isChecklistIncomplete = Boolean(
     isUtilityReading
@@ -56,34 +138,36 @@ export default function CompleteTaskForm({ task, baseUrl, onRefreshTask, onShowN
     setImageFile(target, file);
   };
 
-  const handleDrop = (event, target) => {
-    event.preventDefault();
-    event.stopPropagation();
-    setDragTarget(null);
-    if (event.dataTransfer.files?.[0]) {
-      handleFileSelect(event.dataTransfer.files[0], target);
-    }
-  };
-
   const handleSubmit = async (event) => {
     event.preventDefault();
     setSubmitError(null);
+
+    if (photoEvidenceBlocked) {
+      setSubmitError(t(
+        'completetaskform.photos_only_while_in_progress',
+        'Ảnh bằng chứng chỉ đính kèm được khi tác vụ đang thực hiện.'
+      ));
+      return;
+    }
 
     let hasError = false;
     const errors = { before: null, after: null };
 
     if (requiresBeforeUpload && !imageBeforeFile) {
-      errors.before = 'Vui lòng đính kèm ảnh chụp trước khi sửa chữa.';
+      errors.before = t('completetaskform.please_provide_a_before', 'Vui lòng đính kèm ảnh chụp trước khi sửa chữa.');
       hasError = true;
     }
-    if (requiresPhotos && !imageAfterFile) {
-      errors.after = 'Vui lòng đính kèm ảnh chụp sau khi hoàn thành.';
+    if (requiresPhotos && canEditPhotos && !task.imageAfterUrl && !imageAfterFile) {
+      errors.after = t('completetaskform.please_provide_an_after', 'Vui lòng đính kèm ảnh chụp sau khi hoàn thành.');
       hasError = true;
     }
 
     if (hasError) {
       setUploadErrors(errors);
-      setSubmitError('Vui lòng kiểm tra và đính kèm đầy đủ ảnh bằng chứng bên dưới.');
+      setSubmitError(t(
+        'completetaskform.attach_all_required_evidence',
+        'Vui lòng kiểm tra và đính kèm đầy đủ ảnh bằng chứng bên dưới.'
+      ));
       return;
     }
 
@@ -115,48 +199,15 @@ export default function CompleteTaskForm({ task, baseUrl, onRefreshTask, onShowN
     }
   };
 
-  const renderUpload = (target, label, fileValue, inputRef) => (
-    <div className="form-group">
-      <label className="form-label required-field">{label}</label>
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/*"
-        onChange={(event) => {
-          if (event.target.files?.[0]) handleFileSelect(event.target.files[0], target);
-          event.target.value = '';
-        }}
-        hidden
-      />
-      <div
-        className={`drag-drop-zone ${dragTarget === target ? 'active' : ''} ${fileValue ? 'has-file' : ''}`}
-        onDragEnter={(event) => { event.preventDefault(); setDragTarget(target); }}
-        onDragOver={(event) => event.preventDefault()}
-        onDragLeave={(event) => { event.preventDefault(); setDragTarget(null); }}
-        onDrop={(event) => handleDrop(event, target)}
-        onClick={() => inputRef.current?.click()}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') inputRef.current?.click(); }}
-      >
-        {fileValue ? (
-          <div className="uploaded-preview-container" onClick={(event) => event.stopPropagation()}>
-            <img src={URL.createObjectURL(fileValue)} alt={`${label} preview`} className="uploaded-thumb" />
-            <button type="button" className="btn-remove-uploaded" onClick={() => setImageFile(target, null)} aria-label={`Remove ${label.toLowerCase()}`}>
-              <X size={16} />
-            </button>
-          </div>
-        ) : (
-          <div className="drag-drop-content">
-            <UploadCloud className="upload-icon" size={30} aria-hidden="true" />
-            <p>{t('completetaskform.drag_and_drop_an')}<strong>{t('completetaskform.click_to_select')}</strong></p>
-            <span className="helper-text">{t('completetaskform.jpg_png_or_webp')}</span>
-          </div>
-        )}
-      </div>
-      {uploadErrors[target] ? <div className="error-text">{uploadErrors[target]}</div> : null}
-    </div>
-  );
+  const uploadZoneProps = (target) => ({
+    fileValue: target === 'before' ? imageBeforeFile : imageAfterFile,
+    error: uploadErrors[target],
+    isDragging: dragTarget === target,
+    onDragChange: (dragging) => setDragTarget(dragging ? target : null),
+    onPick: (file) => handleFileSelect(file, target),
+    onClear: () => setImageFile(target, null),
+    t,
+  });
 
   return (
     <section className="complete-task-form-panel">
@@ -165,10 +216,34 @@ export default function CompleteTaskForm({ task, baseUrl, onRefreshTask, onShowN
         {submitError ? <div className="error-alert" role="alert"><strong>{t('completetaskform.error')}</strong> {submitError}</div> : null}
 
         {requiresPhotos ? (
-          <div className="upload-fields-grid">
-            {requiresBeforeUpload ? renderUpload('before', t('completetaskform.before_photo'), imageBeforeFile, beforeInputRef) : null}
-            {renderUpload('after', t('completetaskform.after_photo'), imageAfterFile, afterInputRef)}
-          </div>
+          <>
+            {!canEditPhotos ? (
+              <p className="helper-text photos-locked-note">
+                {t(
+                  'completetaskform.photos_only_while_in_progress',
+                  'Ảnh bằng chứng chỉ đính kèm được khi tác vụ đang thực hiện.'
+                )}
+              </p>
+            ) : null}
+            <div className="upload-fields-grid">
+              {canEditPhotos ? (
+                <>
+                  {requiresBeforeUpload
+                    ? <EvidenceUploadZone label={t('completetaskform.before_photo')} {...uploadZoneProps('before')} />
+                    : <EvidencePhotoPreview label={t('completetaskform.before_photo')} storedUrl={task.imageBeforeUrl} t={t} />}
+                  {/* A stored photo always wins server-side, so re-uploading one would be discarded. */}
+                  {task.imageAfterUrl
+                    ? <EvidencePhotoPreview label={t('completetaskform.after_photo')} storedUrl={task.imageAfterUrl} t={t} />
+                    : <EvidenceUploadZone label={t('completetaskform.after_photo')} {...uploadZoneProps('after')} />}
+                </>
+              ) : (
+                <>
+                  <EvidencePhotoPreview label={t('completetaskform.before_photo')} storedUrl={task.imageBeforeUrl} t={t} />
+                  <EvidencePhotoPreview label={t('completetaskform.after_photo')} storedUrl={task.imageAfterUrl} t={t} />
+                </>
+              )}
+            </div>
+          </>
         ) : null}
 
         {isUtilityReading && utilityProgress && utilityProgress.total > 0 ? (
@@ -198,7 +273,7 @@ export default function CompleteTaskForm({ task, baseUrl, onRefreshTask, onShowN
         <div className="form-actions complete-task-actions">
           <button
             type="submit"
-            disabled={loading || isChecklistIncomplete}
+            disabled={loading || isChecklistIncomplete || photoEvidenceBlocked}
             className="btn-primary-dark submit-completion-btn"
           >
             <Camera size={16} aria-hidden="true" />

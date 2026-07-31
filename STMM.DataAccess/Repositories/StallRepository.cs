@@ -16,7 +16,6 @@ namespace STMM.DataAccess.Repositories
             int marketId,
             CancellationToken ct = default)
         {
-            var effectiveDate = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
             var query = _context.Stalls.Where(s =>
                 s.IsDeleted != true &&
                 s.Area.MarketId == marketId);
@@ -39,9 +38,8 @@ namespace STMM.DataAccess.Repositories
                     t.TaskType == "UtilityReading" &&
                     s.Contracts.Any(c =>
                         c.IsDeleted != true &&
-                        c.Status == "Active" &&
-                        c.StartDate <= effectiveDate &&
-                        c.EndDate >= effectiveDate)));
+                        c.Status != "Terminated" &&
+                        c.Status != "TerminatedEarly")));
 
             var stallsList = await query
                 .OrderBy(s => s.Code)
@@ -53,9 +51,8 @@ namespace STMM.DataAccess.Repositories
                     StallStatus = s.Status ?? string.Empty,
                     HasEffectiveContract = s.Contracts.Any(c =>
                         c.IsDeleted != true &&
-                        c.Status == "Active" &&
-                        c.StartDate <= effectiveDate &&
-                        c.EndDate >= effectiveDate),
+                        c.Status != "Terminated" &&
+                        c.Status != "TerminatedEarly"),
                     VendorName = s.Contracts.Where(c => c.Status == "Active" && c.IsDeleted != true)
                                .Select(c => c.Vendor.BusinessName)
                                .FirstOrDefault() ?? string.Empty,

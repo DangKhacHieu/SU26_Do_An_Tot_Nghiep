@@ -259,7 +259,7 @@ const STAFF_PAGE_TITLES = {
   },
   tasks: {
     title: "Daily Tasks",
-    sub: "View and update your assigned repair and maintenance tasks.",
+    sub: "View and update your assigned repair and utility reading tasks.",
   },
   "task-map": {
     title: "Task Map",

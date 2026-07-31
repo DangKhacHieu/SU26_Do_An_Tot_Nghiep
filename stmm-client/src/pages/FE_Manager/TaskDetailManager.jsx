@@ -167,7 +167,6 @@ export default function TaskDetailManager({ taskId, baseUrl, onBack, addToast, n
   const formatTaskType = (type) => {
     if (type === 'UtilityReading') return t('taskdetailmanager.utility_reading');
     if (type === 'Repair') return t('taskdetailmanager.repair');
-    if (type === 'Maintenance') return t('taskdetailmanager.maintenance');
     return type;
   };
 
@@ -324,7 +323,7 @@ export default function TaskDetailManager({ taskId, baseUrl, onBack, addToast, n
           ) : null}
 
           {/* Quotation Materials */}
-          {(task.taskType === 'Repair' || task.taskType === 'Maintenance') && (
+          {task.taskType === 'Repair' && (
             <div className="spec-card">
               <h3 className="spec-title">{t('taskdetailmanager.materials_quotation')}</h3>
               {(!task.materials || task.materials.length === 0) ? (
@@ -365,7 +364,7 @@ export default function TaskDetailManager({ taskId, baseUrl, onBack, addToast, n
           )}
 
           {/* Evidence Photos */}
-          {(task.taskType === 'Repair' || task.taskType === 'Maintenance') && (
+          {task.taskType === 'Repair' && (
             <div className="spec-card">
               <h3 className="spec-title">{t('taskdetailmanager.evidence')}</h3>
               <div className="evidence-photos-grid">

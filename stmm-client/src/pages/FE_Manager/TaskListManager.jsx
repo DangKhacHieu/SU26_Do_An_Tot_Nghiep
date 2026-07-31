@@ -92,7 +92,6 @@ export default function TaskListManager({ baseUrl, navigate, addToast }) {
   const formatTaskType = (type) => {
     if (type === 'UtilityReading') return t('tasklistmanager.utility_reading');
     if (type === 'Repair') return t('tasklistmanager.repair');
-    if (type === 'Maintenance') return t('tasklistmanager.maintenance');
     return type;
   };
 

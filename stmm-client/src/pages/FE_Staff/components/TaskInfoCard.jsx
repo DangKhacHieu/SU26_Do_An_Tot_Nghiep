@@ -12,7 +12,6 @@ const STATUS_BADGE_CLASS = {
 
 const TYPE_BADGE_CLASS = {
   [TASK_TYPE.REPAIR]: 'badge-repair',
-  [TASK_TYPE.MAINTENANCE]: 'badge-maintenance',
   [TASK_TYPE.UTILITY_READING]: 'badge-utility',
 };
 
@@ -54,7 +53,6 @@ export default function TaskInfoCard({ task, onViewIssueDetails }) {
   const getTypeLabel = (type) => {
     switch (type) {
       case TASK_TYPE.REPAIR: return t('taskinfocard.repair');
-      case TASK_TYPE.MAINTENANCE: return t('taskinfocard.maintenance');
       case TASK_TYPE.UTILITY_READING: return t('taskinfocard.meter_reading');
       default: return type;
     }

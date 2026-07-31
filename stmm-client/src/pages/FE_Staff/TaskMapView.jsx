@@ -277,7 +277,6 @@ export default function TaskMapView({ baseUrl, onBack, onViewDetails }) {
   const getTaskTypeLabel = (type) => {
     switch (type) {
       case TASK_TYPE.REPAIR:          return t('taskmapview.repair');
-      case TASK_TYPE.MAINTENANCE:     return t('taskmapview.maintenance');
       case TASK_TYPE.UTILITY_READING: return t('taskmapview.meter_reading');
       default:                        return type;
     }

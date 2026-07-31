@@ -96,7 +96,7 @@ namespace STMM.Business.Services
             var user = await _userRepo.GetByIdAsync(userId, ct);
             if (user == null || user.MarketId == null)
             {
-                throw new BadRequestException("Tài khoản Quản lý chưa sở hữu chợ nào được phê duyệt. Bạn chỉ có thể tạo công tơ mới sau khi chợ của bạn được phê duyệt.");
+                throw new BadRequestException("The manager account does not own an approved market yet. Meters can only be created once your market is approved.");
             }
             var marketId = user.MarketId.Value;
 
@@ -104,7 +104,7 @@ namespace STMM.Business.Services
             var exists = await _meterRepo.ExistsSerialNumberAsync(request.SerialNumber.Trim(), marketId, null, ct);
             if (exists)
             {
-                throw new BadRequestException($"Số seri '{request.SerialNumber}' đã tồn tại trong chợ này.");
+                throw new BadRequestException($"Serial number '{request.SerialNumber}' already exists in this market.");
             }
 
             var meter = new Meter
@@ -161,7 +161,7 @@ namespace STMM.Business.Services
             var exists = await _meterRepo.ExistsSerialNumberAsync(request.SerialNumber.Trim(), meter.MarketId, id, ct);
             if (exists)
             {
-                throw new BadRequestException($"Số seri '{request.SerialNumber}' đã tồn tại trong chợ này.");
+                throw new BadRequestException($"Serial number '{request.SerialNumber}' already exists in this market.");
             }
 
             meter.SerialNumber = request.SerialNumber.Trim();
@@ -217,15 +217,37 @@ namespace STMM.Business.Services
 
             var marketId = user?.MarketId;
 
-            var meters = await _meterRepo.GetUnassignedMetersAsync(type, marketId, ct);
-            var dtos = _mapper.Map<IEnumerable<MeterDto>>(meters).ToList();
-            foreach (var dto in dtos)
+            var itemsWithLatest = await _meterRepo.GetUnassignedMetersWithLatestReadingAsync(type, marketId, ct);
+            
+            return itemsWithLatest.Select(x => {
+                var dto = _mapper.Map<MeterDto>(x.Meter);
+                dto.LastReadingValue = x.LatestReading?.NewValue;
+                dto.LastReadingImageUrl = x.LatestReading?.ImageUrl;
+                return dto;
+            }).ToList();
+        }
+
+        public async Task<IEnumerable<MeterDto>> GetMetersByStallIdAsync(int userId, int stallId, CancellationToken ct = default)
+        {
+            var user = await _userRepo.GetUserByIdWithRoleAsync(userId, ct);
+            if (user?.MarketId == null)
             {
-                var latest = await _readingRepo.GetLatestReadingByMeterIdAsync(dto.MeterId, ct);
-                dto.LastReadingValue = latest?.NewValue;
-                dto.LastReadingImageUrl = latest?.ImageUrl;
+                throw new ForbiddenException("The account is not assigned to a market.");
             }
-            return dtos;
+            
+            var marketId = user.MarketId.Value;
+            var itemsWithLatest = await _meterRepo.GetMetersWithLatestReadingByStallForMarketAsync(stallId, marketId, ct);
+            if (itemsWithLatest.Count == 0)
+            {
+                throw new NotFoundException($"No active meters were found for stall {stallId} in your market.");
+            }
+
+            return itemsWithLatest.Select(x => {
+                var dto = _mapper.Map<MeterDto>(x.Meter);
+                dto.LastReadingValue = x.LatestReading?.NewValue;
+                dto.LastReadingImageUrl = x.LatestReading?.ImageUrl;
+                return dto;
+            }).ToList();
         }
     }
 }

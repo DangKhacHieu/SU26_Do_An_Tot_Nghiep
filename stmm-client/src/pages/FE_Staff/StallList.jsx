@@ -7,7 +7,7 @@ import './StallList.css';
 
 const FILTER = Object.freeze({ ALL: 'all', HAS_TASK: 'hasTask', HAS_UNPAID_INVOICE: 'hasUnpaidInvoice' });
 const STALL_STATUS = Object.freeze({ RENTED: 'Rented' });
-const TASK_TYPE = Object.freeze({ REPAIR: 'Repair', MAINTENANCE: 'Maintenance', UTILITY_READING: 'UtilityReading' });
+const TASK_TYPE = Object.freeze({ REPAIR: 'Repair', UTILITY_READING: 'UtilityReading' });
 
 export default function StallList({ baseUrl, onShowNotification, onViewMeterHistory, onViewInvoices }) {
   const { t, i18n } = useTranslation();
@@ -110,7 +110,6 @@ export default function StallList({ baseUrl, onShowNotification, onViewMeterHist
     switch (type) {
       case 'UtilityReading': return '⚡';
       case TASK_TYPE.REPAIR: return '🔧';
-      case TASK_TYPE.MAINTENANCE: return '🧹';
       default: return '📋';
     }
   };
@@ -119,7 +118,6 @@ export default function StallList({ baseUrl, onShowNotification, onViewMeterHist
     switch (type) {
       case 'UtilityReading': return t('stalllist.utility_reading');
       case TASK_TYPE.REPAIR: return t('stalllist.repair');
-      case TASK_TYPE.MAINTENANCE: return t('stalllist.maintenance');
       default: return type;
     }
   };

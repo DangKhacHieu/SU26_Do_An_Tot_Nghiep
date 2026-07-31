@@ -97,25 +97,17 @@ namespace STMM.Business.Services
         /// <inheritdoc />
         public async Task<TaskDto> GetTaskByIdForManagerAsync(int taskId, int? managerUserId, CancellationToken ct = default)
         {
-            if (managerUserId.HasValue)
+            // Every path must stay market-scoped. The previous fall-through to an unscoped
+            // GetTaskByIdWithRelationsAsync leaked tasks from other markets whenever the manager
+            // record could not be resolved.
+            if (!managerUserId.HasValue)
             {
-                var manager = await _userRepository.GetByIdAsync(managerUserId.Value, ct);
-                if (manager != null && manager.MarketId == null)
-                {
-                    throw new NotFoundException($"Task with ID {taskId} not found.");
-                }
-                if (manager?.MarketId != null)
-                {
-                    var taskInMarket = await _staffTaskRepository.GetTaskByIdForMarketAsync(taskId, manager.MarketId.Value, ct);
-                    if (taskInMarket == null)
-                    {
-                        throw new NotFoundException($"Task with ID {taskId} not found.");
-                    }
-                    return _mapper.Map<TaskDto>(taskInMarket);
-                }
+                throw new ForbiddenException("The manager account is not assigned to a market.");
             }
 
-            var task = await _staffTaskRepository.GetTaskByIdWithRelationsAsync(taskId, ct);
+            var marketId = await GetManagerMarketIdAsync(managerUserId.Value, ct);
+
+            var task = await _staffTaskRepository.GetTaskByIdForMarketAsync(taskId, marketId, ct);
             if (task == null)
             {
                 throw new NotFoundException($"Task with ID {taskId} not found.");
@@ -183,6 +175,12 @@ namespace STMM.Business.Services
                     localNow.Month,
                     ct);
                 EnsureUtilityAreaIsReady(stalls);
+
+                if (stalls.All(stall => stall.HasReadingThisMonth))
+                {
+                    throw new BadRequestException(
+                        "All stalls in this area have already had their utility meters read this month.");
+                }
             }
 
             string? imageBeforeUrl = null;
@@ -278,7 +276,10 @@ namespace STMM.Business.Services
             var oldStatus = task.Status ?? "Pending";
             var newStatus = req.NewStatus;
 
-            if (oldStatus == "PendingApproval" && task.RequestId.HasValue)
+            // Only the approve / return-for-revision decisions are reserved for the vendor when the
+            // vendor is paying. Cancelling stays the manager's call, otherwise a vendor-paid task
+            // would be stuck in PendingApproval forever with no way out.
+            if (oldStatus == "PendingApproval" && task.RequestId.HasValue && newStatus != "Cancelled")
             {
                 var request = await _requestRepository.GetByIdAsync(task.RequestId.Value, ct);
                 if (request == null || request.PaidBy != "Market")
@@ -382,6 +383,11 @@ namespace STMM.Business.Services
                 throw new BadRequestException("Task is already completed or cancelled.");
             }
 
+            if (currentStatus == "PendingApproval")
+            {
+                throw new BadRequestException("The quotation for this task must be resolved before it can be completed.");
+            }
+
             if (task.TaskType == "UtilityReading")
             {
                 if (!task.AreaId.HasValue)
@@ -397,9 +403,17 @@ namespace STMM.Business.Services
                     localToday.Year,
                     localToday.Month,
                     ct);
-                EnsureUtilityAreaIsReady(stallsInArea);
 
-                if (stallsInArea.Any(s => !s.HasReadingThisMonth))
+                if (stallsInArea.Count == 0)
+                {
+                    throw new BadRequestException("This area has no stalls with an effective rental contract.");
+                }
+
+                // Meter availability is only enforced when the task is created. Re-checking it here
+                // would strand the task if a meter was unassigned or deactivated mid-period, so a
+                // stall only blocks completion for the meters it still has.
+                if (stallsInArea.Any(s => (s.HasElectricityMeter && !s.HasElectricityReadingThisMonth)
+                                       || (s.HasWaterMeter && !s.HasWaterReadingThisMonth)))
                 {
                     throw new BadRequestException("This task cannot be completed while stalls are missing utility readings for the current month.");
                 }
@@ -556,6 +570,10 @@ namespace STMM.Business.Services
                 StallId = r.StallId,
                 StallCode = r.StallCode,
                 StallStatus = r.StallStatus,
+                HasElectricityMeter = r.HasElectricityMeter,
+                HasWaterMeter = r.HasWaterMeter,
+                HasElectricityReadingThisMonth = r.HasElectricityReadingThisMonth,
+                HasWaterReadingThisMonth = r.HasWaterReadingThisMonth,
                 HasReadingThisMonth = r.HasReadingThisMonth
             }).ToList();
         }

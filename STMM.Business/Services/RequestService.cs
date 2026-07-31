@@ -256,15 +256,6 @@ namespace STMM.Business.Services
                     request.Status = "Pending";
                     SetTaskStatus(repairTasks, new[] { "PendingApproval" }, "Pending");
                     break;
-
-                case ManagerQuotationDecisionRequest.Reject:
-                    request.IsQuoteApproved = false;
-                    request.Status = "Rejected";
-                    SetTaskStatus(
-                        repairTasks,
-                        new[] { "PendingApproval", "Pending" },
-                        "Cancelled");
-                    break;
             }
         }
 
@@ -311,8 +302,7 @@ namespace STMM.Business.Services
             }
 
             if (action is ManagerQuotationDecisionRequest.ApproveAsMarket
-                or ManagerQuotationDecisionRequest.ReturnForRevision
-                or ManagerQuotationDecisionRequest.Reject)
+                or ManagerQuotationDecisionRequest.ReturnForRevision)
             {
                 foreach (var staffUserId in repairTasks
                     .Select(task => task.AssignedToUserId)
@@ -353,8 +343,7 @@ namespace STMM.Business.Services
             {
                 ManagerQuotationDecisionRequest.ApproveAsMarket => "Báo giá đã được duyệt",
                 ManagerQuotationDecisionRequest.ReturnForRevision => "Báo giá cần chỉnh sửa",
-                ManagerQuotationDecisionRequest.Reject => "Yêu cầu sửa chữa bị từ chối",
-                _ => "Cập nhật báo giá sửa chữa"
+                _ => "Trạng thái báo giá đã được cập nhật"
             };
         }
 
@@ -370,8 +359,6 @@ namespace STMM.Business.Services
                     $"Báo giá của REQ-{request.RequestId} đã được duyệt. Task có thể bắt đầu thi công.",
                 ManagerQuotationDecisionRequest.ReturnForRevision =>
                     $"Báo giá của REQ-{request.RequestId} được trả lại để chỉnh sửa.{note}",
-                ManagerQuotationDecisionRequest.Reject =>
-                    $"Yêu cầu REQ-{request.RequestId} đã bị từ chối.{note}",
                 _ => $"Yêu cầu REQ-{request.RequestId} đã được cập nhật."
             };
         }
