@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using STMM.Business.DTOs.Contract;
 using STMM.Business.DTOs.Stall;
+using STMM.Business.DTOs.Notification;
 using STMM.Business.Interfaces;
 using STMM.Business.Exceptions;
 using STMM.DataAccess.Entities;
@@ -27,6 +28,7 @@ namespace STMM.Business.Services
         private readonly IFileUploadService _fileUploadService;
         private readonly IValidator<CreateContractRequest> _createValidator;
         private readonly IValidator<RenewContractRequest> _renewValidator;
+        private readonly INotificationService _notificationService;
         private readonly ILogger<ContractService> _logger;
 
         public ContractService(
@@ -39,6 +41,7 @@ namespace STMM.Business.Services
             IFileUploadService fileUploadService,
             IValidator<CreateContractRequest> createValidator,
             IValidator<RenewContractRequest> renewValidator,
+            INotificationService notificationService,
             ILogger<ContractService> logger)
         {
             _contractRepository = contractRepository;
@@ -50,6 +53,7 @@ namespace STMM.Business.Services
             _fileUploadService = fileUploadService;
             _createValidator = createValidator;
             _renewValidator = renewValidator;
+            _notificationService = notificationService;
             _logger = logger;
         }
 
@@ -238,6 +242,11 @@ namespace STMM.Business.Services
                 throw new NotFoundException($"Không tìm thấy hợp đồng cũ có ID {contractId}.");
             }
 
+            if (request.StartDate <= oldContract.EndDate)
+            {
+                throw new BadRequestException("Ngày bắt đầu hợp đồng mới phải sau ngày kết thúc của hợp đồng hiện tại.");
+            }
+
             // Mark old contract as Expired
             oldContract.Status = "Expired";
             _contractRepository.Update(oldContract);
@@ -271,7 +280,7 @@ namespace STMM.Business.Services
             return await GetContractByIdAsync(newContract.ContractId, ct: ct) ?? _mapper.Map<ContractDto>(newContract);
         }
 
-        public async Task<ContractDto> TerminateContractAsync(int contractId, CancellationToken ct)
+        public async Task<ContractDto> TerminateContractAsync(int contractId, DateOnly? terminationDate, int? currentUserId, CancellationToken ct)
         {
             var contract = await _contractRepository.GetContractByIdWithDetailsAsync(contractId, ct);
             if (contract == null)
@@ -279,7 +288,20 @@ namespace STMM.Business.Services
                 throw new NotFoundException($"Không tìm thấy hợp đồng có ID {contractId}.");
             }
 
-            contract.Status = "Terminated";
+            var targetTerminationDate = terminationDate ?? DateOnly.FromDateTime(DateTime.Today);
+            var isEarly = targetTerminationDate < contract.EndDate;
+
+            if (isEarly)
+            {
+                contract.Status = "TerminatedEarly";
+                // Tiền cọc vẫn giữ nguyên
+            }
+            else
+            {
+                contract.Status = "Terminated";
+                contract.Deposit = 0; // Tiền cọc trở về 0
+            }
+
             _contractRepository.Update(contract);
 
             // Release Stall to Available
@@ -291,6 +313,26 @@ namespace STMM.Business.Services
             }
 
             await _contractRepository.SaveChangesAsync(ct);
+
+            // Gửi thông báo cho tiểu thương của hợp đồng
+            if (contract.Vendor != null)
+            {
+                var notiTitle = isEarly
+                    ? "Hợp đồng thuê sạp đã chấm dứt (Chấm dứt trước thời hạn)"
+                    : "Hợp đồng thuê sạp đã chấm dứt (Chấm dứt đúng hạn)";
+                var notiContent = isEarly
+                    ? $"Hợp đồng thuê sạp {contract.Stall?.Code ?? ""} của bạn đã bị chấm dứt trước thời hạn vào ngày {targetTerminationDate:dd/MM/yyyy}. Tiền đặt cọc sẽ KHÔNG được hoàn trả."
+                    : $"Hợp đồng thuê sạp {contract.Stall?.Code ?? ""} của bạn đã được chấm dứt đúng hạn/quá hạn vào ngày {targetTerminationDate:dd/MM/yyyy}. Tiền đặt cọc sẽ ĐƯỢC hoàn trả.";
+
+                await _notificationService.CreateAsync(new CreateNotificationRequest
+                {
+                    Title = notiTitle,
+                    Content = notiContent,
+                    NotiType = "System",
+                    CreatedByUserId = currentUserId ?? 0,
+                    TargetUserId = contract.Vendor.UserId
+                }, ct);
+            }
 
             return _mapper.Map<ContractDto>(contract);
         }

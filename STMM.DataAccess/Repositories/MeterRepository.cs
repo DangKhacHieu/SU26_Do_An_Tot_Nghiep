@@ -213,10 +213,10 @@ namespace STMM.DataAccess.Repositories
             return (result.Meter, result.LatestReading);
         }
 
-        public async Task<bool> ExistsSerialNumberAsync(string serialNumber, int? excludeMeterId = null, CancellationToken ct = default)
+        public async Task<bool> ExistsSerialNumberAsync(string serialNumber, int marketId, int? excludeMeterId = null, CancellationToken ct = default)
         {
             var normSerial = serialNumber.Trim().ToLower();
-            var query = _context.Meters.Where(m => m.SerialNumber.ToLower() == normSerial);
+            var query = _context.Meters.Where(m => m.MarketId == marketId && m.SerialNumber.ToLower() == normSerial);
             if (excludeMeterId.HasValue)
             {
                 query = query.Where(m => m.MeterId != excludeMeterId.Value);

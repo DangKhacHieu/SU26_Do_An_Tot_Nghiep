@@ -3,18 +3,7 @@
    File: SidebarManager.css
    ========================================= */
 
-.app-sidebar {
-  width: var(--sidebar-width);
-  background-color: var(--bg-sidebar);
-  display: flex;
-  flex-direction: column;
-  flex-shrink: 0;
-  position: sticky;
-  top: 0;
-  height: 100vh;
-  overflow-y: auto;
-  z-index: 20;
-}
+/* Sidebar layout properties are defined globally in App.css */
 
 /* ── Brand Section ── */
 .brand-section {

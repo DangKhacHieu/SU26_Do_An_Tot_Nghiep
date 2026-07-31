@@ -168,6 +168,11 @@ builder.Services.Configure<STMM.Business.DTOs.Payment.MomoConfig>(builder.Config
 builder.Services.AddHttpClient();
 builder.Services.AddScoped<IMomoService, MomoService>();
 
+// Register VNPay Payment Service
+builder.Services.Configure<STMM.Business.DTOs.Payment.VnpayConfig>(builder.Configuration.GetSection("VnpayConfig"));
+builder.Services.AddScoped<IVnpayService, VnpayService>();
+
+
 // Register Background Services
 builder.Services.AddHostedService<STMM.API.BackgroundServices.MonthlyBillingWorker>();
 

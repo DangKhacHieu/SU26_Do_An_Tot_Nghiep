@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using STMM.DataAccess.Data;
@@ -11,9 +12,11 @@ using STMM.DataAccess.Data;
 namespace STMM.DataAccess.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260730145714_AlterMeterSerialNumberUniqueIndex")]
+    partial class AlterMeterSerialNumberUniqueIndex
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -823,9 +826,6 @@ namespace STMM.DataAccess.Migrations
 
                     b.HasIndex(new[] { "MeterId" }, "idx_meter_readings_meter_id");
 
-                    b.HasIndex(new[] { "MeterId", "RecordedAt" }, "meter_readings_meter_id_recorded_at_key")
-                        .IsUnique();
-
                     b.ToTable("meter_readings", null, t =>
                         {
                             t.HasComment("Chỉ số ghi nhận từ công tơ");
@@ -1506,15 +1506,7 @@ namespace STMM.DataAccess.Migrations
 
                     b.HasIndex(new[] { "IssueId" }, "idx_staff_tasks_issue_id");
 
-                    b.HasIndex(new[] { "IssueId" }, "ux_staff_tasks_active_issue")
-                        .IsUnique()
-                        .HasFilter("issue_id IS NOT NULL AND (status IS NULL OR status NOT IN ('Completed', 'Cancelled'))");
-
                     b.HasIndex(new[] { "RequestId" }, "idx_staff_tasks_request_id");
-
-                    b.HasIndex(new[] { "RequestId" }, "ux_staff_tasks_active_request")
-                        .IsUnique()
-                        .HasFilter("request_id IS NOT NULL AND (status IS NULL OR status NOT IN ('Completed', 'Cancelled'))");
 
                     b.ToTable("staff_tasks", null, t =>
                         {

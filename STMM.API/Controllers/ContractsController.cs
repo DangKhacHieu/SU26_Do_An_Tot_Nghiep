@@ -111,11 +111,12 @@ namespace STMM.API.Controllers
         }
 
         [HttpPut("{id}/terminate")]
-        public async Task<ActionResult<ContractDto>> TerminateContract(int id, CancellationToken ct)
+        public async Task<ActionResult<ContractDto>> TerminateContract(int id, [FromQuery] DateOnly? terminationDate, CancellationToken ct)
         {
             try
             {
-                var terminated = await _contractService.TerminateContractAsync(id, ct);
+                var currentUserId = GetUserId();
+                var terminated = await _contractService.TerminateContractAsync(id, terminationDate, currentUserId, ct);
                 return Ok(terminated);
             }
             catch (NotFoundException ex)

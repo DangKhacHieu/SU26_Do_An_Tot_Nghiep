@@ -92,7 +92,17 @@ export default function ContractFormManager({ navigate, addToast }) {
     const newErrors = {};
     if (!formData.stallId) newErrors.stallId = t('contractformmanager.please_select_a_stall');
     if (!formData.userId) newErrors.userId = t('contractformmanager.please_choose_a_merchant');
-    if (!formData.startDate) newErrors.startDate = t('contractformmanager.please_select_a_start');
+    if (!formData.startDate) {
+      newErrors.startDate = t('contractformmanager.please_select_a_start');
+    } else {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const inputDate = new Date(formData.startDate);
+      inputDate.setHours(0, 0, 0, 0);
+      if (inputDate < today) {
+        newErrors.startDate = t('contractformmanager.start_date_cannot_be_before_today');
+      }
+    }
     if (!formData.endDate) newErrors.endDate = t('contractformmanager.please_select_an_end');
     if (formData.startDate && formData.endDate) {
       if (new Date(formData.startDate) >= new Date(formData.endDate)) {

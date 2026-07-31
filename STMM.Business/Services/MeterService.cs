@@ -101,10 +101,10 @@ namespace STMM.Business.Services
             var marketId = user.MarketId.Value;
 
             // Check SerialNumber unique
-            var exists = await _meterRepo.ExistsSerialNumberAsync(request.SerialNumber.Trim(), null, ct);
+            var exists = await _meterRepo.ExistsSerialNumberAsync(request.SerialNumber.Trim(), marketId, null, ct);
             if (exists)
             {
-                throw new BadRequestException($"SerialNumber '{request.SerialNumber}' already exists in system.");
+                throw new BadRequestException($"Số seri '{request.SerialNumber}' đã tồn tại trong chợ này.");
             }
 
             var meter = new Meter
@@ -158,10 +158,10 @@ namespace STMM.Business.Services
             }
 
             // Check SerialNumber unique
-            var exists = await _meterRepo.ExistsSerialNumberAsync(request.SerialNumber.Trim(), id, ct);
+            var exists = await _meterRepo.ExistsSerialNumberAsync(request.SerialNumber.Trim(), meter.MarketId, id, ct);
             if (exists)
             {
-                throw new BadRequestException($"SerialNumber '{request.SerialNumber}' already exists in system.");
+                throw new BadRequestException($"Số seri '{request.SerialNumber}' đã tồn tại trong chợ này.");
             }
 
             meter.SerialNumber = request.SerialNumber.Trim();

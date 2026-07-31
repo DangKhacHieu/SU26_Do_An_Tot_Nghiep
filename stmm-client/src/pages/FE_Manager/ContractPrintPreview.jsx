@@ -8,23 +8,24 @@ const getAuthHeaders = () => ({
 });
 
 export default function ContractPrintPreview({ contract, onClose, onSaveSuccess, addToast }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const tVi = i18n.getFixedT('vi', 'translation');
 
   // Configurable Bên A details
   const [lessor, setLessor] = useState({
     name: "CÔNG TY TNHH QUẢN LÝ CHỢ TRUNG TÂM MHMS",
-    address: t('contractprintpreview.quarter_6_linh_trung'),
+    address: tVi('contractprintpreview.quarter_6_linh_trung'),
     taxCode: "0312345678",
     cccd: "079090123456",
     licenseNum: "0312345678",
-    licenseIssuer: t('contractprintpreview.department_of_planning_and'),
+    licenseIssuer: tVi('contractprintpreview.department_of_planning_and'),
     licenseDate: "15/01/2020",
     phone: "028.3724.4555",
     email: "management@centralmarket.vn",
-    representative: t('contractprintpreview.nguyen_van_truong'),
-    position: t('contractprintpreview.executive_director'),
+    representative: tVi('contractprintpreview.nguyen_van_truong'),
+    position: tVi('contractprintpreview.executive_director'),
     bankAccount: "1029384756",
-    bankName: t('contractprintpreview.joint_stock_commercial_bank'),
+    bankName: tVi('contractprintpreview.joint_stock_commercial_bank'),
   });
 
   // Configurable Bên B details (business name, address, tax code, bank account, bank name)
@@ -89,10 +90,10 @@ export default function ContractPrintPreview({ contract, onClose, onSaveSuccess,
     
     if (diffDays >= 360) {
       const years = (diffDays / 365).toFixed(1);
-      return t('contractprintpreview.years_years');
+      return `${years} năm`;
     }
     const months = (diffDays / 30.4).toFixed(0);
-    return t('contractprintpreview.months_months');
+    return `${months} tháng`;
   };
 
   const formatCurrency = (value) => {
@@ -102,10 +103,10 @@ export default function ContractPrintPreview({ contract, onClose, onSaveSuccess,
 
   // Convert number to Vietnamese words for currency
   const numberToWords = (num) => {
-    if (num === 0) return t('contractprintpreview.no_copper');
+    if (num === 0) return tVi('contractprintpreview.no_copper');
     
-    const units = ["", t('contractprintpreview.one'), "hai", "ba", t('contractprintpreview.four'), t('contractprintpreview.year'), t('contractprintpreview.six'), t('contractprintpreview.seven'), t('contractprintpreview.eight'), t('contractprintpreview.ripe')];
-    const places = ["", t('contractprintpreview.thousand'), t('contractprintpreview.million'), t('contractprintpreview.billion'), t('contractprintpreview.trillion'), t('contractprintpreview.million_billion')];
+    const units = ["", tVi('contractprintpreview.one'), "hai", "ba", tVi('contractprintpreview.four'), tVi('contractprintpreview.year'), tVi('contractprintpreview.six'), tVi('contractprintpreview.seven'), tVi('contractprintpreview.eight'), tVi('contractprintpreview.ripe')];
+    const places = ["", tVi('contractprintpreview.thousand'), tVi('contractprintpreview.million'), tVi('contractprintpreview.billion'), tVi('contractprintpreview.trillion'), tVi('contractprintpreview.million_billion')];
     
     let words = "";
     let temp = Math.floor(num);
@@ -120,23 +121,23 @@ export default function ContractPrintPreview({ contract, onClose, onSaveSuccess,
         const ones = chunk % 10;
         
         if (hundreds > 0) {
-          chunkWords += units[hundreds] + t('contractprintpreview.hundred');
+          chunkWords += units[hundreds] + tVi('contractprintpreview.hundred');
         } else if (words !== "") {
-          chunkWords += t('contractprintpreview.zero_hundred');
+          chunkWords += tVi('contractprintpreview.zero_hundred');
         }
         
         if (tens > 1) {
-          chunkWords += units[tens] + t('contractprintpreview.ten');
-          if (ones === 1) chunkWords += t('contractprintpreview.fashion');
-          else if (ones === 5) chunkWords += t('contractprintpreview.five');
+          chunkWords += units[tens] + tVi('contractprintpreview.ten');
+          if (ones === 1) chunkWords += tVi('contractprintpreview.fashion');
+          else if (ones === 5) chunkWords += tVi('contractprintpreview.five');
           else if (ones > 0) chunkWords += units[ones];
         } else if (tens === 1) {
-          chunkWords += t('contractprintpreview.ten');
-          if (ones === 5) chunkWords += t('contractprintpreview.five');
+          chunkWords += tVi('contractprintpreview.ten');
+          if (ones === 5) chunkWords += tVi('contractprintpreview.five');
           else if (ones > 0) chunkWords += units[ones];
         } else {
           if (ones > 0) {
-            if (hundreds > 0 || words !== "") chunkWords += t('contractprintpreview.odd');
+            if (hundreds > 0 || words !== "") chunkWords += tVi('contractprintpreview.odd');
             chunkWords += units[ones];
           }
         }
@@ -147,7 +148,7 @@ export default function ContractPrintPreview({ contract, onClose, onSaveSuccess,
     }
     
     words = words.trim().replace(/\s+/g, " ");
-    return words.charAt(0).toUpperCase() + words.slice(1) + t('contractprintpreview.even_coin');
+    return words.charAt(0).toUpperCase() + words.slice(1) + tVi('contractprintpreview.even_coin');
   };
 
   const handlePrint = () => {
@@ -365,7 +366,10 @@ export default function ContractPrintPreview({ contract, onClose, onSaveSuccess,
 
       </div>
 
-      <div className="print-preview-container print-area">
+      {(() => {
+        const t = tVi;
+        return (
+          <div className="print-preview-container print-area">
         
         {/* PAGE 1: NATIONAL HEADER, TITLE, BASIS, LESSOR & LESSEE */}
         <div className="a4-page">
@@ -799,7 +803,9 @@ export default function ContractPrintPreview({ contract, onClose, onSaveSuccess,
           </div>
         </div>
 
-      </div>
+          </div>
+        );
+      })()}
     </div>,
     document.body
   );

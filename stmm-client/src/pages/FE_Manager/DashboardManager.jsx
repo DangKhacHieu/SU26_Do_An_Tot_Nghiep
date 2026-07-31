@@ -3,7 +3,12 @@ import { useState, useEffect } from 'react';
 import './DashboardManager.css';
 
 export default function DashboardManager({ addToast, navigate, baseUrl, user }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+
+  const formatNumber = (num) => {
+    if (!num && num !== 0) return "0";
+    return new Intl.NumberFormat(i18n.language === 'en' ? 'en-US' : 'vi-VN').format(num);
+  };
 
   const [stats, setStats] = useState({
     users: [],
@@ -406,7 +411,7 @@ export default function DashboardManager({ addToast, navigate, baseUrl, user }) 
             <p className="welcome-subtitle">{t('dashboardmanager.the_system_is_operating')}</p>
             <p className="welcome-date">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-              {new Date().toLocaleDateString('vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+              {new Date().toLocaleDateString(i18n.language === 'en' ? 'en-US' : 'vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
             </p>
           </div>
         </div>
@@ -436,8 +441,8 @@ export default function DashboardManager({ addToast, navigate, baseUrl, user }) 
             <span className="stat-unit">{t('dashboardmanager.account')}</span>
           </div>
           <div className="card-footer">
-            <span className="footer-pill">{venCnt} Tiểu thương</span>
-            <span className="footer-pill">{staffCnt} Nhân viên</span>
+            <span className="footer-pill">{venCnt} {t('dashboardmanager.small_merchant_label')}</span>
+            <span className="footer-pill">{staffCnt} {t('dashboardmanager.staff_label')}</span>
           </div>
         </div>
 
@@ -450,10 +455,10 @@ export default function DashboardManager({ addToast, navigate, baseUrl, user }) 
           </div>
           <div className="card-middle">
             <span className="main-stat">{activeContracts.length}</span>
-            <span className="stat-unit">Hoạt động / {stats.contracts.length} tổng</span>
+            <span className="stat-unit">{t('dashboardmanager.active_total_contracts', { total: stats.contracts.length })}</span>
           </div>
           <div className="card-footer">
-            <span className="revenue-stat">{t('dashboardmanager.stall_rental_revenue')}<strong>{totalRent.toLocaleString('vi-VN')}đ</strong></span>
+            <span className="revenue-stat">{t('dashboardmanager.stall_rental_revenue')}<strong>{formatNumber(totalRent)}{t('dashboardmanager.currency_symbol')}</strong></span>
           </div>
         </div>
 
@@ -466,12 +471,12 @@ export default function DashboardManager({ addToast, navigate, baseUrl, user }) 
           </div>
           <div className="card-middle">
             <span className="main-stat">{tPending + tInProg}</span>
-            <span className="stat-unit">Đang xử lý / {tTotal} việc</span>
+            <span className="stat-unit">{t('dashboardmanager.processing_total_tasks', { total: tTotal })}</span>
           </div>
           <div className="card-footer">
-            <span className="footer-pill pending">{tPending} Mới</span>
-            <span className="footer-pill in-progress">{tInProg} Chạy</span>
-            <span className="footer-pill completed">{tDone} Xong</span>
+            <span className="footer-pill pending">{tPending} {t('dashboardmanager.task_status_new')}</span>
+            <span className="footer-pill in-progress">{tInProg} {t('dashboardmanager.task_status_running')}</span>
+            <span className="footer-pill completed">{tDone} {t('dashboardmanager.task_status_done')}</span>
           </div>
         </div>
 
@@ -484,10 +489,10 @@ export default function DashboardManager({ addToast, navigate, baseUrl, user }) 
           </div>
           <div className="card-middle">
             <span className="main-stat">{vPending}</span>
-            <span className="stat-unit">Chưa nộp / {vTotal} biên bản</span>
+            <span className="stat-unit">{t('dashboardmanager.unpaid_total_violations', { total: vTotal })}</span>
           </div>
           <div className="card-footer">
-            <span className="revenue-stat danger">{t('dashboardmanager.fine')}<strong>{vFines.toLocaleString('vi-VN')}đ</strong></span>
+            <span className="revenue-stat danger">{t('dashboardmanager.fine')}<strong>{formatNumber(vFines)}{t('dashboardmanager.currency_symbol')}</strong></span>
           </div>
         </div>
       </div>

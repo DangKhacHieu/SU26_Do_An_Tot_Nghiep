@@ -4,10 +4,10 @@ import { getAuthHeaders } from '../../utils/authHeaders';
 import './IssueListManager.css';
 
 const STATUS_META = {
-  Reported:   { label: 'Báo cáo mới',   cls: 'status-pending'   },
-  InProgress: { label: 'Đang xử lý',    cls: 'status-quoted'    },
-  Resolved:   { label: 'Đã giải quyết', cls: 'status-approved'  },
-  Closed:     { label: 'Đã đóng',       cls: 'status-completed' },
+  Reported:   { labelKey: 'new_report',  labelFallback: 'Báo cáo mới',   cls: 'status-pending'   },
+  InProgress: { labelKey: 'processing',  labelFallback: 'Đang xử lý',    cls: 'status-quoted'    },
+  Resolved:   { labelKey: 'resolved',    labelFallback: 'Đã giải quyết', cls: 'status-approved'  },
+  Closed:     { labelKey: 'closed',      labelFallback: 'Đã đóng',       cls: 'status-completed' },
 };
 
 /* ── Icons ── */
@@ -44,7 +44,7 @@ const IconFilter = () => (
 );
 
 export default function IssueListManager({ userId, baseUrl, navigate, addToast }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const [issues, setIssues] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
@@ -126,13 +126,13 @@ export default function IssueListManager({ userId, baseUrl, navigate, addToast }
             <IconFilter />
             <select className="il-select" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
               <option value="">{t('issuelistmanager.all_status')}</option>
-              {Object.entries(STATUS_META).map(([k,v]) => <option key={k} value={k}>{v.label}</option>)}
+              {Object.entries(STATUS_META).map(([k,v]) => <option key={k} value={k}>{t('issuelistmanager.' + v.labelKey)}</option>)}
             </select>
           </div>
         </div>
 
         <div className="il-count-badge">
-          {loading ? '—' : totalCount} sự cố
+          {t('issuelistmanager.issues_count', { count: loading ? '—' : totalCount })}
         </div>
       </div>
 
@@ -164,12 +164,12 @@ export default function IssueListManager({ userId, baseUrl, navigate, addToast }
                   <th>{t('issuelistmanager.annunciator')}</th>
                   <th>{t('issuelistmanager.report_date')}</th>
                   <th>{t('issuelistmanager.status')}</th>
-                  <th style={{textAlign:'center'}}>Xem</th>
+                  <th style={{textAlign:'center'}}>{t('issuelistmanager.view')}</th>
                 </tr>
               </thead>
               <tbody>
                 {issues.map(item => {
-                  const sm = STATUS_META[item.status] || { label: item.status, cls: 'status-pending' };
+                  const sm = STATUS_META[item.status] || { labelKey: '', labelFallback: item.status, cls: 'status-pending' };
                   return (
                     <tr key={item.issueId} className="il-row" onClick={() => navigate('issue-details', item.issueId)}>
                       <td>
@@ -191,7 +191,7 @@ export default function IssueListManager({ userId, baseUrl, navigate, addToast }
                         <span className="il-date">{formatDate(item.createdAt)}</span>
                       </td>
                       <td>
-                        <span className={`il-status-badge ${sm.cls}`}>{sm.label}</span>
+                        <span className={`il-status-badge ${sm.cls}`}>{sm.labelKey ? t('issuelistmanager.' + sm.labelKey) : sm.labelFallback}</span>
                       </td>
                       <td style={{textAlign:'center'}} onClick={e => e.stopPropagation()}>
                         <button className="il-view-btn" onClick={() => navigate('issue-details', item.issueId)} title={t('issuelistmanager.view_incident_details')}>
@@ -232,7 +232,7 @@ export default function IssueListManager({ userId, baseUrl, navigate, addToast }
                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
               >
-                Sau <IconChevronRight />
+                {t('issuelistmanager.next')} <IconChevronRight />
               </button>
             </div>
           )}
