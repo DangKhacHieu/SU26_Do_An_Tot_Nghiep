@@ -301,7 +301,7 @@ export default function MeterManagement({ addToast }) {
             <span className="table-card-subtitle">{t('metermanagement.available_meter_sources_for')}</span>
           </div>
           {!loading && (
-            <span className="table-count-badge">{totalCount} công tơ</span>
+            <span className="table-count-badge">{totalCount} {t('metermanagement.meter_unit', 'công tơ')}</span>
           )}
         </div>
 
@@ -354,11 +354,11 @@ export default function MeterManagement({ addToast }) {
                         <td>
                           {meter.stallId ? (
                             <span className="assigned-stall-badge">
-                              Sạp {meter.stallCode}
+                              {t('metermanagement.stall_prefix', 'Sạp')} {meter.stallCode}
                             </span>
                           ) : (
                             <span className="in-warehouse-badge">
-                              Trong kho
+                              {t('metermanagement.in_warehouse', 'Trong kho')}
                             </span>
                           )}
                         </td>
@@ -390,10 +390,10 @@ export default function MeterManagement({ addToast }) {
                               className={`btn-icon ${meter.isActive ? 'delete' : 'edit'}`}
                               title={
                                 meter.isActive && meter.stallId !== null
-                                  ? 'Replace or unassign this meter before deactivating it.'
+                                  ? t('metermanagement.deactivate_error_unassign_first', 'Replace or unassign this meter before deactivating it.')
                                   : meter.isActive
-                                    ? 'Deactivate meter'
-                                    : 'Reactivate meter'
+                                    ? t('metermanagement.deactivate_meter', 'Deactivate meter')
+                                    : t('metermanagement.reactivate_meter', 'Reactivate meter')
                               }
                               onClick={() => handleOpenStatusModal(meter)}
                               disabled={meter.isActive && meter.stallId !== null}
@@ -416,7 +416,7 @@ export default function MeterManagement({ addToast }) {
                   className="btn-pagination"
                   disabled={safePageNumber <= 1}
                   onClick={() => setPageNumber(p => Math.max(1, p - 1))}
-                  title={t('metermanagement.previous_page')}
+                  title={t('metermanagement.previous_page', 'Trang trước')}
                 >
                   <IconChevronLeft />
                 </button>
@@ -437,7 +437,7 @@ export default function MeterManagement({ addToast }) {
                   className="btn-pagination"
                   disabled={safePageNumber >= totalPages}
                   onClick={() => setPageNumber(p => Math.min(totalPages, p + 1))}
-                  title="Trang sau"
+                  title={t('metermanagement.next_page', 'Trang sau')}
                 >
                   <IconChevronRight />
                 </button>
@@ -562,28 +562,32 @@ export default function MeterManagement({ addToast }) {
         <div className="modal-overlay" onClick={handleCloseModal}>
           <div className="modal-box" onClick={(e) => e.stopPropagation()}>
             <div className="modal-head">
-              <h3>{selectedMeter.isActive ? 'Deactivate meter' : 'Reactivate meter'}</h3>
+              <h3>{selectedMeter.isActive ? t('metermanagement.deactivate_meter', 'Deactivate meter') : t('metermanagement.reactivate_meter', 'Reactivate meter')}</h3>
               <button className="modal-close" onClick={handleCloseModal}>×</button>
             </div>
             <div className="modal-body">
               <div className="modal-icon-wrap danger"><IconDanger /></div>
               <p className="modal-desc">
-                Are you sure you want to {selectedMeter.isActive ? 'deactivate' : 'reactivate'} meter <strong>{selectedMeter.serialNumber}</strong>?
+                {t('metermanagement.confirm_status_change', {
+                  action: selectedMeter.isActive ? t('metermanagement.action_deactivate', 'deactivate') : t('metermanagement.action_reactivate', 'reactivate'),
+                  serialNumber: selectedMeter.serialNumber,
+                  defaultValue: `Are you sure you want to ${selectedMeter.isActive ? 'deactivate' : 'reactivate'} meter ${selectedMeter.serialNumber}?`
+                })}
               </p>
               {selectedMeter.isActive && (
                 <p className="modal-desc text-danger" style={{ fontWeight: '500' }}>
-                  An inactive meter cannot receive new readings until it is reactivated.
+                  {t('metermanagement.inactive_meter_warning', 'An inactive meter cannot receive new readings until it is reactivated.')}
                 </p>
               )}
             </div>
             <div className="modal-foot">
-              <button className="btn-secondary" onClick={handleCloseModal} disabled={actionLoading}>{t('metermanagement.cancel')}</button>
+              <button className="btn-secondary" onClick={handleCloseModal} disabled={actionLoading}>{t('metermanagement.cancel', 'Cancel')}</button>
               <button className={selectedMeter.isActive ? 'btn-danger' : 'btn-primary'} onClick={handleToggleMeterStatus} disabled={actionLoading}>
                 {actionLoading
-                  ? 'Saving...'
+                  ? t('metermanagement.saving', 'Saving...')
                   : selectedMeter.isActive
-                    ? 'Deactivate'
-                    : 'Reactivate'}
+                    ? t('metermanagement.deactivate', 'Deactivate')
+                    : t('metermanagement.reactivate', 'Reactivate')}
               </button>
             </div>
           </div>
