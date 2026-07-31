@@ -64,7 +64,7 @@ export default function MeterManagement({ addToast }) {
         || String(meter.serialNumber || '').toLowerCase().includes(normalizedSearch);
       const matchesType = !typeFilter || meter.type === typeFilter;
       const matchesActive = !isActiveFilter || String(Boolean(meter.isActive)) === isActiveFilter;
-      const isAssigned = meter.stallId !== null && meter.stallId !== undefined;
+      const isAssigned = Boolean(meter.stallId);
       const matchesAssigned = !isAssignedFilter || String(isAssigned) === isAssignedFilter;
 
       return matchesSearch && matchesType && matchesActive && matchesAssigned;
@@ -129,7 +129,7 @@ export default function MeterManagement({ addToast }) {
   };
 
   const handleOpenStatusModal = (meter) => {
-    if (meter.isActive && meter.stallId !== null) {
+    if (meter.isActive && Boolean(meter.stallId)) {
       addToast(t('metermanagement.deactivate_error_unassign_first', 'Cần gỡ sạp hoặc thay thế công tơ này trước khi ngưng hoạt động.'), 'error');
       return;
     }
@@ -389,14 +389,14 @@ export default function MeterManagement({ addToast }) {
                             <button
                               className={`btn-icon ${meter.isActive ? 'delete' : 'edit'}`}
                               title={
-                                meter.isActive && meter.stallId !== null
+                                meter.isActive && Boolean(meter.stallId)
                                   ? t('metermanagement.deactivate_error_unassign_first', 'Replace or unassign this meter before deactivating it.')
                                   : meter.isActive
                                     ? t('metermanagement.deactivate_meter', 'Deactivate meter')
                                     : t('metermanagement.reactivate_meter', 'Reactivate meter')
                               }
                               onClick={() => handleOpenStatusModal(meter)}
-                              disabled={meter.isActive && meter.stallId !== null}
+                              disabled={meter.isActive && Boolean(meter.stallId)}
                             >
                               <IconXCircle />
                             </button>
@@ -523,12 +523,12 @@ export default function MeterManagement({ addToast }) {
                     className="form-input"
                     value={formValues.type}
                     onChange={(e) => setFormValues(prev => ({ ...prev, type: e.target.value }))}
-                    disabled={selectedMeter.stallId !== null}
+                    disabled={Boolean(selectedMeter.stallId)}
                   >
                     <option value="Electricity">{t('metermanagement.electricity', 'Điện')}</option>
                     <option value="Water">{t('metermanagement.water', 'Nước')}</option>
                   </select>
-                  {selectedMeter.stallId !== null && (
+                  {Boolean(selectedMeter.stallId) && (
                     <p className="form-help-text text-warning">{t('metermanagement.it_is_not_possible', 'Không thể thay đổi loại của công tơ đã được gán vào sạp.')}</p>
                   )}
                 </div>
