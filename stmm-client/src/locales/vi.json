@@ -5458,6 +5458,22 @@
     "create_meters": "Tạo công tơ",
     "creating": "Đang tạo...",
     "for_example_elec99882_wat33291": "Ví dụ: ELEC-001, WAT-001",
-    "serial_code_must_be": "Mã Seri phải là duy nhất trong chợ này."
+    "serial_code_must_be": "Mã Seri phải là duy nhất trong chợ này.",
+    "unable_to_load_meter": "Không thể tải danh sách công tơ.",
+    "the_serial_number_cannot": "Số Seri không được để trống.",
+    "the_serial_number_must": "Số Seri phải từ 3 ký tự trở lên.",
+    "added_meter_to_availability": "Đã thêm công tơ vào kho thành công.",
+    "error_creating_meter": "Lỗi khi tạo mới công tơ.",
+    "updated_meter_selectedmetermeterid_successfully": "Đã cập nhật công tơ thành công.",
+    "error_updating_meter": "Lỗi khi cập nhật công tơ.",
+    "reactivated": "kích hoạt lại",
+    "deactivated": "ngưng hoạt động",
+    "meter_status_changed": "Đã thay đổi trạng thái công tơ thành công.",
+    "unable_to_change_meter_status": "Không thể thay đổi trạng thái công tơ.",
+    "erase": "Xóa tìm kiếm",
+    "loading_meter_warehouse_with": "Đang tải danh sách công tơ...",
+    "no_matching_meters_were": "Không tìm thấy công tơ phù hợp với bộ lọc.",
+    "there_are_no_available": "Chưa có công tơ nào trong kho.",
+    "about_available_inventory": "Xóa bộ lọc"
   }
 }

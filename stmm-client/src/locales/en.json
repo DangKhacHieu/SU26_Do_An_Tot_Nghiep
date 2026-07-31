@@ -5460,6 +5460,22 @@
     "create_meters": "Create Meter",
     "creating": "Creating...",
     "for_example_elec99882_wat33291": "For example: ELEC-001, WAT-001",
-    "serial_code_must_be": "Serial code must be unique in this market."
+    "serial_code_must_be": "Serial code must be unique in this market.",
+    "unable_to_load_meter": "Unable to load meter list.",
+    "the_serial_number_cannot": "Serial number cannot be empty.",
+    "the_serial_number_must": "Serial number must be at least 3 characters.",
+    "added_meter_to_availability": "Successfully added meter to inventory.",
+    "error_creating_meter": "Error creating meter.",
+    "updated_meter_selectedmetermeterid_successfully": "Meter updated successfully.",
+    "error_updating_meter": "Error updating meter.",
+    "reactivated": "reactivated",
+    "deactivated": "deactivated",
+    "meter_status_changed": "Meter status updated successfully.",
+    "unable_to_change_meter_status": "Unable to change meter status.",
+    "erase": "Clear search",
+    "loading_meter_warehouse_with": "Loading meter inventory...",
+    "no_matching_meters_were": "No meters match the selected filters.",
+    "there_are_no_available": "No meters available in inventory.",
+    "about_available_inventory": "Clear filters"
   }
 }
