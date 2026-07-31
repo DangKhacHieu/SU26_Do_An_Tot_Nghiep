@@ -177,7 +177,7 @@ namespace STMM.DataAccess.Repositories
 
         public async Task<decimal> GetTotalRepairCostAsync(int month, int year, int? marketId = null, CancellationToken ct = default)
         {
-            var query = _context.Invoices.Where(i => i.IsDeleted != true && i.Month == month && i.Year == year);
+            var query = _context.Invoices.Where(i => i.IsDeleted != true && i.Status == "Paid" && i.Month == month && i.Year == year);
             if (marketId.HasValue)
             {
                 query = query.Where(i => i.Contract.Stall.Area.MarketId == marketId.Value);

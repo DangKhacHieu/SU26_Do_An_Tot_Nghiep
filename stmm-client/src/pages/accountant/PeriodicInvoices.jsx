@@ -133,88 +133,24 @@ export default function PeriodicInvoices() {
   const handleAutoGenerate = async () => {
     const currentMonth = new Date().getMonth() + 1;
     const currentYear = new Date().getFullYear();
-    const dueDate = new Date(currentYear, currentMonth, autoGenerateConfig.autoInvoiceDay + autoGenerateConfig.invoiceDueDays)
-      .toISOString().split('T')[0];
-    
     const headers = { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` };
     
     try {
-      // Fetch stalls with contracts and meter readings
-      const session = localStorage.getItem('user');
-      let marketId = '';
-      if (session) {
-        try {
-          const u = JSON.parse(session);
-          if (u && u.marketId) marketId = u.marketId;
-        } catch (e) {}
-      }
+      const url = `http://localhost:5056/api/accountant/billing/trigger-auto-generate?month=${currentMonth}&year=${currentYear}`;
+      const response = await fetch(url, { method: 'POST', headers });
       
-      const stallsUrl = marketId ? `http://localhost:5056/api/stalls?marketId=${marketId}` : 'http://localhost:5056/api/stalls';
-      const stallsResponse = await fetch(stallsUrl, { headers });
-      const stalls = await stallsResponse.json();
-      
-      // Fetch electricity and water tiers
-      const [elecTiersRes, waterTiersRes] = await Promise.all([
-        fetch('http://localhost:5056/api/accountant/config/electricity-tiers', { headers }),
-        fetch('http://localhost:5056/api/accountant/config/water-tiers', { headers })
-      ]);
-      const elecTiers = await elecTiersRes.json().catch(() => []);
-      const waterTiers = await waterTiersRes.json().catch(() => []);
-      
-      // Generate invoice data for each stall
-      const invoicesToCreate = [];
-      
-      for (const stall of stalls) {
-        if (!stall.contract) continue;
-        
-        // Calculate rent (prorated if mid-month)
-        const rentAmount = calculateProratedRent(stall.contract, currentMonth, currentYear);
-        
-        // Calculate electricity (mock consumption for now - should fetch from meter readings)
-        const elecConsumption = stall.lastElectricityReading || 0;
-        const elecAmount = calculateElectricityCost(elecConsumption, elecTiers);
-        
-        // Calculate water (mock consumption for now - should fetch from meter readings)
-        const waterConsumption = stall.lastWaterReading || 0;
-        const waterAmount = calculateWaterCost(waterConsumption, waterTiers);
-        
-        const totalAmount = rentAmount + elecAmount + waterAmount;
-        
-        if (totalAmount > 0) {
-          invoicesToCreate.push({
-            stallId: stall.stallId,
-            month: currentMonth,
-            year: currentYear,
-            dueDate: dueDate,
-            invoiceType: 'Periodic',
-            status: 'Draft',
-            details: [
-              { feeTypeName: t('periodicinvoices.rent_fee'), description: t('periodicinvoices.rent_for_stall_month_year', { stallCode: stall.code, month: currentMonth, year: currentYear }), quantity: 1, unitPrice: rentAmount, amount: rentAmount },
-              { feeTypeName: t('periodicinvoices.electricity_fee'), description: t('periodicinvoices.electricity_consumption_kwh', { consumption: elecConsumption }), quantity: elecConsumption, unitPrice: elecConsumption > 0 ? elecAmount / elecConsumption : 0, amount: elecAmount },
-              { feeTypeName: t('periodicinvoices.water_fee'), description: t('periodicinvoices.water_consumption_m3', { consumption: waterConsumption }), quantity: waterConsumption, unitPrice: waterConsumption > 0 ? waterAmount / waterConsumption : 0, amount: waterAmount }
-            ]
-          });
-        }
-      }
-      
-      // Call bulk-create API
-      const bulkCreateResponse = await fetch('http://localhost:5056/api/accountant/billing/invoices/bulk-create', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` },
-        body: JSON.stringify({ invoices: invoicesToCreate })
-      });
-      
-      if (!bulkCreateResponse.ok) {
-        const errData = await bulkCreateResponse.json().catch(() => ({}));
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
         throw new Error(errData.detail || errData.title || t('periodicinvoices.create_invoice_failed'));
       }
       
-      showNotification('success', t('periodicinvoices.created_invoices_success', { count: invoicesToCreate.length }));
+      const result = await response.json().catch(() => ({ generatedCount: 0 }));
+      showNotification('success', t('periodicinvoices.created_invoices_success', { count: result.generatedCount || 0 }));
       setAutoGenerateModal(null);
       fetchInvoices();
       
     } catch (error) {
-      showNotification('danger', error.message);
+      setModalError(error.message);
     }
   };
 
@@ -284,9 +220,29 @@ export default function PeriodicInvoices() {
 
   const handleSelectRow = (id) => setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   
+  const isInvoicePeriodic = (i) => {
+    if (i.invoiceType) return i.invoiceType === 'Periodic';
+    return !i.isAdhoc;
+  };
+
+  const getInvoiceTypeLabel = (i) => {
+    if (isInvoicePeriodic(i)) return 'Định kì';
+    if (i.invoiceType === 'Violation' && (!i.details || i.details.length === 0)) return 'Vi phạm';
+    if (i.details && i.details.length > 0 && i.details[0].feeTypeName) {
+      return i.details[0].feeTypeName;
+    }
+    return 'Đột xuất';
+  };
+
+  const getInvoiceTypeBadge = (i) => {
+    if (isInvoicePeriodic(i)) return 'badge-info';
+    if (i.invoiceType === 'Violation') return 'badge-danger';
+    return 'badge-warning';
+  };
+
   const displayedInvoices = activeTab === 'periodic' 
-    ? invoices.filter(i => i.invoiceType !== 'Irregular') 
-    : invoices.filter(i => i.invoiceType === 'Irregular');
+    ? invoices.filter(i => isInvoicePeriodic(i)) 
+    : invoices.filter(i => !isInvoicePeriodic(i));
 
   const handleSelectAll = (e) => {
     if (e.target.checked) setSelectedIds(displayedInvoices.filter(i => i.status === 'Draft').map(i => i.invoiceId));
@@ -455,22 +411,28 @@ export default function PeriodicInvoices() {
           <p className="acc-page-subtitle">{t('periodicinvoices.manage_close_issuance_books')}</p>
         </div>
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-          {shouldShowAutoGenerate() && (
-            <button className="acc-btn-primary" style={{ backgroundColor: 'var(--success)', color: 'white' }} onClick={() => setAutoGenerateModal(true)}>
-              <RefreshCw size={15} />
-              <span>{t('periodicinvoices.create_invoice_month_year', { month: new Date().getMonth() + 1, year: new Date().getFullYear() })}</span>
+          {activeTab === 'periodic' && (
+            <>
+              {shouldShowAutoGenerate() && (
+                <button className="acc-btn-primary" style={{ backgroundColor: 'var(--success)', color: 'white' }} onClick={() => setAutoGenerateModal(true)}>
+                  <RefreshCw size={15} />
+                  <span>Tạo hóa đơn {new Date().getMonth() + 1}/{new Date().getFullYear()}</span>
+                </button>
+              )}
+              {selectedIds.length > 0 && (
+                <button className="btn btn-success" onClick={() => setActiveModal('bulk')}>
+                  <CheckCircle size={15} />
+                  <span>Phát hành hàng loạt ({selectedIds.length})</span>
+                </button>
+              )}
+            </>
+          )}
+          {activeTab === 'irregular' && (
+            <button className="acc-btn-primary" onClick={() => setActiveModal('adhoc')}>
+              <Plus size={15} />
+              <span>Hóa đơn đột xuất</span>
             </button>
           )}
-          {selectedIds.length > 0 && (
-            <button className="btn btn-success" onClick={() => setActiveModal('bulk')}>
-              <CheckCircle size={15} />
-              <span>{t('periodicinvoices.bulk_issue_count', { count: selectedIds.length })}</span>
-            </button>
-          )}
-          <button className="acc-btn-primary" onClick={() => setActiveModal('adhoc')}>
-            <Plus size={15} />
-            <span>{t('periodicinvoices.unexpected_bills')}</span>
-          </button>
         </div>
       </div>
 
@@ -493,7 +455,7 @@ export default function PeriodicInvoices() {
 
       {/* Tabs */}
       <div className="acc-tabs-header">
-        {[{ id: 'periodic', label: t('periodicinvoices.periodic_tab_label'), icon: FileText }, { id: 'irregular', label: t('periodicinvoices.irregular_tab_label'), icon: AlertTriangle }].map(tab => {
+        {[{ id: 'periodic', label: 'Hóa đơn định kì', icon: FileText }, { id: 'irregular', label: 'Hóa đơn phát sinh', icon: AlertTriangle }].map(tab => {
           const Icon = tab.icon;
           return (
             <button key={tab.id} className={`acc-tab-btn ${activeTab === tab.id ? 'active' : ''}`} onClick={() => { setActiveTab(tab.id); setCurrentPage(1); setSelectedIds([]); }}>
@@ -567,10 +529,10 @@ export default function PeriodicInvoices() {
                     </td>
                     <td><span style={{ fontWeight: 600, color: 'var(--text-title)', fontFamily: 'monospace', fontSize: 13 }}>INV-{inv.invoiceId}</span></td>
                     <td>
-                      <span className={`badge ${inv.isAdhoc ? 'badge-warning' : 'badge-info'}`} style={{ fontSize: 11 }}>
-                        {inv.isAdhoc ? t('periodicinvoices.adhoc') : t('periodicinvoices.periodic')}
-                      </span>
-                    </td>
+                        <span className={`badge ${getInvoiceTypeBadge(inv)}`} style={{ fontSize: 11 }}>
+                          {getInvoiceTypeLabel(inv)}
+                        </span>
+                      </td>
                     <td><span style={{ fontWeight: 700 }}>{inv.stallCode}</span></td>
                     <td>{inv.vendorName}</td>
                     <td>
@@ -587,10 +549,14 @@ export default function PeriodicInvoices() {
                           <Eye size={13} /> {t('periodicinvoices.detail')}</button>
                         {(inv.status === 'Draft' || inv.status === 'Unpaid') && (
                           <>
-                            <button className="btn btn-sm" style={{ background: 'var(--primary-light)', color: 'var(--primary)', border: '1px solid var(--primary-border)' }} onClick={() => openAdjustModal(inv)}>
-                              {t('periodicinvoices.record_data')}</button>
+                            {activeTab === 'periodic' && (
+                              <button className="btn btn-sm" style={{ background: 'var(--primary-light)', color: 'var(--primary)', border: '1px solid var(--primary-border)' }} onClick={() => openAdjustModal(inv)}>
+                                {t('periodicinvoices.record_data')}
+                              </button>
+                            )}
                             <button className="btn btn-sm" style={{ background: 'var(--danger-light)', color: 'var(--danger)', border: '1px solid var(--danger)' }} onClick={() => openCancelModal(inv)}>
-                              {t('periodicinvoices.cancel')}</button>
+                              {t('periodicinvoices.cancel')}
+                            </button>
                           </>
                         )}
                       </div>

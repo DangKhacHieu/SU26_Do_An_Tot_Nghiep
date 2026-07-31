@@ -516,7 +516,7 @@ export default function FinancialConfig() {
       return;
     }
 
-    if (window.confirm(t('financialconfig.are_you_sure_you'))) {
+    if (window.confirm(t('financialconfig.confirm_delete_tier'))) {
       let updatedTiers = currentTiers.filter(tierItem => tierItem.step !== stepNum);
       // Ensure the new last step's "to" value is open-ended (null)
       if (updatedTiers.length > 0) {
@@ -947,7 +947,8 @@ export default function FinancialConfig() {
                   className="acc-btn-primary btn-sm"
                   onClick={() => {
                     setSelectedItem(null);
-                    setServiceForm({ name: '', description: '', price: 50000, billingCycle: 'Monthly', feeTypeId: feeTypes[0]?.feeTypeId || 1, isActive: true });
+                    const defaultServiceFee = feeTypes.find(f => f.name.toLowerCase().includes('dịch vụ') || f.name.toLowerCase().includes('service'))?.feeTypeId || feeTypes[0]?.feeTypeId || 1;
+                    setServiceForm({ name: '', description: '', price: 50000, billingCycle: 'Monthly', feeTypeId: defaultServiceFee, isActive: true });
                     setActiveModal('service');
                   }}
                 >
@@ -1254,9 +1255,9 @@ export default function FinancialConfig() {
               )}
               <div className="alert alert-danger" style={{ marginBottom: 0 }}>
                 <AlertTriangle size={17} className="alert-icon" />
-                <span>
-                  {t('financialconfig.are_you_sure_you')}<strong>"{selectedItem.name}"</strong>{t('financialconfig.this_action_may_affect')}</span>
-              </div>
+                  <span>
+                    {t('financialconfig.confirm_delete_fee_msg', 'Bạn có chắc chắn muốn xóa loại phí ')}<strong>"{selectedItem.name}"</strong>{t('financialconfig.this_action_may_affect')}</span>
+                </div>
             </div>
             <div className="acc-modal-footer">
               <button className="acc-btn-secondary" onClick={closeModal}>{t('financialconfig.cancel')}</button>
@@ -1334,9 +1335,14 @@ export default function FinancialConfig() {
                     value={serviceForm.feeTypeId}
                     onChange={e => setServiceForm({ ...serviceForm, feeTypeId: parseInt(e.target.value) })}
                   >
-                    {feeTypes.map(f => (
-                      <option key={f.feeTypeId} value={f.feeTypeId}>{f.name}</option>
-                    ))}
+                    {feeTypes
+                        .filter(f => f.name.toLowerCase().includes('dịch vụ') || f.name.toLowerCase().includes('service'))
+                        .map(f => (
+                          <option key={f.feeTypeId} value={f.feeTypeId}>{f.name}</option>
+                        ))}
+                    {feeTypes.filter(f => f.name.toLowerCase().includes('dịch vụ') || f.name.toLowerCase().includes('service')).length === 0 && (
+                      <option value="" disabled>Vui lòng tạo Loại phí có chứa từ "Dịch vụ" trước</option>
+                    )}
                   </select>
                 </div>
 
@@ -1396,9 +1402,9 @@ export default function FinancialConfig() {
               )}
               <div className="alert alert-warning" style={{ marginBottom: 0 }}>
                 <AlertTriangle size={17} className="alert-icon" />
-                <div>
-                  <p>{t('financialconfig.are_you_sure_you')}<strong>"{selectedItem.name}"</strong>?</p>
-                  <p style={{ marginTop: '6px', fontSize: '12.5px', opacity: 0.85 }}>
+                  <div>
+                    <p>{t('financialconfig.confirm_delete_service_msg', 'Bạn có chắc chắn muốn ngừng dịch vụ ')}<strong>"{selectedItem.name}"</strong>?</p>
+                    <p style={{ marginTop: '6px', fontSize: '12.5px', opacity: 0.85 }}>
                     {t('financialconfig.the_system_will_hide')}</p>
                 </div>
               </div>
@@ -1555,7 +1561,7 @@ export default function FinancialConfig() {
                           type="number"
                           required
                           min={lastStep.from + 1}
-                          placeholder={t('financialconfig.enter_a_number_greater')}
+                          placeholder={t('financialconfig.enter_a_number_greater', { from: lastStep.from })}
                           value={newTierLimit}
                           onChange={e => setNewTierLimit(e.target.value)}
                         />

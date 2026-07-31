@@ -363,11 +363,12 @@ namespace STMM.Business.Services
                 }
             }
 
-            var duplicated = await _invoiceRepository.Query().AnyAsync(i =>
-                i.ContractId == contract.ContractId && i.Month == request.Month && i.Year == request.Year &&
-                i.InvoiceType == "AdHoc" && i.Status != "Canceled" && i.IsDeleted != true, ct);
-            if (duplicated)
-                throw new BadRequestException("An ad-hoc invoice already exists for this contract and billing period.");
+            // Cho phép tạo nhiều Hóa đơn đột xuất trong cùng 1 tháng
+            // var duplicated = await _invoiceRepository.Query().AnyAsync(i =>
+            //     i.ContractId == contract.ContractId && i.Month == request.Month && i.Year == request.Year &&
+            //     i.InvoiceType == "AdHoc" && i.Status != "Canceled" && i.IsDeleted != true, ct);
+            // if (duplicated)
+            //     throw new BadRequestException("An ad-hoc invoice already exists for this contract and billing period.");
 
             var invoice = new Invoice
             {

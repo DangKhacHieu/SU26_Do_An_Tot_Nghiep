@@ -143,6 +143,11 @@ namespace STMM.Business.Services
 
         public async Task<bool> DeleteFeeTypeAsync(int userId, int id, CancellationToken ct = default)
         {
+            if (id <= 6)
+            {
+                throw new BadRequestException("Không thể xóa loại phí mặc định của hệ thống.");
+            }
+
             var item = await _feeTypeRepository.GetByIdAsync(id, ct);
             if (item == null) return false;
             var user = await _userRepository.GetByIdAsync(userId, ct);
