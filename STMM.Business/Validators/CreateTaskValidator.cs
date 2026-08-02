@@ -6,7 +6,7 @@ namespace STMM.Business.Validators
 {
     public class CreateTaskValidator : AbstractValidator<CreateTaskRequest>
     {
-        private static readonly string[] AllowedTypes = { "Repair", "Maintenance", "UtilityReading" };
+        private static readonly string[] AllowedTypes = { "Repair", "UtilityReading" };
 
         public CreateTaskValidator()
         {
@@ -29,6 +29,11 @@ namespace STMM.Business.Validators
             RuleFor(x => x)
                 .Must(x => !(x.RequestId.HasValue && x.IssueId.HasValue))
                 .WithMessage("A task cannot be linked to both a Request and an Issue at the same time.");
+
+            RuleFor(x => x)
+                .Must(x => (x.RequestId.HasValue ^ x.IssueId.HasValue))
+                .WithMessage("Repair tasks must be linked to exactly one Request or Issue.")
+                .When(x => x.TaskType == "Repair");
 
             RuleFor(x => x.AreaId)
                 .NotEmpty()

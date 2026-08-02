@@ -24,6 +24,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\STMM.API\STMM.API.csproj" />
     <ProjectReference Include="..\STMM.Business\STMM.Business.csproj" />
     <ProjectReference Include="..\STMM.DataAccess\STMM.DataAccess.csproj" />
   </ItemGroup>

@@ -1,7 +1,9 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { getAuthHeaders } from '../../utils/authHeaders';
 import {
   AlertCircle,
+  Calendar,
   ClipboardPlus,
   Link2,
   MapPin,
@@ -15,20 +17,14 @@ import './CreateTaskModal.css';
 const TASK_TYPES = [
   {
     value: 'Repair',
-    label: 'Repair',
-    description: 'Infrastructure or equipment repair',
+    labelKey: 'createtaskmodal.repair',
+    descriptionKey: 'createtaskmodal.repair_description',
     icon: Wrench,
   },
   {
-    value: 'Maintenance',
-    label: 'Maintenance',
-    description: 'Routine inspection or upkeep',
-    icon: ClipboardPlus,
-  },
-  {
     value: 'UtilityReading',
-    label: 'Utility Reading',
-    description: 'Meter reading by market area',
+    labelKey: 'createtaskmodal.utility_reading',
+    descriptionKey: 'createtaskmodal.utility_reading_description',
     icon: Zap,
   },
 ];
@@ -36,26 +32,26 @@ const TASK_TYPES = [
 const LINK_SOURCES = [
   {
     value: 'none',
-    label: 'No source',
-    description: 'Create a standalone task',
+    labelKey: 'createtaskmodal.no_source',
+    descriptionKey: 'createtaskmodal.no_source_description',
   },
   {
     value: 'request',
-    label: 'Customer Request',
-    description: 'Work from a vendor/customer request',
+    labelKey: 'createtaskmodal.customer_request',
+    descriptionKey: 'createtaskmodal.customer_request_description',
   },
   {
     value: 'issue',
-    label: 'Infrastructure Issue',
-    description: 'Work from a reported facility issue',
+    labelKey: 'createtaskmodal.infrastructure_issue',
+    descriptionKey: 'createtaskmodal.infrastructure_issue_description',
   },
 ];
 
-const formatCompactDate = (dateStr) => {
+const formatCompactDate = (dateStr, locale) => {
   if (!dateStr) return 'N/A';
   const date = new Date(dateStr);
   if (Number.isNaN(date.getTime())) return 'N/A';
-  return date.toLocaleDateString('en-US', {
+  return date.toLocaleDateString(locale, {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
@@ -71,13 +67,15 @@ export default function CreateTaskModal({
   preFilledTitle = '',
   preFilledDescription = '',
 }) {
+  const { t, i18n } = useTranslation();
+  const locale = i18n.resolvedLanguage?.startsWith('vi') ? 'vi-VN' : 'en-US';
   const [taskType, setTaskType] = useState('Repair');
   const [title, setTitle] = useState(preFilledTitle || '');
   const [description, setDescription] = useState(preFilledDescription || '');
   const [assignedToUserId, setAssignedToUserId] = useState('');
   const [areaId, setAreaId] = useState('');
 
-  const [linkSource, setLinkSource] = useState('none');
+  const [linkSource, setLinkSource] = useState(preFilledIssueId ? 'issue' : 'request');
   const [requests, setRequests] = useState([]);
   const [requestId, setRequestId] = useState('');
   const [loadingRequests, setLoadingRequests] = useState(false);
@@ -121,11 +119,11 @@ export default function CreateTaskModal({
           const data = await res.json();
           setStaffs(data.filter(u => u.status === 'Active') || []);
         } else {
-          addToastRef.current('Cannot load staff list.', 'error');
+          addToastRef.current(t('createtaskmodal.cannot_load_staff'), 'error');
         }
       } catch (err) {
         console.error('Error fetching staff list:', err);
-        addToastRef.current('Cannot load staff list.', 'error');
+        addToastRef.current(t('createtaskmodal.cannot_load_staff'), 'error');
       } finally {
         setLoadingStaffs(false);
       }
@@ -139,7 +137,7 @@ export default function CreateTaskModal({
           const data = await res.json();
           setAreas(data || []);
         } else {
-          addToastRef.current('Cannot load market areas.', 'error');
+          addToastRef.current(t('createtaskmodal.cannot_load_areas'), 'error');
         }
       } catch (err) {
         console.error('Error fetching areas:', err);
@@ -157,7 +155,7 @@ export default function CreateTaskModal({
           const tasks = Array.isArray(data) ? data : [];
           setUtilityReadingTasks(tasks.filter((task) => (task.taskType || task.TaskType) === 'UtilityReading'));
         } else {
-          addToastRef.current('Cannot load existing utility reading assignments.', 'error');
+          addToastRef.current(t('createtaskmodal.cannot_load_utility_assignments'), 'error');
         }
       } catch (err) {
         console.error('Error fetching utility reading tasks:', err);
@@ -169,7 +167,14 @@ export default function CreateTaskModal({
     fetchStaffs();
     fetchAreas();
     fetchUtilityReadingTasks();
-  }, [baseUrl]);
+  }, [baseUrl, t]);
+
+  const currentPeriodLabel = useMemo(() => {
+    const now = new Date();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const year = now.getFullYear();
+    return `${month}/${year}`;
+  }, []);
 
   const assignedUtilityAreas = useMemo(() => {
     const now = new Date();
@@ -180,19 +185,26 @@ export default function CreateTaskModal({
     utilityReadingTasks.forEach(task => {
       const status = task.status || task.Status;
       const createdAt = task.createdAt || task.CreatedAt;
+      const completedAt = task.completedAt || task.CompletedAt;
       const taskAreaId = task.areaId || task.AreaId;
 
-      if (!taskAreaId || !createdAt || status === 'Cancelled') return;
+      if (!taskAreaId || status === 'Cancelled') return;
 
-      const createdDate = new Date(createdAt);
-      if (Number.isNaN(createdDate.getTime())) return;
-      if (createdDate.getMonth() !== currentMonth || createdDate.getFullYear() !== currentYear) return;
+      const createdDate = createdAt ? new Date(createdAt) : null;
+      const completedDate = completedAt ? new Date(completedAt) : null;
 
-      map.set(String(taskAreaId), {
-        taskId: task.taskId || task.TaskId,
-        assignedToName: task.assignedToName || task.AssignedToName || 'another staff member',
-        status,
-      });
+      const isCreatedInPeriod = createdDate && !Number.isNaN(createdDate.getTime()) &&
+        createdDate.getMonth() === currentMonth && createdDate.getFullYear() === currentYear;
+      const isCompletedInPeriod = completedDate && !Number.isNaN(completedDate.getTime()) &&
+        completedDate.getMonth() === currentMonth && completedDate.getFullYear() === currentYear;
+
+      if (isCreatedInPeriod || isCompletedInPeriod) {
+        map.set(String(taskAreaId), {
+          taskId: task.taskId || task.TaskId,
+          assignedToName: task.assignedToName || task.AssignedToName || 'another staff member',
+          status,
+        });
+      }
     });
 
     return map;
@@ -223,7 +235,7 @@ export default function CreateTaskModal({
           requestsLoadedRef.current = false;
           setRequests([]);
           setRequestId('');
-          setRequestLoadError('Cannot load pending requests list.');
+          setRequestLoadError(t('createtaskmodal.cannot_load_requests'));
         }
       } finally {
         if (!cancelled) {
@@ -237,7 +249,7 @@ export default function CreateTaskModal({
     return () => {
       cancelled = true;
     };
-  }, [linkSource, baseUrl]);
+  }, [linkSource, baseUrl, t]);
 
   useEffect(() => {
     if (linkSource !== 'issue' || issuesLoadedRef.current) return;
@@ -270,7 +282,7 @@ export default function CreateTaskModal({
           issuesLoadedRef.current = false;
           setIssues([]);
           setIssueId('');
-          setIssueLoadError('Cannot load infrastructure issues list.');
+          setIssueLoadError(t('createtaskmodal.cannot_load_issues'));
         }
       } finally {
         if (!cancelled) {
@@ -284,20 +296,27 @@ export default function CreateTaskModal({
     return () => {
       cancelled = true;
     };
-  }, [linkSource, baseUrl]);
+  }, [linkSource, baseUrl, t]);
+
+  const clearAutoFilledContent = () => {
+    setTitle('');
+    setDescription('');
+  };
 
   const handleTaskTypeChange = (nextType) => {
     setTaskType(nextType);
     setAreaId('');
-    setLinkSource('none');
+    setLinkSource(nextType === 'Repair' ? 'request' : 'none');
     setRequestId('');
     setIssueId('');
     setFormErrors({});
+    clearAutoFilledContent();
   };
 
   const handleLinkSourceChange = (nextSource) => {
     setLinkSource(nextSource);
     setFormErrors({});
+    clearAutoFilledContent();
 
     if (nextSource !== 'request') {
       setRequestId('');
@@ -312,7 +331,10 @@ export default function CreateTaskModal({
 
   const handleRequestChange = (nextRequestId) => {
     setRequestId(nextRequestId);
-    if (!nextRequestId) return;
+    if (!nextRequestId) {
+      clearAutoFilledContent();
+      return;
+    }
 
     const selectedRequest = requests.find(item => String(item.requestId || item.RequestId) === nextRequestId);
     if (!selectedRequest) return;
@@ -322,19 +344,18 @@ export default function CreateTaskModal({
     const selectedStallCode = selectedRequest.stallCode || selectedRequest.StallCode;
     const selectedStallId = selectedRequest.stallId || selectedRequest.StallId;
 
-    if (!title.trim() && selectedTitle) {
-      setTitle(`${taskType === 'Maintenance' ? 'Maintenance' : 'Repair'}: ${selectedTitle}`);
-    }
+    setTitle(selectedTitle ? `Repair: ${selectedTitle}` : '');
 
-    if (!description.trim()) {
-      const stallLabel = selectedStallCode || (selectedStallId ? `ID: ${selectedStallId}` : 'N/A');
-      setDescription(`Handle customer request at stall ${stallLabel}.\n\nRequest details:\n${selectedDescription || selectedTitle}`);
-    }
+    const stallLabel = selectedStallCode || (selectedStallId ? `ID: ${selectedStallId}` : 'N/A');
+    setDescription(`Handle customer request at stall ${stallLabel}.\n\nRequest details:\n${selectedDescription || selectedTitle}`);
   };
 
   const handleIssueChange = (nextIssueId) => {
     setIssueId(nextIssueId);
-    if (!nextIssueId) return;
+    if (!nextIssueId) {
+      clearAutoFilledContent();
+      return;
+    }
 
     const selectedIssue = issues.find(item => String(item.issueId || item.IssueId) === nextIssueId);
     if (!selectedIssue) return;
@@ -344,43 +365,43 @@ export default function CreateTaskModal({
     const selectedStallCode = selectedIssue.stallCode || selectedIssue.StallCode;
     const selectedStallId = selectedIssue.stallId || selectedIssue.StallId;
 
-    if (!title.trim() && selectedTitle) {
-      setTitle(`${taskType === 'Maintenance' ? 'Maintenance' : 'Repair'}: ${selectedTitle}`);
-    }
+    setTitle(selectedTitle ? `Repair: ${selectedTitle}` : '');
 
-    if (!description.trim()) {
-      const stallLabel = selectedStallCode || (selectedStallId ? `ID: ${selectedStallId}` : 'N/A');
-      setDescription(`Handle infrastructure issue at stall ${stallLabel}.\n\nIssue details:\n${selectedDescription || selectedTitle}`);
-    }
+    const stallLabel = selectedStallCode || (selectedStallId ? `ID: ${selectedStallId}` : 'N/A');
+    setDescription(`Handle infrastructure issue at stall ${stallLabel}.\n\nIssue details:\n${selectedDescription || selectedTitle}`);
   };
 
   const validate = () => {
     const errors = {};
     if (!title.trim()) {
-      errors.title = 'Title is required.';
+      errors.title = t('createtaskmodal.title_required');
     } else if (title.trim().length < 5) {
-      errors.title = 'Title must be at least 5 characters.';
+      errors.title = t('createtaskmodal.title_too_short');
     }
 
     if (!assignedToUserId) {
-      errors.assignedToUserId = 'Please assign this task to a staff member.';
+      errors.assignedToUserId = t('createtaskmodal.staff_required');
     }
 
     if (taskType === 'UtilityReading' && !areaId) {
-      errors.areaId = 'Please select a market area for utility reading.';
+      errors.areaId = t('createtaskmodal.area_required');
     }
 
     if (taskType === 'UtilityReading' && areaId && assignedUtilityAreas.has(String(areaId))) {
       const assignment = assignedUtilityAreas.get(String(areaId));
-      errors.areaId = `This area already has a utility reading task assigned to ${assignment.assignedToName}.`;
+      errors.areaId = t('createtaskmodal.area_already_assigned', { staffName: assignment.assignedToName });
     }
 
-    if (linkSource === 'request' && (taskType === 'Repair' || taskType === 'Maintenance') && !requestId) {
-      errors.requestId = 'Please select a customer request to link.';
+    if (taskType === 'Repair' && linkSource === 'none') {
+      errors.linkSource = t('createtaskmodal.source_required', 'Repair tasks must be linked to a Request or Issue.');
     }
 
-    if (linkSource === 'issue' && (taskType === 'Repair' || taskType === 'Maintenance') && !issueId) {
-      errors.issueId = 'Please select an infrastructure issue to link.';
+    if (linkSource === 'request' && taskType === 'Repair' && !requestId) {
+      errors.requestId = t('createtaskmodal.request_required');
+    }
+
+    if (linkSource === 'issue' && taskType === 'Repair' && !issueId && !preFilledIssueId) {
+      errors.issueId = t('createtaskmodal.issue_required');
     }
 
     setFormErrors(errors);
@@ -399,10 +420,10 @@ export default function CreateTaskModal({
       title: title.trim(),
       description: description.trim() || null,
       areaId: taskType === 'UtilityReading' ? parseInt(areaId) : null,
-      requestId: (linkSource === 'request' && (taskType === 'Repair' || taskType === 'Maintenance') && requestId) ? parseInt(requestId) : null,
+      requestId: (linkSource === 'request' && taskType === 'Repair' && requestId) ? parseInt(requestId) : null,
       issueId: taskType !== 'UtilityReading' && preFilledIssueId
         ? parseInt(preFilledIssueId)
-        : (linkSource === 'issue' && (taskType === 'Repair' || taskType === 'Maintenance') && issueId)
+        : (linkSource === 'issue' && taskType === 'Repair' && issueId)
           ? parseInt(issueId)
           : null,
     };
@@ -418,16 +439,16 @@ export default function CreateTaskModal({
       });
 
       if (res.ok) {
-        addToast('Task created successfully!', 'success');
+        addToast(t('createtaskmodal.created_successfully'), 'success');
         const data = await res.json();
         onSuccess(data);
       } else {
         const errText = await res.text();
-        addToast(errText || 'Failed to create task.', 'error');
+        addToast(errText || t('createtaskmodal.create_failed'), 'error');
       }
     } catch (err) {
       console.error('Error creating task:', err);
-      addToast('Network error. Failed to create task.', 'error');
+      addToast(t('createtaskmodal.network_error'), 'error');
     } finally {
       setSubmitting(false);
     }
@@ -442,11 +463,11 @@ export default function CreateTaskModal({
               <ClipboardPlus size={18} />
             </span>
             <div>
-              <h3>Create Operational Task</h3>
-              <p>Assign work to staff and optionally connect related records.</p>
+              <h3>{t('createtaskmodal.title')}</h3>
+              <p>{t('createtaskmodal.subtitle')}</p>
             </div>
           </div>
-          <button id="btn-create-task-close" className="ctm-close" onClick={onClose} type="button" title="Close">
+          <button id="btn-create-task-close" className="ctm-close" onClick={onClose} type="button" title={t('createtaskmodal.close')}>
             <X size={16} />
           </button>
         </div>
@@ -456,14 +477,14 @@ export default function CreateTaskModal({
             <section className="ctm-section">
               <div className="ctm-section-head">
                 <div>
-                  <h4>Task information</h4>
-                  <p>Choose the task category and describe the work clearly.</p>
+                  <h4>{t('createtaskmodal.task_information')}</h4>
+                  <p>{t('createtaskmodal.task_information_help')}</p>
                 </div>
               </div>
 
               <div className="ctm-field">
-                <label className="ctm-label required-field">Task type</label>
-                <div className="ctm-type-grid" id="select-create-task-type" role="radiogroup" aria-label="Task type">
+                <label className="ctm-label required-field">{t('createtaskmodal.task_type')}</label>
+                <div className="ctm-type-grid" id="select-create-task-type" role="radiogroup" aria-label={t('createtaskmodal.task_type')}>
                   {TASK_TYPES.map((type) => {
                     const Icon = type.icon;
                     const selected = taskType === type.value;
@@ -481,8 +502,8 @@ export default function CreateTaskModal({
                           <Icon size={16} />
                         </span>
                         <span className="ctm-type-copy">
-                          <strong>{type.label}</strong>
-                          <small>{type.description}</small>
+                          <strong>{t(type.labelKey)}</strong>
+                          <small>{t(type.descriptionKey)}</small>
                         </span>
                       </button>
                     );
@@ -491,12 +512,12 @@ export default function CreateTaskModal({
               </div>
 
               <div className="ctm-field">
-                <label className="ctm-label required-field">Task label</label>
+                <label className="ctm-label required-field">{t('createtaskmodal.task_label')}</label>
                 <input
                   id="input-create-task-title"
                   type="text"
                   className={`ctm-input ${formErrors.title ? 'is-error' : ''}`}
-                  placeholder="Enter a short task name..."
+                  placeholder={t('createtaskmodal.task_label_placeholder')}
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   disabled={submitting}
@@ -505,12 +526,12 @@ export default function CreateTaskModal({
               </div>
 
               <div className="ctm-field">
-                <label className="ctm-label">Operational description</label>
+                <label className="ctm-label">{t('createtaskmodal.description')}</label>
                 <textarea
                   id="textarea-create-task-desc"
                   className="ctm-textarea"
                   rows="4"
-                  placeholder="Add context, constraints, location notes, or acceptance criteria..."
+                  placeholder={t('createtaskmodal.description_placeholder')}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   disabled={submitting}
@@ -521,14 +542,14 @@ export default function CreateTaskModal({
             <section className="ctm-section">
               <div className="ctm-section-head">
                 <div>
-                  <h4>Assignment & links</h4>
-                  <p>Select the responsible staff member and connect related records.</p>
+                  <h4>{t('createtaskmodal.assignment_links')}</h4>
+                  <p>{t('createtaskmodal.assignment_links_help')}</p>
                 </div>
               </div>
 
               <div className="ctm-field">
                 <label className="ctm-label required-field">
-                  <UserCheck size={14} /> Assign to staff
+                  <UserCheck size={14} /> {t('createtaskmodal.assign_to_staff')}
                 </label>
                 <select
                   id="select-create-task-staff"
@@ -537,21 +558,38 @@ export default function CreateTaskModal({
                   onChange={(e) => setAssignedToUserId(e.target.value)}
                   disabled={loadingStaffs || submitting}
                 >
-                  <option value="">Select active staff</option>
+                  <option value="">{t('createtaskmodal.select_active_staff')}</option>
                   {staffs.map(s => (
                     <option key={s.userId} value={s.userId}>
                       {s.name} ({s.email})
                     </option>
                   ))}
                 </select>
-                {loadingStaffs && <span className="ctm-helper">Loading staff...</span>}
+                {loadingStaffs && <span className="ctm-helper">{t('createtaskmodal.loading_staff')}</span>}
                 {formErrors.assignedToUserId && <span className="ctm-error">{formErrors.assignedToUserId}</span>}
               </div>
 
               {taskType === 'UtilityReading' && (
                 <div className="ctm-field">
+                  <div className="ctm-utility-banner">
+                    <Calendar size={18} className="ctm-utility-banner-icon" />
+                    <div className="ctm-utility-banner-text">
+                      <strong>
+                        {t('createtaskmodal.utility_period_title', {
+                          period: currentPeriodLabel,
+                          defaultValue: `Kỳ ghi chỉ số: Tháng ${currentPeriodLabel}`
+                        })}
+                      </strong>
+                      <p>
+                        {t('createtaskmodal.utility_period_desc', {
+                          defaultValue: 'Mỗi khu vực chỉ được giao 1 task đo điện nước trong vòng 1 tháng lịch.'
+                        })}
+                      </p>
+                    </div>
+                  </div>
+
                   <label className="ctm-label required-field">
-                    <MapPin size={14} /> Market area
+                    <MapPin size={14} /> {t('createtaskmodal.market_area')}
                   </label>
                   <select
                     id="select-create-task-area"
@@ -560,7 +598,7 @@ export default function CreateTaskModal({
                     onChange={(e) => setAreaId(e.target.value)}
                     disabled={loadingAreas || loadingUtilityTasks || submitting}
                   >
-                    <option value="">Select area to measure</option>
+                    <option value="">{t('createtaskmodal.select_area')}</option>
                     {areas.map(a => {
                       const id = a.areaId || a.AreaId;
                       const name = a.name || a.Name;
@@ -568,35 +606,41 @@ export default function CreateTaskModal({
                       const assignment = assignedUtilityAreas.get(String(id));
                       return (
                         <option key={id} value={id} disabled={Boolean(assignment)}>
-                          {name} ({desc}){assignment ? ` - already assigned to ${assignment.assignedToName}` : ''}
+                          {assignment
+                            ? `🔒 ${name} (${desc}) - ${assignment.status === 'Completed'
+                                ? t('createtaskmodal.already_completed', { period: currentPeriodLabel, defaultValue: `Đã hoàn thành đo chỉ số tháng ${currentPeriodLabel}` })
+                                : t('createtaskmodal.already_assigned_to', { staffName: assignment.assignedToName, period: currentPeriodLabel, defaultValue: `Đã giao task tháng ${currentPeriodLabel} (${assignment.assignedToName})` })}`
+                            : `🟢 ${name} (${desc}) - ${t('createtaskmodal.ready_to_assign', { defaultValue: 'Sẵn sàng giao task' })}`}
                         </option>
                       );
                     })}
                   </select>
-                  {loadingAreas && <span className="ctm-helper">Loading areas...</span>}
-                  {loadingUtilityTasks && <span className="ctm-helper">Checking this month's utility reading assignments...</span>}
+                  {loadingAreas && <span className="ctm-helper">{t('createtaskmodal.loading_areas')}</span>}
+                  {loadingUtilityTasks && <span className="ctm-helper">{t('createtaskmodal.checking_assignments')}</span>}
                   {!loadingAreas && !loadingUtilityTasks && areas.length > 0 && assignedUtilityAreas.size >= areas.length && (
-                    <span className="ctm-helper">All areas already have utility reading tasks this month.</span>
+                    <span className="ctm-helper ctm-helper-warning">
+                      ⚠️ {t('createtaskmodal.all_areas_assigned', { defaultValue: 'Tất cả khu vực đã được giao task ghi chỉ số điện nước trong tháng này.' })}
+                    </span>
                   )}
                   {formErrors.areaId && <span className="ctm-error">{formErrors.areaId}</span>}
                 </div>
               )}
 
-              {preFilledIssueId && (taskType === 'Repair' || taskType === 'Maintenance') ? (
+              {preFilledIssueId && taskType === 'Repair' ? (
                 <div className="ctm-linked-panel">
                   <div className="ctm-linked-icon">
                     <Link2 size={15} />
                   </div>
                   <div>
-                    <span className="ctm-kicker">Linked infrastructure issue</span>
+                    <span className="ctm-kicker">{t('createtaskmodal.linked_issue')}</span>
                     <strong>Issue #{preFilledIssueId}</strong>
                   </div>
                 </div>
               ) : (
-                (taskType === 'Repair' || taskType === 'Maintenance') && (
+                taskType === 'Repair' && (
                   <div className="ctm-link-box">
-                    <div className="ctm-source-segment" role="radiogroup" aria-label="Task source">
-                      {LINK_SOURCES.map(source => {
+                    <div className="ctm-source-segment" role="radiogroup" aria-label={t('createtaskmodal.task_source')}>
+                      {LINK_SOURCES.filter(s => s.value !== 'none').map(source => {
                         const selected = linkSource === source.value;
                         return (
                           <button
@@ -610,8 +654,8 @@ export default function CreateTaskModal({
                           >
                             <span className="ctm-source-radio" />
                             <span>
-                              <strong>{source.label}</strong>
-                              <small>{source.description}</small>
+                              <strong>{t(source.labelKey)}</strong>
+                              <small>{t(source.descriptionKey)}</small>
                             </span>
                           </button>
                         );
@@ -621,13 +665,13 @@ export default function CreateTaskModal({
                     {linkSource === 'request' && (
                       <div className="ctm-source-panel">
                         <div className="ctm-source-panel-head">
-                          <label className="ctm-label required-field">Select request</label>
-                          <span className="ctm-source-count">{requests.length} shown</span>
+                          <label className="ctm-label required-field">{t('createtaskmodal.select_request')}</label>
+                          <span className="ctm-source-count">{t('createtaskmodal.records_shown', { count: requests.length })}</span>
                         </div>
-                        {loadingRequests && <span className="ctm-helper">Loading requests...</span>}
+                        {loadingRequests && <span className="ctm-helper">{t('createtaskmodal.loading_requests')}</span>}
                         {requestLoadError && <span className="ctm-error">{requestLoadError}</span>}
                         {!loadingRequests && !requestLoadError && requests.length === 0 && (
-                          <span className="ctm-helper">No pending facility requests available.</span>
+                          <span className="ctm-helper">{t('createtaskmodal.no_requests')}</span>
                         )}
                         {!loadingRequests && !requestLoadError && requests.length > 0 && (
                           <div className="ctm-source-list" role="listbox" aria-label="Pending requests">
@@ -652,7 +696,7 @@ export default function CreateTaskModal({
                                   <span className="ctm-item-radio" />
                                   <span className="ctm-item-main">
                                     <strong>#REQ-{id}: {itemTitle}</strong>
-                                    <small>{stallCode ? `Stall ${stallCode}` : stallId ? `Stall ID ${stallId}` : 'No stall'} - {status} - {formatCompactDate(createdAt)}</small>
+                                    <small>{stallCode ? t('createtaskmodal.stall_code', { code: stallCode }) : stallId ? t('createtaskmodal.stall_id', { id: stallId }) : t('createtaskmodal.no_stall')} - {status} - {formatCompactDate(createdAt, locale)}</small>
                                   </span>
                                 </button>
                               );
@@ -666,13 +710,13 @@ export default function CreateTaskModal({
                     {linkSource === 'issue' && (
                       <div className="ctm-source-panel">
                         <div className="ctm-source-panel-head">
-                          <label className="ctm-label required-field">Select issue</label>
-                          <span className="ctm-source-count">{issues.length} shown</span>
+                          <label className="ctm-label required-field">{t('createtaskmodal.select_issue')}</label>
+                          <span className="ctm-source-count">{t('createtaskmodal.records_shown', { count: issues.length })}</span>
                         </div>
-                        {loadingIssues && <span className="ctm-helper">Loading issues...</span>}
+                        {loadingIssues && <span className="ctm-helper">{t('createtaskmodal.loading_issues')}</span>}
                         {issueLoadError && <span className="ctm-error">{issueLoadError}</span>}
                         {!loadingIssues && !issueLoadError && issues.length === 0 && (
-                          <span className="ctm-helper">No unassigned open issues available.</span>
+                          <span className="ctm-helper">{t('createtaskmodal.no_issues')}</span>
                         )}
                         {!loadingIssues && !issueLoadError && issues.length > 0 && (
                           <div className="ctm-source-list" role="listbox" aria-label="Unassigned issues">
@@ -697,7 +741,7 @@ export default function CreateTaskModal({
                                   <span className="ctm-item-radio" />
                                   <span className="ctm-item-main">
                                     <strong>#ISSUE-{id}: {itemTitle}</strong>
-                                    <small>{stallCode ? `Stall ${stallCode}` : stallId ? `Stall ID ${stallId}` : 'No stall'} - {status} - {formatCompactDate(createdAt)}</small>
+                                    <small>{stallCode ? t('createtaskmodal.stall_code', { code: stallCode }) : stallId ? t('createtaskmodal.stall_id', { id: stallId }) : t('createtaskmodal.no_stall')} - {status} - {formatCompactDate(createdAt, locale)}</small>
                                   </span>
                                 </button>
                               );
@@ -714,7 +758,7 @@ export default function CreateTaskModal({
               {Object.keys(formErrors).length > 0 && (
                 <div className="ctm-alert">
                   <AlertCircle size={15} />
-                  <span>Please review the highlighted fields before creating the task.</span>
+                  <span>{t('createtaskmodal.review_fields')}</span>
                 </div>
               )}
             </section>
@@ -722,10 +766,10 @@ export default function CreateTaskModal({
 
           <div className="ctm-footer">
             <button id="btn-create-task-cancel" type="button" className="ctm-btn ctm-btn-secondary" onClick={onClose} disabled={submitting}>
-              Cancel
+              {t('createtaskmodal.cancel')}
             </button>
             <button id="btn-create-task-submit" type="submit" className="ctm-btn ctm-btn-primary" disabled={submitting}>
-              {submitting ? 'Creating...' : 'Create Task'}
+              {submitting ? t('createtaskmodal.creating') : t('createtaskmodal.create_task')}
             </button>
           </div>
         </form>

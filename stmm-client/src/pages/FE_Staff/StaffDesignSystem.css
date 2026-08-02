@@ -1,0 +1,193 @@
+/* Shared Staff Console design system. Keep every Staff page on the same visual scale. */
+.app-shell {
+  --staff-font: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --staff-page: #f4f6f9;
+  --staff-surface: #ffffff;
+  --staff-surface-muted: #f8fafc;
+  --staff-ink: #172338;
+  --staff-body: #42536d;
+  --staff-muted: #718198;
+  --staff-placeholder: #98a6b9;
+  --staff-border: #dfe6ef;
+  --staff-border-strong: #cbd6e4;
+  --staff-primary: #356ae6;
+  --staff-primary-hover: #2858c8;
+  --staff-primary-soft: #eaf0ff;
+  --staff-success: #168a63;
+  --staff-success-soft: #eaf8f1;
+  --staff-warning: #a96910;
+  --staff-warning-soft: #fff6dc;
+  --staff-danger: #d64045;
+  --staff-danger-soft: #fff0f1;
+  --staff-radius-sm: 7px;
+  --staff-radius-md: 10px;
+  --staff-radius-lg: 14px;
+  --staff-shadow: 0 1px 2px rgba(23, 35, 56, .04), 0 6px 18px rgba(23, 35, 56, .045);
+  font-family: var(--staff-font);
+  background: var(--staff-page);
+}
+
+.app-shell *, .app-shell *::before, .app-shell *::after { box-sizing: border-box; }
+.app-shell .app-main-content, .app-shell .main-content-scroll { background: var(--staff-page); }
+.app-shell .main-content-scroll { padding: 24px 32px 40px; }
+.app-shell .staff-dashboard-page, .app-shell .staff-task-list,
+.app-shell .task-detail-container, .app-shell .task-map-view-container,
+.app-shell .violation-list-container, .app-shell .staff-notifications-page,
+.app-shell .stall-list-page, .app-shell .meter-history-page, .app-shell .meter-detail-page,
+.app-shell .issue-list-container, .app-shell .issue-details-container {
+  max-width: 1280px;
+  margin-inline: auto;
+  width: 100%;
+}
+.app-shell .staff-task-list, .app-shell .task-detail-container { padding: 0; }
+.app-shell .staff-task-list__header, .app-shell .detail-header,
+.app-shell .staff-notifications-hero, .app-shell .section-header { margin-bottom: 20px; }
+
+/* Typography */
+.app-shell h1, .app-shell h2, .app-shell h3, .app-shell h4,
+.app-shell .main-title, .app-shell .navbar-title { color: var(--staff-ink); }
+.app-shell p, .app-shell .subtitle { color: var(--staff-body); }
+.app-shell h1, .app-shell .main-title { font-size: 26px; line-height: 1.2; letter-spacing: -.025em; }
+.app-shell h2 { font-size: 20px; line-height: 1.25; }
+.app-shell h3 { font-size: 16px; line-height: 1.3; }
+.app-shell button, .app-shell input, .app-shell select, .app-shell textarea { font-family: inherit; }
+
+/* Shared surfaces */
+.app-shell .toolbar, .app-shell .table-card, .app-shell .task-info-card,
+.app-shell .quotation-panel, .app-shell .repair-stepper-panel,
+.app-shell .evidence-panel, .app-shell .utility-checklist-panel,
+.app-shell .complete-task-form-panel, .app-shell .staff-notifications-list-container,
+.app-shell .staff-notification-card, .app-shell .sp2-hero, .app-shell .sp2-panel,
+.app-shell .staff-dashboard-hero, .app-shell .staff-dashboard-recent,
+.app-shell .staff-dashboard-stats article {
+  background: var(--staff-surface);
+  border: 1px solid var(--staff-border);
+  border-radius: var(--staff-radius-lg);
+  box-shadow: var(--staff-shadow);
+}
+.app-shell .staff-notification-card:hover, .app-shell .staff-dashboard-stats article:hover { box-shadow: 0 4px 14px rgba(23,35,56,.07); }
+
+/* Buttons */
+.app-shell .btn-primary, .app-shell .btn-primary-dark, .app-shell .btn-add-material-submit,
+.app-shell .sp2-btn-save, .app-shell .submit-quotation-btn {
+  background: var(--staff-primary);
+  border-color: var(--staff-primary);
+  border-radius: var(--staff-radius-sm);
+  box-shadow: none;
+  color: #fff;
+  font-weight: 650;
+}
+.app-shell .btn-primary:hover, .app-shell .btn-primary-dark:hover,
+.app-shell .btn-add-material-submit:hover:not(:disabled), .app-shell .sp2-btn-save:hover,
+.app-shell .submit-quotation-btn:hover { background: var(--staff-primary-hover); border-color: var(--staff-primary-hover); }
+.app-shell .btn-secondary, .app-shell .btn-secondary-outline {
+  background: var(--staff-surface);
+  border: 1px solid var(--staff-border-strong);
+  border-radius: var(--staff-radius-sm);
+  color: var(--staff-body);
+}
+.app-shell .btn-secondary:hover, .app-shell .btn-secondary-outline:hover { background: var(--staff-surface-muted); border-color: var(--staff-primary); }
+
+/* Form controls */
+.app-shell input:not([type="checkbox"]):not([type="radio"]), .app-shell select, .app-shell textarea,
+.app-shell .form-input, .app-shell .search-input, .app-shell .filter-select,
+.app-shell .staff-notifications-search input, .app-shell .sp2-input {
+  min-height: 42px;
+  height: 42px;
+  box-sizing: border-box;
+  border: 1px solid var(--staff-border-strong);
+  border-radius: var(--staff-radius-sm);
+  background: var(--staff-surface);
+  color: var(--staff-ink);
+  font-size: 14px;
+}
+.app-shell input:focus, .app-shell select:focus, .app-shell textarea:focus,
+.app-shell .form-input:focus, .app-shell .search-input:focus, .app-shell .sp2-input:focus {
+  border-color: var(--staff-primary);
+  box-shadow: 0 0 0 3px rgba(53,106,230,.13);
+  outline: none;
+}
+.app-shell label, .app-shell .form-label, .app-shell .info-label, .app-shell .sp2-label {
+  color: var(--staff-muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .045em;
+  text-transform: uppercase;
+}
+
+/* Data surfaces */
+.app-shell .staff-table th, .app-shell .materials-table th, .app-shell .checklist-table th {
+  background: var(--staff-surface-muted);
+  color: var(--staff-muted);
+  font-size: 11px;
+  letter-spacing: .06em;
+}
+.app-shell .staff-table td, .app-shell .materials-table td, .app-shell .checklist-table td { color: var(--staff-body); }
+.app-shell .staff-table tbody tr:hover { background: #f8faff; }
+.app-shell .badge-status, .app-shell .status-badge, .app-shell .type-badge { border-radius: 999px; font-size: 11px; font-weight: 700; }
+
+/* Consistent tab and pagination pattern for Staff data pages. */
+.app-shell .staff-data-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 16px;
+  padding: 4px;
+  overflow-x: auto;
+  border: 1px solid var(--staff-border);
+  border-radius: var(--staff-radius-md);
+  background: #edf1f6;
+}
+.app-shell .staff-data-tabs button {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 12px;
+  border: 0;
+  border-radius: var(--staff-radius-sm);
+  background: transparent;
+  color: var(--staff-muted);
+  font-size: 13px;
+  font-weight: 650;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.app-shell .staff-data-tabs button:hover { color: var(--staff-ink); }
+.app-shell .staff-data-tabs button.active { background: #fff; color: var(--staff-primary); box-shadow: 0 1px 3px rgba(23,35,56,.08); }
+.app-shell .staff-data-tabs button span { font-size: 11px; color: inherit; }
+
+.app-shell .staff-task-card { min-height: 190px; }
+.app-shell .staff-task-card__body { padding: 16px 18px 14px; }
+.app-shell .staff-task-card__footer { padding: 10px 14px; }
+.app-shell .staff-task-grid { gap: 16px; }
+
+.app-shell .staff-notification-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 14px;
+  color: var(--staff-muted);
+  font-size: 12px;
+}
+.app-shell .staff-notification-pagination > div { display: flex; align-items: center; gap: 10px; }
+.app-shell .staff-notification-pagination button {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 1px solid var(--staff-border);
+  border-radius: var(--staff-radius-sm);
+  background: #fff;
+  color: var(--staff-body);
+  cursor: pointer;
+}
+.app-shell .staff-notification-pagination button:disabled { opacity: .45; cursor: not-allowed; }
+
+@media (max-width: 900px) {
+  .app-shell .main-content-scroll { padding: 20px 24px 32px; }
+}
+@media (max-width: 640px) {
+  .app-shell .main-content-scroll { padding: 16px 16px 28px; }
+  .app-shell h1, .app-shell .main-title { font-size: 23px; }
+}

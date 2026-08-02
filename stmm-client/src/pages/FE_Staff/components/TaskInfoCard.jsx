@@ -1,18 +1,41 @@
 import { useTranslation } from 'react-i18next';
+import { ClipboardList } from 'lucide-react';
 import { TASK_STATUS, TASK_TYPE } from '../../../constants/taskEnums';
+
+const STATUS_BADGE_CLASS = {
+  [TASK_STATUS.PENDING]: 'badge-pending',
+  [TASK_STATUS.PENDING_APPROVAL]: 'badge-approval',
+  [TASK_STATUS.IN_PROGRESS]: 'badge-progress',
+  [TASK_STATUS.COMPLETED]: 'badge-completed',
+  [TASK_STATUS.CANCELLED]: 'badge-cancelled',
+};
+
+const TYPE_BADGE_CLASS = {
+  [TASK_TYPE.REPAIR]: 'badge-repair',
+  [TASK_TYPE.UTILITY_READING]: 'badge-utility',
+};
 
 export default function TaskInfoCard({ task, onViewIssueDetails }) {
   const { t, i18n } = useTranslation();
+  const locale = i18n?.language?.startsWith('vi') ? 'vi-VN' : 'en-US';
+  const isUtilityTask = task.taskType === TASK_TYPE.UTILITY_READING;
 
   const formatDate = (dateString) => {
     if (!dateString) return t('taskinfocard.pending_completion');
-    const locale = i18n?.language?.startsWith('vi') ? 'vi-VN' : 'en-US';
     return new Date(dateString).toLocaleDateString(locale, {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
       hour: '2-digit',
       minute: '2-digit'
+    });
+  };
+
+  const formatReadingPeriod = () => {
+    const referenceDate = task.completedAt || new Date().toISOString();
+    return new Date(referenceDate).toLocaleDateString(locale, {
+      month: '2-digit',
+      year: 'numeric'
     });
   };
 
@@ -27,61 +50,45 @@ export default function TaskInfoCard({ task, onViewIssueDetails }) {
     }
   };
 
-  const getStatusBadgeClass = (status) => {
-    switch (status) {
-      case TASK_STATUS.PENDING: return t('taskinfocard.badgepending');
-      case TASK_STATUS.PENDING_APPROVAL: return t('taskinfocard.badgeapproval');
-      case TASK_STATUS.IN_PROGRESS: return t('taskinfocard.badgeprogress');
-      case TASK_STATUS.COMPLETED: return t('taskinfocard.badgecompleted');
-      case TASK_STATUS.CANCELLED: return t('taskinfocard.badgecancelled');
-      default: return t('taskinfocard.badgedefault');
-    }
-  };
-
   const getTypeLabel = (type) => {
     switch (type) {
       case TASK_TYPE.REPAIR: return t('taskinfocard.repair');
-      case TASK_TYPE.MAINTENANCE: return t('taskinfocard.maintenance');
       case TASK_TYPE.UTILITY_READING: return t('taskinfocard.meter_reading');
       default: return type;
     }
   };
 
-  const getTypeBadgeClass = (type) => {
-    switch (type) {
-      case TASK_TYPE.REPAIR: return t('taskinfocard.badgerepair');
-      case TASK_TYPE.MAINTENANCE: return t('taskinfocard.badgemaintenance');
-      case TASK_TYPE.UTILITY_READING: return t('taskinfocard.badgeutility');
-      default: return t('taskinfocard.badgedefault');
-    }
-  };
-
   return (
-    <div className="task-info-card">
+    <section className={`task-info-card ${isUtilityTask ? 'task-info-card--utility' : ''}`}>
       <div className="card-header-with-badge">
-        <h3 className="card-section-title">📌 Task Details</h3>
+        <h3 className="card-section-title">
+          <ClipboardList size={18} aria-hidden="true" />
+          {t('taskinfocard.task_details')}
+        </h3>
         <div className="badges-group">
-          <span className={`type-badge ${getTypeBadgeClass(task.taskType)}`}>
+          <span className={`type-badge ${TYPE_BADGE_CLASS[task.taskType] || 'badge-default'}`}>
             {getTypeLabel(task.taskType)}
           </span>
-          <span className={`status-badge ${getStatusBadgeClass(task.status)}`}>
+          <span className={`status-badge ${STATUS_BADGE_CLASS[task.status] || 'badge-default'}`}>
             {getStatusLabel(task.status)}
           </span>
         </div>
       </div>
 
       <div className="task-info-grid">
-        <div className="info-item full-width">
-          <span className="info-label">{t('taskinfocard.task_title')}</span>
-          <span className="info-value text-highlight">{task.title}</span>
-        </div>
+        {!isUtilityTask ? (
+          <div className="info-item full-width">
+            <span className="info-label">{t('taskinfocard.task_title')}</span>
+            <span className="info-value text-highlight">{task.title}</span>
+          </div>
+        ) : null}
 
-        {task.description && (
+        {task.description ? (
           <div className="info-item full-width">
             <span className="info-label">{t('taskinfocard.description')}</span>
             <span className="info-value description-text">{task.description}</span>
           </div>
-        )}
+        ) : null}
 
         <div className="info-item">
           <span className="info-label">{t('taskinfocard.task_id')}</span>
@@ -98,6 +105,13 @@ export default function TaskInfoCard({ task, onViewIssueDetails }) {
           <span className="info-value">{task.assignedToName || t('taskinfocard.unassigned')}</span>
         </div>
 
+        {isUtilityTask ? (
+          <div className="info-item">
+            <span className="info-label">{t('taskinfocard.reading_period')}</span>
+            <span className="info-value">{formatReadingPeriod()}</span>
+          </div>
+        ) : null}
+
         <div className="info-item">
           <span className="info-label">{t('taskinfocard.created_date')}</span>
           <span className="info-value">{formatDate(task.createdAt)}</span>
@@ -108,26 +122,26 @@ export default function TaskInfoCard({ task, onViewIssueDetails }) {
           <span className="info-value">{formatDate(task.completedAt)}</span>
         </div>
 
-        {task.requestId && (
+        {task.requestId ? (
           <div className="info-item">
             <span className="info-label">{t('taskinfocard.linked_request')}</span>
             <span className="info-value font-monospace">{task.requestId}</span>
           </div>
-        )}
+        ) : null}
 
-        {task.issueId && (
+        {task.issueId ? (
           <div className="info-item">
             <span className="info-label">{t('taskinfocard.linked_issue')}</span>
-            <span 
-              className="info-value font-monospace" 
-              style={{ color: '#2563eb', cursor: t('taskinfocard.pointer'), textDecoration: t('taskinfocard.underline'), fontWeight: 'bold' }}
-              onClick={() => onViewIssueDetails && onViewIssueDetails(task.issueId)}
+            <button
+              type="button"
+              className="info-value font-monospace task-info-link"
+              onClick={() => onViewIssueDetails?.(task.issueId)}
             >
               #ISSUE-{task.issueId}
-            </span>
+            </button>
           </div>
-        )}
+        ) : null}
       </div>
-    </div>
+    </section>
   );
 }

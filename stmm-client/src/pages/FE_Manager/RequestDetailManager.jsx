@@ -84,7 +84,8 @@ const IconCalendar = () => (
 );
 
 export default function RequestDetailManager({ requestId, baseUrl, navigate, addToast }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const locale = i18n.resolvedLanguage?.startsWith('vi') ? 'vi-VN' : 'en-US';
 
   const requestApiBase = `${baseUrl}/api/manager/requests`;
   const [request, setRequest] = useState(null);
@@ -104,11 +105,11 @@ export default function RequestDetailManager({ requestId, baseUrl, navigate, add
       const data = await res.json();
       setRequest(data);
     } catch {
-      addToast('Không thể tải chi tiết yêu cầu.', 'error');
+      addToast(t('requestdetailmanager.unable_to_load_request'), 'error');
     } finally {
       setLoading(false);
     }
-  }, [addToast, requestApiBase, requestId]);
+  }, [addToast, requestApiBase, requestId, t]);
 
   useEffect(() => {
     if (requestId) fetchRequestDetail();
@@ -125,7 +126,7 @@ export default function RequestDetailManager({ requestId, baseUrl, navigate, add
       addToast(approve ? t('requestdetailmanager.approved_to_accept_the') : t('requestdetailmanager.the_appeal_was_dismissed'), 'success');
       await fetchRequestDetail();
     } catch {
-      addToast('Thao tác thất bại. Vui lòng thử lại.', 'error');
+      addToast(t('requestdetailmanager.operation_failed_please_try'), 'error');
     } finally {
       setSubmitting(false);
     }
@@ -204,7 +205,7 @@ export default function RequestDetailManager({ requestId, baseUrl, navigate, add
   const formatDate = (s) => {
     if (!s) return '—';
     try {
-      return new Date(s).toLocaleString('vi-VN', {
+      return new Date(s).toLocaleString(locale, {
         day: '2-digit', month: '2-digit', year: 'numeric',
         hour: '2-digit', minute: '2-digit'
       });
@@ -213,7 +214,7 @@ export default function RequestDetailManager({ requestId, baseUrl, navigate, add
 
   const formatCurrency = (amount) => {
     if (amount === null || amount === undefined) return '—';
-    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
+    return new Intl.NumberFormat(locale, { style: 'currency', currency: 'VND' }).format(amount);
   };
 
   /* ── Loading ── */

@@ -2,10 +2,11 @@ import { useTranslation } from 'react-i18next';
 import LanguageSwitcher from './components/layout/LanguageSwitcher';
 import { useState, useEffect, useCallback } from "react";
 import { BrowserRouter, Routes, Route, Navigate, Outlet, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { Bell, UserRound } from "lucide-react";
+import { Bell } from "lucide-react";
 import "./App.css";
 import "./AppDashboard.css";
 import "./pages/FE_Staff/FE_Staff.css";
+import "./pages/FE_Staff/StaffDesignSystem.css";
 
 // FE Customer / Auth Imports
 import HomePage from "./pages/FE_Customer/HomePage.jsx";
@@ -42,6 +43,7 @@ import ProfileStaff from "./pages/FE_Staff/ProfileStaff";
 import StaffNotifications from "./pages/FE_Staff/StaffNotifications";
 import StaffDashboard from "./pages/FE_Staff/StaffDashboard";
 import notificationService from "./services/notificationService";
+import { showToast } from "./utils/alert";
 
 // FE Manager Imports
 import SidebarManager from "./pages/FE_Manager/SidebarManager";
@@ -257,7 +259,7 @@ const STAFF_PAGE_TITLES = {
   },
   tasks: {
     title: "Daily Tasks",
-    sub: "View and update your assigned repair and maintenance tasks.",
+    sub: "View and update your assigned repair and utility reading tasks.",
   },
   "task-map": {
     title: "Task Map",
@@ -526,10 +528,8 @@ function AppContent() {
   }, [loadStaffUnreadNotifications]);
 
   const handleShowNotification = (message, type = "success") => {
-    setNotification({ message, type });
-    setTimeout(() => {
-      setNotification(null);
-    }, 4000);
+    const toastIcon = type === 'danger' || type === 'error' ? 'error' : type === 'warning' ? 'warning' : 'success';
+    showToast(message, toastIcon);
   };
 
   const handleViewDetails = (id) => {
@@ -915,6 +915,10 @@ function AppContent() {
         title: t('sidebarstaff.profile_title'),
         sub: t('sidebarstaff.profile_sub'),
       },
+      notifications: {
+        title: t('sidebarstaff.notifications_title'),
+        sub: t('sidebarstaff.notifications_sub'),
+      },
     };
     const staffPageInfo = staffPageTitles[currentStaffView] || staffPageTitles['dashboard'];
 
@@ -934,9 +938,8 @@ function AppContent() {
             setView={setCurrentStaffView}
             user={user}
             onLogout={handleLogout}
+            unreadNotificationsCount={staffUnreadNotifications}
           />
-
-
 
           <main className="app-main-content">
             <div className="main-top-navbar">
@@ -976,10 +979,11 @@ function AppContent() {
                 <button
                   type="button"
                   className="nav-icon staff-notification-button"
-                  title="Notifications"
-                  aria-label={`Notifications${staffUnreadNotifications > 0 ? `, ${staffUnreadNotifications} unread` : ""}`}
-                  aria-expanded={staffNotificationsOpen}
-                  onClick={() => setStaffNotificationsOpen((current) => !current)}
+                  title={t('staffnotifications.notifications')}
+                  aria-label={staffUnreadNotifications > 0
+                    ? t('staffnotifications.notification_button_unread', { count: staffUnreadNotifications })
+                    : t('staffnotifications.notification_button')}
+                  onClick={() => setCurrentStaffView("notifications")}
                 >
                   <Bell size={20} aria-hidden="true" />
                   {staffUnreadNotifications > 0 && (
@@ -987,21 +991,6 @@ function AppContent() {
                       {staffUnreadNotifications > 99 ? "99+" : staffUnreadNotifications}
                     </span>
                   )}
-                </button>
-                {staffNotificationsOpen ? (
-                  <StaffNotifications
-                    onClose={() => setStaffNotificationsOpen(false)}
-                    onUnreadChange={setStaffUnreadNotifications}
-                  />
-                ) : null}
-                <button
-                  type="button"
-                  className="nav-icon"
-                  title="Profile"
-                  aria-label="Open profile"
-                  onClick={() => setCurrentStaffView("profile")}
-                >
-                  <UserRound size={20} aria-hidden="true" />
                 </button>
                 <div
                   className="user-profile-circle"
@@ -1143,6 +1132,12 @@ function AppContent() {
                   userId={userId}
                   baseUrl={baseUrl}
                   onShowNotification={handleShowNotification}
+                />
+              )}
+
+              {currentStaffView === "notifications" && (
+                <StaffNotifications
+                  onUnreadChange={setStaffUnreadNotifications}
                 />
               )}
 

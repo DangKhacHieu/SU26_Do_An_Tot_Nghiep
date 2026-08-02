@@ -83,22 +83,7 @@ export default function ViolationDetailsManager({ violationId, baseUrl, navigate
     }
   };
 
-  const handleSimulateAppeal = async () => {
-    setSubmitting(true);
-    try {
-      const res = await fetch(`${apiViolation}/${violationId}/simulate-appeal`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-      });
-      if (!res.ok) throw new Error();
-      addToast('Giả lập gửi kháng nghị thành công!', 'success');
-      await fetchViolationDetails();
-    } catch {
-      addToast('Không thể giả lập gửi kháng nghị.', 'error');
-    } finally {
-      setSubmitting(false);
-    }
-  };
+
 
   const formatVnd = (amount) => {
     if (amount === undefined || amount === null) return '—';
@@ -224,38 +209,6 @@ export default function ViolationDetailsManager({ violationId, baseUrl, navigate
             </div>
           )}
 
-          {!appealRequest && (
-            <div className="vd-card vd-simulator-card" style={{ borderLeft: '4px solid #3b82f6', background: '#eff6ff' }}>
-              <h3 className="vd-card-title" style={{ borderLeftColor: '#3b82f6', color: '#1e40af', marginBottom: '14px' }}>
-                {t('violationdetailsmanager.violation_protest_demo_test')}</h3>
-              <p style={{ fontSize: '0.88rem', color: '#475569', marginBottom: '16px', lineHeight: '1.5' }}>
-                {t('violationdetailsmanager.this_violation_record_has')}</p>
-              <button
-                className="vd-btn-simulate"
-                disabled={submitting}
-                onClick={handleSimulateAppeal}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  padding: '10px 18px',
-                  fontSize: '0.88rem',
-                  fontWeight: '600',
-                  border: 'none',
-                  borderRadius: '8px',
-                  cursor: submitting ? 'not-allowed' : 'pointer',
-                  background: '#3b82f6',
-                  color: '#ffffff',
-                  boxShadow: '0 2px 4px rgba(59, 130, 246, 0.15)',
-                  transition: 'all 0.15s ease'
-                }}
-                onMouseEnter={(e) => { if(!submitting) e.currentTarget.style.backgroundColor = '#2563eb'; }}
-                onMouseLeave={(e) => { if(!submitting) e.currentTarget.style.backgroundColor = '#3b82f6'; }}
-              >
-                {t('violationdetailsmanager.submit_an_appeal_demo')}</button>
-            </div>
-          )}
         </div>
 
         {/* Right Column: Evidence Photo */}

@@ -11,8 +11,8 @@ namespace STMM.Business.DTOs.Issue
         public string Description { get; set; } = string.Empty;
 
         /// <summary>
-        /// URL ảnh sự cố (optional — upload Cloudinary trước, gửi URL)
+        /// Danh sách ảnh sự cố đính kèm (tối đa 3 ảnh)
         /// </summary>
-        public string? ImageUrl { get; set; }
+        public List<Microsoft.AspNetCore.Http.IFormFile>? Images { get; set; }
     }
 }

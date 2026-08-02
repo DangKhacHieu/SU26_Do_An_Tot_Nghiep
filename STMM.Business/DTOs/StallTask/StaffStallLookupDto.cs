@@ -5,5 +5,6 @@ namespace STMM.Business.DTOs.StallTask
         public int StallId { get; set; }
         public string StallCode { get; set; } = string.Empty;
         public string AreaName { get; set; } = string.Empty;
+        public string? VendorName { get; set; }
     }
 }

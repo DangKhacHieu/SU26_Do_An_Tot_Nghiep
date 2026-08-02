@@ -1,14 +1,17 @@
 import { useTranslation } from 'react-i18next';
-import { ClipboardCheck, LayoutDashboard, LogOut, Radio, Store, TriangleAlert } from 'lucide-react';
+import { Bell, ClipboardCheck, LayoutDashboard, LogOut, Radio, Store, TriangleAlert, UserRound } from 'lucide-react';
 import './SidebarStaff.css';
 
-export default function SidebarStaff({ currentView, setView, user, onLogout }) {
+export default function SidebarStaff({ currentView, setView, user, onLogout, unreadNotificationsCount = 0 }) {
   const { t } = useTranslation();
 
   const NAV_GROUPS = [
     {
       label: t('sidebarstaff.overview'),
-      items: [{ key: 'dashboard', label: t('sidebarstaff.dashboard'), icon: LayoutDashboard }],
+      items: [
+        { key: 'dashboard', label: t('sidebarstaff.dashboard'), icon: LayoutDashboard },
+        { key: 'notifications', label: t('sidebarstaff.notifications'), icon: Bell, badge: unreadNotificationsCount },
+      ],
     },
     {
       label: t('sidebarstaff.operations'),
@@ -21,6 +24,10 @@ export default function SidebarStaff({ currentView, setView, user, onLogout }) {
     {
       label: t('sidebarstaff.management'),
       items: [{ key: 'stall-list', label: t('sidebarstaff.stall_list'), icon: Store, childKeys: ['stall-invoices', 'meters', 'meter-details'] }],
+    },
+    {
+      label: t('sidebarstaff.account', 'Tài khoản'),
+      items: [{ key: 'profile', label: t('sidebarstaff.personal_profile', 'Hồ sơ cá nhân'), icon: UserRound }],
     },
   ];
 
@@ -42,7 +49,13 @@ export default function SidebarStaff({ currentView, setView, user, onLogout }) {
                 const Icon = item.icon;
                 return (
                   <button key={item.key} className={`staff-menu-item ${isActive(item) ? 'active' : ''}`} onClick={() => setView(item.key)}>
-                    <span className="staff-menu-icon"><Icon size={17} /></span><span className="staff-menu-label">{item.label}</span>
+                    <span className="staff-menu-icon"><Icon size={17} /></span>
+                    <span className="staff-menu-label">{item.label}</span>
+                    {item.badge > 0 && (
+                      <span className="staff-sidebar-badge">
+                        {item.badge > 99 ? '99+' : item.badge}
+                      </span>
+                    )}
                   </button>
                 );
               })}
@@ -52,12 +65,19 @@ export default function SidebarStaff({ currentView, setView, user, onLogout }) {
       </div>
 
       <div className="staff-sidebar-footer">
-        <button type="button" className={`staff-sidebar-user ${currentView === 'profile' ? 'active' : ''}`} onClick={() => setView('profile')}>
-          <span className="staff-user-avatar">{user?.name ? user.name.substring(0, 1).toUpperCase() : 'S'}</span>
-          <span className="staff-user-info"><span className="staff-user-name">{user?.name || t('sidebarstaff.staff')}</span><span className="staff-user-role">{t('sidebarstaff.staff')}</span></span>
-        </button>
-        {onLogout ? <button type="button" className="staff-menu-item logout-btn" onClick={onLogout}><LogOut size={16} /> {t('sidebarstaff.log_out')}</button> : null}
+        {onLogout ? (
+          <button
+            type="button"
+            className="logout-btn"
+            onClick={onLogout}
+            title={t('sidebarstaff.log_out')}
+          >
+            <span className="staff-menu-icon"><LogOut size={18} /></span>
+            <span className="staff-menu-label">{t('sidebarstaff.log_out')}</span>
+          </button>
+        ) : null}
       </div>
     </aside>
   );
 }
+

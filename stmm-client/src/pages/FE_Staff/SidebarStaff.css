@@ -1,12 +1,11 @@
 /* =========================================
-   SIDEBAR STAFF COMPONENT
+   SIDEBAR STAFF COMPONENT (Taste-Skill Minimalist Slate Theme)
    File: SidebarStaff.css
-   Pattern: giống SidebarManager, màu accent xanh dương (#3b82f6)
    ========================================= */
 
 .staff-sidebar {
-  width: 248px;
-  background-color: var(--bg-sidebar, #1e293b);
+  width: 240px;
+  background-color: var(--bg-sidebar, #0f172a);
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
@@ -15,28 +14,29 @@
   height: 100vh;
   overflow-y: auto;
   z-index: 20;
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 /* Custom scrollbar inside sidebar */
 .staff-sidebar::-webkit-scrollbar { width: 4px; }
 .staff-sidebar::-webkit-scrollbar-track { background: transparent; }
-.staff-sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+.staff-sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 4px; }
 
 /* ── Brand Section ── */
 .staff-brand-section {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   padding: 20px 16px 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   margin-bottom: 8px;
 }
 
 .staff-brand-logo {
   width: 36px;
   height: 36px;
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-  border-radius: 9px;
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -45,7 +45,7 @@
   color: #fff;
   letter-spacing: 0.5px;
   flex-shrink: 0;
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
 }
 
 .staff-brand-name {
@@ -56,7 +56,7 @@
 .staff-brand-title {
   font-size: 14px;
   font-weight: 700;
-  color: #f1f5f9;
+  color: #f8fafc;
   letter-spacing: -0.2px;
 }
 
@@ -75,7 +75,7 @@
   color: #475569;
   text-transform: uppercase;
   letter-spacing: 0.8px;
-  padding: 12px 20px 4px;
+  padding: 14px 18px 6px;
   margin: 0;
 }
 
@@ -83,20 +83,21 @@
 .staff-sidebar-menu {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
   padding: 0 10px;
 }
 
 .staff-menu-item {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 11px;
   padding: 9px 12px;
   color: #94a3b8;
   font-size: 13.5px;
   font-weight: 500;
   border-radius: 8px;
-  transition: background 0.15s, color 0.15s;
+  transition: all 0.15s ease;
   cursor: pointer;
   user-select: none;
   text-decoration: none;
@@ -108,14 +109,25 @@
 }
 
 .staff-menu-item:hover {
-  background-color: rgba(255, 255, 255, 0.06);
-  color: #e2e8f0;
+  background-color: rgba(255, 255, 255, 0.05);
+  color: #f1f5f9;
 }
 
 .staff-menu-item.active {
-  background-color: rgba(59, 130, 246, 0.18);
-  color: #93c5fd;
+  background-color: rgba(37, 99, 235, 0.14);
+  color: #60a5fa;
   font-weight: 600;
+}
+
+.staff-menu-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 7px;
+  bottom: 7px;
+  width: 3px;
+  background: #3b82f6;
+  border-radius: 0 4px 4px 0;
 }
 
 .staff-menu-icon {
@@ -131,58 +143,47 @@
   flex-grow: 1;
 }
 
-/* ── Footer: logged-in user ── */
-.staff-sidebar-footer {
-  margin-top: auto;
-  padding: 12px 16px 16px;
-  border-top: 1px solid rgba(255, 255, 255, 0.07);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.staff-user-avatar {
-  width: 32px;
-  height: 32px;
-  background: linear-gradient(135deg, #3b82f6, #2563eb);
-  border-radius: 50%;
-  display: flex;
+.staff-sidebar-badge {
+  background-color: #ef4444;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 999px;
+  line-height: 1;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-weight: 700;
-  color: #fff;
-  font-size: 13px;
-  flex-shrink: 0;
+  margin-left: auto;
+  box-shadow: 0 1px 3px rgba(239, 68, 68, 0.4);
 }
 
-.staff-user-info {
-  display: flex;
-  flex-direction: column;
+/* ── Footer: Logout button ── */
+.staff-sidebar-footer {
+  margin-top: auto;
+  padding: 12px 10px 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-.staff-user-name {
-  font-size: 12.5px;
-  font-weight: 600;
-  color: #e2e8f0;
-  line-height: 1.2;
-}
-
-.staff-user-role {
-  font-size: 11px;
-  color: #64748b;
-  margin-top: 1px;
-}
-.staff-sidebar-user {
+.staff-sidebar-footer .logout-btn {
   width: 100%;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px;
-  border: 0;
-  border-radius: 9px;
+  gap: 11px;
+  padding: 9px 12px;
+  color: #f87171;
+  font-size: 13.5px;
+  font-weight: 500;
+  border-radius: 8px;
   background: transparent;
-  color: inherit;
-  text-align: left;
+  border: none;
   cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+  text-align: left;
 }
-.staff-sidebar-user.active, .staff-sidebar-user:hover { background: rgba(59, 130, 246, .18); }
+
+.staff-sidebar-footer .logout-btn:hover {
+  background-color: rgba(248, 113, 113, 0.12);
+  color: #ef4444;
+}

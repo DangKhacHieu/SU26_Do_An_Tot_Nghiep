@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
+import { getAuthHeaders } from '../../utils/authHeaders';
 import './ContentFormManager.css';
 
 const API_BASE = "http://localhost:5056/api/manager/contents";
@@ -37,7 +38,7 @@ export default function ContentFormManager({ contentId, navigate, addToast }) {
   const fetchUsersByRole = async (role) => {
     setLoadingUsers(true);
     try {
-      const res = await fetch(`http://localhost:5056/api/manager/users?roleName=${role}`);
+      const res = await fetch(`http://localhost:5056/api/manager/users?roleName=${role}`, { headers: getAuthHeaders() });
       if (res.ok) {
         const data = await res.json();
         setUsers(data);
@@ -108,7 +109,7 @@ export default function ContentFormManager({ contentId, navigate, addToast }) {
 
   const loadContent = async () => {
     try {
-      const res = await fetch(`${API_BASE}/${contentId}`);
+      const res = await fetch(`${API_BASE}/${contentId}`, { headers: getAuthHeaders() });
       if (res.ok) {
         const data = await res.json();
         setTitle(data.title);
@@ -191,7 +192,10 @@ export default function ContentFormManager({ contentId, navigate, addToast }) {
 
       const res = await fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+        },
         body: JSON.stringify(payload),
       });
 

@@ -1,6 +1,7 @@
 using AutoMapper;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using STMM.Business.DTOs.Contract;
 using STMM.Business.DTOs.Stall;
 using STMM.Business.DTOs.Notification;
@@ -24,9 +25,11 @@ namespace STMM.Business.Services
         private readonly IUserRepository _userRepository;
         private readonly IContractFileRepository _contractFileRepository;
         private readonly IMapper _mapper;
+        private readonly IFileUploadService _fileUploadService;
         private readonly IValidator<CreateContractRequest> _createValidator;
         private readonly IValidator<RenewContractRequest> _renewValidator;
         private readonly INotificationService _notificationService;
+        private readonly ILogger<ContractService> _logger;
 
         public ContractService(
             IContractRepository contractRepository,
@@ -35,9 +38,11 @@ namespace STMM.Business.Services
             IUserRepository userRepository,
             IContractFileRepository contractFileRepository,
             IMapper mapper,
+            IFileUploadService fileUploadService,
             IValidator<CreateContractRequest> createValidator,
             IValidator<RenewContractRequest> renewValidator,
-            INotificationService notificationService)
+            INotificationService notificationService,
+            ILogger<ContractService> logger)
         {
             _contractRepository = contractRepository;
             _stallRepository = stallRepository;
@@ -45,9 +50,11 @@ namespace STMM.Business.Services
             _userRepository = userRepository;
             _contractFileRepository = contractFileRepository;
             _mapper = mapper;
+            _fileUploadService = fileUploadService;
             _createValidator = createValidator;
             _renewValidator = renewValidator;
             _notificationService = notificationService;
+            _logger = logger;
         }
 
         private async Task<(User? caller, int? marketId, bool isManager)> GetCallerInfoAsync(int? currentUserId, CancellationToken ct)
@@ -407,20 +414,33 @@ namespace STMM.Business.Services
                 throw new NotFoundException($"Không tìm thấy hợp đồng có ID {contractId}.");
             }
 
-            foreach (var url in request.FileUrls)
+            if (request.Files == null || request.Files.Count == 0)
             {
-                if (!string.IsNullOrWhiteSpace(url))
-                {
-                    var file = new ContractFile
-                    {
-                        ContractId = contractId,
-                        FileUrl = url.Trim()
-                    };
-                    await _contractFileRepository.AddAsync(file, ct);
-                }
+                throw new BadRequestException("Cần đính kèm ít nhất 1 file bản quét hợp đồng.");
             }
 
-            await _contractFileRepository.SaveChangesAsync(ct);
+            var uploadedUrls = await _fileUploadService.UploadImagesAsync(request.Files, "contract-files", maxFiles: 10, ct: ct);
+
+            foreach (var url in uploadedUrls)
+            {
+                var file = new ContractFile
+                {
+                    ContractId = contractId,
+                    FileUrl = url
+                };
+                await _contractFileRepository.AddAsync(file, ct);
+            }
+
+            try
+            {
+                await _contractFileRepository.SaveChangesAsync(ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to save contract files to database. Cleaning up uploaded Cloudinary assets.");
+                await _fileUploadService.DeleteImagesAsync(uploadedUrls, ct);
+                throw;
+            }
 
             var updatedContract = await _contractRepository.GetContractByIdWithDetailsAsync(contractId, ct);
             return _mapper.Map<ContractDto>(updatedContract ?? contract);

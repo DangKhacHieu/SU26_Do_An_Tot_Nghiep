@@ -85,16 +85,26 @@ namespace STMM.DataAccess.Repositories
 
         public async Task<Request?> GetRequestWithRelationsAsync(int requestId, CancellationToken ct = default)
         {
-            return await _context.Requests
+            return await GetRequestWithRelationsAsync(requestId, false, ct);
+        }
+
+        public async Task<Request?> GetRequestWithRelationsAsync(int requestId, bool tracking, CancellationToken ct = default)
+        {
+            IQueryable<Request> query = _context.Requests
                 .Include(r => r.Stall)
                 .Include(r => r.Vendor)
                     .ThenInclude(v => v.User)
                 .Include(r => r.Invoice)
                     .ThenInclude(i => i.InvoiceDetails)
                         .ThenInclude(d => d.FeeType)
-                .Include(r => r.Violation)
-                .AsNoTracking()
-                .FirstOrDefaultAsync(r => r.RequestId == requestId, ct);
+                .Include(r => r.Violation);
+
+            if (!tracking)
+            {
+                query = query.AsNoTracking();
+            }
+
+            return await query.FirstOrDefaultAsync(r => r.RequestId == requestId, ct);
         }
 
         public Task<Request?> GetRequestWithRelationsForMarketAsync(

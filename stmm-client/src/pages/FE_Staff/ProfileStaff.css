@@ -20,6 +20,87 @@
   to   { opacity: 1; transform: translateY(0); }
 }
 
+/* Staff profile simplification: calm cards and the same compact rhythm as the console. */
+.sp2-page {
+  width: 100%;
+  max-width: 1180px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(250px, .78fr) minmax(0, 1.55fr);
+  align-items: start;
+  gap: 22px;
+  font-family: var(--font-family, 'Inter', system-ui, sans-serif);
+}
+.sp2-hero {
+  grid-column: 1;
+  grid-row: 1;
+  border: 1px solid var(--staff-border, #dfe6ef);
+  border-radius: 14px;
+  box-shadow: var(--staff-shadow, 0 1px 2px rgba(23,35,56,.04), 0 8px 24px rgba(23,35,56,.05));
+}
+.sp2-hero-top {
+  padding: 28px 22px 22px;
+  background: #fff;
+}
+.sp2-hero-top::before { display: none; }
+.sp2-hero-body { gap: 12px; flex-direction: column; text-align: center; }
+.sp2-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--staff-accent, #356ae6);
+  border: 0;
+  box-shadow: 0 6px 14px rgba(53,106,230,.2);
+  font-size: 22px;
+}
+.sp2-avatar-ring { display: none; }
+.sp2-hero-name { color: var(--staff-ink, #172338); font-size: 20px; text-shadow: none; margin-bottom: 8px; }
+.sp2-hero-meta { justify-content: center; }
+.sp2-badge-role { background: var(--staff-accent-soft, #eaf0ff); color: var(--staff-accent, #356ae6); border-color: #c8d8ff; backdrop-filter: none; }
+.sp2-badge-active { background: #eaf8f1; color: #168a63; border-color: #bfe7d2; backdrop-filter: none; }
+.sp2-hero-chips { padding: 14px 24px 18px; background: #fbfcfe; border-top: 1px solid #edf1f6; }
+.sp2-hero-chips { flex-direction: column; align-items: stretch; padding: 16px 18px 20px; }
+.sp2-chip { background: #fff; border-color: var(--staff-border, #dfe6ef); color: var(--staff-muted, #6b7a90); }
+.sp2-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--staff-border, #dfe6ef);
+  border-radius: 12px;
+  background: #eef3f9;
+}
+.sp2-tabs { display: none; }
+.sp2-tab { flex: 1; justify-content: center; min-height: 42px; border-radius: 9px; color: var(--staff-muted, #6b7a90); }
+.sp2-tab-active { background: #fff; color: var(--staff-accent, #356ae6); box-shadow: 0 1px 3px rgba(23,35,56,.08); }
+.sp2-panel {
+  grid-column: 2;
+  grid-row: 1;
+  border: 1px solid var(--staff-border, #dfe6ef);
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: var(--staff-shadow, 0 1px 2px rgba(23,35,56,.04), 0 8px 24px rgba(23,35,56,.05));
+  display: block;
+  overflow: hidden;
+}
+.sp2-form, .sp2-activity { padding: 24px; }
+.sp2-panel > .sp2-form + .sp2-form { border-left: 0; border-top: 1px solid #edf1f6; }
+.sp2-section-title { color: var(--staff-ink, #172338); border-bottom-color: #edf1f6; padding-bottom: 14px; margin-bottom: 20px; }
+.sp2-field-grid { gap: 18px; }
+.sp2-input { border-color: #d7e0eb; border-radius: 9px; }
+.sp2-input:focus { border-color: var(--staff-accent, #356ae6); box-shadow: 0 0 0 3px rgba(53,106,230,.14); }
+.sp2-form-footer { margin-top: 22px; padding-top: 16px; border-top-color: #edf1f6; }
+.sp2-btn-save { background: var(--staff-accent, #356ae6); box-shadow: 0 5px 12px rgba(53,106,230,.2); }
+.sp2-btn-save:hover { background: #2858c8; }
+.sp2-btn-danger { background: var(--staff-accent, #356ae6); }
+
+@media (max-width: 700px) {
+  .sp2-page { max-width: none; display: block; }
+  .sp2-hero-top { padding: 18px; }
+  .sp2-hero-chips { padding-inline: 18px; }
+  .sp2-panel { display: block; margin-top: 16px; }
+  .sp2-form, .sp2-activity { padding: 18px; }
+}
+
 /* ════════════════════════════════════════
    LOADING
    ════════════════════════════════════════ */

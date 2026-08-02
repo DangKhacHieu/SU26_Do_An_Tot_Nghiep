@@ -8,7 +8,7 @@ export interface TaskSummaryDto {
   areaName?: string | null;
   stallId?: number | null;
   stallCode?: string | null;
-  taskType: 'Repair' | 'Maintenance' | 'UtilityReading' | 'CashCollection';
+  taskType: 'Repair' | 'UtilityReading';
   title: string;
   status: 'Pending' | 'PendingApproval' | 'In_Progress' | 'Completed' | 'Cancelled';
   actualCost: number | null;
@@ -38,7 +38,7 @@ export interface CreateTaskRequest {
   requestId?: number;
   issueId?: number;
   areaId?: number;
-  taskType: 'Repair' | 'Maintenance' | 'UtilityReading' | 'CashCollection';
+  taskType: 'Repair' | 'UtilityReading';
   title: string;
   description?: string;
 }
@@ -57,6 +57,10 @@ export interface UtilityStallChecklistDto {
   stallId: number;
   stallCode: string;
   stallStatus: string;
+  hasElectricityMeter: boolean;
+  hasWaterMeter: boolean;
+  hasElectricityReadingThisMonth: boolean;
+  hasWaterReadingThisMonth: boolean;
   hasReadingThisMonth: boolean;
 }
 

@@ -1,8 +1,7 @@
 export const MANAGER_QUOTATION_ACTION = Object.freeze({
   APPROVE_AS_MARKET: 'ApproveAsMarket',
   SEND_TO_VENDOR: 'SendToVendor',
-  RETURN_FOR_REVISION: 'ReturnForRevision',
-  REJECT: 'Reject'
+  RETURN_FOR_REVISION: 'ReturnForRevision'
 });
 
 export const OTHER_CONTRACT_CLAUSE = 'Khác / Không áp dụng điều khoản cụ thể';
@@ -26,10 +25,6 @@ export const MANAGER_QUOTATION_ACTION_OPTIONS = Object.freeze([
   {
     value: MANAGER_QUOTATION_ACTION.RETURN_FOR_REVISION,
     label: 'Trả Staff chỉnh sửa báo giá'
-  },
-  {
-    value: MANAGER_QUOTATION_ACTION.REJECT,
-    label: 'Từ chối yêu cầu sửa chữa'
   }
 ]);
 
@@ -40,6 +35,5 @@ export const actionRequiresContractClause = (action) => (
 
 export const actionRequiresDecisionNote = (action, contractClause) => (
   action === MANAGER_QUOTATION_ACTION.RETURN_FOR_REVISION
-  || action === MANAGER_QUOTATION_ACTION.REJECT
   || (actionRequiresContractClause(action) && contractClause === OTHER_CONTRACT_CLAUSE)
 );
