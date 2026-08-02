@@ -75,8 +75,7 @@ namespace STMM.DataAccess.Repositories
                         .ThenInclude(s => s.Category)
                 .Include(i => i.Contract)
                     .ThenInclude(c => c.Vendor)
-                        .ThenInclude(v => v.User)
-                .AsNoTracking();
+                        .ThenInclude(v => v.User);
         }
 
         public async Task<List<Invoice>> GetInvoicesByVendorAsync(int userId, int? stallId, int? month, int? year, CancellationToken ct = default)
@@ -178,7 +177,7 @@ namespace STMM.DataAccess.Repositories
 
         public async Task<decimal> GetTotalRepairCostAsync(int month, int year, int? marketId = null, CancellationToken ct = default)
         {
-            var query = _context.Invoices.Where(i => i.IsDeleted != true && i.Month == month && i.Year == year);
+            var query = _context.Invoices.Where(i => i.IsDeleted != true && i.Status == "Paid" && i.Month == month && i.Year == year);
             if (marketId.HasValue)
             {
                 query = query.Where(i => i.Contract.Stall.Area.MarketId == marketId.Value);
@@ -186,7 +185,9 @@ namespace STMM.DataAccess.Repositories
             return await query.SelectMany(i => i.InvoiceDetails)
                 .Where(d => d.FeeType.Name.ToLower().Contains("sửa") || 
                             d.FeeType.Name.ToLower().Contains("repair") || 
-                            d.Description!.ToLower().Contains("sửa"))
+                            d.FeeType.Name.ToLower().Contains("bảo trì") ||
+                            d.FeeType.Name.ToLower().Contains("maintenance") ||
+                            d.Description != null && (d.Description.ToLower().Contains("sửa") || d.Description.ToLower().Contains("bảo trì")))
                 .SumAsync(d => (decimal?)d.Amount, ct) ?? 0;
         }
 
@@ -198,6 +199,8 @@ namespace STMM.DataAccess.Repositories
                 .Include(i => i.Contract)
                     .ThenInclude(c => c.Vendor)
                         .ThenInclude(v => v.User)
+                .Include(i => i.InvoiceDetails)
+                    .ThenInclude(d => d.FeeType)
                 .Where(i => i.IsDeleted != true);
 
             if (accountantMarketId.HasValue)
@@ -266,7 +269,7 @@ namespace STMM.DataAccess.Repositories
         public async Task<decimal> GetTotalUnpaidAmountByStallIdAsync(int stallId, CancellationToken ct = default)
         {
             return await _context.Invoices
-                .Where(i => i.Contract.StallId == stallId && i.IsDeleted != true && (i.Status == "Unpaid" || i.Status == "Pending Confirmation"))
+                .Where(i => i.Contract.StallId == stallId && i.IsDeleted != true && i.Status == "Unpaid")
                 .SumAsync(i => i.TotalAmount, ct);
         }
 
@@ -278,6 +281,18 @@ namespace STMM.DataAccess.Repositories
                                i.Year == year && 
                                i.IsDeleted != true && 
                                i.Status != "Canceled", ct);
+        }
+
+        public async Task<bool> ExistsInvoiceWithFeeTypeForContractAsync(int contractId, int month, int year, int feeTypeId, CancellationToken ct = default)
+        {
+            return await _context.Invoices
+                .Where(i => i.ContractId == contractId && 
+                            i.Month == month && 
+                            i.Year == year && 
+                            i.IsDeleted != true && 
+                            i.Status != "Canceled")
+                .SelectMany(i => i.InvoiceDetails)
+                .AnyAsync(d => d.FeeTypeId == feeTypeId, ct);
         }
     }
 }

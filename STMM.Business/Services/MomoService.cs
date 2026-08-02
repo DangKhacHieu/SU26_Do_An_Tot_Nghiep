@@ -135,14 +135,24 @@ namespace STMM.Business.Services
                     if (invoice != null && invoice.Status != "Paid")
                     {
                         invoice.Status = "Paid";
-                        
+
+                        if (invoice.InvoiceType == "Violation" && invoice.ViolationId.HasValue)
+                        {
+                            var violation = await _context.Violations.FirstOrDefaultAsync(v => v.ViolationId == invoice.ViolationId.Value);
+                            if (violation != null)
+                            {
+                                violation.Status = "Paid";
+                                violation.UpdatedAt = DateTime.UtcNow;
+                            }
+                        }
                         var payment = new Payment
                         {
                             InvoiceId = invoiceId,
                             Amount = ipnRequest.amount,
                             Method = ipnRequest.payType == "qr" ? "Momo - QR" : "Momo - ATM",
                             TransactionCode = ipnRequest.transId.ToString(),
-                            PaidAt = DateTime.UtcNow
+                            PaidAt = DateTime.UtcNow,
+                            Status = "Verified"
                         };
                         _context.Payments.Add(payment);
 

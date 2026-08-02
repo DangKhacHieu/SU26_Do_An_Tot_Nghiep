@@ -30,6 +30,10 @@ namespace STMM.DataAccess.Repositories
                 .Include(r => r.Stall)
                 .Include(r => r.Vendor)
                     .ThenInclude(v => v.User)
+                .Include(r => r.Invoice)
+                    .ThenInclude(i => i.InvoiceDetails)
+                        .ThenInclude(d => d.FeeType)
+                .Include(r => r.Violation)
                 .AsQueryable();
 
             if (vendorId.HasValue)
@@ -85,6 +89,10 @@ namespace STMM.DataAccess.Repositories
                 .Include(r => r.Stall)
                 .Include(r => r.Vendor)
                     .ThenInclude(v => v.User)
+                .Include(r => r.Invoice)
+                    .ThenInclude(i => i.InvoiceDetails)
+                        .ThenInclude(d => d.FeeType)
+                .Include(r => r.Violation)
                 .AsNoTracking()
                 .FirstOrDefaultAsync(r => r.RequestId == requestId, ct);
         }
@@ -99,6 +107,10 @@ namespace STMM.DataAccess.Repositories
                     .ThenInclude(s => s.Area)
                 .Include(r => r.Vendor)
                     .ThenInclude(v => v.User)
+                .Include(r => r.Invoice)
+                    .ThenInclude(i => i.InvoiceDetails)
+                        .ThenInclude(d => d.FeeType)
+                .Include(r => r.Violation)
                 .AsNoTracking()
                 .FirstOrDefaultAsync(r =>
                     r.RequestId == requestId &&
@@ -122,7 +134,15 @@ namespace STMM.DataAccess.Repositories
 
             if (request.Violation != null)
             {
-                request.Violation.Status = isApproved ? "Approved" : "Rejected";
+                // Bất kể đồng ý hay từ chối kháng nghị, vi phạm đều chốt ở quyết định cuối cùng
+                request.Violation.Status = "FinalApproved";
+                
+                // Nếu đồng ý với kháng nghị (tiểu thương đúng), xóa mức phạt
+                if (isApproved)
+                {
+                    request.Violation.FineAmount = 0;
+                }
+                
                 request.Violation.UpdatedAt = DateTime.UtcNow;
             }
 

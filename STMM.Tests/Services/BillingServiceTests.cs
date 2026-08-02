@@ -2,6 +2,7 @@ using AutoMapper;
 using FluentAssertions;
 using FluentValidation;
 using FluentValidation.Results;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using STMM.Business.DTOs.Billing;
@@ -39,6 +40,8 @@ namespace STMM.Tests.Services
         private readonly Mock<ISystemConfigRepository> _systemConfigRepoMock;
         private readonly Mock<IServiceRegistrationRepository> _serviceRegistrationRepoMock;
         private readonly Mock<IStallRepository> _stallRepoMock;
+        private readonly Mock<IAuditLogRepository> _auditLogRepoMock;
+        private readonly Mock<IValidator<MeterReadingAdjustmentRequest>> _meterAdjustmentValidatorMock;
         private readonly IMapper _mapper;
         private readonly BillingService _service;
 
@@ -59,9 +62,15 @@ namespace STMM.Tests.Services
             _systemConfigRepoMock = new Mock<ISystemConfigRepository>();
             _serviceRegistrationRepoMock = new Mock<IServiceRegistrationRepository>();
             _stallRepoMock = new Mock<IStallRepository>();
+            _auditLogRepoMock = new Mock<IAuditLogRepository>();
+            _meterAdjustmentValidatorMock = new Mock<IValidator<MeterReadingAdjustmentRequest>>();
             _userRepoMock.Setup(repository => repository.GetUserByIdWithRoleAsync(
                     It.IsAny<int>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new User { UserId = 1, MarketId = 10 });
+                
+            var transactionMock = new Mock<IDbContextTransaction>();
+            _invoiceRepoMock.Setup(r => r.BeginTransactionAsync(It.IsAny<CancellationToken>()))
+                .ReturnsAsync(transactionMock.Object);
 
             var mapperConfig = new MapperConfiguration(cfg =>
             {
@@ -85,8 +94,10 @@ namespace STMM.Tests.Services
                 _systemConfigRepoMock.Object,
                 _serviceRegistrationRepoMock.Object,
                 _stallRepoMock.Object,
+                _auditLogRepoMock.Object,
                 NullLogger<BillingService>.Instance,
-                _validatorMock.Object);
+                _validatorMock.Object,
+                _meterAdjustmentValidatorMock.Object);
         }
 
         [Fact]
@@ -228,6 +239,135 @@ namespace STMM.Tests.Services
 
             // Act & Assert
             await Assert.ThrowsAsync<NotFoundException>(() => _service.ReceiveCashPaymentAsync(staffUserId, request));
+        }
+
+        [Fact]
+        public async Task VerifyPaymentAsync_DifferentMarket_ThrowsForbiddenException()
+        {
+            // Arrange
+            var paymentId = 1;
+            var accountantUserId = 10;
+            var request = new VerifyPaymentRequest { Approve = true };
+
+            // Accountant belongs to MarketId = 1
+            var accountant = new User { UserId = accountantUserId, MarketId = 1 };
+            _userRepoMock.Setup(r => r.GetByIdAsync(accountantUserId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(accountant);
+
+            // Invoice belongs to Stall in MarketId = 2
+            var area = new Area { AreaId = 1, MarketId = 2 };
+            var stall = new Stall { StallId = 1, Area = area };
+            var contract = new Contract { ContractId = 1, Stall = stall };
+            var invoice = new Invoice { InvoiceId = 1, Status = "Pending Confirmation", Contract = contract };
+            var payment = new Payment { PaymentId = paymentId, Status = "Pending", InvoiceId = 1, Invoice = invoice };
+
+            _paymentRepoMock.Setup(r => r.GetPaymentWithInvoiceAndVendorAsync(paymentId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(payment);
+
+            // Act & Assert
+            await Assert.ThrowsAsync<ForbiddenException>(() => _service.VerifyPaymentAsync(paymentId, request, accountantUserId));
+        }
+
+        [Fact]
+        public async Task VerifyPaymentAsync_AlreadyVerified_ThrowsBadRequestException()
+        {
+            // Arrange
+            var paymentId = 1;
+            var accountantUserId = 10;
+            var request = new VerifyPaymentRequest { Approve = true };
+
+            // Accountant and Market match
+            var accountant = new User { UserId = accountantUserId, MarketId = 1 };
+            _userRepoMock.Setup(r => r.GetByIdAsync(accountantUserId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(accountant);
+
+            var area = new Area { AreaId = 1, MarketId = 1 };
+            var stall = new Stall { StallId = 1, Area = area };
+            var contract = new Contract { ContractId = 1, Stall = stall };
+            
+            // Payment is already Verified
+            var invoice = new Invoice { InvoiceId = 1, Status = "Paid", Contract = contract };
+            var payment = new Payment { PaymentId = paymentId, Status = "Verified", InvoiceId = 1, Invoice = invoice };
+
+            _paymentRepoMock.Setup(r => r.GetPaymentWithInvoiceAndVendorAsync(paymentId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(payment);
+
+            // Act & Assert
+            var ex = await Assert.ThrowsAsync<BadRequestException>(() => _service.VerifyPaymentAsync(paymentId, request, accountantUserId));
+            ex.Message.Should().Be("Payment is no longer pending verification.");
+        }
+
+        [Fact]
+        public async Task CreateAdHocInvoiceAsync_Duplicate_ThrowsBadRequestException()
+        {
+            // Arrange
+            var accountantUserId = 10;
+            var request = new CreateAdHocInvoiceRequest
+            {
+                StallId = 1,
+                Month = 5,
+                Year = 2026,
+                FeeTypeId = 1,
+                Amount = 100000,
+                DueDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(7))
+            };
+
+            var feeType = new FeeType { FeeTypeId = 1, Name = "Adhoc Fee" };
+            _feeTypeRepoMock.Setup(r => r.GetByIdAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync(feeType);
+
+            var stall = new Stall { StallId = 1, Area = new Area { MarketId = 1 } };
+            var contract = new Contract { ContractId = 1, StallId = 1, Stall = stall };
+            _contractRepoMock.Setup(r => r.GetActiveContractByStallIdAsync(1, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(contract);
+
+            var accountant = new User { UserId = accountantUserId, MarketId = 1 };
+            _userRepoMock.Setup(r => r.GetByIdAsync(accountantUserId, It.IsAny<CancellationToken>())).ReturnsAsync(accountant);
+
+            // Simulate that an AdHoc invoice already exists
+            var existingInvoices = new List<Invoice> 
+            { 
+                new Invoice { ContractId = 1, Month = 5, Year = 2026, InvoiceType = "AdHoc", Status = "Unpaid", IsDeleted = false } 
+            }.AsQueryable();
+            
+            _invoiceRepoMock.Setup(r => r.Query()).Returns(existingInvoices.ToAsyncQueryable());
+
+            // Act & Assert
+            var ex = await Assert.ThrowsAsync<BadRequestException>(() => _service.CreateAdHocInvoiceAsync(request, accountantUserId));
+            ex.Message.Should().Be("An ad-hoc invoice already exists for this contract and billing period.");
+        }
+
+        [Fact]
+        public async Task ResolveInvoiceDisputeAsync_AmountExceedsLimit_ThrowsBadRequestException()
+        {
+            // Arrange
+            var requestId = 1;
+            var accountantUserId = 10;
+            var request = new ResolveDisputeRequest
+            {
+                Approve = true,
+                IsRefund = true,
+                RefundAmount = 5000000 // invoice amount is 2500000
+            };
+
+            var dispute = new Request { RequestId = requestId, RequestType = "InvoiceDispute", Status = "Pending", InvoiceId = 1, Invoice = new Invoice { TotalAmount = 2500000 }, Stall = new Stall { Code = "TEST" }, Vendor = new Vendor { UserId = 5 } };
+            _requestRepoMock.Setup(r => r.GetRequestWithStallAndVendorAsync(requestId, It.IsAny<CancellationToken>())).ReturnsAsync(dispute);
+
+            var accountant = new User { UserId = accountantUserId, MarketId = 1 };
+            _userRepoMock.Setup(r => r.GetByIdAsync(accountantUserId, It.IsAny<CancellationToken>())).ReturnsAsync(accountant);
+            
+            var invoice = CreateMockInvoice(1, "Paid");
+            // Set area market id so it matches accountant
+            invoice.Contract.Stall.Area = new Area { MarketId = 1 };
+
+            _invoiceRepoMock.Setup(r => r.GetInvoiceDetailsWithRelationsAsync(1, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(invoice);
+
+            _requestRepoMock.Setup(r => r.BeginTransactionAsync(It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new Mock<IDbContextTransaction>().Object);
+
+            // Act & Assert
+            var ex = await Assert.ThrowsAsync<BadRequestException>(() => _service.ResolveInvoiceDisputeAsync(requestId, request, accountantUserId));
+            ex.Message.Should().Be("Số tiền hoàn/giảm trừ không được vượt quá tổng tiền của hóa đơn.");
         }
 
         private static Invoice CreateMockInvoice(int invoiceId, string status)

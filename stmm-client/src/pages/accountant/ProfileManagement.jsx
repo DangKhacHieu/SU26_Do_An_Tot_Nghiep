@@ -129,6 +129,21 @@ export default function ProfileManagement() {
   // Trigger Profile Save Confirm Dialog
   const handleProfileSubmit = (e) => {
     e.preventDefault();
+    
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(tempProfile.email)) {
+      setModalError(t('profilemanagement.email_format_invalid'));
+      return;
+    }
+    
+    // Phone validation (Vietnam format)
+    const phoneRegex = /(84|0[3|5|7|8|9])+([0-9]{8})\b/;
+    if (!phoneRegex.test(tempProfile.phone)) {
+      setModalError(t('profilemanagement.phone_format_invalid'));
+      return;
+    }
+    
     setActiveModal('confirm_profile');
   };
 
@@ -206,6 +221,23 @@ export default function ProfileManagement() {
   // Trigger Password Change Confirm Dialog
   const handlePasswordSubmit = (e) => {
     e.preventDefault();
+    
+    // Password validation
+    if (password.new !== password.confirm) {
+      setModalError(t('profilemanagement.password_confirm_mismatch'));
+      return;
+    }
+    
+    if (password.new === password.current) {
+      setModalError(t('profilemanagement.new_password_same_as_current'));
+      return;
+    }
+    
+    if (password.new.length < 6) {
+      setModalError(t('profilemanagement.password_minimum_length'));
+      return;
+    }
+    
     setActiveModal('confirm_password');
   };
 
@@ -243,22 +275,11 @@ export default function ProfileManagement() {
   return (
     <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '24px' }}>
       {/* Title */}
-      <div className="page-header" style={{ marginBottom: 0 }}>
+      <div className="page-header" style={{ display: 'none' }}>
         <div>
           <h1 className="page-title">{t('profilemanagement.records_management')}</h1>
           <p className="page-subtitle">
             {t('profilemanagement.update_your_personal_contact')}</p>
-        </div>
-        
-        <div className="page-actions">
-          <button 
-            onClick={loadProfile}
-            className="acc-btn-secondary btn-icon"
-            title={t('profilemanagement.reload_profile')}
-            disabled={loading}
-          >
-            <RefreshCw size={16} className={loading ? "loading-spinner" : ""} />
-          </button>
         </div>
       </div>
 
@@ -373,9 +394,14 @@ export default function ProfileManagement() {
             
             {/* Form 1: Edit Profile */}
             <div className="acc-card" style={{ padding: '24px' }}>
-              <h3 style={{ fontSize: '16px', fontWeight: '700', color: 'var(--acc-text-main)', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <UserIcon size={18} style={{ color: 'var(--acc-primary)' }} /> {t('profilemanagement.personal_information')}
-              </h3>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                <h3 style={{ fontSize: '16px', fontWeight: '700', color: 'var(--acc-text-main)', margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <UserIcon size={18} style={{ color: 'var(--acc-primary)' }} /> {t('profilemanagement.personal_information')}
+                </h3>
+                <button onClick={loadProfile} className="acc-btn-secondary btn-sm" title={t('profilemanagement.reload_profile')} disabled={loading}>
+                  <RefreshCw size={14} className={loading ? "loading-spinner" : ""} /> {t('profilemanagement.reload_profile') || 'Làm mới'}
+                </button>
+              </div>
               
               <form onSubmit={handleProfileSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>

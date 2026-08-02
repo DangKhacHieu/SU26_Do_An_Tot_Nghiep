@@ -134,7 +134,7 @@ namespace STMM.Tests.Services
 
             // Act & Assert
             var exception = await Assert.ThrowsAsync<BadRequestException>(() => _service.LoginAsync(request));
-            exception.Message.Should().Be("Tài khoản đã bị khóa hoặc tạm dừng");
+            exception.Message.Should().Be("Tài khoản đã bị khóa hoặc tạm dừng. Vui lòng liên hệ Ban Quản lý Chợ để được hỗ trợ.");
         }
 
         [Fact]

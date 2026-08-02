@@ -127,17 +127,24 @@ namespace STMM.API.Controllers
         }
 
         [HttpPost("{id}/resolve-quote")]
-        public async Task<IActionResult> ResolveQuote(int id, [FromQuery] bool approve)
+        public async Task<IActionResult> ResolveQuote(int id, [FromBody] STMM.Business.DTOs.Request.VendorQuotationDecisionRequest decision)
         {
             try
             {
+                var validator = new STMM.Business.Validators.VendorQuotationDecisionValidator();
+                var validationResult = await validator.ValidateAsync(decision);
+                if (!validationResult.IsValid)
+                {
+                    return BadRequest(new { message = validationResult.Errors.First().ErrorMessage });
+                }
+
                 var vendorId = await GetVendorIdAsync();
-                var result = await _vendorRequestService.ResolveRequestQuoteForVendorAsync(vendorId, id, approve);
+                var result = await _vendorRequestService.ResolveRequestQuoteForVendorAsync(vendorId, id, decision);
 
                 // Ghi nhật ký hoạt động
                 var userId = GetUserId();
                 var ipAddress = Request.HttpContext.Connection.RemoteIpAddress?.ToString();
-                var choiceVerb = approve ? "Phê duyệt" : "Từ chối";
+                var choiceVerb = decision.IsApproved ? "Phê duyệt" : "Từ chối";
                 await _auditLogService.LogAsync(userId, $"{choiceVerb} báo giá dịch vụ (Yêu cầu ID: {id})", ipAddress);
 
                 return Ok(new { message = "Thao tác thành công.", data = result });

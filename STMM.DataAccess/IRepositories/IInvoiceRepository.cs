@@ -17,5 +17,6 @@ namespace STMM.DataAccess.IRepositories
         Task<Invoice?> GetDraftOrUnpaidInvoiceForContractAsync(int contractId, int month, int year, CancellationToken ct = default);
         Task<decimal> GetTotalUnpaidAmountByStallIdAsync(int stallId, CancellationToken ct = default);
         Task<bool> ExistsInvoiceForContractAsync(int contractId, int month, int year, CancellationToken ct = default);
+        Task<bool> ExistsInvoiceWithFeeTypeForContractAsync(int contractId, int month, int year, int feeTypeId, CancellationToken ct = default);
     }
 }

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using STMM.API.Extensions;
 using STMM.Business.DTOs.Dashboard;
 using STMM.Business.Interfaces;
 using System.Security.Claims;
@@ -24,12 +25,12 @@ namespace STMM.API.Controllers
 
         private int GetUserId()
         {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
+            var userId = User.GetUserId();
+            if (!userId.HasValue)
             {
-                return 0;
+                throw new System.UnauthorizedAccessException("User ID not found in token.");
             }
-            return userId;
+            return userId.Value;
         }
 
         // --- FEE TYPES ---
@@ -56,7 +57,7 @@ namespace STMM.API.Controllers
         [HttpPut("fee-types/{id}")]
         public async Task<IActionResult> UpdateFeeType(int id, [FromBody] UpdateFeeTypeRequest request, CancellationToken ct)
         {
-            var result = await _configService.UpdateFeeTypeAsync(id, request, ct);
+            var result = await _configService.UpdateFeeTypeAsync(GetUserId(), id, request, ct);
 
             // Ghi nhật ký hoạt động
             var userId = GetUserId();
@@ -69,7 +70,7 @@ namespace STMM.API.Controllers
         [HttpDelete("fee-types/{id}")]
         public async Task<IActionResult> DeleteFeeType(int id, CancellationToken ct)
         {
-            var result = await _configService.DeleteFeeTypeAsync(id, ct);
+            var result = await _configService.DeleteFeeTypeAsync(GetUserId(), id, ct);
 
             // Ghi nhật ký hoạt động
             var userId = GetUserId();
@@ -103,7 +104,7 @@ namespace STMM.API.Controllers
         [HttpPut("services/{id}")]
         public async Task<IActionResult> UpdateService(int id, [FromBody] UpdateServiceRequest request, CancellationToken ct)
         {
-            var result = await _configService.UpdateServiceAsync(id, request, ct);
+            var result = await _configService.UpdateServiceAsync(GetUserId(), id, request, ct);
 
             // Ghi nhật ký hoạt động
             var userId = GetUserId();
@@ -116,7 +117,7 @@ namespace STMM.API.Controllers
         [HttpDelete("services/{id}")]
         public async Task<IActionResult> DeleteService(int id, CancellationToken ct)
         {
-            var result = await _configService.DeleteServiceAsync(id, ct);
+            var result = await _configService.DeleteServiceAsync(GetUserId(), id, ct);
 
             // Ghi nhật ký hoạt động
             var userId = GetUserId();

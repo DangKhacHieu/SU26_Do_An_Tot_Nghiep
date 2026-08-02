@@ -5,18 +5,18 @@ import {
   AlertTriangle, RefreshCw, Settings, X, FileText
 } from 'lucide-react';
 
-const getStatusBadge = (status) => {
-  const map = {
-    'Paid': { cls: 'badge badge-success', label: 'Đã thu' },
-    'Unpaid': { cls: 'badge badge-warning', label: 'Chờ thu' },
-    'Draft': { cls: 'badge badge-info', label: 'Nháp' },
-    'Overdue': { cls: 'badge badge-danger', label: 'Quá hạn' },
-  };
-  return map[status] || { cls: 'badge badge-neutral', label: status };
-};
-
 export default function PeriodicInvoices() {
   const { t } = useTranslation();
+
+  const getStatusBadge = (status) => {
+    const map = {
+      'Paid': { cls: 'badge badge-success', label: 'Paid' },
+      'Unpaid': { cls: 'badge badge-warning', label: 'Unpaid' },
+      'Draft': { cls: 'badge badge-info', label: 'Draft' },
+      'Overdue': { cls: 'badge badge-danger', label: 'Overdue' },
+    };
+    return map[status] || { cls: 'badge badge-neutral', label: status };
+  };
 
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -29,6 +29,7 @@ export default function PeriodicInvoices() {
   const [search, setSearch] = useState('');
   const [selectedIds, setSelectedIds] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
+  const [activeTab, setActiveTab] = useState('periodic');
   const itemsPerPage = 5;
 
   const [activeModal, setActiveModal] = useState(null);
@@ -45,13 +46,132 @@ export default function PeriodicInvoices() {
   });
 
   const [modalError, setModalError] = useState(null);
+  const [autoGenerateConfig, setAutoGenerateConfig] = useState({ autoInvoiceDay: 5, invoiceDueDays: 15 });
+  const [autoGenerateModal, setAutoGenerateModal] = useState(null);
+
+  useEffect(() => {
+    // Fetch auto-generate configuration
+    const headers = { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` };
+    fetch('http://localhost:5056/api/accountant/config/system-configs', { headers })
+      .then(r => r.json())
+      .then(configs => {
+        const autoInvoiceDay = configs.find(c => c.configKey === 'auto_invoice_day')?.configValue || '5';
+        const invoiceDueDays = configs.find(c => c.configKey === 'invoice_due_days')?.configValue || '15';
+        setAutoGenerateConfig({ autoInvoiceDay: parseInt(autoInvoiceDay), invoiceDueDays: parseInt(invoiceDueDays) });
+      })
+      .catch(() => {});
+  }, []);
+
+  // Check if auto-generate button should be shown
+  const shouldShowAutoGenerate = () => {
+    if (activeTab !== 'periodic') return false;
+    // For demo purposes, always show the auto-generate button in the periodic tab
+    return true;
+  };
+
+  // Calculate prorated rent for mid-month leases
+  const calculateProratedRent = (contract, currentMonth, currentYear) => {
+    if (!contract || !contract.startDate) return 0;
+    
+    const start = new Date(contract.startDate);
+    const contractMonth = start.getMonth() + 1;
+    const contractYear = start.getFullYear();
+    
+    // If contract started in current month, calculate prorated amount
+    if (contractMonth === currentMonth && contractYear === currentYear) {
+      const startDay = start.getDate();
+      const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
+      const daysRemaining = daysInMonth - startDay + 1;
+      const proratedRatio = daysRemaining / daysInMonth;
+      return (contract.monthlyRent || 0) * proratedRatio;
+    }
+    
+    return contract.monthlyRent || 0;
+  };
+
+  // Calculate electricity cost based on tiered pricing
+  const calculateElectricityCost = (consumption, tiers) => {
+    if (!consumption || !tiers || tiers.length === 0) return 0;
+    
+    let remaining = consumption;
+    let totalCost = 0;
+    
+    for (const tier of tiers.sort((a, b) => a.fromKwh - b.fromKwh)) {
+      if (remaining <= 0) break;
+      
+      const tierRange = tier.toKwh === Infinity ? Infinity : (tier.toKwh - tier.fromKwh);
+      const usageInTier = Math.min(remaining, tierRange);
+      
+      totalCost += usageInTier * tier.unitPrice;
+      remaining -= usageInTier;
+    }
+    
+    return totalCost;
+  };
+
+  // Calculate water cost based on tiered pricing
+  const calculateWaterCost = (consumption, tiers) => {
+    if (!consumption || !tiers || tiers.length === 0) return 0;
+    
+    let remaining = consumption;
+    let totalCost = 0;
+    
+    for (const tier of tiers.sort((a, b) => a.fromM3 - b.fromM3)) {
+      if (remaining <= 0) break;
+      
+      const tierRange = tier.toM3 === Infinity ? Infinity : (tier.toM3 - tier.fromM3);
+      const usageInTier = Math.min(remaining, tierRange);
+      
+      totalCost += usageInTier * tier.unitPrice;
+      remaining -= usageInTier;
+    }
+    
+    return totalCost;
+  };
+
+  // Handle auto-generate invoices
+  const handleAutoGenerate = async () => {
+    const currentMonth = new Date().getMonth() + 1;
+    const currentYear = new Date().getFullYear();
+    const headers = { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` };
+    
+    try {
+      const url = `http://localhost:5056/api/accountant/billing/trigger-auto-generate?month=${currentMonth}&year=${currentYear}`;
+      const response = await fetch(url, { method: 'POST', headers });
+      
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.detail || errData.title || t('periodicinvoices.create_invoice_failed'));
+      }
+      
+      const result = await response.json().catch(() => ({ generatedCount: 0 }));
+      showNotification('success', t('periodicinvoices.created_invoices_success', { count: result.generatedCount || 0 }));
+      setAutoGenerateModal(null);
+      fetchInvoices();
+      
+    } catch (error) {
+      setModalError(error.message);
+    }
+  };
 
   useEffect(() => {
     setModalError(null);
     if (activeModal === 'adhoc') {
       const headers = { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` };
       if (availableStalls.length === 0) {
-        fetch('http://localhost:5056/api/stalls', { headers }).then(r => r.json()).then(data => {
+        // Get user's marketId from session
+        const session = localStorage.getItem('user');
+        let marketId = '';
+        if (session) {
+          try {
+            const u = JSON.parse(session);
+            if (u && u.marketId) marketId = u.marketId;
+          } catch (e) {}
+        }
+        
+        // Fetch stalls filtered by marketId
+        const url = marketId ? `http://localhost:5056/api/stalls?marketId=${marketId}` : 'http://localhost:5056/api/stalls';
+        fetch(url, { headers }).then(r => r.json()).then(data => {
             if (Array.isArray(data)) setAvailableStalls(data);
         }).catch(() => {});
       }
@@ -91,16 +211,41 @@ export default function PeriodicInvoices() {
   useEffect(() => { setCurrentPage(1); }, [month, year, status, search]);
 
   const getMockInvoices = () => [
-    { invoiceId: 101, stallCode: 'Kiosk A-12', vendorName: t('periodicinvoices.nguyen_van_a'), totalAmount: 12500000, month: 6, year: 2026, dueDate: '2026-06-20', status: 'Unpaid', details: [{ feeTypeName: t('periodicinvoices.rent_premises'), description: t('periodicinvoices.rent_for_kiosk_a12'), quantity: 1, unitPrice: 12000000, amount: 12000000 }, { feeTypeName: t('periodicinvoices.service_fee'), description: t('periodicinvoices.general_operating_management_fee'), quantity: 1, unitPrice: 500000, amount: 500000 }] },
-    { invoiceId: 102, stallCode: 'Kiosk B-05', vendorName: t('periodicinvoices.tran_thi_b'), totalAmount: 3240000, month: 6, year: 2026, dueDate: '2026-06-20', status: 'Draft', details: [{ feeTypeName: t('periodicinvoices.electricity_bill'), description: t('periodicinvoices.electricity_consumption_in_june'), quantity: 600, unitPrice: 3500, amount: 2100000 }, { feeTypeName: t('periodicinvoices.water_fee'), description: t('periodicinvoices.water_consumption_in_june'), quantity: 60, unitPrice: 18000, amount: 1080000 }] },
-    { invoiceId: 103, stallCode: 'Kiosk C-02', vendorName: t('periodicinvoices.pham_van_c'), totalAmount: 850000, month: 5, year: 2026, dueDate: '2026-06-05', status: 'Paid', details: [{ feeTypeName: t('periodicinvoices.repair'), description: t('periodicinvoices.cost_of_repairing_leaky'), quantity: 1, unitPrice: 850000, amount: 850000 }] },
-    { invoiceId: 104, stallCode: 'Kiosk A-10', vendorName: t('periodicinvoices.le_hoang_d'), totalAmount: 14500000, month: 5, year: 2026, dueDate: '2026-05-30', status: 'Overdue', details: [{ feeTypeName: t('periodicinvoices.rent_premises'), description: t('periodicinvoices.rent_for_kiosk_a10'), quantity: 1, unitPrice: 12500000, amount: 12500000 }, { feeTypeName: t('periodicinvoices.fine'), description: t('periodicinvoices.penalty_for_encroaching_on'), quantity: 1, unitPrice: 2000000, amount: 2000000 }] },
-    { invoiceId: 105, stallCode: 'Kiosk E-01', vendorName: t('periodicinvoices.hoang_thi_e'), totalAmount: 15000000, month: 6, year: 2026, dueDate: '2026-06-20', status: 'Draft', details: [{ feeTypeName: t('periodicinvoices.rent_premises'), description: t('periodicinvoices.rent_for_kiosk_area'), quantity: 1, unitPrice: 15000000, amount: 15000000 }] },
+    { invoiceId: 101, stallCode: 'Kiosk A-12', vendorName: t('periodicinvoices.nguyen_van_a'), totalAmount: 12500000, month: 6, year: 2026, dueDate: '2026-06-20', status: 'Unpaid', isAdhoc: false, details: [{ feeTypeName: t('periodicinvoices.rent_premises'), description: t('periodicinvoices.rent_for_kiosk_a12'), quantity: 1, unitPrice: 12000000, amount: 12000000 }, { feeTypeName: t('periodicinvoices.service_fee'), description: t('periodicinvoices.general_operating_management_fee'), quantity: 1, unitPrice: 500000, amount: 500000 }] },
+    { invoiceId: 102, stallCode: 'Kiosk B-05', vendorName: t('periodicinvoices.tran_thi_b'), totalAmount: 3240000, month: 6, year: 2026, dueDate: '2026-06-20', status: 'Draft', isAdhoc: false, details: [{ feeTypeName: t('periodicinvoices.electricity_bill'), description: t('periodicinvoices.electricity_consumption_in_june'), quantity: 600, unitPrice: 3500, amount: 2100000 }, { feeTypeName: t('periodicinvoices.water_fee'), description: t('periodicinvoices.water_consumption_in_june'), quantity: 60, unitPrice: 18000, amount: 1080000 }] },
+    { invoiceId: 103, stallCode: 'Kiosk C-02', vendorName: t('periodicinvoices.pham_van_c'), totalAmount: 850000, month: 5, year: 2026, dueDate: '2026-06-05', status: 'Paid', isAdhoc: true, details: [{ feeTypeName: t('periodicinvoices.repair'), description: t('periodicinvoices.cost_of_repairing_leaky'), quantity: 1, unitPrice: 850000, amount: 850000 }] },
+    { invoiceId: 104, stallCode: 'Kiosk A-10', vendorName: t('periodicinvoices.le_hoang_d'), totalAmount: 14500000, month: 5, year: 2026, dueDate: '2026-05-30', status: 'Overdue', isAdhoc: false, details: [{ feeTypeName: t('periodicinvoices.rent_premises'), description: t('periodicinvoices.rent_for_kiosk_a10'), quantity: 1, unitPrice: 12500000, amount: 12500000 }, { feeTypeName: t('periodicinvoices.fine'), description: t('periodicinvoices.penalty_for_encroaching_on'), quantity: 1, unitPrice: 2000000, amount: 2000000 }] },
+    { invoiceId: 105, stallCode: 'Kiosk E-01', vendorName: t('periodicinvoices.hoang_thi_e'), totalAmount: 15000000, month: 6, year: 2026, dueDate: '2026-06-20', status: 'Draft', isAdhoc: false, details: [{ feeTypeName: t('periodicinvoices.rent_premises'), description: t('periodicinvoices.rent_for_kiosk_area'), quantity: 1, unitPrice: 15000000, amount: 15000000 }] },
   ];
 
   const handleSelectRow = (id) => setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  
+  const isInvoicePeriodic = (i) => {
+    if (i.invoiceType) return i.invoiceType === 'Periodic';
+    return !i.isAdhoc;
+  };
+
+  const getInvoiceTypeLabel = (i) => {
+    if (isInvoicePeriodic(i)) return 'Định kì';
+    if (i.invoiceType === 'Violation' && (!i.details || i.details.length === 0)) return 'Vi phạm';
+    if (i.details && i.details.length > 0 && i.details[0].feeTypeName) {
+      return i.details[0].feeTypeName;
+    }
+    return 'Đột xuất';
+  };
+
+  const getInvoiceTypeBadge = (i) => {
+    if (isInvoicePeriodic(i)) return 'badge-info';
+    if (i.invoiceType === 'Violation') return 'badge-danger';
+    return 'badge-warning';
+  };
+
+  const displayedInvoices = activeTab === 'periodic' 
+    ? invoices.filter(i => isInvoicePeriodic(i)) 
+    : invoices.filter(i => !isInvoicePeriodic(i));
+
   const handleSelectAll = (e) => {
-    if (e.target.checked) setSelectedIds(invoices.filter(i => i.status === 'Draft').map(i => i.invoiceId));
+    if (e.target.checked) setSelectedIds(displayedInvoices.filter(i => i.status === 'Draft').map(i => i.invoiceId));
     else setSelectedIds([]);
   };
   const getSelectedTotal = () => invoices.filter(i => selectedIds.includes(i.invoiceId)).reduce((s, i) => s + i.totalAmount, 0);
@@ -128,6 +273,13 @@ export default function PeriodicInvoices() {
 
   const handleAdjustSubmit = (e) => {
     e.preventDefault();
+    
+    // Validation for meter readings
+    if (adjustForm.newValue < adjustForm.oldValue) {
+      setModalError(t('periodicinvoices.new_value_must_be_greater_than_old'));
+      return;
+    }
+    
     if (isMock) {
       const updated = invoices.map(inv => {
         if (inv.invoiceId !== selectedInvoice.invoiceId) return inv;
@@ -167,8 +319,21 @@ export default function PeriodicInvoices() {
       setModalError(t('periodicinvoices.please_select_a_valid'));
       return;
     }
+    
+    // Validation for amount
+    if (!adhocForm.amount || parseFloat(adhocForm.amount) <= 0) {
+      setModalError(t('periodicinvoices.amount_must_be_positive'));
+      return;
+    }
+    
+    // Validation for description
+    if (!adhocForm.description || adhocForm.description.trim() === '') {
+      setModalError(t('periodicinvoices.please_enter_description'));
+      return;
+    }
+    
     if (isMock) {
-      setInvoices([{ invoiceId: Math.floor(Math.random() * 900) + 200, stallCode: `Stall-${adhocForm.stallId}`, vendorName: t('periodicinvoices.small_business'), totalAmount: adhocForm.amount, month: adhocForm.month, year: adhocForm.year, dueDate: adhocForm.dueDate, status: 'Unpaid', details: [{ feeTypeName: t('periodicinvoices.fees_incurred'), description: adhocForm.description, quantity: 1, unitPrice: adhocForm.amount, amount: adhocForm.amount }] }, ...invoices]);
+      setInvoices([{ invoiceId: Math.floor(Math.random() * 900) + 200, stallCode: `Stall-${adhocForm.stallId}`, vendorName: t('periodicinvoices.small_business'), totalAmount: adhocForm.amount, month: adhocForm.month, year: adhocForm.year, dueDate: adhocForm.dueDate, status: 'Unpaid', isAdhoc: true, details: [{ feeTypeName: t('periodicinvoices.fees_incurred'), description: adhocForm.description, quantity: 1, unitPrice: adhocForm.amount, amount: adhocForm.amount }] }, ...invoices]);
       showNotification('success', t('periodicinvoices.successfully_created_unexpected_invoices'));
       setActiveModal(null);
     } else {
@@ -209,6 +374,13 @@ export default function PeriodicInvoices() {
 
   const handleCancelInvoice = (e) => {
     e.preventDefault();
+    
+    // Validation for cancel reason
+    if (!cancelReason || cancelReason.trim() === '') {
+      setModalError(t('periodicinvoices.please_enter_cancel_reason'));
+      return;
+    }
+    
     if (isMock) {
       setInvoices(invoices.map(i => i.invoiceId === selectedInvoice.invoiceId ? { ...i, status: 'Canceled' } : i));
       showNotification('success', t('periodicinvoices.invoice_canceled_successfully_mock'));
@@ -235,20 +407,32 @@ export default function PeriodicInvoices() {
       {/* Header */}
       <div className="acc-page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <div>
-          <h1 className="acc-page-title">{t('periodicinvoices.ha_n_nh_k')}</h1>
+          <h1 className="acc-page-title">{t('periodicinvoices.invoice_management')}</h1>
           <p className="acc-page-subtitle">{t('periodicinvoices.manage_close_issuance_books')}</p>
         </div>
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-          {selectedIds.length > 0 && (
-            <button className="btn btn-success" onClick={() => setActiveModal('bulk')}>
-              <CheckCircle size={15} />
-              <span>Phát Hành Hàng Loạt ({selectedIds.length})</span>
+          {activeTab === 'periodic' && (
+            <>
+              {shouldShowAutoGenerate() && (
+                <button className="acc-btn-primary" style={{ backgroundColor: 'var(--success)', color: 'white' }} onClick={() => setAutoGenerateModal(true)}>
+                  <RefreshCw size={15} />
+                  <span>Tạo hóa đơn {new Date().getMonth() + 1}/{new Date().getFullYear()}</span>
+                </button>
+              )}
+              {selectedIds.length > 0 && (
+                <button className="btn btn-success" onClick={() => setActiveModal('bulk')}>
+                  <CheckCircle size={15} />
+                  <span>Phát hành hàng loạt ({selectedIds.length})</span>
+                </button>
+              )}
+            </>
+          )}
+          {activeTab === 'irregular' && (
+            <button className="acc-btn-primary" onClick={() => setActiveModal('adhoc')}>
+              <Plus size={15} />
+              <span>Hóa đơn đột xuất</span>
             </button>
           )}
-          <button className="acc-btn-primary" onClick={() => setActiveModal('adhoc')}>
-            <Plus size={15} />
-            <span>{t('periodicinvoices.unexpected_bills')}</span>
-          </button>
         </div>
       </div>
 
@@ -269,8 +453,20 @@ export default function PeriodicInvoices() {
         </div>
       )}
 
+      {/* Tabs */}
+      <div className="acc-tabs-header">
+        {[{ id: 'periodic', label: 'Hóa đơn định kì', icon: FileText }, { id: 'irregular', label: 'Hóa đơn phát sinh', icon: AlertTriangle }].map(tab => {
+          const Icon = tab.icon;
+          return (
+            <button key={tab.id} className={`acc-tab-btn ${activeTab === tab.id ? 'active' : ''}`} onClick={() => { setActiveTab(tab.id); setCurrentPage(1); setSelectedIds([]); }}>
+              <Icon size={15} /> {tab.label}
+            </button>
+          );
+        })}
+      </div>
+
       {/* Filter Bar */}
-      <div className="acc-card" style={{ padding: "20px" }} style={{ padding: '16px 20px' }}>
+      <div className="acc-card" style={{ padding: '16px 20px' }}>
         <form onSubmit={(e) => { e.preventDefault(); fetchInvoices(); }}
           style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
           <div className="search-wrapper" style={{ flex: '1 1 220px' }}>
@@ -280,10 +476,10 @@ export default function PeriodicInvoices() {
               value={search} onChange={e => setSearch(e.target.value)} />
           </div>
           <select className="filter-select" value={month} onChange={e => setMonth(parseInt(e.target.value))}>
-            {Array.from({ length: 12 }, (_, i) => <option key={i + 1} value={i + 1}>Tháng {i + 1}</option>)}
+            {Array.from({ length: 12 }, (_, i) => <option key={i + 1} value={i + 1}>{t('periodicinvoices.month')} {i + 1}</option>)}
           </select>
           <select className="filter-select" value={year} onChange={e => setYear(parseInt(e.target.value))}>
-            {[2025, 2026, 2027].map(yr => <option key={yr} value={yr}>Năm {yr}</option>)}
+            {[2025, 2026, 2027].map(yr => <option key={yr} value={yr}>{t('periodicinvoices.year')} {yr}</option>)}
           </select>
           <select className="filter-select" value={status} onChange={e => setStatus(e.target.value)}>
             <option value="all">{t('periodicinvoices.every_state')}</option>
@@ -309,20 +505,20 @@ export default function PeriodicInvoices() {
               <tr>
                 <th style={{ width: 40, padding: '11px 16px' }}>
                   <input type="checkbox" onChange={handleSelectAll}
-                    checked={invoices.length > 0 && invoices.filter(i => i.status === 'Draft').every(i => selectedIds.includes(i.invoiceId))} />
+                    checked={displayedInvoices.length > 0 && displayedInvoices.filter(i => i.status === 'Draft').every(i => selectedIds.includes(i.invoiceId))} />
                 </th>
                 <th>{t('periodicinvoices.hd_code')}</th>
-                <th>Kiosk</th>
+                <th>{t('periodicinvoices.invoice_type')}</th>
+                <th>{t('periodicinvoices.kiosk')}</th>
                 <th>{t('periodicinvoices.tenants')}</th>
-                <th>{t('periodicinvoices.ky')}</th>
+                <th>{t('periodicinvoices.ky_and_due_date')}</th>
                 <th className="text-right">{t('periodicinvoices.total_money')}</th>
-                <th>{t('periodicinvoices.payment_term')}</th>
                 <th>{t('periodicinvoices.status')}</th>
                 <th className="text-right">{t('periodicinvoices.operation')}</th>
               </tr>
             </thead>
             <tbody>
-              {invoices.length > 0 ? invoices.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(inv => {
+              {displayedInvoices.length > 0 ? displayedInvoices.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(inv => {
                 const { cls, label } = getStatusBadge(inv.status);
                 return (
                   <tr key={inv.invoiceId}>
@@ -332,11 +528,20 @@ export default function PeriodicInvoices() {
                       ) : <input type="checkbox" disabled style={{ opacity: 0.3 }} />}
                     </td>
                     <td><span style={{ fontWeight: 600, color: 'var(--text-title)', fontFamily: 'monospace', fontSize: 13 }}>INV-{inv.invoiceId}</span></td>
+                    <td>
+                        <span className={`badge ${getInvoiceTypeBadge(inv)}`} style={{ fontSize: 11 }}>
+                          {getInvoiceTypeLabel(inv)}
+                        </span>
+                      </td>
                     <td><span style={{ fontWeight: 700 }}>{inv.stallCode}</span></td>
                     <td>{inv.vendorName}</td>
-                    <td><span style={{ color: 'var(--text-muted)', fontSize: 13 }}>Th.{inv.month}/{inv.year}</span></td>
+                    <td>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>{t('periodicinvoices.month_short')}{inv.month}/{inv.year}</span>
+                        <span style={{ color: 'var(--text-secondary)', fontSize: 12 }}>({inv.dueDate || '—'})</span>
+                      </div>
+                    </td>
                     <td className="text-right"><span style={{ fontWeight: 700, color: 'var(--text-title)' }}>{inv.totalAmount.toLocaleString('vi-VN')} ₫</span></td>
-                    <td><span style={{ color: 'var(--text-secondary)', fontSize: 13 }}>{inv.dueDate || '—'}</span></td>
                     <td><span className={cls}>{label}</span></td>
                     <td className="text-right">
                       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
@@ -344,10 +549,14 @@ export default function PeriodicInvoices() {
                           <Eye size={13} /> {t('periodicinvoices.detail')}</button>
                         {(inv.status === 'Draft' || inv.status === 'Unpaid') && (
                           <>
-                            <button className="btn btn-sm" style={{ background: 'var(--primary-light)', color: 'var(--primary)', border: '1px solid var(--primary-border)' }} onClick={() => openAdjustModal(inv)}>
-                              {t('periodicinvoices.record_data')}</button>
+                            {activeTab === 'periodic' && (
+                              <button className="btn btn-sm" style={{ background: 'var(--primary-light)', color: 'var(--primary)', border: '1px solid var(--primary-border)' }} onClick={() => openAdjustModal(inv)}>
+                                {t('periodicinvoices.record_data')}
+                              </button>
+                            )}
                             <button className="btn btn-sm" style={{ background: 'var(--danger-light)', color: 'var(--danger)', border: '1px solid var(--danger)' }} onClick={() => openCancelModal(inv)}>
-                              {t('periodicinvoices.cancel')}</button>
+                              {t('periodicinvoices.cancel')}
+                            </button>
                           </>
                         )}
                       </div>
@@ -367,10 +576,14 @@ export default function PeriodicInvoices() {
               )}
             </tbody>
           </table>
-          {invoices.length > itemsPerPage && (
+          {displayedInvoices.length > itemsPerPage && (
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, padding: '16px' }}>
               <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-                Hiển thị {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, invoices.length)} trong tổng số {invoices.length} hóa đơn
+                {t('periodicinvoices.showing_invoices', { 
+                  start: ((currentPage - 1) * itemsPerPage) + 1, 
+                  end: Math.min(currentPage * itemsPerPage, displayedInvoices.length), 
+                  total: displayedInvoices.length 
+                })}
               </span>
               <div style={{ display: 'flex', gap: 6 }}>
                 <button 
@@ -379,7 +592,7 @@ export default function PeriodicInvoices() {
                   disabled={currentPage === 1}
                 >
                   {t('periodicinvoices.before')}</button>
-                {Array.from({ length: Math.ceil(invoices.length / itemsPerPage) }, (_, i) => i + 1).map(page => (
+                {Array.from({ length: Math.ceil(displayedInvoices.length / itemsPerPage) }, (_, i) => i + 1).map(page => (
                   <button 
                     key={page} 
                     className={`btn btn-sm ${currentPage === page ? 'btn-primary' : 'btn-secondary'}`}
@@ -390,8 +603,8 @@ export default function PeriodicInvoices() {
                 ))}
                 <button 
                   className="acc-btn-secondary btn-sm" 
-                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(invoices.length / itemsPerPage)))} 
-                  disabled={currentPage === Math.ceil(invoices.length / itemsPerPage)}
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(displayedInvoices.length / itemsPerPage)))} 
+                  disabled={currentPage === Math.ceil(displayedInvoices.length / itemsPerPage)}
                 >
                   Sau
                 </button>
@@ -406,7 +619,7 @@ export default function PeriodicInvoices() {
         <div className="acc-modal-overlay" onClick={() => setActiveModal(null)}>
           <div className="modal-container modal-container-lg" onClick={e => e.stopPropagation()}>
             <div className="acc-modal-header">
-              <span className="acc-modal-title">Chi Tiết Hóa Đơn — INV-{selectedInvoice.invoiceId}</span>
+              <span className="acc-modal-title">{t('periodicinvoices.invoice_detail_title', { id: selectedInvoice.invoiceId })}</span>
               <button className="acc-modal-close" onClick={() => setActiveModal(null)}><X size={16} /></button>
             </div>
             <div className="acc-modal-body" style={{ maxHeight: '60vh', overflowY: 'auto' }}>
@@ -417,7 +630,7 @@ export default function PeriodicInvoices() {
                 </div>
               )}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, padding: '14px', background: 'var(--bg-base)', borderRadius: 'var(--radius-md)', fontSize: 13.5 }}>
-                <div><span style={{ color: 'var(--text-muted)' }}>Kiosk: </span><strong>{selectedInvoice.stallCode}</strong></div>
+                <div><span style={{ color: 'var(--text-muted)' }}>{t('periodicinvoices.kiosk')}: </span><strong>{selectedInvoice.stallCode}</strong></div>
                 <div><span style={{ color: 'var(--text-muted)' }}>{t('periodicinvoices.small_business')}</span><strong>{selectedInvoice.vendorName}</strong></div>
                 <div><span style={{ color: 'var(--text-muted)' }}>{t('periodicinvoices.submission_deadline')}</span>{selectedInvoice.dueDate || t('periodicinvoices.not_regulated')}</div>
                 <div><span style={{ color: 'var(--text-muted)' }}>{t('periodicinvoices.status')}</span><span className={getStatusBadge(selectedInvoice.status).cls}>{getStatusBadge(selectedInvoice.status).label}</span></div>
@@ -461,7 +674,7 @@ export default function PeriodicInvoices() {
         <div className="acc-modal-overlay" onClick={() => setActiveModal(null)}>
           <div className="acc-modal-container" onClick={e => e.stopPropagation()}>
             <div className="acc-modal-header">
-              <span className="acc-modal-title">Hủy Hóa Đơn — INV-{selectedInvoice.invoiceId}</span>
+              <span className="acc-modal-title">{t('periodicinvoices.cancel_invoice_title', { id: selectedInvoice.invoiceId })}</span>
               <button className="acc-modal-close" onClick={() => setActiveModal(null)}><X size={16} /></button>
             </div>
             <form onSubmit={handleCancelInvoice}>
@@ -502,7 +715,7 @@ export default function PeriodicInvoices() {
         <div className="acc-modal-overlay" onClick={() => setActiveModal(null)}>
           <div className="acc-modal-container" onClick={e => e.stopPropagation()}>
             <div className="acc-modal-header">
-              <span className="acc-modal-title">Điều Chỉnh Chỉ Số — {selectedInvoice.stallCode}</span>
+              <span className="acc-modal-title">{t('periodicinvoices.adjust_meter_title', { stallCode: selectedInvoice.stallCode })}</span>
               <button className="acc-modal-close" onClick={() => setActiveModal(null)}><X size={16} /></button>
             </div>
             <form onSubmit={handleAdjustSubmit}>
@@ -515,7 +728,7 @@ export default function PeriodicInvoices() {
               )}
                 <div className="alert alert-info">
                   <AlertTriangle size={15} className="alert-icon" />
-                  <span>Sửa sai chỉ số Điện/Nước. Hóa đơn tháng {selectedInvoice.month}/{selectedInvoice.year} sẽ tự động tính lại.</span>
+                  <span>{t('periodicinvoices.fix_meter_reading', { month: selectedInvoice.month, year: selectedInvoice.year })}</span>
                 </div>
                 <div>
                   <label className="acc-form-label">{t('periodicinvoices.meter_type')}</label>
@@ -653,6 +866,50 @@ export default function PeriodicInvoices() {
             <div className="acc-modal-footer">
               <button className="acc-btn-secondary" onClick={() => setActiveModal(null)}>{t('periodicinvoices.cancel')}</button>
               <button className="btn btn-success" onClick={handleBulkApprove}>{t('periodicinvoices.confirmation_release')}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Auto Generate Invoices */}
+      {autoGenerateModal && (
+        <div className="acc-modal-overlay" onClick={() => setAutoGenerateModal(null)}>
+          <div className="modal-container modal-container-md" onClick={e => e.stopPropagation()}>
+            <div className="acc-modal-header">
+              <span className="acc-modal-title">{t('periodicinvoices.auto_generate_modal_title')}</span>
+              <button className="acc-modal-close" onClick={() => setAutoGenerateModal(null)}><X size={16} /></button>
+            </div>
+            <div className="acc-modal-body">
+              <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                <RefreshCw size={20} style={{ color: 'var(--success)', flexShrink: 0, marginTop: 2 }} />
+                <div>
+                  <p style={{ fontSize: 14.5, lineHeight: 1.6, marginBottom: 12 }}>
+                    {t('periodicinvoices.auto_generate_description', { month: new Date().getMonth() + 1, year: new Date().getFullYear() })}
+                  </p>
+                  <ul style={{ fontSize: 13.5, lineHeight: 1.6, paddingLeft: 20, color: 'var(--text-muted)' }}>
+                    <li>{t('periodicinvoices.rent_prorated')}</li>
+                    <li>{t('periodicinvoices.electricity_consumption')}</li>
+                    <li>{t('periodicinvoices.water_consumption')}</li>
+                  </ul>
+                </div>
+              </div>
+              <div style={{ marginTop: 16, padding: '14px 16px', background: 'var(--bg-base)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>{t('periodicinvoices.invoice_creation_day')}</span>
+                  <strong>{t('periodicinvoices.day_of_month', { day: autoGenerateConfig.autoInvoiceDay })}</strong>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>{t('periodicinvoices.payment_due_days')}</span>
+                  <strong>{t('periodicinvoices.days_after_creation', { days: autoGenerateConfig.invoiceDueDays })}</strong>
+                </div>
+              </div>
+              <p style={{ fontSize: 12.5, color: 'var(--text-muted)', lineHeight: 1.5, marginTop: 12 }}>
+                {t('periodicinvoices.draft_status_note')}
+              </p>
+            </div>
+            <div className="acc-modal-footer">
+              <button className="acc-btn-secondary" onClick={() => setAutoGenerateModal(null)}>{t('periodicinvoices.cancel')}</button>
+              <button className="btn btn-success" onClick={handleAutoGenerate}>{t('periodicinvoices.confirm_create')}</button>
             </div>
           </div>
         </div>
