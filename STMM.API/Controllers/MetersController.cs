@@ -13,12 +13,10 @@ namespace STMM.API.Controllers
     [Authorize(Roles = "Staff,Manager,Admin")]
     public class MetersController : ControllerBase
     {
-        private readonly IMeterReadingService _readingService;
         private readonly IMeterService _meterService;
 
-        public MetersController(IMeterReadingService readingService, IMeterService meterService)
+        public MetersController(IMeterService meterService)
         {
-            _readingService = readingService;
             _meterService = meterService;
         }
 
@@ -36,7 +34,7 @@ namespace STMM.API.Controllers
         [Authorize(Roles = "Staff")]
         public async Task<IActionResult> GetMetersByStallId(int stallId, CancellationToken ct)
         {
-            var result = await _readingService.GetMetersByStallIdAsync(GetUserId() ?? 0, stallId, ct);
+            var result = await _meterService.GetMetersByStallIdAsync(GetUserId() ?? 0, stallId, ct);
             return Ok(result);
         }
 

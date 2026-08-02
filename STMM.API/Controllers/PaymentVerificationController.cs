@@ -1,10 +1,12 @@
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
+using STMM.API.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using STMM.Business.DTOs.Billing;
 using STMM.Business.Interfaces;
 using System.Threading;
 using System.Threading.Tasks;
+using System;
 
 namespace STMM.API.Controllers
 {
@@ -22,13 +24,21 @@ namespace STMM.API.Controllers
             _auditLogService = auditLogService;
         }
 
+        private int GetUserId()
+        {
+            var userId = User.GetUserId();
+            if (!userId.HasValue)
+                throw new UnauthorizedAccessException("User ID not found in token.");
+            return userId.Value;
+        }
+
         /// <summary>
         /// Lấy danh sách giao dịch nộp tiền mặt hoặc online chờ đối soát.
         /// </summary>
         [HttpGet("pending")]
         public async Task<IActionResult> GetPendingPayments(CancellationToken ct)
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("userId")?.Value ?? "0");
+            var userId = GetUserId();
             var result = await _billingService.GetPendingPaymentsAsync(userId, ct);
             return Ok(result);
         }
@@ -42,7 +52,7 @@ namespace STMM.API.Controllers
             [FromBody] VerifyPaymentRequest request,
             CancellationToken ct)
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("userId")?.Value ?? "0");
+            var userId = GetUserId();
             var result = await _billingService.VerifyPaymentAsync(paymentId, request, userId, ct);
 
             // Ghi nhật ký hoạt động
@@ -59,7 +69,7 @@ namespace STMM.API.Controllers
         [HttpGet("debts")]
         public async Task<IActionResult> GetStallsDebtList([FromQuery] string? search, CancellationToken ct)
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("userId")?.Value ?? "0");
+            var userId = GetUserId();
             var result = await _billingService.GetStallsDebtListAsync(search, userId, ct);
             return Ok(result);
         }
@@ -70,7 +80,7 @@ namespace STMM.API.Controllers
         [HttpGet("debts/{stallId}")]
         public async Task<IActionResult> GetStallDebtDetails(int stallId, CancellationToken ct)
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("userId")?.Value ?? "0");
+            var userId = GetUserId();
             var result = await _billingService.GetStallDebtDetailsAsync(stallId, userId, ct);
             return Ok(result);
         }
@@ -83,7 +93,7 @@ namespace STMM.API.Controllers
             [FromBody] SendDebtNotificationRequest request,
             CancellationToken ct)
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("userId")?.Value ?? "0");
+            var userId = GetUserId();
             var result = await _billingService.SendDebtReminderAsync(request, userId, ct);
 
             // Ghi nhật ký hoạt động
@@ -99,7 +109,7 @@ namespace STMM.API.Controllers
         [HttpGet("disputes")]
         public async Task<IActionResult> GetInvoiceDisputes(CancellationToken ct)
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("userId")?.Value ?? "0");
+            var userId = GetUserId();
             var result = await _billingService.GetInvoiceDisputesAsync(userId, ct);
             return Ok(result);
         }
@@ -113,7 +123,7 @@ namespace STMM.API.Controllers
             [FromBody] ResolveDisputeRequest request,
             CancellationToken ct)
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("userId")?.Value ?? "0");
+            var userId = GetUserId();
             var result = await _billingService.ResolveInvoiceDisputeAsync(requestId, request, userId, ct);
 
             // Ghi nhật ký hoạt động

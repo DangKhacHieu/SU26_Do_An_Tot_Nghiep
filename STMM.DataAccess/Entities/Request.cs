@@ -107,6 +107,8 @@ public partial class Request
 
     public DateTime? UpdatedAt { get; set; }
 
+    public uint Version { get; set; } // For PostgreSQL xmin concurrency
+
     public virtual Invoice? Invoice { get; set; }
 
     public virtual Stall Stall { get; set; } = null!;

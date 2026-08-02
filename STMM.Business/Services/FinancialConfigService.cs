@@ -101,7 +101,7 @@ namespace STMM.Business.Services
             };
         }
 
-        public async Task<FeeTypeDto> UpdateFeeTypeAsync(int id, UpdateFeeTypeRequest request, CancellationToken ct = default)
+        public async Task<FeeTypeDto> UpdateFeeTypeAsync(int userId, int id, UpdateFeeTypeRequest request, CancellationToken ct = default)
         {
             var valResult = await _updateFeeTypeValidator.ValidateAsync(request, ct);
             if (!valResult.IsValid)
@@ -114,6 +114,9 @@ namespace STMM.Business.Services
             {
                 throw new NotFoundException($"Không tìm thấy Loại phí ID {id}.");
             }
+            var user = await _userRepository.GetByIdAsync(userId, ct);
+            if (user?.MarketId != null && item.MarketId != user.MarketId)
+                throw new ForbiddenException("Bạn không có quyền cập nhật loại phí của chợ khác.");
 
             // Kiểm tra trùng lặp tên loại phí (ngoại trừ chính nó)
             var isDuplicate = await _feeTypeRepository.IsNameExistsAsync(request.Name, id, item.MarketId, ct);
@@ -138,10 +141,18 @@ namespace STMM.Business.Services
             };
         }
 
-        public async Task<bool> DeleteFeeTypeAsync(int id, CancellationToken ct = default)
+        public async Task<bool> DeleteFeeTypeAsync(int userId, int id, CancellationToken ct = default)
         {
+            if (id <= 6)
+            {
+                throw new BadRequestException("Không thể xóa loại phí mặc định của hệ thống.");
+            }
+
             var item = await _feeTypeRepository.GetByIdAsync(id, ct);
             if (item == null) return false;
+            var user = await _userRepository.GetByIdAsync(userId, ct);
+            if (user?.MarketId != null && item.MarketId != user.MarketId)
+                throw new ForbiddenException("Bạn không có quyền xóa loại phí của chợ khác.");
 
             // Kiểm tra xem có dịch vụ nào đang hoạt động liên kết với loại phí này không
             var hasService = await _serviceRepository.IsFeeTypeInUseAsync(id, item.MarketId, ct);
@@ -233,7 +244,7 @@ namespace STMM.Business.Services
             };
         }
 
-        public async Task<ServiceDto> UpdateServiceAsync(int id, UpdateServiceRequest request, CancellationToken ct = default)
+        public async Task<ServiceDto> UpdateServiceAsync(int userId, int id, UpdateServiceRequest request, CancellationToken ct = default)
         {
             var valResult = await _updateServiceValidator.ValidateAsync(request, ct);
             if (!valResult.IsValid)
@@ -246,6 +257,9 @@ namespace STMM.Business.Services
             {
                 throw new NotFoundException($"Không tìm thấy Dịch vụ ID {id}.");
             }
+            var user = await _userRepository.GetByIdAsync(userId, ct);
+            if (user?.MarketId != null && item.MarketId != user.MarketId)
+                throw new ForbiddenException("Bạn không có quyền cập nhật dịch vụ của chợ khác.");
 
             // Kiểm tra trùng lặp tên dịch vụ (chỉ so với dịch vụ đang hoạt động khác chính nó)
             var isDuplicate = await _serviceRepository.IsNameExistsAsync(request.Name, id, item.MarketId, ct);
@@ -281,10 +295,13 @@ namespace STMM.Business.Services
             };
         }
 
-        public async Task<bool> DeleteServiceAsync(int id, CancellationToken ct = default)
+        public async Task<bool> DeleteServiceAsync(int userId, int id, CancellationToken ct = default)
         {
             var item = await _serviceRepository.GetByIdAsync(id, ct);
             if (item == null) return false;
+            var user = await _userRepository.GetByIdAsync(userId, ct);
+            if (user?.MarketId != null && item.MarketId != user.MarketId)
+                throw new ForbiddenException("Bạn không có quyền xóa dịch vụ của chợ khác.");
 
             // Mềm: đặt IsActive = false thay vì xóa hẳn để tránh lỗi dữ liệu lịch sử
             item.IsActive = false;

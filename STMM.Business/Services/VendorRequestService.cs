@@ -55,7 +55,7 @@ namespace STMM.Business.Services
 
             if (!string.IsNullOrWhiteSpace(queryParams.Status))
             {
-                var validStatuses = new[] { "Pending", "Approved", "Rejected", "Cancelled", "In_Progress" };
+                var validStatuses = new[] { "Pending", "Quoted", "Approved", "Rejected", "Cancelled", "In_Progress" };
                 if (!validStatuses.Contains(queryParams.Status.Trim()))
                     throw new BadRequestException("Trạng thái yêu cầu không hợp lệ.");
             }
@@ -212,7 +212,7 @@ namespace STMM.Business.Services
             return true;
         }
 
-        public async Task<RequestDto> ResolveRequestQuoteForVendorAsync(int vendorId, int requestId, bool approve, CancellationToken ct = default)
+        public async Task<RequestDto> ResolveRequestQuoteForVendorAsync(int vendorId, int requestId, VendorQuotationDecisionRequest decision, CancellationToken ct = default)
         {
             var request = await _requestRepository.GetByIdAsync(requestId, ct);
             if (request == null || request.VendorId != vendorId)
@@ -220,20 +220,45 @@ namespace STMM.Business.Services
                 throw new NotFoundException($"Không tìm thấy yêu cầu sửa chữa ID {requestId}.");
             }
 
+            if (request.RequestType != "FacilityIssue")
+            {
+                throw new BadRequestException("Chỉ có thể phê duyệt báo giá cho các yêu cầu sửa chữa cơ sở vật chất.");
+            }
+
+            if (request.Status != "Quoted")
+            {
+                throw new BadRequestException("Yêu cầu này không ở trạng thái chờ duyệt báo giá.");
+            }
+
             if (request.PaidBy != "Vendor")
             {
                 throw new BadRequestException("Yêu cầu này không do tiểu thương chi trả nên không thể phê duyệt.");
             }
 
-            request.IsQuoteApproved = approve;
-            request.Status = approve ? "Approved" : "Rejected";
+            if (request.IsQuoteApproved != null)
+            {
+                throw new BadRequestException("Báo giá này đã được xử lý trước đó.");
+            }
+
+            request.IsQuoteApproved = decision.Approve;
+            
+            if (decision.Approve)
+            {
+                request.Status = "Approved";
+            }
+            else
+            {
+                request.Status = "Cancelled";
+                request.VendorRejectReason = decision.RejectReason;
+            }
+            
             request.UpdatedAt = DateTime.UtcNow;
 
             // Synchronize linked staff task status
             var tasks = await _staffTaskRepository.FindAsync(t => t.RequestId == requestId, ct);
             foreach (var task in tasks)
             {
-                if (approve)
+                if (decision.Approve)
                 {
                     if (task.Status == "PendingApproval")
                     {
@@ -250,7 +275,6 @@ namespace STMM.Business.Services
                     }
                 }
             }
-            await _staffTaskRepository.SaveChangesAsync(ct);
 
             _requestRepository.Update(request);
             await _requestRepository.SaveChangesAsync(ct);

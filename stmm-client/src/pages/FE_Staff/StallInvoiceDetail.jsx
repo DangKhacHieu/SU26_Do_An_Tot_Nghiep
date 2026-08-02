@@ -5,8 +5,10 @@ import ReceiveCashModal from './ReceiveCashModal';
 import readProblemDetail from '../../utils/readProblemDetail';
 import './StallInvoiceDetail.css';
 
+const INVOICE_STATUS = Object.freeze({ UNPAID: 'Unpaid' });
+
 export default function StallInvoiceDetail({ stallId, stallCode, baseUrl, onBack, onShowNotification }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const [unpaidInvoices, setUnpaidInvoices] = useState([]);
   const [selectedInvoiceId, setSelectedInvoiceId] = useState(null);
@@ -40,7 +42,7 @@ export default function StallInvoiceDetail({ stallId, stallCode, baseUrl, onBack
     } finally {
       setLoadingList(false);
     }
-  }, [baseUrl, stallId]);
+  }, [baseUrl, stallId, t]);
 
   const fetchInvoiceDetail = useCallback(async (invoiceId) => {
     setLoadingDetail(true);
@@ -59,7 +61,7 @@ export default function StallInvoiceDetail({ stallId, stallCode, baseUrl, onBack
     } finally {
       setLoadingDetail(false);
     }
-  }, [baseUrl]);
+  }, [baseUrl, t]);
 
   useEffect(() => {
     fetchUnpaidInvoices();
@@ -74,29 +76,29 @@ export default function StallInvoiceDetail({ stallId, stallCode, baseUrl, onBack
   const handlePaymentSuccess = (result) => {
     setShowCashModal(false);
     onShowNotification(
-      `Invoice payment recorded successfully. Amount: ${result.amount.toLocaleString(t('stallinvoicedetail.vivn'))} VND`, 
-      t('stallinvoicedetail.success')
+      `${t('stallinvoicedetail.payment_recorded_successfully')} ${result.amount.toLocaleString(i18n.resolvedLanguage?.startsWith('vi') ? 'vi-VN' : 'en-US')} VND`,
+      'success'
     );
     fetchUnpaidInvoices();
   };
 
   const formatDate = (dateString) => {
     if (!dateString) return t('stallinvoicedetail.na');
-    return new Date(dateString).toLocaleDateString(t('stallinvoicedetail.enus'));
+    return new Date(dateString).toLocaleDateString(i18n.resolvedLanguage?.startsWith('vi') ? 'vi-VN' : 'en-US');
   };
 
   return (
     <div className="stall-invoice-detail-page">
-      <div className="details-header" style={{ display: 'flex', justifyContent: t('stallinvoicedetail.spacebetween'), alignItems: t('stallinvoicedetail.center'), marginBottom: '20px' }}>
+      <div className="details-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
         <h2 style={{ fontSize: '18px', fontWeight: '700', margin: 0, color: 'var(--text-main)' }}>📄 INVOICES - STALL {stallCode}</h2>
         <button className="btn-secondary-outline" onClick={onBack}>
-          &larr; Back
+          &larr; {t('stallinvoicedetail.back')}
         </button>
       </div>
 
       <div className="invoice-split-layout">
         <div className="invoice-list-column">
-          <h3 className="column-title">Unpaid Invoices ({unpaidInvoices.length})</h3>
+          <h3 className="column-title">{t('stallinvoicedetail.unpaid_invoices_count', { count: unpaidInvoices.length })}</h3>
 
           {loadingList ? (
             <div className="loading-state">{t('stallinvoicedetail.loading_invoices')}</div>
@@ -114,12 +116,12 @@ export default function StallInvoiceDetail({ stallId, stallCode, baseUrl, onBack
               {unpaidInvoices.map((inv) => (
                 <div 
                   key={inv.invoiceId}
-                  className={`invoice-summary-card ${selectedInvoiceId === inv.invoiceId ? t('stallinvoicedetail.active') : ''}`}
+                    className={`invoice-summary-card ${selectedInvoiceId === inv.invoiceId ? 'active' : ''}`}
                   onClick={() => setSelectedInvoiceId(inv.invoiceId)}
                 >
                   <div className="inv-summary-header">
                     <span className="inv-label">Month {inv.month}/{inv.year}</span>
-                    <span className="inv-amount">{inv.totalAmount.toLocaleString(t('stallinvoicedetail.vivn'))} VND</span>
+                    <span className="inv-amount">{inv.totalAmount.toLocaleString(i18n.resolvedLanguage?.startsWith('vi') ? 'vi-VN' : 'en-US')} VND</span>
                   </div>
                   <div className="inv-summary-body">
                     <span className="inv-fees text-truncate">{inv.feeTypeSummary}</span>
@@ -143,14 +145,14 @@ export default function StallInvoiceDetail({ stallId, stallCode, baseUrl, onBack
               <div className="invoice-detail-box">
                 <div className="detail-header-section">
                   <div className="header-meta">
-                    <h2 className="invoice-title">Invoice Month {invoiceDetail.month}/{invoiceDetail.year}</h2>
+                    <h2 className="invoice-title">{t('stallinvoicedetail.invoice_month', { month: invoiceDetail.month, year: invoiceDetail.year })}</h2>
                     <span className={`status-badge ${invoiceDetail.status.toLowerCase().replace(' ', '-')}`}>
-                      {invoiceDetail.status === t('stallinvoicedetail.unpaid') ? 'Unpaid' : invoiceDetail.status}
+                      {invoiceDetail.status === INVOICE_STATUS.UNPAID ? t('stallinvoicedetail.unpaid') : invoiceDetail.status}
                     </span>
                   </div>
                   <div className="header-total">
                     <span className="total-label">{t('stallinvoicedetail.total_amount')}</span>
-                    <h1 className="total-val">{invoiceDetail.totalAmount.toLocaleString(t('stallinvoicedetail.vivn'))} VND</h1>
+                    <h1 className="total-val">{invoiceDetail.totalAmount.toLocaleString(i18n.resolvedLanguage?.startsWith('vi') ? 'vi-VN' : 'en-US')} VND</h1>
                   </div>
                 </div>
 
@@ -165,12 +167,12 @@ export default function StallInvoiceDetail({ stallId, stallCode, baseUrl, onBack
                   <div className="relation-col">
                     <span className="info-label">{t('stallinvoicedetail.associated_stall')}</span>
                     <span className="info-value">{invoiceDetail.stallCode}</span>
-                    <span className="info-sub">Category: {invoiceDetail.stallCategory || t('stallinvoicedetail.na')}</span>
+                      <span className="info-sub">{t('stallinvoicedetail.category')} {invoiceDetail.stallCategory || t('stallinvoicedetail.na')}</span>
                   </div>
                   <div className="relation-col">
                     <span className="info-label">{t('stallinvoicedetail.due_date')}</span>
                     <span className="info-value text-danger">{formatDate(invoiceDetail.dueDate)}</span>
-                    <span className="info-sub">Issued Date: {formatDate(invoiceDetail.createdAt)}</span>
+                    <span className="info-sub">{t('stallinvoicedetail.issued_date')} {formatDate(invoiceDetail.createdAt)}</span>
                   </div>
                 </div>
 
@@ -192,15 +194,15 @@ export default function StallInvoiceDetail({ stallId, stallCode, baseUrl, onBack
                           <td><strong>{detail.feeTypeName}</strong></td>
                           <td className="text-muted text-sm">{detail.description || '-'}</td>
                           <td className="text-right">{detail.quantity}</td>
-                          <td className="text-right">{detail.unitPrice.toLocaleString(t('stallinvoicedetail.vivn'))}</td>
-                          <td className="text-right font-semibold">{detail.amount.toLocaleString(t('stallinvoicedetail.vivn'))}</td>
+                          <td className="text-right">{detail.unitPrice.toLocaleString(i18n.resolvedLanguage?.startsWith('vi') ? 'vi-VN' : 'en-US')}</td>
+                          <td className="text-right font-semibold">{detail.amount.toLocaleString(i18n.resolvedLanguage?.startsWith('vi') ? 'vi-VN' : 'en-US')}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
 
-                {invoiceDetail.status === t('stallinvoicedetail.unpaid') && (
+                {invoiceDetail.status === INVOICE_STATUS.UNPAID && (
                   <div className="invoice-action-panel">
                     <div className="action-text">
                       <span className="info-icon">💡</span>

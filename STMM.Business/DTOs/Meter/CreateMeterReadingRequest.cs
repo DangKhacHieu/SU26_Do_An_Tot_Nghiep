@@ -5,7 +5,6 @@ namespace STMM.Business.DTOs.Meter
         public int MeterId { get; set; }
         public double NewValue { get; set; }
         public string RecordedAt { get; set; } = string.Empty;
-        public string ImageUrl { get; set; } = string.Empty;
-        public bool IsReplaced { get; set; } = false;
+        public Microsoft.AspNetCore.Http.IFormFile? Image { get; set; }
     }
 }

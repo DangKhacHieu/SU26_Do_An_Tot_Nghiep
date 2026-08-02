@@ -16,10 +16,10 @@ namespace STMM.Business.Interfaces
         // ── Catalog ──────────────────────────────────────────────────────────
 
         /// <summary>
-        /// Returns all active entries from the repair price catalog.
+        /// Returns all active entries from the repair price catalog for the user's market or global entries.
         /// Used by Staff to pick materials when building a quotation.
         /// </summary>
-        Task<List<RepairPriceDto>> GetRepairPricesAsync(CancellationToken ct = default);
+        Task<List<RepairPriceDto>> GetRepairPricesAsync(int userId, CancellationToken ct = default);
 
         // ── Quotation CRUD ────────────────────────────────────────────────────
 

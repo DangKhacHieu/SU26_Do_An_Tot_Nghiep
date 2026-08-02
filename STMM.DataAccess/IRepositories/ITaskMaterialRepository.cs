@@ -16,9 +16,15 @@ namespace STMM.DataAccess.IRepositories
         Task<List<TaskMaterial>> GetByTaskIdAsync(int taskId, CancellationToken ct = default);
 
         /// <summary>
+        /// Returns tracked material lines for a quotation mutation.
+        /// </summary>
+        Task<List<TaskMaterial>> GetByTaskIdForUpdateAsync(int taskId, CancellationToken ct = default);
+
+        /// <summary>
         /// Returns a single material line by its primary key, or null if not found.
         /// </summary>
         Task<TaskMaterial?> GetMaterialByIdAsync(int id, CancellationToken ct = default);
+        Task<TaskMaterial?> GetMaterialByIdForTaskAsync(int id, int taskId, CancellationToken ct = default);
 
         Task<Dictionary<int, int>> GetUsageCountsAsync(CancellationToken ct = default);
         Task<int> GetUsageCountByRepairPriceIdAsync(int repairPriceId, CancellationToken ct = default);

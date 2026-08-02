@@ -49,13 +49,16 @@ namespace STMM.Business.Services
             });
         }
 
-        public async Task<RepairPriceDto> GetRepairPriceByIdAsync(int id, CancellationToken ct = default)
+        public async Task<RepairPriceDto> GetRepairPriceByIdAsync(int userId, int id, CancellationToken ct = default)
         {
             var item = await _repairPriceRepository.GetByIdAsync(id, ct);
             if (item == null)
             {
                 throw new NotFoundException($"Không tìm thấy hạng mục sửa chữa ID {id}.");
             }
+            var user = await _userRepository.GetByIdAsync(userId, ct);
+            if (user?.MarketId != null && item.MarketId != user.MarketId)
+                throw new ForbiddenException("Bạn không có quyền xem đơn giá của chợ khác.");
 
             var usageCount = await _taskMaterialRepository.GetUsageCountByRepairPriceIdAsync(id, ct);
 
@@ -113,13 +116,16 @@ namespace STMM.Business.Services
             };
         }
 
-        public async Task<RepairPriceDto> UpdateRepairPriceAsync(int id, UpdateRepairPriceRequest request, CancellationToken ct = default)
+        public async Task<RepairPriceDto> UpdateRepairPriceAsync(int userId, int id, UpdateRepairPriceRequest request, CancellationToken ct = default)
         {
             var item = await _repairPriceRepository.GetByIdAsync(id, ct);
             if (item == null)
             {
                 throw new NotFoundException($"Không tìm thấy hạng mục sửa chữa ID {id}.");
             }
+            var user = await _userRepository.GetByIdAsync(userId, ct);
+            if (user?.MarketId != null && item.MarketId != user.MarketId)
+                throw new ForbiddenException("Bạn không có quyền cập nhật đơn giá của chợ khác.");
 
             // Check duplicate name with other items
             var duplicate = await _repairPriceRepository.IsItemNameExistsAsync(request.ItemName, id, item.MarketId, ct);
@@ -154,13 +160,16 @@ namespace STMM.Business.Services
             };
         }
 
-        public async Task<bool> DeleteRepairPriceAsync(int id, CancellationToken ct = default)
+        public async Task<bool> DeleteRepairPriceAsync(int userId, int id, CancellationToken ct = default)
         {
             var item = await _repairPriceRepository.GetByIdAsync(id, ct);
             if (item == null)
             {
                 throw new NotFoundException($"Không tìm thấy hạng mục sửa chữa ID {id} để xóa.");
             }
+            var user = await _userRepository.GetByIdAsync(userId, ct);
+            if (user?.MarketId != null && item.MarketId != user.MarketId)
+                throw new ForbiddenException("Bạn không có quyền xóa đơn giá của chợ khác.");
 
             // Check if already used in TaskMaterials
             var inUse = await _taskMaterialRepository.IsRepairPriceInUseAsync(id, ct);

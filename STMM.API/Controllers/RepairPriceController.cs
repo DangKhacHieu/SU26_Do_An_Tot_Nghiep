@@ -2,9 +2,11 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using STMM.Business.DTOs.RepairPrice;
 using STMM.Business.Interfaces;
+using STMM.API.Extensions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Security.Claims;
+using System;
 
 namespace STMM.API.Controllers
 {
@@ -14,19 +16,22 @@ namespace STMM.API.Controllers
     public class RepairPriceController : ControllerBase
     {
         private readonly IRepairPriceService _repairPriceService;
+        private readonly IAuditLogService _auditLogService;
 
-        public RepairPriceController(IRepairPriceService repairPriceService)
+        public RepairPriceController(IRepairPriceService repairPriceService, IAuditLogService auditLogService)
         {
             _repairPriceService = repairPriceService;
+            _auditLogService = auditLogService;
         }
 
         private int GetUserId()
         {
-            if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out int userId))
+            var userId = User.GetUserId();
+            if (!userId.HasValue)
             {
-                return 0;
+                throw new UnauthorizedAccessException("User ID not found in token.");
             }
-            return userId;
+            return userId.Value;
         }
 
         [HttpGet]
@@ -39,28 +44,43 @@ namespace STMM.API.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetRepairPriceById(int id, CancellationToken ct)
         {
-            var result = await _repairPriceService.GetRepairPriceByIdAsync(id, ct);
+            var result = await _repairPriceService.GetRepairPriceByIdAsync(GetUserId(), id, ct);
             return Ok(result);
         }
 
         [HttpPost]
         public async Task<IActionResult> CreateRepairPrice([FromBody] CreateRepairPriceRequest request, CancellationToken ct)
         {
-            var result = await _repairPriceService.CreateRepairPriceAsync(GetUserId(), request, ct);
+            var userId = GetUserId();
+            var result = await _repairPriceService.CreateRepairPriceAsync(userId, request, ct);
+            
+            var ipAddress = Request.HttpContext.Connection.RemoteIpAddress?.ToString();
+            await _auditLogService.LogAsync(userId, $"Tạo bảng giá sửa chữa mới: {request.ItemName}", ipAddress, ct);
+            
             return Ok(result);
         }
 
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateRepairPrice(int id, [FromBody] UpdateRepairPriceRequest request, CancellationToken ct)
         {
-            var result = await _repairPriceService.UpdateRepairPriceAsync(id, request, ct);
+            var userId = GetUserId();
+            var result = await _repairPriceService.UpdateRepairPriceAsync(userId, id, request, ct);
+            
+            var ipAddress = Request.HttpContext.Connection.RemoteIpAddress?.ToString();
+            await _auditLogService.LogAsync(userId, $"Cập nhật bảng giá sửa chữa (ID: {id})", ipAddress, ct);
+            
             return Ok(result);
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteRepairPrice(int id, CancellationToken ct)
         {
-            var result = await _repairPriceService.DeleteRepairPriceAsync(id, ct);
+            var userId = GetUserId();
+            var result = await _repairPriceService.DeleteRepairPriceAsync(userId, id, ct);
+            
+            var ipAddress = Request.HttpContext.Connection.RemoteIpAddress?.ToString();
+            await _auditLogService.LogAsync(userId, $"Xóa bảng giá sửa chữa (ID: {id})", ipAddress, ct);
+            
             return Ok(result);
         }
 

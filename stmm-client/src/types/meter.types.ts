@@ -31,7 +31,6 @@ export interface CreateMeterReadingRequest {
   newValue: number;
   recordedAt: string;
   imageUrl: string;
-  isReplaced?: boolean;
 }
 
 export interface MeterReadingQueryParams {

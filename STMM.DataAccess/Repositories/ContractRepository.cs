@@ -137,6 +137,19 @@ namespace STMM.DataAccess.Repositories
                 .Where(c => c.Status == "Active" && c.IsDeleted != true)
                 .ToListAsync(ct);
         }
+
+        public async Task<List<Contract>> GetActiveContractsForBillingAsync(int targetMonth, int targetYear, CancellationToken ct = default)
+        {
+            // Includes all necessary relations to avoid N+1 during billing
+            return await _dbSet
+                .Include(c => c.Stall)
+                    .ThenInclude(s => s.Area)
+                .Include(c => c.Stall)
+                    .ThenInclude(s => s.ServiceRegistrations)
+                        .ThenInclude(sr => sr.Service)
+                .Where(c => c.Status == "Active" && c.IsDeleted != true)
+                .ToListAsync(ct);
+        }
     }
 }
 

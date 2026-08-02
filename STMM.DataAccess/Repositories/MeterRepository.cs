@@ -61,6 +61,40 @@ namespace STMM.DataAccess.Repositories
                     ct);
         }
 
+        public Task<Meter?> GetEligibleMeterForReadingAsync(
+            int meterId,
+            int marketId,
+            int staffUserId,
+            DateOnly effectiveDate,
+            CancellationToken ct = default)
+        {
+            return _context.Meters
+                .Include(m => m.Stall)
+                    .ThenInclude(s => s!.Area)
+                .Where(m =>
+                    m.MeterId == meterId &&
+                    m.MarketId == marketId &&
+                    m.IsActive == true &&
+                    m.Stall != null &&
+                    m.Stall.IsDeleted != true &&
+                    m.Stall.Area.MarketId == marketId &&
+                    // Must match GetStallsChecklistByAreaAsync exactly: a reading recorded for a
+                    // stall the checklist does not list would never reach an invoice.
+                    m.Stall.Contracts.Any(c =>
+                        c.IsDeleted != true &&
+                        c.Status == "Active" &&
+                        c.StartDate <= effectiveDate &&
+                        c.EndDate >= effectiveDate) &&
+                    _context.StaffTasks.Any(t =>
+                        t.AssignedToUserId == staffUserId &&
+                        t.TaskType == "UtilityReading" &&
+                        t.Status != "Completed" &&
+                        t.Status != "Cancelled" &&
+                        t.AreaId == m.Stall.AreaId))
+                .AsNoTracking()
+                .FirstOrDefaultAsync(ct);
+        }
+
         public Task<Meter?> GetMeterForMarketAsync(
             int meterId,
             int marketId,
@@ -102,6 +136,85 @@ namespace STMM.DataAccess.Repositories
                 .ToListAsync(ct);
         }
 
+        public async Task<IReadOnlyList<(Meter Meter, MeterReading? LatestReading)>> GetMetersWithLatestReadingForMarketAsync(
+            int? marketId,
+            CancellationToken ct = default)
+        {
+            if (marketId == null) return new List<(Meter Meter, MeterReading? LatestReading)>();
+
+            var results = await _context.Meters
+                .Include(m => m.Stall)
+                .Where(m => m.MarketId == marketId.Value)
+                .OrderBy(m => m.MeterId)
+                .Select(m => new
+                {
+                    Meter = m,
+                    LatestReading = m.MeterReadings
+                        .OrderByDescending(r => r.RecordedAt)
+                        .ThenByDescending(r => r.MeterReadingId)
+                        .FirstOrDefault()
+                })
+                .AsNoTracking()
+                .ToListAsync(ct);
+
+            return results.Select(x => (x.Meter, x.LatestReading)).ToList();
+        }
+
+        public async Task<IReadOnlyList<(Meter Meter, MeterReading? LatestReading)>> GetMetersWithLatestReadingByStallForMarketAsync(
+            int stallId,
+            int marketId,
+            CancellationToken ct = default)
+        {
+            var results = await _context.Meters
+                .Include(m => m.Stall)
+                    .ThenInclude(s => s!.Area)
+                .Where(m =>
+                    m.StallId == stallId &&
+                    m.Stall != null &&
+                    m.Stall.Area.MarketId == marketId &&
+                    m.IsActive == true)
+                .OrderBy(m => m.MeterId)
+                .Select(m => new
+                {
+                    Meter = m,
+                    LatestReading = m.MeterReadings
+                        .OrderByDescending(r => r.RecordedAt)
+                        .ThenByDescending(r => r.MeterReadingId)
+                        .FirstOrDefault()
+                })
+                .AsNoTracking()
+                .ToListAsync(ct);
+
+            return results.Select(x => (x.Meter, x.LatestReading)).ToList();
+        }
+
+        public async Task<(Meter Meter, MeterReading? LatestReading)?> GetMeterWithLatestReadingForMarketAsync(
+            int meterId,
+            int marketId,
+            CancellationToken ct = default)
+        {
+            var result = await _context.Meters
+                .Include(m => m.Stall)
+                    .ThenInclude(s => s!.Area)
+                .Where(m =>
+                    m.MeterId == meterId &&
+                    m.Stall != null &&
+                    m.Stall.Area.MarketId == marketId)
+                .Select(m => new
+                {
+                    Meter = m,
+                    LatestReading = m.MeterReadings
+                        .OrderByDescending(r => r.RecordedAt)
+                        .ThenByDescending(r => r.MeterReadingId)
+                        .FirstOrDefault()
+                })
+                .AsNoTracking()
+                .FirstOrDefaultAsync(ct);
+
+            if (result == null) return null;
+            return (result.Meter, result.LatestReading);
+        }
+
         public async Task<bool> ExistsSerialNumberAsync(string serialNumber, int marketId, int? excludeMeterId = null, CancellationToken ct = default)
         {
             var normSerial = serialNumber.Trim().ToLower();
@@ -129,6 +242,36 @@ namespace STMM.DataAccess.Repositories
             }
 
             return await query.ToListAsync(ct);
+        }
+
+        public async Task<IReadOnlyList<(Meter Meter, MeterReading? LatestReading)>> GetUnassignedMetersWithLatestReadingAsync(string? type, int? marketId = null, CancellationToken ct = default)
+        {
+            var query = _context.Meters
+                .Where(m => m.StallId == null && m.IsActive == true);
+
+            if (marketId.HasValue)
+            {
+                query = query.Where(m => m.MarketId == marketId.Value);
+            }
+
+            if (!string.IsNullOrEmpty(type))
+            {
+                query = query.Where(m => m.Type == type);
+            }
+
+            var results = await query
+                .Select(m => new
+                {
+                    Meter = m,
+                    LatestReading = m.MeterReadings
+                        .OrderByDescending(r => r.RecordedAt)
+                        .ThenByDescending(r => r.MeterReadingId)
+                        .FirstOrDefault()
+                })
+                .AsNoTracking()
+                .ToListAsync(ct);
+
+            return results.Select(r => (r.Meter, r.LatestReading)).ToList();
         }
 
         public async Task<Meter?> GetMeterWithReadingsAsync(int meterId, CancellationToken ct = default)

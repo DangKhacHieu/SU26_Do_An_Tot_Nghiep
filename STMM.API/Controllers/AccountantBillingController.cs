@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
+using STMM.API.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using STMM.Business.DTOs.Billing;
 using STMM.Business.Interfaces;
@@ -20,6 +21,15 @@ namespace STMM.API.Controllers
             _billingService = billingService;
         }
 
+        [HttpGet("vendors")]
+        public async Task<IActionResult> GetVendorsForAccountant(CancellationToken ct)
+        {
+            var userId = User.GetUserId();
+            if (!userId.HasValue) return Unauthorized();
+            var result = await _billingService.GetVendorsForAccountantAsync(userId.Value, ct);
+            return Ok(result);
+        }
+
         /// <summary>
         /// Lấy danh sách hóa đơn theo các bộ lọc (Month, Year, Status, Search).
         /// </summary>
@@ -31,8 +41,9 @@ namespace STMM.API.Controllers
             [FromQuery] string? search,
             CancellationToken ct)
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("userId")?.Value ?? "0");
-            var result = await _billingService.GetInvoicesAsync(month, year, status, search, userId, ct);
+            var userId = User.GetUserId();
+            if (!userId.HasValue) return Unauthorized();
+            var result = await _billingService.GetInvoicesAsync(month, year, status, search, userId.Value, ct);
             return Ok(result);
         }
 
@@ -42,9 +53,26 @@ namespace STMM.API.Controllers
         [HttpGet("invoices/{invoiceId}")]
         public async Task<IActionResult> GetInvoiceDetail(int invoiceId, CancellationToken ct)
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("userId")?.Value ?? "0");
-            var result = await _billingService.GetInvoiceDetailForAccountantAsync(invoiceId, userId, ct);
+            var userId = User.GetUserId();
+            if (!userId.HasValue) return Unauthorized();
+            var result = await _billingService.GetInvoiceDetailForAccountantAsync(invoiceId, userId.Value, ct);
             return Ok(result);
+        }
+
+        [HttpGet("auto-generate-history")]
+        public async Task<IActionResult> GetAutoGenerateHistory(CancellationToken ct)
+        {
+            var result = await _billingService.GetAutoGenerateHistoryAsync(ct);
+            return Ok(result);
+        }
+
+        [HttpPost("trigger-auto-generate")]
+        public async Task<IActionResult> TriggerAutoGenerate([FromQuery] int month, [FromQuery] int year, CancellationToken ct)
+        {
+            var userId = User.GetUserId();
+            if (!userId.HasValue) return Unauthorized();
+            var count = await _billingService.TriggerAutoGenerateAsync(month, year, userId.Value, ct);
+            return Ok(new { Message = $"Đã tạo thành công {count} hóa đơn định kỳ cho tháng {month}/{year}", Count = count });
         }
 
         /// <summary>
@@ -55,11 +83,11 @@ namespace STMM.API.Controllers
             [FromBody] BulkApproveInvoicesRequest request,
             CancellationToken ct)
         {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("userId")?.Value;
-            if (!int.TryParse(userIdClaim, out var userId))
+            var userId = User.GetUserId();
+            if (!userId.HasValue)
                 return Unauthorized(new { message = "Không xác định được danh tính kế toán." });
 
-            var result = await _billingService.BulkApproveInvoicesAsync(request, userId, ct);
+            var result = await _billingService.BulkApproveInvoicesAsync(request, userId.Value, ct);
             return Ok(result);
         }
 
@@ -71,11 +99,11 @@ namespace STMM.API.Controllers
             [FromBody] CreateAdHocInvoiceRequest request,
             CancellationToken ct)
         {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("userId")?.Value;
-            if (!int.TryParse(userIdClaim, out var userId))
+            var userId = User.GetUserId();
+            if (!userId.HasValue)
                 return Unauthorized(new { message = "Không xác định được danh tính kế toán." });
 
-            var result = await _billingService.CreateAdHocInvoiceAsync(request, userId, ct);
+            var result = await _billingService.CreateAdHocInvoiceAsync(request, userId.Value, ct);
             return Ok(result);
         }
 
@@ -88,8 +116,9 @@ namespace STMM.API.Controllers
             [FromBody] MeterReadingAdjustmentRequest request,
             CancellationToken ct)
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("userId")?.Value ?? "0");
-            var result = await _billingService.AdjustMeterReadingAsync(userId, request, ct);
+            var userId = User.GetUserId();
+            if (!userId.HasValue) return Unauthorized();
+            var result = await _billingService.AdjustMeterReadingAsync(userId.Value, request, ct);
             return Ok(result);
         }
 
@@ -102,10 +131,11 @@ namespace STMM.API.Controllers
             [FromBody] CancelInvoiceRequest request, 
             CancellationToken ct)
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("userId")?.Value ?? "0");
+            var userId = User.GetUserId();
+            if (!userId.HasValue) return Unauthorized();
             try
             {
-                var result = await _billingService.CancelInvoiceAsync(invoiceId, request, userId, ct);
+                var result = await _billingService.CancelInvoiceAsync(invoiceId, request, userId.Value, ct);
                 return Ok(new { success = result, message = "Hủy hóa đơn thành công." });
             }
             catch (System.Exception ex)

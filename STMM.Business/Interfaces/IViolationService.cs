@@ -16,6 +16,7 @@ namespace STMM.Business.Interfaces
         Task<PagedResult<ViolationDto>> GetViolationsForManagerAsync(int? managerUserId, ViolationQueryParams queryParams, CancellationToken ct = default);
         Task<ViolationDto> GetViolationByIdForManagerAsync(int? managerUserId, int id, CancellationToken ct = default);
         Task<bool> SimulateViolationAppealAsync(int violationId, CancellationToken ct = default);
+        Task<bool> FinalizeViolationAsync(int managerUserId, int violationId, CancellationToken ct = default);
         
         // General query for Accountant role (all violations across the system)
         Task<IEnumerable<ViolationDto>> GetAllViolationsAsync(int? accountantUserId = null, CancellationToken ct = default);

@@ -1,6 +1,8 @@
 using AutoMapper;
 using FluentValidation;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Npgsql;
 using STMM.Business.DTOs.Notification;
 using STMM.Business.DTOs.Task;
 using STMM.Business.Exceptions;
@@ -26,6 +28,7 @@ namespace STMM.Business.Services
         private readonly IAreaRepository _areaRepository;
         private readonly INotificationService _notificationService;
         private readonly IMapper _mapper;
+        private readonly IFileUploadService _fileUploadService;
         private readonly IValidator<CreateTaskRequest> _createValidator;
         private readonly IValidator<UpdateTaskStatusRequest> _updateValidator;
         private readonly IValidator<CompleteTaskRequest> _completeValidator;
@@ -40,6 +43,7 @@ namespace STMM.Business.Services
             IAreaRepository areaRepository,
             INotificationService notificationService,
             IMapper mapper,
+            IFileUploadService fileUploadService,
             IValidator<CreateTaskRequest> createValidator,
             IValidator<UpdateTaskStatusRequest> updateValidator,
             IValidator<CompleteTaskRequest> completeValidator,
@@ -54,6 +58,7 @@ namespace STMM.Business.Services
             _areaRepository = areaRepository;
             _notificationService = notificationService;
             _mapper = mapper;
+            _fileUploadService = fileUploadService;
             _createValidator = createValidator;
             _updateValidator = updateValidator;
             _completeValidator = completeValidator;
@@ -92,25 +97,17 @@ namespace STMM.Business.Services
         /// <inheritdoc />
         public async Task<TaskDto> GetTaskByIdForManagerAsync(int taskId, int? managerUserId, CancellationToken ct = default)
         {
-            if (managerUserId.HasValue)
+            // Every path must stay market-scoped. The previous fall-through to an unscoped
+            // GetTaskByIdWithRelationsAsync leaked tasks from other markets whenever the manager
+            // record could not be resolved.
+            if (!managerUserId.HasValue)
             {
-                var manager = await _userRepository.GetByIdAsync(managerUserId.Value, ct);
-                if (manager != null && manager.MarketId == null)
-                {
-                    throw new NotFoundException($"Task with ID {taskId} not found.");
-                }
-                if (manager?.MarketId != null)
-                {
-                    var taskInMarket = await _staffTaskRepository.GetTaskByIdForMarketAsync(taskId, manager.MarketId.Value, ct);
-                    if (taskInMarket == null)
-                    {
-                        throw new NotFoundException($"Task with ID {taskId} not found.");
-                    }
-                    return _mapper.Map<TaskDto>(taskInMarket);
-                }
+                throw new ForbiddenException("The manager account is not assigned to a market.");
             }
 
-            var task = await _staffTaskRepository.GetTaskByIdWithRelationsAsync(taskId, ct);
+            var marketId = await GetManagerMarketIdAsync(managerUserId.Value, ct);
+
+            var task = await _staffTaskRepository.GetTaskByIdForMarketAsync(taskId, marketId, ct);
             if (task == null)
             {
                 throw new NotFoundException($"Task with ID {taskId} not found.");
@@ -122,7 +119,7 @@ namespace STMM.Business.Services
         /// <inheritdoc />
         public async Task<TaskDto> GetTaskByIdForStaffAsync(int taskId, int staffUserId, CancellationToken ct = default)
         {
-            var task = await _staffTaskRepository.GetTaskByIdForStaffAsync(taskId, staffUserId, ct);
+            var task = await _staffTaskRepository.GetTaskByIdForStaffAsync(taskId, staffUserId, includeMaterials: true, ct);
             if (task == null)
             {
                 throw new NotFoundException($"Task with ID {taskId} not found.");
@@ -178,28 +175,40 @@ namespace STMM.Business.Services
                     localNow.Month,
                     ct);
                 EnsureUtilityAreaIsReady(stalls);
+
+                if (stalls.All(stall => stall.HasReadingThisMonth))
+                {
+                    throw new BadRequestException(
+                        "All stalls in this area have already had their utility meters read this month.");
+                }
             }
 
             string? imageBeforeUrl = null;
+            Issue? linkedIssue = null;
 
             if (req.IssueId.HasValue)
             {
-                var issue = await _issueRepository.GetIssueWithRelationsAsync(req.IssueId.Value, ct: ct);
+                var issue = await _issueRepository.GetIssueWithRelationsAsync(req.IssueId.Value, tracking: true, ct: ct);
                 if (issue == null)
                 {
                     throw new NotFoundException($"Issue with ID {req.IssueId.Value} not found.");
                 }
                 await EnsureAreaInMarketAsync(issue.Stall.AreaId, marketId, "Issue", ct);
                 imageBeforeUrl = issue.ImageUrl;
+                linkedIssue = issue;
+                if (await _staffTaskRepository.HasActiveTaskForIssueAsync(issue.IssueId, ct))
+                    throw new BadRequestException("An active task already exists for this issue.");
             }
             else if (req.RequestId.HasValue)
             {
-                var request = await _requestRepository.GetRequestWithRelationsAsync(req.RequestId.Value, ct);
+                var request = await _requestRepository.GetRequestWithRelationsAsync(req.RequestId.Value, tracking: true, ct: ct);
                 if (request == null)
                 {
                     throw new NotFoundException($"Request with ID {req.RequestId.Value} not found.");
                 }
                 await EnsureAreaInMarketAsync(request.Stall.AreaId, marketId, "Request", ct);
+                if (await _staffTaskRepository.HasActiveTaskForRequestAsync(request.RequestId, ct))
+                    throw new BadRequestException("An active task already exists for this request.");
                 if (request.RequestType == "ViolationAppeal" && request.ViolationId.HasValue)
                 {
                     var violation = await _violationRepository.GetByIdAsync(request.ViolationId.Value, ct);
@@ -222,7 +231,19 @@ namespace STMM.Business.Services
             };
 
             await _staffTaskRepository.AddAsync(task, ct);
-            await _staffTaskRepository.SaveChangesAsync(ct);
+            if (linkedIssue?.Status == "Reported")
+                linkedIssue.Status = "InProgress";
+            try
+            {
+                await _staffTaskRepository.SaveChangesAsync(ct);
+            }
+            catch (DbUpdateException ex) when (IsActiveSourceUniqueViolation(ex))
+            {
+                throw new BadRequestException(
+                    req.IssueId.HasValue
+                        ? "An active task already exists for this issue."
+                        : "An active task already exists for this request.");
+            }
 
             await NotifyStaffAsync(
                 req.AssignedToUserId,
@@ -255,7 +276,10 @@ namespace STMM.Business.Services
             var oldStatus = task.Status ?? "Pending";
             var newStatus = req.NewStatus;
 
-            if (oldStatus == "PendingApproval" && task.RequestId.HasValue)
+            // Only the approve / return-for-revision decisions are reserved for the vendor when the
+            // vendor is paying. Cancelling stays the manager's call, otherwise a vendor-paid task
+            // would be stuck in PendingApproval forever with no way out.
+            if (oldStatus == "PendingApproval" && task.RequestId.HasValue && newStatus != "Cancelled")
             {
                 var request = await _requestRepository.GetByIdAsync(task.RequestId.Value, ct);
                 if (request == null || request.PaidBy != "Market")
@@ -301,7 +325,7 @@ namespace STMM.Business.Services
                     var issue = await _issueRepository.GetByIdAsync(task.IssueId.Value, ct);
                     if (issue != null)
                     {
-                        issue.Status = "Closed";
+                        issue.Status = "Reported";
                         _issueRepository.Update(issue);
                     }
                 }
@@ -359,6 +383,11 @@ namespace STMM.Business.Services
                 throw new BadRequestException("Task is already completed or cancelled.");
             }
 
+            if (currentStatus == "PendingApproval")
+            {
+                throw new BadRequestException("The quotation for this task must be resolved before it can be completed.");
+            }
+
             if (task.TaskType == "UtilityReading")
             {
                 if (!task.AreaId.HasValue)
@@ -374,44 +403,55 @@ namespace STMM.Business.Services
                     localToday.Year,
                     localToday.Month,
                     ct);
-                EnsureUtilityAreaIsReady(stallsInArea);
 
-                if (stallsInArea.Any(s => !s.HasReadingThisMonth))
+                if (stallsInArea.Count == 0)
+                {
+                    throw new BadRequestException("This area has no stalls with an effective rental contract.");
+                }
+
+                // Meter availability is only enforced when the task is created. Re-checking it here
+                // would strand the task if a meter was unassigned or deactivated mid-period, so a
+                // stall only blocks completion for the meters it still has.
+                if (stallsInArea.Any(s => (s.HasElectricityMeter && !s.HasElectricityReadingThisMonth)
+                                       || (s.HasWaterMeter && !s.HasWaterReadingThisMonth)))
                 {
                     throw new BadRequestException("This task cannot be completed while stalls are missing utility readings for the current month.");
                 }
             }
 
-            if (task.TaskType == "Repair" && (task.RequestId.HasValue || task.IssueId.HasValue))
+            if (task.TaskType == "UtilityReading" && (req.ImageBefore != null || req.ImageAfter != null))
             {
-                if (currentStatus != "In_Progress")
-                {
-                    throw new BadRequestException("Repair tasks linked to a Request or Issue must be in In_Progress status to be completed.");
-                }
+                throw new BadRequestException("Utility reading tasks do not accept completion evidence images.");
             }
 
-            string? imageBefore = task.ImageBeforeUrl;
-            if (!string.IsNullOrEmpty(req.ImageBeforeUrl))
+            string? uploadedBeforeUrl = null;
+            string? uploadedAfterUrl = null;
+
+            if (req.ImageBefore != null)
             {
-                imageBefore = req.ImageBeforeUrl;
+                uploadedBeforeUrl = await _fileUploadService.UploadImageAsync(req.ImageBefore, "task-evidence", ct);
             }
 
-            if (task.TaskType == "Repair" || task.TaskType == "Maintenance")
+            if (req.ImageAfter != null)
             {
-                if (string.IsNullOrEmpty(imageBefore))
-                {
-                    throw new BadRequestException("Image before repair/maintenance is required to complete the task.");
-                }
+                uploadedAfterUrl = await _fileUploadService.UploadImageAsync(req.ImageAfter, "task-evidence", ct);
+            }
 
-                if (string.IsNullOrEmpty(req.ImageAfterUrl))
+            string? imageBefore = task.ImageBeforeUrl ?? uploadedBeforeUrl;
+            string? imageAfter = task.ImageAfterUrl ?? uploadedAfterUrl;
+
+            if (task.TaskType == "Repair")
+            {
+                if (string.IsNullOrEmpty(imageBefore) || string.IsNullOrEmpty(imageAfter))
                 {
-                    throw new BadRequestException("Image after repair/maintenance is required to complete the task.");
+                    await CleanupTaskImagesAsync(uploadedBeforeUrl, uploadedAfterUrl, ct);
+                    throw new BadRequestException("Before and after images are required to complete a repair task.");
                 }
             }
 
             task.Status = "Completed";
             task.ImageBeforeUrl = imageBefore;
-            task.ImageAfterUrl = req.ImageAfterUrl;
+            task.ImageAfterUrl = imageAfter;
             task.CompletedAt = DateTime.UtcNow;
 
             if (!string.IsNullOrWhiteSpace(req.CompletionNotes))
@@ -423,28 +463,83 @@ namespace STMM.Business.Services
 
             if (task.IssueId.HasValue)
             {
-                var issue = await _issueRepository.GetByIdAsync(task.IssueId.Value, ct);
-                if (issue != null)
+                if (task.Issue == null)
                 {
-                    issue.Status = "Resolved";
-                    _issueRepository.Update(issue);
+                    _logger.LogError("Task {TaskId} references missing issue {IssueId}.", task.TaskId, task.IssueId.Value);
+                    await CleanupTaskImagesAsync(uploadedBeforeUrl, uploadedAfterUrl, ct);
+                    throw new InvalidOperationException($"Task {task.TaskId} has a missing linked issue.");
                 }
+
+                task.Issue.Status = "Resolved";
+                _issueRepository.Update(task.Issue);
             }
             else if (task.RequestId.HasValue)
             {
-                var request = await _requestRepository.GetByIdAsync(task.RequestId.Value, ct);
-                if (request != null)
+                if (task.Request == null)
                 {
-                    request.Status = "Completed";
-                    _requestRepository.Update(request);
+                    _logger.LogError("Task {TaskId} references missing request {RequestId}.", task.TaskId, task.RequestId.Value);
+                    await CleanupTaskImagesAsync(uploadedBeforeUrl, uploadedAfterUrl, ct);
+                    throw new InvalidOperationException($"Task {task.TaskId} has a missing linked request.");
                 }
+
+                task.Request.Status = "Completed";
+                task.Request.UpdatedAt = DateTime.UtcNow;
             }
 
-            _staffTaskRepository.Update(task);
-            await _staffTaskRepository.SaveChangesAsync(ct);
+            try
+            {
+                _staffTaskRepository.Update(task);
+                await _staffTaskRepository.SaveChangesAsync(ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to save Task completion status. Cleaning up uploaded task evidence images.");
+                await CleanupTaskImagesAsync(uploadedBeforeUrl, uploadedAfterUrl, ct);
+                throw;
+            }
 
-            var completedTask = await _staffTaskRepository.GetTaskByIdWithRelationsAsync(taskId, ct);
-            return _mapper.Map<TaskDto>(completedTask!);
+            return _mapper.Map<TaskDto>(task);
+        }
+
+        private async Task CleanupTaskImagesAsync(string? beforeUrl, string? afterUrl, CancellationToken ct)
+        {
+            if (!string.IsNullOrEmpty(beforeUrl)) await _fileUploadService.DeleteImageAsync(beforeUrl, ct);
+            if (!string.IsNullOrEmpty(afterUrl)) await _fileUploadService.DeleteImageAsync(afterUrl, ct);
+        }
+
+        public async Task<List<UtilityStallChecklistDto>> GetStallsForUtilityTaskForManagerAsync(int taskId, int? managerUserId, CancellationToken ct = default)
+        {
+            var taskDto = await GetTaskByIdForManagerAsync(taskId, managerUserId, ct);
+            if (taskDto == null)
+            {
+                throw new NotFoundException($"Task with ID {taskId} not found.");
+            }
+
+            if (taskDto.TaskType != "UtilityReading" || !taskDto.AreaId.HasValue)
+            {
+                throw new BadRequestException("This task is not a utility reading task or has no Area associated.");
+            }
+
+            var localToday = DateTime.UtcNow.AddHours(7);
+            var effectiveDate = DateOnly.FromDateTime(localToday);
+            var results = await _stallRepository.GetStallsChecklistByAreaAsync(
+                taskDto.AreaId.Value,
+                effectiveDate,
+                localToday.Year,
+                localToday.Month,
+                ct);
+
+            return results.Select(r => new UtilityStallChecklistDto
+            {
+                StallId = r.StallId,
+                StallCode = r.StallCode,
+                StallStatus = r.StallStatus,
+                HasElectricityMeter = r.HasElectricityMeter,
+                HasWaterMeter = r.HasWaterMeter,
+                HasElectricityReadingThisMonth = r.HasElectricityReadingThisMonth,
+                HasWaterReadingThisMonth = r.HasWaterReadingThisMonth,
+                HasReadingThisMonth = r.HasReadingThisMonth
+            }).ToList();
         }
 
         /// <inheritdoc />
@@ -475,6 +570,10 @@ namespace STMM.Business.Services
                 StallId = r.StallId,
                 StallCode = r.StallCode,
                 StallStatus = r.StallStatus,
+                HasElectricityMeter = r.HasElectricityMeter,
+                HasWaterMeter = r.HasWaterMeter,
+                HasElectricityReadingThisMonth = r.HasElectricityReadingThisMonth,
+                HasWaterReadingThisMonth = r.HasWaterReadingThisMonth,
                 HasReadingThisMonth = r.HasReadingThisMonth
             }).ToList();
         }
@@ -549,6 +648,17 @@ namespace STMM.Business.Services
                     "Could not send task notification to user {UserId}.",
                     staffUserId);
             }
+        }
+
+        private static bool IsActiveSourceUniqueViolation(DbUpdateException exception)
+        {
+            if (exception.InnerException is not PostgresException postgres ||
+                postgres.SqlState != PostgresErrorCodes.UniqueViolation)
+            {
+                return false;
+            }
+
+            return postgres.ConstraintName is "ux_staff_tasks_active_issue" or "ux_staff_tasks_active_request";
         }
 
         private static void EnsureUtilityAreaIsReady(IReadOnlyCollection<StallChecklistQueryResult> stalls)

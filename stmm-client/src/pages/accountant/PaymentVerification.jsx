@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import {
   CheckCircle, XCircle, Search, DollarSign, Clock,
   ThumbsUp, ThumbsDown, AlertTriangle, RefreshCw, Bell,
-  AlertCircle, FileText, MessageSquare, Building, X, Info
+  AlertCircle, FileText, MessageSquare, Building, X, Info, Printer
 } from 'lucide-react';
 
 const formatCurrency = (v) => (v || 0).toLocaleString('vi-VN') + ' ₫';
@@ -13,17 +13,17 @@ const formatDate = (d) => {
   return `${String(dt.getDate()).padStart(2, '0')}/${String(dt.getMonth() + 1).padStart(2, '0')}/${dt.getFullYear()}`;
 };
 
-const getPaymentStatusBadge = (s) => {
-  if (s === 'Approved') return { cls: 'badge badge-success', label: 'Đã duyệt' };
-  if (s === 'Pending') return { cls: 'badge badge-warning', label: 'Chờ xác nhận' };
-  if (s === 'Rejected') return { cls: 'badge badge-danger', label: 'Từ chối' };
-  return { cls: 'badge badge-neutral', label: s };
+const getPaymentStatusBadge = (s, t) => {
+  if (s === 'Approved') return { cls: 'badge badge-success', label: t('paymentverification.payment_status_approved') };
+  if (s === 'Pending') return { cls: 'badge badge-warning', label: t('paymentverification.payment_status_pending') };
+  if (s === 'Rejected') return { cls: 'badge badge-danger', label: t('paymentverification.payment_status_rejected') };
+  return { cls: 'badge badge-neutral', label: t('paymentverification.payment_status_other', { status: s }) };
 };
 
-const getDisputeStatusBadge = (s) => {
-  if (s === 'Approved') return { cls: 'badge badge-success', label: 'Chấp thuận' };
-  if (s === 'Rejected') return { cls: 'badge badge-danger', label: 'Từ chối' };
-  return { cls: 'badge badge-warning', label: 'Đang xử lý' };
+const getDisputeStatusBadge = (s, t) => {
+  if (s === 'Approved') return { cls: 'badge badge-success', label: t('paymentverification.dispute_status_approved') };
+  if (s === 'Rejected') return { cls: 'badge badge-danger', label: t('paymentverification.dispute_status_rejected') };
+  return { cls: 'badge badge-warning', label: t('paymentverification.dispute_status_pending') };
 };
 
 export default function PaymentVerification() {
@@ -119,7 +119,7 @@ export default function PaymentVerification() {
   });
 
   const handleApprovePayment = (pay) => {
-    if (!window.confirm(t('paymentverification.confirm_transaction_approval_paytransactioncode'))) return;
+    if (!window.confirm(t('paymentverification.confirm_transaction_approval_paytransactioncode', { transactionCode: pay.transactionCode, amount: formatCurrency(pay.amount) }))) return;
     if (isMock) { setPayments(p => p.map(x => x.paymentId === pay.paymentId ? { ...x, status: 'Approved' } : x)); showNotification('success', t('paymentverification.successful_transaction_confirmed')); }
     else fetch(`http://localhost:5056/api/accountant/payments/${pay.paymentId}/verify?userId=1`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` }, body: JSON.stringify({ approve: true }) })
       .then(r => { if (!r.ok) throw new Error(); showNotification('success', t('paymentverification.successful_payment_confirmation')); loadAllData(); })
@@ -128,6 +128,13 @@ export default function PaymentVerification() {
 
   const submitRejectPayment = (e) => {
     e.preventDefault();
+    
+    // Validation for rejection note
+    if (!rejectionNote || rejectionNote.trim() === '') {
+      setModalError(t('paymentverification.please_enter_rejection_reason'));
+      return;
+    }
+    
     if (isMock) { setPayments(p => p.filter(x => x.paymentId !== selectedItem.paymentId)); showNotification('success', t('paymentverification.selecteditemtransactioncode_transaction_declined')); setActiveModal(null); }
     else fetch(`http://localhost:5056/api/accountant/payments/${selectedItem.paymentId}/verify?userId=1`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` }, body: JSON.stringify({ approve: false, rejectionNote }) })
       .then(r => { if (!r.ok) throw new Error(); showNotification('success', t('paymentverification.payment_refused')); setActiveModal(null); loadAllData(); })
@@ -146,9 +153,63 @@ export default function PaymentVerification() {
     else fetch(`http://localhost:5056/api/accountant/payments/debts/${debt.stallId}`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` } }).then(r => r.json()).then(d => { setSelectedInvoiceDetail(d); setLoadingPopup(false); }).catch(() => { setSelectedInvoiceDetail(getMockStallDebtDetail(debt.stallId)); setLoadingPopup(false); });
   };
 
+  const handlePrintStatement = () => {
+    const printContent = document.getElementById('debt-statement-print')?.innerHTML;
+    if (!printContent) return;
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>${t('paymentverification.debt_reconciliation_report')}</title>
+          <style>
+            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 40px; color: #000; line-height: 1.5; }
+            h2, h3, h4 { margin: 0; padding: 0; }
+            .header { text-align: center; margin-bottom: 30px; }
+            .header h2 { font-size: 22px; text-transform: uppercase; margin-bottom: 5px; }
+            .header p { font-size: 14px; font-style: italic; }
+            .info-grid { display: flex; justify-content: space-between; margin-bottom: 20px; border-bottom: 2px solid #000; padding-bottom: 15px; }
+            .info-box { width: 48%; }
+            table { width: 100%; border-collapse: collapse; margin-top: 15px; margin-bottom: 20px; font-size: 14px; }
+            th, td { border: 1px solid #000; padding: 10px; text-align: left; }
+            th { background-color: #f0f0f0; font-weight: bold; }
+            .text-right { text-align: right; }
+            .text-center { text-align: center; }
+            .total-row td { font-weight: bold; background-color: #f9f9f9; }
+            .signature-section { display: flex; justify-content: space-around; margin-top: 50px; text-align: center; }
+            .signature-box { width: 200px; }
+            .signature-box p { margin-top: 80px; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h2>${t('paymentverification.debt_reconciliation_report_upper')}</h2>
+            <p>${t('paymentverification.reconciliation_period', { date: new Date().toLocaleDateString('vi-VN') })}</p>
+          </div>
+          ${printContent}
+          <div class="signature-section">
+            <div class="signature-box">
+              <strong>${t('paymentverification.customer_confirmation')}</strong>
+              <p>${t('paymentverification.signature')}</p>
+            </div>
+            <div class="signature-box">
+              <strong>${t('paymentverification.market_management_representative')}</strong>
+              <p>${t('paymentverification.signature')}</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+      printWindow.close();
+    }, 500);
+  };
+
   const handleSendReminderClick = (debt) => {
     setSelectedItem(debt);
-    setReminderMessage(t('paymentverification.management_announced_store_debtstallcode'));
+    setReminderMessage(t('paymentverification.management_announced_store_debtstallcode', { stallCode: debt.stallCode, totalDebt: formatCurrency(debt.totalDebt) }));
     setActiveModal('send_reminder');
   };
 
@@ -163,7 +224,7 @@ export default function PaymentVerification() {
   const handleViewDisputeDetails = (dispute) => {
     setSelectedItem(dispute);
     setDisputeApprove(true);
-    setDisputeFeedback(t('paymentverification.feedback_has_been_received'));
+    setDisputeFeedback('');
     setIsRefund(false);
     setRefundAmount('');
     setRefundMethod('Transfer');
@@ -173,7 +234,29 @@ export default function PaymentVerification() {
 
   const submitResolveDispute = (e) => {
     e.preventDefault();
-    if (isMock) { setDisputes(d => d.map(x => x.requestId === selectedItem.requestId ? { ...x, status: disputeApprove ? 'Approved' : 'Rejected' } : x)); showNotification('success', `Đã ${disputeApprove ? t('paymentverification.accept') : t('paymentverification.refuse')} kháng nghị!`); setActiveModal(null); }
+    
+    // Validation for dispute feedback
+    if (!disputeFeedback || disputeFeedback.trim() === '') {
+      setModalError(t('paymentverification.please_enter_dispute_feedback'));
+      return;
+    }
+    
+    // Validation for refund when isRefund is true
+    if (isRefund) {
+      if (!refundAmount || parseFloat(refundAmount) <= 0) {
+        setModalError(t('paymentverification.refund_amount_must_be_positive'));
+        return;
+      }
+      
+      // Validate refund amount doesn't exceed invoice amount
+      if (parseFloat(refundAmount) > selectedItem.invoiceTotalAmount) {
+        setModalError(t('paymentverification.refund_amount_exceeds_invoice'));
+        return;
+      }
+      
+    }
+    
+    if (isMock) { setDisputes(d => d.map(x => x.requestId === selectedItem.requestId ? { ...x, status: disputeApprove ? 'Approved' : 'Rejected' } : x)); showNotification('success', t('paymentverification.dispute_resolved_success', { action: disputeApprove ? t('paymentverification.accept') : t('paymentverification.refuse') })); setActiveModal(null); }
     else fetch(`http://localhost:5056/api/accountant/payments/disputes/${selectedItem.requestId}/resolve?userId=1`, { 
       method: 'POST', 
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` }, 
@@ -193,6 +276,28 @@ export default function PaymentVerification() {
   const filteredPayments = payments.filter(p => [p.transactionCode, p.stallCode, p.tenantName].some(s => s.toLowerCase().includes(searchQuery.toLowerCase())));
   const filteredDebts = debts.filter(d => [d.stallCode, d.tenantName].some(s => s.toLowerCase().includes(searchQuery.toLowerCase())));
   const filteredDisputes = disputes.filter(d => [d.stallCode, d.tenantName, d.title].some(s => s.toLowerCase().includes(searchQuery.toLowerCase())));
+
+  // --- Chức năng tính Tuổi Nợ (Debt Aging) ---
+  const getDebtAgingInfo = (lastDueDate) => {
+    if (!lastDueDate) return { status: t('paymentverification.debt_aging_undefined'), color: 'neutral', days: 0 };
+    const due = new Date(lastDueDate);
+    const now = new Date();
+    // Bỏ qua giờ phút
+    due.setHours(0,0,0,0);
+    now.setHours(0,0,0,0);
+    const diffTime = now - due;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays <= 0) return { status: t('paymentverification.debt_aging_within'), color: 'success', days: 0 };
+    if (diffDays <= 30) return { status: t('paymentverification.debt_aging_overdue', { days: diffDays }), color: 'warning', days: diffDays };
+    if (diffDays <= 90) return { status: t('paymentverification.debt_aging_overdue', { days: diffDays }), color: 'danger', days: diffDays };
+    return { status: t('paymentverification.debt_aging_risk', { days: diffDays }), color: 'danger', days: diffDays };
+  };
+
+  // Tính toán Mini Dashboard cho Dư Nợ
+  const totalDebtAmount = debts.reduce((sum, d) => sum + d.totalDebt, 0);
+  const totalStallsInDebt = debts.length;
+  const highRiskDebt = debts.filter(d => getDebtAgingInfo(d.lastDueDate).days > 30).reduce((sum, d) => sum + d.totalDebt, 0);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
@@ -221,7 +326,7 @@ export default function PaymentVerification() {
       )}
 
       {/* Search */}
-      <div className="acc-card" style={{ padding: "20px" }} style={{ padding: '14px 20px' }}>
+      <div className="acc-card" style={{ padding: '14px 20px' }}>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           <div className="search-wrapper" style={{ flex: '1 1 220px' }}>
             <Search size={14} className="search-icon-inner" />
@@ -241,7 +346,7 @@ export default function PaymentVerification() {
         ].map(tab => {
           const Icon = tab.icon;
           return (
-            <button key={tab.id} className={`tab-btn ${activeTab === tab.id ? 'active' : ''}`} onClick={() => { setActiveTab(tab.id); setSearchQuery(''); }}>
+            <button key={tab.id} className={`acc-tab-btn ${activeTab === tab.id ? 'active' : ''}`} onClick={() => { setActiveTab(tab.id); setSearchQuery(''); }}>
               <Icon size={15} /> {tab.label}
             </button>
           );
@@ -272,7 +377,7 @@ export default function PaymentVerification() {
                 </thead>
                 <tbody>
                   {filteredPayments.length > 0 ? filteredPayments.slice((paymentsPage - 1) * itemsPerPage, paymentsPage * itemsPerPage).map(pay => {
-                    const { cls, label } = getPaymentStatusBadge(pay.status);
+                      const { cls, label } = getPaymentStatusBadge(pay.status, t);
                     return (
                       <tr key={pay.paymentId}>
                         <td><span style={{ fontFamily: 'monospace', fontSize: 12.5, fontWeight: 600 }}>{pay.transactionCode}</span></td>
@@ -285,7 +390,7 @@ export default function PaymentVerification() {
                         <td className="text-right"><strong style={{ color: 'var(--text-title)' }}>{formatCurrency(pay.amount)}</strong></td>
                         <td><span className={cls}>{label}</span></td>
                         <td className="text-right">
-                          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
+                          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6, flexWrap: 'wrap' }}>
                             <button className="acc-btn-secondary btn-sm" onClick={() => handleViewOriginalInvoice(pay.invoiceId, pay.stallCode)}>
                               <FileText size={13} /> {t('paymentverification.original_contract')}</button>
                             {pay.status === 'Pending' && (
@@ -308,7 +413,7 @@ export default function PaymentVerification() {
               {filteredPayments.length > itemsPerPage && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, padding: '16px' }}>
                   <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-                    Hiển thị {((paymentsPage - 1) * itemsPerPage) + 1} - {Math.min(paymentsPage * itemsPerPage, filteredPayments.length)} trong tổng số {filteredPayments.length} giao dịch
+                    {t('paymentverification.show_paginated_transactions', { start: ((paymentsPage - 1) * itemsPerPage) + 1, end: Math.min(paymentsPage * itemsPerPage, filteredPayments.length), total: filteredPayments.length })}
                   </span>
                   <div style={{ display: 'flex', gap: 6 }}>
                     <button 
@@ -341,74 +446,111 @@ export default function PaymentVerification() {
 
           {/* TAB 2: DEBTS */}
           {activeTab === 'debts' && (
-            <div className="card" style={{ overflow: 'hidden' }}>
-              <table className="acc-table">
-                <thead>
-                  <tr>
-                    <th>{t('paymentverification.stallssmall_traders')}</th>
-                    <th className="text-right">{t('paymentverification.rent_debt')}</th>
-                    <th className="text-right">{t('paymentverification.electricitywater_debt')}</th>
-                    <th className="text-right">{t('paymentverification.debt_violation')}</th>
-                    <th className="text-right">{t('paymentverification.total_debt')}</th>
-                    <th>{t('paymentverification.deadline')}</th>
-                    <th className="text-right">{t('paymentverification.operation')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredDebts.length > 0 ? filteredDebts.slice((debtsPage - 1) * itemsPerPage, debtsPage * itemsPerPage).map(debt => (
-                    <tr key={debt.stallId}>
-                      <td>
-                        <div><strong>{debt.stallCode}</strong></div>
-                        <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{debt.tenantName}</div>
-                      </td>
-                      <td className="text-right">{debt.rentDebt > 0 ? <span style={{ color: 'var(--danger)', fontWeight: 600 }}>{formatCurrency(debt.rentDebt)}</span> : <span style={{ color: 'var(--text-muted)' }}>—</span>}</td>
-                      <td className="text-right">{debt.utilityDebt > 0 ? <span style={{ color: 'var(--warning)', fontWeight: 600 }}>{formatCurrency(debt.utilityDebt)}</span> : <span style={{ color: 'var(--text-muted)' }}>—</span>}</td>
-                      <td className="text-right">{debt.violationDebt > 0 ? <span style={{ color: 'var(--danger)', fontWeight: 600 }}>{formatCurrency(debt.violationDebt)}</span> : <span style={{ color: 'var(--text-muted)' }}>—</span>}</td>
-                      <td className="text-right"><strong style={{ color: 'var(--primary)', fontSize: 14 }}>{formatCurrency(debt.totalDebt)}</strong></td>
-                      <td><span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{debt.lastDueDate}</span></td>
-                      <td className="text-right">
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
-                          <button className="acc-btn-secondary btn-sm" onClick={() => handleViewDebtDetail(debt)}><FileText size={13} /> {t('paymentverification.detail')}</button>
-                          <button className="acc-btn-primary btn-sm" onClick={() => handleSendReminderClick(debt)}><Bell size={13} /> {t('paymentverification.debt_reminder')}</button>
-                        </div>
-                      </td>
-                    </tr>
-                  )) : (
-                    <tr><td colSpan={7}><div className="empty-state"><div className="empty-state-icon"><DollarSign size={24} /></div><p className="empty-state-title">{t('paymentverification.there_is_no_outstanding')}</p></div></td></tr>
-                  )}
-                </tbody>
-              </table>
-              {filteredDebts.length > itemsPerPage && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, padding: '16px' }}>
-                  <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-                    Hiển thị {((debtsPage - 1) * itemsPerPage) + 1} - {Math.min(debtsPage * itemsPerPage, filteredDebts.length)} trong tổng số {filteredDebts.length} sạp
-                  </span>
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    <button 
-                      className="acc-btn-secondary btn-sm" 
-                      onClick={() => setDebtsPage(prev => Math.max(prev - 1, 1))} 
-                      disabled={debtsPage === 1}
-                    >
-                      {t('paymentverification.before')}</button>
-                    {Array.from({ length: Math.ceil(filteredDebts.length / itemsPerPage) }, (_, i) => i + 1).map(page => (
-                      <button 
-                        key={page} 
-                        className={`btn btn-sm ${debtsPage === page ? 'btn-primary' : 'btn-secondary'}`}
-                        onClick={() => setDebtsPage(page)}
-                      >
-                        {page}
-                      </button>
-                    ))}
-                    <button 
-                      className="acc-btn-secondary btn-sm" 
-                      onClick={() => setDebtsPage(prev => Math.min(prev + 1, Math.ceil(filteredDebts.length / itemsPerPage)))} 
-                      disabled={debtsPage === Math.ceil(filteredDebts.length / itemsPerPage)}
-                    >
-                      Sau
-                    </button>
-                  </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              
+              {/* Mini Dashboard cho Dư Nợ */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+                <div className="acc-card" style={{ padding: '20px', borderLeft: '4px solid var(--primary)' }}>
+                  <div style={{ color: 'var(--text-secondary)', fontSize: '13px', fontWeight: '600' }}>{t('paymentverification.total_market_debt')}</div>
+                  <div style={{ fontSize: '24px', fontWeight: '800', color: 'var(--text-title)', marginTop: '8px' }}>{formatCurrency(totalDebtAmount)}</div>
                 </div>
-              )}
+                <div className="acc-card" style={{ padding: '20px', borderLeft: '4px solid var(--danger)' }}>
+                  <div style={{ color: 'var(--text-secondary)', fontSize: '13px', fontWeight: '600' }}>{t('paymentverification.high_overdue_debt')}</div>
+                  <div style={{ fontSize: '24px', fontWeight: '800', color: 'var(--danger)', marginTop: '8px' }}>{formatCurrency(highRiskDebt)}</div>
+                </div>
+                <div className="acc-card" style={{ padding: '20px', borderLeft: '4px solid var(--warning)' }}>
+                  <div style={{ color: 'var(--text-secondary)', fontSize: '13px', fontWeight: '600' }}>{t('paymentverification.number_of_stalls_in_debt')}</div>
+                  <div style={{ fontSize: '24px', fontWeight: '800', color: 'var(--text-title)', marginTop: '8px' }}>{t('paymentverification.stall_count', { count: totalStallsInDebt })}</div>
+                </div>
+              </div>
+
+              <div className="acc-card" style={{ overflow: 'hidden' }}>
+                <div style={{ padding: '20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <h3 style={{ fontSize: '16px', fontWeight: '700', margin: 0 }}>{t('paymentverification.debt_list')}</h3>
+                </div>
+                <table className="acc-table">
+                  <thead>
+                    <tr>
+                      <th>{t('paymentverification.stallssmall_traders')}</th>
+                      <th>{t('paymentverification.debt_age')}</th>
+                      <th className="text-right">{t('paymentverification.fees_rent')}</th>
+                      <th className="text-right">{t('paymentverification.violation_fine')}</th>
+                      <th className="text-right">{t('paymentverification.ending_debt_balance')}</th>
+                      <th className="text-right">{t('paymentverification.operation')}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredDebts.length > 0 ? filteredDebts.slice((debtsPage - 1) * itemsPerPage, debtsPage * itemsPerPage).map(debt => {
+                      const aging = getDebtAgingInfo(debt.lastDueDate);
+                      return (
+                        <tr key={debt.stallId}>
+                          <td>
+                            <div style={{ fontWeight: '700', color: 'var(--text-title)' }}>{debt.stallCode}</div>
+                            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{debt.tenantName}</div>
+                          </td>
+                          <td>
+                            <span className={`acc-badge ${aging.color}`}>{aging.status}</span>
+                          </td>
+                          <td className="text-right">
+                            {debt.rentDebt + debt.utilityDebt > 0 ? 
+                              <span style={{ fontWeight: 600 }}>{formatCurrency(debt.rentDebt + debt.utilityDebt)}</span> 
+                              : <span style={{ color: 'var(--text-muted)' }}>-</span>}
+                          </td>
+                          <td className="text-right">
+                            {debt.violationDebt > 0 ? 
+                              <span style={{ color: 'var(--danger)', fontWeight: 600 }}>{formatCurrency(debt.violationDebt)}</span> 
+                              : <span style={{ color: 'var(--text-muted)' }}>-</span>}
+                          </td>
+                          <td className="text-right">
+                            <strong style={{ color: 'var(--primary)', fontSize: 15 }}>{formatCurrency(debt.totalDebt)}</strong>
+                          </td>
+                          <td className="text-right">
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
+                              <button className="acc-btn-secondary btn-sm" onClick={() => handleViewDebtDetail(debt)}><FileText size={13} /> {t('paymentverification.detail')}</button>
+                              <button className="acc-btn-primary btn-sm" onClick={() => handleSendReminderClick(debt)}><Bell size={13} /> {t('paymentverification.send_reminder_btn')}</button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    }) : (
+                      <tr><td colSpan={6}><div className="empty-state"><div className="empty-state-icon"><DollarSign size={24} /></div><p className="empty-state-title">{t('paymentverification.no_debts_found')}</p></div></td></tr>
+                    )}
+                  </tbody>
+                </table>
+                {filteredDebts.length > itemsPerPage && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, padding: '16px' }}>
+                    <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+                      {t('paymentverification.show_paginated_debts', { start: ((debtsPage - 1) * itemsPerPage) + 1, end: Math.min(debtsPage * itemsPerPage, filteredDebts.length), total: filteredDebts.length })}
+                    </span>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <button 
+                        className="acc-btn-secondary btn-sm" 
+                        onClick={() => setDebtsPage(prev => Math.max(prev - 1, 1))} 
+                        disabled={debtsPage === 1}
+                      >
+                        {t('paymentverification.before')}
+                      </button>
+                      {Array.from({ length: Math.ceil(filteredDebts.length / itemsPerPage) }, (_, i) => i + 1).map(page => (
+                        <button 
+                          key={page} 
+                          className={`acc-btn-secondary btn-sm ${debtsPage === page ? 'active' : ''}`}
+                          onClick={() => setDebtsPage(page)}
+                          style={debtsPage === page ? { backgroundColor: 'var(--primary)', color: '#fff', borderColor: 'var(--primary)' } : {}}
+                        >
+                          {page}
+                        </button>
+                      ))}
+                      <button 
+                        className="acc-btn-secondary btn-sm" 
+                        onClick={() => setDebtsPage(prev => Math.min(prev + 1, Math.ceil(filteredDebts.length / itemsPerPage)))} 
+                        disabled={debtsPage === Math.ceil(filteredDebts.length / itemsPerPage)}
+                      >
+                        Sau
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
@@ -429,7 +571,7 @@ export default function PaymentVerification() {
                 </thead>
                 <tbody>
                   {filteredDisputes.length > 0 ? filteredDisputes.slice((disputesPage - 1) * itemsPerPage, disputesPage * itemsPerPage).map(dis => {
-                    const { cls, label } = getDisputeStatusBadge(dis.status);
+                    const { cls, label } = getDisputeStatusBadge(dis.status, t);
                     return (
                       <tr key={dis.requestId}>
                         <td>
@@ -461,7 +603,7 @@ export default function PaymentVerification() {
               {filteredDisputes.length > itemsPerPage && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, padding: '16px' }}>
                   <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-                    Hiển thị {((disputesPage - 1) * itemsPerPage) + 1} - {Math.min(disputesPage * itemsPerPage, filteredDisputes.length)} trong tổng số {filteredDisputes.length} kháng nghị
+                    {t('paymentverification.show_paginated_disputes', { start: ((disputesPage - 1) * itemsPerPage) + 1, end: Math.min(disputesPage * itemsPerPage, filteredDisputes.length), total: filteredDisputes.length })}
                   </span>
                   <div style={{ display: 'flex', gap: 6 }}>
                     <button 
@@ -499,7 +641,7 @@ export default function PaymentVerification() {
         <div className="acc-modal-overlay" onClick={() => setActiveModal(null)}>
           <div className="acc-modal-container" onClick={e => e.stopPropagation()}>
             <div className="acc-modal-header">
-              <span className="acc-modal-title">Từ chối Giao dịch — {selectedItem.transactionCode}</span>
+              <span className="acc-modal-title">{t('paymentverification.reject_transaction_title', { code: selectedItem.transactionCode })}</span>
               <button className="acc-modal-close" onClick={() => setActiveModal(null)}><X size={16} /></button>
             </div>
             <form onSubmit={submitRejectPayment}>
@@ -531,7 +673,7 @@ export default function PaymentVerification() {
         <div className="acc-modal-overlay" onClick={() => setActiveModal(null)}>
           <div className="modal-container modal-container-lg" onClick={e => e.stopPropagation()}>
             <div className="acc-modal-header">
-              <span className="acc-modal-title">Chi tiết Hóa đơn gốc — {selectedItem?.stallCode}</span>
+              <span className="acc-modal-title">{t('paymentverification.original_invoice_detail_title', { stallCode: selectedItem?.stallCode })}</span>
               <button className="acc-modal-close" onClick={() => setActiveModal(null)}><X size={16} /></button>
             </div>
             <div className="acc-modal-body">
@@ -578,41 +720,67 @@ export default function PaymentVerification() {
         <div className="acc-modal-overlay" onClick={() => setActiveModal(null)}>
           <div className="modal-container modal-container-lg" onClick={e => e.stopPropagation()}>
             <div className="acc-modal-header">
-              <span className="acc-modal-title">Chi tiết Dư nợ — {selectedItem?.stallCode}</span>
+              <span className="acc-modal-title">{t('paymentverification.debt_reconciliation_report')} — {selectedItem?.stallCode}</span>
               <button className="acc-modal-close" onClick={() => setActiveModal(null)}><X size={16} /></button>
             </div>
             <div className="acc-modal-body">
               {loadingPopup ? (
                 <div className="loading-container" style={{ padding: 40 }}><div className="loading-spinner" /></div>
               ) : selectedInvoiceDetail && (
-                <>
-                  <div style={{ fontSize: 13.5, background: 'var(--bg-base)', padding: 14, borderRadius: 'var(--radius-md)', marginBottom: 4 }}>
-                    <strong>{selectedInvoiceDetail.stallCode}</strong> — {selectedInvoiceDetail.tenantName}
+                <div id="debt-statement-print">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px', borderBottom: '1px dashed var(--border)', paddingBottom: '15px' }}>
+                    <div>
+                      <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{t('paymentverification.stall_code_label')}</div>
+                      <div style={{ fontSize: '16px', fontWeight: 'bold' }}>{selectedInvoiceDetail.stallCode}</div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{t('paymentverification.customer_label')}</div>
+                      <div style={{ fontSize: '16px', fontWeight: 'bold' }}>{selectedInvoiceDetail.tenantName}</div>
+                    </div>
                   </div>
+
                   {selectedInvoiceDetail.unpaidInvoices?.length > 0 && (
-                    <>
-                      <label className="acc-form-label" style={{ marginBottom: 8 }}>{t('paymentverification.unpaid_invoice')}</label>
-                      <table className="acc-table">
-                        <thead><tr><th>{t('paymentverification.hd_code')}</th><th>{t('paymentverification.ky')}</th><th className="text-right">{t('paymentverification.amount')}</th><th>{t('paymentverification.term')}</th><th>{t('paymentverification.status')}</th></tr></thead>
+                    <div style={{ marginBottom: '20px' }}>
+                      <h4 style={{ fontSize: '14px', marginBottom: '10px', color: 'var(--text-title)' }}>{t('paymentverification.fees_group_title')}</h4>
+                      <table className="acc-table" style={{ fontSize: '13px' }}>
+                        <thead>
+                          <tr>
+                            <th>{t('paymentverification.invoice_code')}</th>
+                            <th>{t('paymentverification.payment_period')}</th>
+                            <th>{t('paymentverification.due_date')}</th>
+                            <th>{t('paymentverification.status')}</th>
+                            <th className="text-right">{t('paymentverification.amount_col')}</th>
+                          </tr>
+                        </thead>
                         <tbody>
                           {selectedInvoiceDetail.unpaidInvoices.map(inv => (
                             <tr key={inv.invoiceId}>
-                              <td><span style={{ fontFamily: 'monospace', fontSize: 12.5 }}>INV-{inv.invoiceId}</span></td>
-                              <td>Th.{inv.month}/{inv.year}</td>
-                              <td className="text-right"><strong style={{ color: 'var(--danger)' }}>{formatCurrency(inv.totalAmount)}</strong></td>
+                              <td style={{ fontFamily: 'monospace' }}>INV-{inv.invoiceId}</td>
+                              <td>{t('paymentverification.month_year', { month: inv.month, year: inv.year })}</td>
                               <td>{inv.dueDate}</td>
-                              <td><span className="acc-badge warning">{inv.status}</span></td>
+                              <td>{inv.status}</td>
+                              <td className="text-right"><strong style={{ color: 'var(--danger)' }}>{formatCurrency(inv.totalAmount)}</strong></td>
                             </tr>
                           ))}
+                          <tr style={{ backgroundColor: 'var(--bg-base)' }}>
+                            <td colSpan="4" className="text-right" style={{ fontWeight: 'bold' }}>{t('paymentverification.total_fees_label')}</td>
+                            <td className="text-right"><strong style={{ color: 'var(--danger)' }}>{formatCurrency(selectedInvoiceDetail.unpaidInvoices.reduce((s, i) => s + i.totalAmount, 0))}</strong></td>
+                          </tr>
                         </tbody>
                       </table>
-                    </>
+                    </div>
                   )}
+
                   {selectedInvoiceDetail.unpaidViolations?.length > 0 && (
-                    <>
-                      <label className="acc-form-label" style={{ marginTop: 16, marginBottom: 8 }}>{t('paymentverification.violations_have_not_yet')}</label>
-                      <table className="acc-table">
-                        <thead><tr><th>{t('paymentverification.violations')}</th><th className="text-right">{t('paymentverification.fine')}</th></tr></thead>
+                    <div style={{ marginBottom: '20px' }}>
+                      <h4 style={{ fontSize: '14px', marginBottom: '10px', color: 'var(--text-title)' }}>{t('paymentverification.violations_group_title')}</h4>
+                      <table className="acc-table" style={{ fontSize: '13px' }}>
+                        <thead>
+                          <tr>
+                            <th>{t('paymentverification.violation_content')}</th>
+                            <th className="text-right">{t('paymentverification.fine_amount_col')}</th>
+                          </tr>
+                        </thead>
                         <tbody>
                           {selectedInvoiceDetail.unpaidViolations.map(v => (
                             <tr key={v.violationId}>
@@ -620,14 +788,33 @@ export default function PaymentVerification() {
                               <td className="text-right"><strong style={{ color: 'var(--danger)' }}>{formatCurrency(v.fineAmount)}</strong></td>
                             </tr>
                           ))}
+                          <tr style={{ backgroundColor: 'var(--bg-base)' }}>
+                            <td className="text-right" style={{ fontWeight: 'bold' }}>{t('paymentverification.total_violations_label')}</td>
+                            <td className="text-right"><strong style={{ color: 'var(--danger)' }}>{formatCurrency(selectedInvoiceDetail.unpaidViolations.reduce((s, v) => s + v.fineAmount, 0))}</strong></td>
+                          </tr>
                         </tbody>
                       </table>
-                    </>
+                    </div>
                   )}
-                </>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--danger-light)', padding: '15px', borderRadius: 'var(--radius-md)', border: '1px solid var(--danger-border)' }}>
+                    <span style={{ fontSize: '14px', fontWeight: 'bold' }}>{t('paymentverification.total_payable_label')}</span>
+                    <strong style={{ color: 'var(--danger)', fontSize: '20px' }}>
+                      {formatCurrency(
+                        (selectedInvoiceDetail.unpaidInvoices?.reduce((s, i) => s + i.totalAmount, 0) || 0) + 
+                        (selectedInvoiceDetail.unpaidViolations?.reduce((s, v) => s + v.fineAmount, 0) || 0)
+                      )}
+                    </strong>
+                  </div>
+                </div>
               )}
             </div>
-            <div className="acc-modal-footer"><button className="acc-btn-secondary" onClick={() => setActiveModal(null)}>{t('paymentverification.close')}</button></div>
+            <div className="acc-modal-footer">
+              <button className="acc-btn-secondary" onClick={() => setActiveModal(null)}>{t('paymentverification.close')}</button>
+              <button className="acc-btn-primary" onClick={handlePrintStatement} disabled={loadingPopup || !selectedInvoiceDetail}>
+                <Printer size={16} /> {t('paymentverification.print_statement')}
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -637,7 +824,7 @@ export default function PaymentVerification() {
         <div className="acc-modal-overlay" onClick={() => setActiveModal(null)}>
           <div className="acc-modal-container" onClick={e => e.stopPropagation()}>
             <div className="acc-modal-header">
-              <span className="acc-modal-title">Gửi Thông báo Nhắc nợ — {selectedItem.stallCode}</span>
+              <span className="acc-modal-title">{t('paymentverification.send_reminder_title', { code: selectedItem.stallCode })}</span>
               <button className="acc-modal-close" onClick={() => setActiveModal(null)}><X size={16} /></button>
             </div>
             <form onSubmit={submitSendReminder}>
@@ -676,7 +863,7 @@ export default function PaymentVerification() {
                   <div style={{ padding: 16, backgroundColor: '#f8fafc', borderRadius: 8, border: '1px solid var(--border-color)' }}>
                     <div style={{ marginBottom: 12 }}>
                       <span style={{ fontSize: 13, color: 'var(--text-light)', display: 'block' }}>{t('paymentverification.invoice_period')}</span>
-                      <strong style={{ fontSize: 15 }}>Tháng {selectedItem.invoiceMonth}/{selectedItem.invoiceYear}</strong>
+                      <strong style={{ fontSize: 15 }}>{t('paymentverification.month_year', { month: selectedItem.invoiceMonth, year: selectedItem.invoiceYear })}</strong>
                     </div>
                     <div style={{ marginBottom: 12 }}>
                       <span style={{ fontSize: 13, color: 'var(--text-light)', display: 'block' }}>{t('paymentverification.booth')}</span>
@@ -689,7 +876,7 @@ export default function PaymentVerification() {
                     <div style={{ marginTop: 12 }}>
                       <span style={{ fontSize: 13, color: 'var(--text-light)', display: 'block' }}>{t('paymentverification.status')}</span>
                       <span className={`badge ${selectedItem.invoiceStatus === 'Paid' ? 'badge-success' : 'badge-warning'}`}>
-                        {selectedItem.invoiceStatus === 'Paid' ? t('paymentverification.collected') : t('paymentverification.waiting_for_collection')}
+                        {selectedItem.invoiceStatus}
                       </span>
                     </div>
                   </div>
@@ -707,15 +894,15 @@ export default function PaymentVerification() {
                   </div>
                   
                   <div style={{ marginBottom: 16 }}>
-                    <label className="acc-form-label">Quyết định xử lý</label>
+                    <label className="acc-form-label">{t('paymentverification.handling_decision')}</label>
                     <div style={{ display: 'flex', gap: 16, marginTop: 8 }}>
                       <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-                        <input type="radio" name="decision" checked={disputeApprove === true} onChange={() => { setDisputeApprove(true); setDisputeFeedback(t('paymentverification.feedback_has_been_received')); }} />
+                        <input type="radio" name="decision" checked={disputeApprove === true} onChange={() => { setDisputeApprove(true); setDisputeFeedback(''); }} />
                         <ThumbsUp size={16} style={{ color: 'var(--success)' }} />
                         <span style={{ fontWeight: 500, color: 'var(--text-main)' }}>{t('paymentverification.accept') || 'Chấp thuận'}</span>
                       </label>
                       <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-                        <input type="radio" name="decision" checked={disputeApprove === false} onChange={() => { setDisputeApprove(false); setDisputeFeedback(t('paymentverification.refuse_to_resolve_the')); }} />
+                        <input type="radio" name="decision" checked={disputeApprove === false} onChange={() => { setDisputeApprove(false); setDisputeFeedback(''); }} />
                         <ThumbsDown size={16} style={{ color: 'var(--danger)' }} />
                         <span style={{ fontWeight: 500, color: 'var(--text-main)' }}>{t('paymentverification.refuse') || 'Từ chối'}</span>
                       </label>
@@ -733,13 +920,14 @@ export default function PaymentVerification() {
                         {selectedItem.invoiceStatus === 'Paid' ? t('paymentverification.make_refunds_directly_to') : t('paymentverification.adjust_deductions_directly_to')}
                       </label>
                       
-                      {isRefund && (
+                      {isRefund ? (
                         <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 12 }}>
                           <div>
                             <label className="acc-form-label">
                               {selectedItem.invoiceStatus === 'Paid' ? t('paymentverification.refund_amount_vnd') : t('paymentverification.deduction_amount_vnd')}
                             </label>
-                            <input type="number" className="acc-input" min={0} value={refundAmount} onChange={e => setRefundAmount(e.target.value)} placeholder={t('paymentverification.enter_the_amount')} required={isRefund} />
+                            <input type="number" className="acc-input" min={0} max={selectedItem.invoiceTotalAmount} value={refundAmount} onChange={e => setRefundAmount(e.target.value)} placeholder={t('paymentverification.enter_the_amount')} required />
+                            <small style={{ color: 'var(--text-light)', fontSize: 12 }}>{t('paymentverification.max_amount_note', { amount: formatCurrency(selectedItem.invoiceTotalAmount) })}</small>
                           </div>
                           
                           {selectedItem.invoiceStatus === 'Paid' && (
@@ -751,23 +939,41 @@ export default function PaymentVerification() {
                                   <option value="Cash">{t('paymentverification.cash')}</option>
                                 </select>
                               </div>
+                              
                               {refundMethod === 'Transfer' && (
-                                <div className="alert alert-info" style={{ marginTop: 0 }}>
+                                <>
+                                  {/* Hiển thị thông tin ngân hàng khi chọn chuyển khoản */}
+                                  <div className="alert alert-info" style={{ marginTop: 0 }}>
+                                    <Info size={16} className="alert-icon" />
+                                    <div style={{ fontSize: 13 }}>
+                                      <strong>{t('paymentverification.stk_small_business')}</strong> {selectedItem.vendorBankAccount || t('paymentverification.not_updated_yet')} <br/>
+                                      <strong>{t('paymentverification.bank')}</strong> {selectedItem.vendorBankName || t('paymentverification.not_updated_yet')}
+                                    </div>
+                                  </div>
+                                  
+                                  <div>
+                                    <label className="acc-form-label">{t('paymentverification.transaction_code_if_any')}</label>
+                                    <input type="text" className="acc-input" value={transactionCode} onChange={e => setTransactionCode(e.target.value)} placeholder="VD: FT2605..." />
+                                  </div>
+                                </>
+                              )}
+                              
+                              {refundMethod === 'Cash' && (
+                                <div className="alert alert-neutral" style={{ marginTop: 0 }}>
                                   <Info size={16} className="alert-icon" />
                                   <div style={{ fontSize: 13 }}>
-                                    <strong>{t('paymentverification.stk_small_business')}</strong> {selectedItem.vendorBankAccount || t('paymentverification.not_updated_yet')} <br/>
-                                    <strong>{t('paymentverification.bank')}</strong> {selectedItem.vendorBankName || t('paymentverification.not_updated_yet')}
+                                    {t('paymentverification.cash_refund_note')}
                                   </div>
-                                </div>
-                              )}
-                              {refundMethod === 'Transfer' && (
-                                <div>
-                                  <label className="acc-form-label">{t('paymentverification.transaction_code_if_any')}</label>
-                                  <input type="text" className="acc-input" value={transactionCode} onChange={e => setTransactionCode(e.target.value)} placeholder="VD: FT2605..." />
                                 </div>
                               )}
                             </>
                           )}
+                        </div>
+                      ) : (
+                        <div style={{ marginTop: 12, padding: 8, backgroundColor: '#fffbeb', borderRadius: 6, border: '1px solid #fcd34d' }}>
+                          <small style={{ color: '#92400e' }}>
+                            {t('paymentverification.no_refund_note')}
+                          </small>
                         </div>
                       )}
                     </div>

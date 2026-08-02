@@ -7,13 +7,13 @@ import {
 } from 'lucide-react';
 
 const getStatusBadge = (status) => {
-  if (status === 'Paid') return { cls: 'badge badge-success', label: 'Đã đóng phạt' };
-  if (status === 'Unpaid' || status === 'Pending') return { cls: 'badge badge-warning', label: 'Chờ duyệt' };
-  if (status === 'Notified') return { cls: 'badge badge-info', label: 'Đã thông báo' };
-  if (status === 'Appealed') return { cls: 'badge badge-neutral', label: 'Kháng nghị' };
-  if (status === 'Approved') return { cls: 'badge badge-success', label: 'Chấp nhận KH' };
-  if (status === 'Rejected') return { cls: 'badge badge-danger', label: 'Bác bỏ KH' };
-  if (status === 'Finalized') return { cls: 'badge badge-neutral', label: 'Đã kết luận' };
+  if (status === 'Paid') return { cls: 'badge badge-success', label: status };
+  if (status === 'Unpaid' || status === 'Pending') return { cls: 'badge badge-warning', label: status };
+  if (status === 'Notified') return { cls: 'badge badge-info', label: status };
+  if (status === 'Appealed') return { cls: 'badge badge-neutral', label: status };
+  if (status === 'Approved') return { cls: 'badge badge-success', label: status };
+  if (status === 'Rejected') return { cls: 'badge badge-danger', label: status };
+  if (status === 'Finalized') return { cls: 'badge badge-neutral', label: status };
   return { cls: 'badge badge-neutral', label: status };
 };
 
@@ -97,10 +97,10 @@ export default function ViolationsPenalties() {
   }, [searchQuery, statusFilter, activeTab]);
 
   const getMockViolations = () => [
-    { violationId: 81, stallCode: 'Kiosk B-12', title: t('violationspenalties.encroaching_the_common_path'), description: t('violationspenalties.display_goods_50cm_beyond'), penalty: 1500000, fineAmount: 1500000, status: 'Unpaid', date: '01/06/2026', imageUrl: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=600', violationType: { name: t('violationspenalties.encroachment') } },
-    { violationId: 79, stallCode: 'Kiosk A-03', title: t('violationspenalties.open_late_beyond_regulations'), description: t('violationspenalties.open_for_business_after'), penalty: 500000, fineAmount: 500000, status: 'Paid', date: '28/05/2026', imageUrl: 'https://images.unsplash.com/photo-1534723452862-4c874018d66d?auto=format&fit=crop&q=80&w=600', violationType: { name: t('violationspenalties.hours') } },
-    { violationId: 75, stallCode: 'Kiosk C-10', title: t('violationspenalties.arbitrarily_modify_the_structure'), description: t('violationspenalties.drilling_public_walls_and'), penalty: 5000000, fineAmount: 5000000, status: 'Unpaid', date: '20/05/2026', imageUrl: 'https://images.unsplash.com/photo-1581094288338-2314dddb7ecc?auto=format&fit=crop&q=80&w=600', violationType: { name: t('violationspenalties.build') } },
-    { violationId: 71, stallCode: 'Kiosk D-02', title: t('violationspenalties.fire_safety_is_not'), description: t('violationspenalties.pile_up_cardboard_boxes'), penalty: 3000000, fineAmount: 3000000, status: 'Paid', date: '15/05/2026', imageUrl: 'https://images.unsplash.com/photo-1599740831666-4cf92c537d7a?auto=format&fit=crop&q=80&w=600', violationType: { name: 'PCCC' } },
+    { violationId: 81, stallCode: 'Kiosk B-12', title: t('violationspenalties.encroaching_the_common_path'), description: t('violationspenalties.display_goods_50cm_beyond'), penalty: 1500000, fineAmount: 1500000, status: 'Rejected', date: '2026-06-01', imageUrl: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=600', violationType: { name: t('violationspenalties.encroachment') } },
+    { violationId: 79, stallCode: 'Kiosk A-03', title: t('violationspenalties.open_late_beyond_regulations'), description: t('violationspenalties.open_for_business_after'), penalty: 500000, fineAmount: 500000, status: 'Paid', date: '2026-05-28', imageUrl: 'https://images.unsplash.com/photo-1534723452862-4c874018d66d?auto=format&fit=crop&q=80&w=600', violationType: { name: t('violationspenalties.hours') } },
+    { violationId: 75, stallCode: 'Kiosk C-10', title: t('violationspenalties.arbitrarily_modify_the_structure'), description: t('violationspenalties.drilling_public_walls_and'), penalty: 5000000, fineAmount: 5000000, status: 'Notified', date: '2026-05-10', imageUrl: 'https://images.unsplash.com/photo-1581094288338-2314dddb7ecc?auto=format&fit=crop&q=80&w=600', violationType: { name: t('violationspenalties.build') } },
+    { violationId: 71, stallCode: 'Kiosk D-02', title: t('violationspenalties.fire_safety_is_not'), description: t('violationspenalties.pile_up_cardboard_boxes'), penalty: 3000000, fineAmount: 3000000, status: 'Paid', date: '2026-05-15', imageUrl: 'https://images.unsplash.com/photo-1599740831666-4cf92c537d7a?auto=format&fit=crop&q=80&w=600', violationType: { name: 'PCCC' } },
   ];
 
   const getMockTypes = () => [
@@ -121,6 +121,19 @@ export default function ViolationsPenalties() {
 
   const handleTypeSubmit = (e) => {
     e.preventDefault();
+    
+    // Validation for violation type name
+    if (!typeForm.name || typeForm.name.trim() === '') {
+      setModalError(t('violationspenalties.please_enter_violation_name'));
+      return;
+    }
+    
+    // Validation for default fine
+    if (!typeForm.defaultFine || parseFloat(typeForm.defaultFine) <= 0) {
+      setModalError(t('violationspenalties.default_fine_must_be_positive'));
+      return;
+    }
+    
     const isEdit = !!selectedItem;
     const url = isEdit ? `http://localhost:5056/api/violations/types/${selectedItem.violationTypeId}` : 'http://localhost:5056/api/violations/types';
     if (isMock) {
@@ -235,7 +248,7 @@ export default function ViolationsPenalties() {
         {[{ id: 'violations', label: t('violationspenalties.violation_minutes'), icon: ShieldAlert }, { id: 'types', label: t('violationspenalties.list_of_penalty_errors'), icon: Info }].map(tab => {
           const Icon = tab.icon;
           return (
-            <button key={tab.id} className={`tab-btn ${activeTab === tab.id ? 'active' : ''}`} onClick={() => setActiveTab(tab.id)}>
+            <button key={tab.id} className={`acc-tab-btn ${activeTab === tab.id ? 'active' : ''}`} onClick={() => setActiveTab(tab.id)}>
               <Icon size={15} /> {tab.label}
             </button>
           );
@@ -253,7 +266,7 @@ export default function ViolationsPenalties() {
           {activeTab === 'violations' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
               {/* Search & Filters */}
-              <div className="acc-card" style={{ padding: "20px" }} style={{ padding: '14px 20px' }}>
+              <div className="acc-card" style={{ padding: '14px 20px' }}>
                 <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
                   <div className="search-wrapper" style={{ flex: '1 1 220px' }}>
                     <Search size={14} className="search-icon-inner" />
@@ -269,7 +282,7 @@ export default function ViolationsPenalties() {
                     <option value="Rejected">{t('violationspenalties.reject_kh_need_to')}</option>
                     <option value="Paid">{t('violationspenalties.fine_paid')}</option>
                   </select>
-                  <span className="acc-badge neutral">{filteredViolations.length} biên bản</span>
+                  <span className="acc-badge neutral">{t('violationspenalties.reports_count', { count: filteredViolations.length })}</span>
                 </div>
               </div>
 
@@ -302,7 +315,7 @@ export default function ViolationsPenalties() {
                             <td className="text-right"><strong style={{ color: 'var(--danger)' }}>{(vio.fineAmount || vio.penalty || 0).toLocaleString('vi-VN')} ₫</strong></td>
                             <td><span className={cls}>{label}</span></td>
                             <td className="text-right">
-                              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
                                 {canCreateInvoice(vio) && (
                                   <button 
                                     className="acc-btn-primary btn-sm" 
@@ -312,7 +325,7 @@ export default function ViolationsPenalties() {
                                     <FileText size={13} /> {t('violationspenalties.bill')}</button>
                                 )}
                                 <button className="acc-btn-secondary btn-sm" onClick={() => { setSelectedItem(vio); setActiveModal('details'); }}>
-                                  <Eye size={13} /> Xem
+                                  <Eye size={13} /> {t('violationspenalties.view_detail')}
                                 </button>
                               </div>
                             </td>
@@ -324,7 +337,7 @@ export default function ViolationsPenalties() {
                   {filteredViolations.length > itemsPerPage && (
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, padding: '16px' }}>
                       <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-                        Hiển thị {((violationsPage - 1) * itemsPerPage) + 1} - {Math.min(violationsPage * itemsPerPage, filteredViolations.length)} trong tổng số {filteredViolations.length} biên bản
+                        Hiển thị {((violationsPage - 1) * itemsPerPage) + 1} - {Math.min(violationsPage * itemsPerPage, filteredViolations.length)} trong tổng số {t('violationspenalties.reports_count', { count: filteredViolations.length })}
                       </span>
                       <div style={{ display: 'flex', gap: 6 }}>
                         <button 
@@ -368,6 +381,12 @@ export default function ViolationsPenalties() {
           {/* TAB 2: VIOLATION TYPES */}
           {activeTab === 'types' && (
             <div className="card" style={{ overflow: 'hidden' }}>
+              <div style={{ padding: '20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h3 style={{ fontSize: '16px', fontWeight: '700', margin: 0 }}>{t('violationspenalties.list_of_penalty_errors')}</h3>
+                <button className="acc-btn-primary btn-sm" onClick={() => { setSelectedItem(null); setTypeForm({ name: '', description: '', defaultFine: 500000, isActive: true }); setModalError(null); setActiveModal('type'); }}>
+                  <Plus size={15} /> {t('violationspenalties.add_violation_type')}
+                </button>
+              </div>
               <table className="acc-table">
                 <thead>
                   <tr>
@@ -408,7 +427,7 @@ export default function ViolationsPenalties() {
               {violationTypes.length > itemsPerPage && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, padding: '16px' }}>
                   <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-                    Hiển thị {((typesPage - 1) * itemsPerPage) + 1} - {Math.min(typesPage * itemsPerPage, violationTypes.length)} trong tổng số {violationTypes.length} loại vi phạm
+                    {t('violationspenalties.show_paginated_types', { start: ((typesPage - 1) * itemsPerPage) + 1, end: Math.min(typesPage * itemsPerPage, violationTypes.length), total: violationTypes.length })}
                   </span>
                   <div style={{ display: 'flex', gap: 6 }}>
                     <button 
@@ -446,7 +465,7 @@ export default function ViolationsPenalties() {
         <div className="acc-modal-overlay" onClick={() => setActiveModal(null)}>
           <div className="modal-container modal-container-lg" onClick={e => e.stopPropagation()}>
             <div className="acc-modal-header">
-              <span className="acc-modal-title">Chi tiết Biên bản — VIO-{selectedItem.violationId}</span>
+              <span className="acc-modal-title">{t('violationspenalties.report_detail_title', { id: selectedItem.violationId })}</span>
               <button className="acc-modal-close" onClick={() => setActiveModal(null)}><X size={16} /></button>
             </div>
             <div className="acc-modal-body">
@@ -487,7 +506,7 @@ export default function ViolationsPenalties() {
         <div className="acc-modal-overlay" onClick={() => setActiveModal(null)}>
           <div className="acc-modal-container" onClick={e => e.stopPropagation()}>
             <div className="acc-modal-header">
-              <span className="acc-modal-title">{selectedItem ? t('violationspenalties.edit') : t('violationspenalties.more')} Loại Vi Phạm</span>
+              <span className="acc-modal-title">{selectedItem ? t('violationspenalties.edit') : t('violationspenalties.more')} {t('violationspenalties.violation_type')}</span>
               <button className="acc-modal-close" onClick={() => setActiveModal(null)}><X size={16} /></button>
             </div>
             <form onSubmit={handleTypeSubmit}>

@@ -49,6 +49,15 @@ namespace STMM.API.Controllers
             return Ok(result);
         }
 
+        [HttpGet("{id}/stalls")]
+        public async Task<IActionResult> GetTaskStalls(
+            int id,
+            CancellationToken ct)
+        {
+            var result = await _staffTaskService.GetStallsForUtilityTaskForManagerAsync(id, GetUserId(), ct);
+            return Ok(result);
+        }
+
         [HttpPost]
         public async Task<IActionResult> CreateTask(
             [FromBody] CreateTaskRequest request,

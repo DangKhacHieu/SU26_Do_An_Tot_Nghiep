@@ -16,6 +16,7 @@ namespace STMM.Business.Services
         private readonly IStallRepository _stallRepository;
         private readonly IUserRepository _userRepository;
         private readonly INotificationService _notificationService;
+        private readonly IFileUploadService _fileUploadService;
         private readonly IValidator<CreateIssueRequest> _createValidator;
         private readonly ILogger<IssueService> _logger;
 
@@ -24,6 +25,7 @@ namespace STMM.Business.Services
             IStallRepository stallRepository,
             IUserRepository userRepository,
             INotificationService notificationService,
+            IFileUploadService fileUploadService,
             IValidator<CreateIssueRequest> createValidator,
             ILogger<IssueService> logger)
         {
@@ -31,6 +33,7 @@ namespace STMM.Business.Services
             _stallRepository = stallRepository;
             _userRepository = userRepository;
             _notificationService = notificationService;
+            _fileUploadService = fileUploadService;
             _createValidator = createValidator;
             _logger = logger;
         }
@@ -42,6 +45,23 @@ namespace STMM.Business.Services
         {
             var items = await _issueRepository.GetIssuesForStaffAsync(staffUserId, ct);
             return items.Select(MapIssueToDto).ToList();
+        }
+
+        public async Task<IEnumerable<STMM.Business.DTOs.StallTask.StaffStallLookupDto>> GetIssueStallsLookupAsync(
+            int staffUserId,
+            string? search,
+            CancellationToken ct = default)
+        {
+            var marketId = await GetMarketIdAsync(staffUserId, "staff", ct);
+            var effectiveDate = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
+            var items = await _stallRepository.GetStaffIssueStallLookupAsync(marketId, search, 50, effectiveDate, ct);
+            return items.Select(x => new STMM.Business.DTOs.StallTask.StaffStallLookupDto
+            {
+                StallId = x.StallId,
+                StallCode = x.StallCode,
+                AreaName = x.AreaName,
+                VendorName = x.VendorName
+            });
         }
 
         /// <inheritdoc />
@@ -70,8 +90,12 @@ namespace STMM.Business.Services
             }
 
             var marketId = await GetMarketIdAsync(staffUserId, "staff", ct);
-            var stall = await _stallRepository.GetStallForMarketAsync(request.StallId, marketId, ct)
+            var effectiveDate = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
+            var stall = await _stallRepository.GetEligibleIssueStallForMarketAsync(request.StallId, marketId, effectiveDate, ct)
                 ?? throw new NotFoundException($"Stall with ID {request.StallId} not found.");
+
+            var uploadedUrls = await _fileUploadService.UploadImagesAsync(request.Images, "issues", maxFiles: 3, ct: ct);
+            var imageUrlString = uploadedUrls.Count > 0 ? string.Join(";", uploadedUrls) : null;
 
             var issue = new Issue
             {
@@ -79,14 +103,23 @@ namespace STMM.Business.Services
                 CreatedByUserId = staffUserId,
                 Title = request.Title,
                 Description = request.Description,
-                ImageUrl = request.ImageUrl,
+                ImageUrl = imageUrlString,
                 Status = "Reported",
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
 
-            await _issueRepository.AddAsync(issue, ct);
-            await _issueRepository.SaveChangesAsync(ct);
+            try
+            {
+                await _issueRepository.AddAsync(issue, ct);
+                await _issueRepository.SaveChangesAsync(ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Database save failed for issue. Cleaning up uploaded Cloudinary images.");
+                await _fileUploadService.DeleteImagesAsync(uploadedUrls, ct);
+                throw;
+            }
 
             var managers = await _userRepository.GetActiveManagersByMarketAsync(marketId, ct);
             foreach (var manager in managers)

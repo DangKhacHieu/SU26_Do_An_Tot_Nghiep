@@ -26,7 +26,12 @@ export interface RequestDto {
 }
 
 export interface ManagerQuotationDecisionRequest {
-  action: 'ApproveAsMarket' | 'SendToVendor' | 'ReturnForRevision' | 'Reject' | '';
+  action: 'ApproveAsMarket' | 'SendToVendor' | 'ReturnForRevision' | '';
   decisionNote?: string;
   contractClause?: string;
+}
+
+export interface VendorQuotationDecisionRequest {
+  approve: boolean;
+  rejectReason?: string;
 }

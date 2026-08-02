@@ -2,10 +2,11 @@ import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { getAuthHeaders } from '../../utils/authHeaders';
 import readProblemDetail from '../../utils/readProblemDetail';
+import { showConfirm } from '../../utils/alert';
 import './ReceiveCashModal.css';
 
 export default function ReceiveCashModal({ stallId, stallCode, invoiceId, baseUrl, onClose, onSuccess }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const [invoice, setInvoice] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -43,18 +44,26 @@ export default function ReceiveCashModal({ stallId, stallCode, invoiceId, baseUr
     };
 
     fetchSelectedInvoice();
-  }, [stallId, invoiceId, baseUrl]);
+  }, [stallId, invoiceId, baseUrl, t]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (!invoice || !confirmed) return;
+
+    const formattedAmount = invoice.totalAmount.toLocaleString(i18n.resolvedLanguage?.startsWith('vi') ? 'vi-VN' : 'en-US');
+    const confirmResult = await showConfirm(
+      t('receivecashmodal.confirm_cash_title', { stallCode, defaultValue: `Xác nhận thu tiền sạp ${stallCode}` }),
+      t('receivecashmodal.confirm_cash_text', { amount: formattedAmount, defaultValue: `Bạn đã nhận đủ ${formattedAmount} VND tiền mặt?` })
+    );
+
+    if (!confirmResult.isConfirmed) return;
 
     setSubmitting(true);
     setSubmitError(null);
 
     try {
       const response = await fetch(`${baseUrl}/api/staff/billing/payments/cash`, {
-        method: t('receivecashmodal.post'),
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           ...getAuthHeaders(),
@@ -80,7 +89,7 @@ export default function ReceiveCashModal({ stallId, stallCode, invoiceId, baseUr
     <div className="modal-overlay">
       <div className="modal-container receive-cash-modal">
         <div className="modal-header">
-          <h2 className="modal-title">Cash Collection - Stall {stallCode}</h2>
+          <h2 className="modal-title">{t('receivecashmodal.cash_collection_stall', { stallCode })}</h2>
           <button className="modal-close-btn" onClick={onClose} disabled={submitting}>&times;</button>
         </div>
 
@@ -105,14 +114,14 @@ export default function ReceiveCashModal({ stallId, stallCode, invoiceId, baseUr
                 <div className="invoice-item-card selected locked">
                   <div className="invoice-card-details">
                     <div className="invoice-card-header">
-                      <span className="invoice-month-year">Invoice Month {invoice.month}/{invoice.year}</span>
-                      <span className="invoice-amount">{invoice.totalAmount.toLocaleString(t('receivecashmodal.vivn'))} VND</span>
+                      <span className="invoice-month-year">{t('receivecashmodal.invoice_month', { month: invoice.month, year: invoice.year })}</span>
+                      <span className="invoice-amount">{invoice.totalAmount.toLocaleString(i18n.resolvedLanguage?.startsWith('vi') ? 'vi-VN' : 'en-US')} VND</span>
                     </div>
                     <div className="invoice-card-body">
-                      <span className="invoice-fee-summary">Fees: {invoice.feeTypeSummary || t('receivecashmodal.service_fee')}</span>
+                      <span className="invoice-fee-summary">{t('receivecashmodal.fees')} {invoice.feeTypeSummary || t('receivecashmodal.service_fee')}</span>
                       {invoice.dueDate && (
                         <span className="invoice-due-date">
-                          Due Date: {new Date(invoice.dueDate).toLocaleDateString(t('receivecashmodal.enus'))}
+                          {t('receivecashmodal.due_date')}: {new Date(invoice.dueDate).toLocaleDateString(i18n.resolvedLanguage?.startsWith('vi') ? 'vi-VN' : 'en-US')}
                         </span>
                       )}
                     </div>
@@ -128,7 +137,7 @@ export default function ReceiveCashModal({ stallId, stallCode, invoiceId, baseUr
             <div className="payment-summary-box">
               <div className="summary-row">
                 <span>{t('receivecashmodal.total_amount')}</span>
-                <strong className="text-primary">{invoice.totalAmount.toLocaleString(t('receivecashmodal.vivn'))} VND</strong>
+                <strong className="text-primary">{invoice.totalAmount.toLocaleString(i18n.resolvedLanguage?.startsWith('vi') ? 'vi-VN' : 'en-US')} VND</strong>
               </div>
               <div className="summary-row font-sm text-muted">
                 <span>{t('receivecashmodal.method')}</span>

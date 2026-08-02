@@ -14,7 +14,7 @@ export default function VendorViolationList({ stallId }) {
     
     // Pagination state
     const [pageNumber, setPageNumber] = useState(1);
-    const [pageSize] = useState(10);
+    const [pageSize] = useState(5);
     const [totalCount, setTotalCount] = useState(0);
     
     // View state
@@ -184,11 +184,23 @@ export default function VendorViolationList({ stallId }) {
                                 className="premium-page-btn">
                                 {t('vendorviolationlist.before') || 'Trước'}
                             </button>
+                            
+                            {Array.from({ length: Math.ceil(totalCount / pageSize) }, (_, i) => i + 1).map(page => (
+                                <button 
+                                    key={page} 
+                                    className={`premium-page-btn ${pageNumber === page ? 'active' : ''}`}
+                                    style={pageNumber === page ? { backgroundColor: '#1e40af', color: 'white', borderColor: '#1e40af' } : {}}
+                                    onClick={() => setPageNumber(page)}
+                                >
+                                    {page}
+                                </button>
+                            ))}
+
                             <button 
                                 onClick={() => setPageNumber(prev => Math.min(Math.ceil(totalCount / pageSize), prev + 1))}
                                 disabled={pageNumber === Math.ceil(totalCount / pageSize)}
                                 className="premium-page-btn">
-                                Sau
+                                {t('vendorviolationlist.after') || 'Sau'}
                             </button>
                         </div>
                     </div>

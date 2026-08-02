@@ -404,6 +404,13 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Year)
                 .HasComment("Năm tính hóa đơn")
                 .HasColumnName("year");
+            entity.Property(e => e.ViolationId)
+                .HasColumnName("violation_id");
+            entity.Property(e => e.Version)
+                .HasColumnName("xmin")
+                .HasColumnType("xid")
+                .ValueGeneratedOnAddOrUpdate()
+                .IsConcurrencyToken();
 
             entity.HasOne(d => d.AdjustedFrom).WithMany(p => p.InverseAdjustedFrom)
                 .HasForeignKey(d => d.AdjustedFromId)
@@ -413,6 +420,11 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.ContractId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("fk_invoices_contracts");
+
+            entity.HasOne(d => d.Violation).WithMany(p => p.Invoices)
+                .HasForeignKey(d => d.ViolationId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("fk_invoices_violations");
         });
 
         modelBuilder.Entity<InvoiceDetail>(entity =>
@@ -605,6 +617,8 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => e.MeterId, "idx_meter_readings_meter_id");
 
+            entity.HasIndex(e => new { e.MeterId, e.RecordedAt }, "meter_readings_meter_id_recorded_at_key").IsUnique();
+
             entity.Property(e => e.MeterReadingId)
                 .HasComment("Mã bản ghi chỉ số điện nước")
                 .UseIdentityAlwaysColumn()
@@ -724,11 +738,24 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.TransactionCode)
                 .HasComment("Mã giao dịch hoặc mã biên nhận")
                 .HasColumnName("transaction_code");
+            entity.Property(e => e.RejectedAt).HasColumnName("rejected_at");
+            entity.Property(e => e.RejectedByUserId).HasColumnName("rejected_by_user_id");
+            entity.Property(e => e.OriginalPaymentId).HasColumnName("original_payment_id");
+            entity.Property(e => e.Version)
+                .HasColumnName("xmin")
+                .HasColumnType("xid")
+                .ValueGeneratedOnAddOrUpdate()
+                .IsConcurrencyToken();
 
             entity.HasOne(d => d.Invoice).WithMany(p => p.Payments)
                 .HasForeignKey(d => d.InvoiceId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("fk_payments_invoices");
+
+            entity.HasOne(d => d.OriginalPayment).WithMany(p => p.RefundPayments)
+                .HasForeignKey(d => d.OriginalPaymentId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("fk_payments_original_payment");
         });
 
         modelBuilder.Entity<RepairPrice>(entity =>
@@ -858,6 +885,11 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.ViolationId)
                 .HasComment("Điền nếu Kháng nghị vi phạm")
                 .HasColumnName("violation_id");
+            entity.Property(e => e.Version)
+                .HasColumnName("xmin")
+                .HasColumnType("xid")
+                .ValueGeneratedOnAddOrUpdate()
+                .IsConcurrencyToken();
 
             entity.HasOne(d => d.Invoice).WithMany(p => p.Requests)
                 .HasForeignKey(d => d.InvoiceId)
@@ -1209,7 +1241,15 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => e.IssueId, "idx_staff_tasks_issue_id");
 
+            entity.HasIndex(e => e.IssueId, "ux_staff_tasks_active_issue")
+                .IsUnique()
+                .HasFilter("issue_id IS NOT NULL AND (status IS NULL OR status NOT IN ('Completed', 'Cancelled'))");
+
             entity.HasIndex(e => e.RequestId, "idx_staff_tasks_request_id");
+
+            entity.HasIndex(e => e.RequestId, "ux_staff_tasks_active_request")
+                .IsUnique()
+                .HasFilter("request_id IS NOT NULL AND (status IS NULL OR status NOT IN ('Completed', 'Cancelled'))");
 
             entity.Property(e => e.TaskId)
                 .HasComment("Mã tác vụ")
@@ -1251,7 +1291,7 @@ public partial class AppDbContext : DbContext
                 .HasComment("Vòng đời: Pending → PendingApproval → In_Progress → Completed | Cancelled")
                 .HasColumnName("status");
             entity.Property(e => e.TaskType)
-                .HasComment("Repair, Maintenance, UtilityReading, CashCollection")
+                .HasComment("Repair, Maintenance, UtilityReading")
                 .HasColumnName("task_type");
             entity.Property(e => e.Title)
                 .HasComment("Tiêu đề tác vụ")

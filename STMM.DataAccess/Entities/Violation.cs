@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace STMM.DataAccess.Entities;
@@ -65,6 +65,8 @@ public partial class Violation
     public virtual User CreatedByUser { get; set; } = null!;
 
     public virtual ICollection<Request> Requests { get; set; } = new List<Request>();
+
+    public virtual ICollection<Invoice> Invoices { get; set; } = new List<Invoice>();
 
     public virtual Stall Stall { get; set; } = null!;
 
