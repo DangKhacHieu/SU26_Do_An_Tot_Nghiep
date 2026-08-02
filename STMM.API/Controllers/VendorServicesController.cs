@@ -11,6 +11,8 @@ using STMM.Business.Interfaces;
 using STMM.Business.Exceptions;
 using STMM.DataAccess.Data;
 
+using STMM.DataAccess.IRepositories;
+
 namespace STMM.API.Controllers;
 
 [ApiController]
@@ -19,12 +21,12 @@ namespace STMM.API.Controllers;
 public class VendorServicesController : ControllerBase
 {
     private readonly IVendorServiceManagement _vendorServiceManagement;
-    private readonly AppDbContext _context;
+    private readonly IVendorRepository _vendorRepository;
 
-    public VendorServicesController(IVendorServiceManagement vendorServiceManagement, AppDbContext context)
+    public VendorServicesController(IVendorServiceManagement vendorServiceManagement, IVendorRepository vendorRepository)
     {
         _vendorServiceManagement = vendorServiceManagement;
-        _context = context;
+        _vendorRepository = vendorRepository;
     }
 
     private async Task<int> GetVendorIdAsync(CancellationToken ct)
@@ -32,7 +34,8 @@ public class VendorServicesController : ControllerBase
         var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (int.TryParse(userIdStr, out var userId))
         {
-            var vendor = await _context.Vendors.FirstOrDefaultAsync(v => v.UserId == userId, ct);
+            var vendors = await _vendorRepository.FindAsync(v => v.UserId == userId, ct);
+            var vendor = vendors.FirstOrDefault();
             if (vendor != null)
             {
                 return vendor.VendorId;
