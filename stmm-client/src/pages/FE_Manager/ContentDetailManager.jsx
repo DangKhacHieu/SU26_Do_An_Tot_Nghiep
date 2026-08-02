@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
+import { getAuthHeaders } from '../../utils/authHeaders';
 import './ContentDetailManager.css';
 
 const API_BASE = "http://localhost:5056/api/manager/contents";
@@ -37,7 +38,7 @@ export default function ContentDetailManager({ contentId, navigate, addToast }) 
 
   const loadContent = async () => {
     try {
-      const res = await fetch(`${API_BASE}/${contentId}`);
+      const res = await fetch(`${API_BASE}/${contentId}`, { headers: getAuthHeaders() });
       if (res.ok) {
         setContent(await res.json());
       } else {

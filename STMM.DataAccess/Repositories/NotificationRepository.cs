@@ -18,7 +18,8 @@ namespace STMM.DataAccess.Repositories
         public async Task<IEnumerable<Notification>> GetNotificationsAsync(string? type, string? targetRole, CancellationToken ct = default)
         {
             IQueryable<Notification> query = _dbSet.AsQueryable()
-                .Include(n => n.TargetUser);
+                .Include(n => n.TargetUser)
+                .Include(n => n.CreatedByUser);
 
             if (!string.IsNullOrEmpty(type))
             {
@@ -37,7 +38,18 @@ namespace STMM.DataAccess.Repositories
         {
             return await _dbSet.AsQueryable()
                 .Include(n => n.TargetUser)
+                .Include(n => n.CreatedByUser)
                 .FirstOrDefaultAsync(n => n.NotiId == id, ct);
+        }
+
+        public override async Task<IEnumerable<Notification>> FindAsync(System.Linq.Expressions.Expression<System.Func<Notification, bool>> predicate, CancellationToken cancellationToken = default)
+        {
+            return await _dbSet.AsQueryable()
+                .Include(n => n.CreatedByUser)
+                .Include(n => n.TargetUser)
+                .Where(predicate)
+                .AsNoTracking()
+                .ToListAsync(cancellationToken);
         }
     }
 }

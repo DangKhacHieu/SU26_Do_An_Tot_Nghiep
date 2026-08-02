@@ -1,4 +1,5 @@
 using AutoMapper;
+using Microsoft.EntityFrameworkCore;
 using STMM.Business.DTOs.Notification;
 using STMM.Business.Exceptions;
 using STMM.Business.Interfaces;
@@ -95,8 +96,9 @@ namespace STMM.Business.Services
 
             var notifications = await _notificationRepository.FindAsync(n =>
                 (n.CreatedAt >= limitDate) &&
+                (n.CreatedByUserId != userId) &&
                 ((n.TargetUserId == userId) ||
-                (!isManagerWithoutMarket && !string.IsNullOrWhiteSpace(n.TargetRole) && n.TargetRole.ToLower() == targetRoleLower) ||
+                (!isManagerWithoutMarket && !string.IsNullOrWhiteSpace(n.TargetRole) && n.TargetRole.ToLower() == targetRoleLower && (n.CreatedByUser == null || n.CreatedByUser!.MarketId == user.MarketId)) ||
                 (!isManagerWithoutMarket && !string.IsNullOrWhiteSpace(n.TargetRole) && n.TargetRole.ToLower() == "public")),
                 ct);
 
@@ -108,16 +110,14 @@ namespace STMM.Business.Services
         /// <inheritdoc />
         public async Task MarkAsReadAsync(int notiId, int userId, CancellationToken ct = default)
         {
-            var notification = (await _notificationRepository.FindAsync(
-                n => n.NotiId == notiId && n.TargetUserId == userId,
-                ct)).FirstOrDefault();
+            var notification = await _notificationRepository.Query()
+                .FirstOrDefaultAsync(n => n.NotiId == notiId && n.TargetUserId == userId, ct);
             if (notification == null)
             {
                 throw new NotFoundException($"Notification with ID {notiId} not found.");
             }
 
             notification.IsRead = true;
-            _notificationRepository.Update(notification);
             await _notificationRepository.SaveChangesAsync(ct);
         }
 
@@ -135,18 +135,20 @@ namespace STMM.Business.Services
             string targetRoleLower = user?.Role?.Name?.ToLower() ?? "";
             bool isManagerWithoutMarket = user != null && string.Equals(user.Role?.Name, "Manager", StringComparison.OrdinalIgnoreCase) && !user.MarketId.HasValue;
 
-            var notifications = await _notificationRepository.FindAsync(n =>
-                (n.IsRead == false || n.IsRead == null) &&
-                (n.CreatedAt >= limitDate) &&
-                ((n.TargetUserId == userId) ||
-                (!isManagerWithoutMarket && !string.IsNullOrWhiteSpace(n.TargetRole) && n.TargetRole.ToLower() == targetRoleLower) ||
-                (!isManagerWithoutMarket && !string.IsNullOrWhiteSpace(n.TargetRole) && n.TargetRole.ToLower() == "public")),
-                ct);
+            var notifications = await _notificationRepository.Query()
+                .Where(n =>
+                    (n.IsRead == false || n.IsRead == null) &&
+                    (n.CreatedAt >= limitDate) &&
+                    (n.CreatedByUserId != userId) &&
+                    ((n.TargetUserId == userId) ||
+                    (!isManagerWithoutMarket && !string.IsNullOrWhiteSpace(n.TargetRole) && n.TargetRole.ToLower() == targetRoleLower && (n.CreatedByUser == null || n.CreatedByUser!.MarketId == user.MarketId)) ||
+                    (!isManagerWithoutMarket && !string.IsNullOrWhiteSpace(n.TargetRole) && n.TargetRole.ToLower() == "public"))
+                )
+                .ToListAsync(ct);
 
             foreach (var notification in notifications)
             {
                 notification.IsRead = true;
-                _notificationRepository.Update(notification);
             }
 
             await _notificationRepository.SaveChangesAsync(ct);
