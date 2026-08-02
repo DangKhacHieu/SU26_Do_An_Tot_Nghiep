@@ -140,7 +140,9 @@ namespace STMM.Business.Services
                             Amount = actualAmount,
                             Method = "VNPay",
                             TransactionCode = transactionNo,
-                            PaidAt = DateTime.UtcNow
+                            PaidAt = DateTime.UtcNow,
+                            Status = "Verified",
+                            VerifiedAt = DateTime.UtcNow
                         };
 
                         _context.Payments.Add(payment);
