@@ -103,6 +103,11 @@ namespace STMM.Business.Services
 
         public async Task<FeeTypeDto> UpdateFeeTypeAsync(int userId, int id, UpdateFeeTypeRequest request, CancellationToken ct = default)
         {
+            if (id <= 8)
+            {
+                throw new BadRequestException("Không thể sửa loại phí mặc định của hệ thống.");
+            }
+            
             var valResult = await _updateFeeTypeValidator.ValidateAsync(request, ct);
             if (!valResult.IsValid)
             {
@@ -143,7 +148,7 @@ namespace STMM.Business.Services
 
         public async Task<bool> DeleteFeeTypeAsync(int userId, int id, CancellationToken ct = default)
         {
-            if (id <= 6)
+            if (id <= 8)
             {
                 throw new BadRequestException("Không thể xóa loại phí mặc định của hệ thống.");
             }

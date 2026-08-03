@@ -105,5 +105,10 @@ namespace STMM.Business.Interfaces
         /// Manually triggers the auto-generation process for a specific month and year.
         /// </summary>
         Task<int> TriggerAutoGenerateAsync(int month, int year, int triggerUserId, CancellationToken ct = default);
+
+        /// <summary>
+        /// Process overdue invoices, update statuses and calculate daily late penalties.
+        /// </summary>
+        Task<int> ProcessOverdueInvoicesAsync(CancellationToken ct = default);
     }
 }
