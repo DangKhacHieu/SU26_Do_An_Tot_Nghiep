@@ -1,10 +1,11 @@
 import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import Swal from 'sweetalert2';
 import { showSuccess, showError, showConfirm } from '../../../utils/alert';
 
 export default function VendorRequestDetail({ requestId, onBack, onSuccess }) {
-  const { t, i18n } = useTranslation();
+    const { t, i18n } = useTranslation();
 
     const [request, setRequest] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -58,27 +59,45 @@ export default function VendorRequestDetail({ requestId, onBack, onSuccess }) {
         }
     };
 
-    const handleResolveQuote = async (approve) => {
+        let reason = '';
         if (!approve) {
-            if (!rejectReason || rejectReason.length < 10 || rejectReason.length > 1000) {
-                showError(t('vendorrequestdetail.failure'), t('vendorrequestdetail.decline_reason_required') || 'Vui lòng nhập lý do từ chối (10-1000 ký tự).');
-                return;
-            }
-        }
-
-        const confirmMsg = approve 
-            ? 'Bạn có chắc chắn muốn DUYỆT báo giá này và ĐỒNG Ý chi trả chi phí sửa chữa không?' 
-            : 'Bạn có chắc chắn muốn TỪ CHỐI báo giá và HỦY yêu cầu sửa chữa này không?';
-        const result = await showConfirm(t('vendorrequestdetail.confirm'), confirmMsg);
-        if (!result.isConfirmed) {
-            return;
+            const { value: text, isConfirmed } = await Swal.fire({
+                title: 'Từ chối báo giá',
+                input: 'textarea',
+                inputLabel: 'Vui lòng nhập lý do từ chối (bắt buộc, 10-1000 ký tự)',
+                inputPlaceholder: 'Nhập lý do chi tiết tại đây...',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'Xác nhận từ chối',
+                cancelButtonText: 'Hủy',
+                inputValidator: (value) => {
+                    if (!value || value.trim().length < 10) {
+                        return 'Lý do phải có ít nhất 10 ký tự!';
+                    }
+                    if (value.length > 1000) {
+                        return 'Lý do không được vượt quá 1000 ký tự!';
+                    }
+                }
+            });
+            if (!isConfirmed) return;
+            reason = text;
+        } else {
+            const result = await showConfirm(
+                t('vendorrequestdetail.confirm'), 
+                'Bạn có chắc chắn muốn DUYỆT báo giá này và ĐỒNG Ý chi trả chi phí sửa chữa không?'
+            );
+            if (!result.isConfirmed) return;
         }
 
         setIsResolvingQuote(true);
         try {
             const token = localStorage.getItem('accessToken');
             await axios.post(`http://localhost:5056/api/vendor/requests/${requestId}/resolve-quote`, 
-            { approve, rejectReason: approve ? null : rejectReason }, 
+            {
+                isApproved: approve,
+                reason: reason
+            }, 
             {
                 headers: { Authorization: `Bearer ${token}` }
             });
@@ -139,18 +158,29 @@ export default function VendorRequestDetail({ requestId, onBack, onSuccess }) {
                     </div>
                     <div>
                         <label style={{ display: 'block', fontSize: '12px', color: '#888', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '4px' }}>{t('vendorrequestdetail.request_type')}</label>
-                        <div style={{ fontSize: '14px', fontWeight: '500' }}>{request.requestType}</div>
+                        <div style={{ fontSize: '14px', fontWeight: '500' }}>
+                            {request.requestType === 'FacilityIssue' ? 'Sự cố hạ tầng' : request.requestType === 'InvoiceDispute' ? 'Khiếu nại hóa đơn' : request.requestType === 'ViolationAppeal' ? 'Kháng nghị vi phạm' : request.requestType}
+                        </div>
                     </div>
                     {request.violationId && (
-                        <div>
-                            <label style={{ display: 'block', fontSize: '12px', color: '#888', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '4px' }}>{t('vendorrequestdetail.id_violation_appeal')}</label>
-                            <div style={{ fontSize: '14px', fontWeight: '500' }}>#{request.violationId}</div>
+                        <div style={{ gridColumn: '1 / -1', background: '#fff1f2', padding: '12px', borderRadius: '8px', border: '1px solid #fecdd3' }}>
+                            <label style={{ display: 'block', fontSize: '12px', color: '#be123c', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '4px' }}>THÔNG TIN BIÊN BẢN VI PHẠM (#{request.violationId})</label>
+                            {request.violationTitle && (
+                                <div style={{ fontSize: '14px', color: '#881337', marginTop: '4px', fontWeight: '500' }}>
+                                    {request.violationTitle} - Mức phạt: {request.violationFineAmount?.toLocaleString()}đ
+                                </div>
+                            )}
                         </div>
                     )}
                     {request.invoiceId && (
-                        <div>
-                            <label style={{ display: 'block', fontSize: '12px', color: '#888', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '4px' }}>{t('vendorrequestdetail.claim_id_bill')}</label>
-                            <div style={{ fontSize: '14px', fontWeight: '500' }}>#{request.invoiceId}</div>
+                        <div style={{ gridColumn: '1 / -1', background: '#eff6ff', padding: '12px', borderRadius: '8px', border: '1px solid #bfdbfe' }}>
+                            <label style={{ display: 'block', fontSize: '12px', color: '#1d4ed8', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '4px' }}>THÔNG TIN HÓA ĐƠN (#{request.invoiceId})</label>
+                            {request.invoiceMonthYear && (
+                                <div style={{ fontSize: '14px', color: '#1e3a8a', marginTop: '4px', fontWeight: '500' }}>
+                                    {request.invoiceName ? `${request.invoiceName} (${request.invoiceType}) - Kỳ: ` : 'Hóa đơn '} 
+                                    {request.invoiceMonthYear} - Tổng tiền: {request.invoiceTotalAmount?.toLocaleString()}đ
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>
@@ -178,6 +208,13 @@ export default function VendorRequestDetail({ requestId, onBack, onSuccess }) {
                             <label style={{ display: 'block', fontSize: '12px', color: '#4f46e5', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '8px' }}>{t('vendorrequestdetail.quote_content_feedback')}</label>
                             <div style={{ fontSize: '14px', lineHeight: '1.6', background: 'white', padding: '16px', borderRadius: '6px', whiteSpace: 'pre-wrap', border: '1px solid #e0e7ff' }}>
                                 {request.quotationText}
+                            </div>
+                        </div>
+                    ) : request.payerDecisionNote ? (
+                        <div style={{ marginBottom: '20px' }}>
+                            <label style={{ display: 'block', fontSize: '12px', color: '#4f46e5', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '8px' }}>Phản hồi chi tiết</label>
+                            <div style={{ fontSize: '14px', lineHeight: '1.6', background: 'white', padding: '16px', borderRadius: '6px', whiteSpace: 'pre-wrap', border: '1px solid #e0e7ff', color: request.status === 'Rejected' ? '#991b1b' : '#374151' }}>
+                                {request.payerDecisionNote}
                             </div>
                         </div>
                     ) : (

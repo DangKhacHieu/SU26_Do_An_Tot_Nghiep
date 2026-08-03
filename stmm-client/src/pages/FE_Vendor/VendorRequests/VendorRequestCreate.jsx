@@ -42,6 +42,7 @@ export default function VendorRequestCreate({ onBack, onSuccess, prefillViolatio
         switch (status) {
             case 'Paid': return t('vendorrequestcreate.paid');
             case 'Overdue': return t('vendorrequestcreate.overdue');
+            case 'Disputed': return t('vendorrequestcreate.disputed') || 'Đang khiếu nại';
             case 'Pending':
             case 'Unpaid': return t('vendorrequestcreate.not_yet_paid');
             default: return status || t('vendorrequestcreate.not_yet_paid');
@@ -74,7 +75,7 @@ export default function VendorRequestCreate({ onBack, onSuccess, prefillViolatio
                 const invoicesRes = await axios.get('http://localhost:5056/api/vendor/invoices?pageSize=100', config);
                 const invoicesData = invoicesRes.data?.items || (Array.isArray(invoicesRes.data) ? invoicesRes.data : []);
                 setInvoices(invoicesData);
-                if (invoicesData.length > 0) {
+                if (invoicesData.length > 0 && !prefillInvoiceId) {
                     setInvoiceId(invoicesData[0].invoiceId);
                 }
 
@@ -198,11 +199,22 @@ export default function VendorRequestCreate({ onBack, onSuccess, prefillViolatio
                     );
                 })()}
 
-                {requestType === 'ViolationAppeal' && prefillViolationId && (
-                    <div style={{ display: 'none' }}>
-                        <input type="hidden" value={violationId} />
-                    </div>
-                )}
+                {requestType === 'ViolationAppeal' && prefillViolationId && (() => {
+                    const v = violations.find(i => i.violationId === parseInt(prefillViolationId));
+                    return (
+                        <div style={{ background: '#fff1f2', padding: '16px', borderRadius: '8px', border: '1px solid #fecdd3' }}>
+                            <input type="hidden" value={violationId} />
+                            <label style={{ display: 'block', fontSize: '12px', color: '#be123c', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '8px' }}>Biên Bản Đang Kháng Nghị</label>
+                            {v ? (
+                                <div style={{ fontSize: '14px', color: '#881337', fontWeight: '500' }}>
+                                    [{getViolationStatusText(v.status)}] {v.title} (Sạp {v.stallCode})
+                                </div>
+                            ) : (
+                                <div style={{ fontSize: '14px', color: '#881337' }}>Đang tải thông tin biên bản #{prefillViolationId}...</div>
+                            )}
+                        </div>
+                    );
+                })()}
 
                 {requestType === 'InvoiceDispute' && !prefillInvoiceId && (
                     <div>
@@ -217,9 +229,22 @@ export default function VendorRequestCreate({ onBack, onSuccess, prefillViolatio
                                 style={{ width: '100%', padding: '12px', border: '1px solid #e5e7eb', borderRadius: '6px', outline: 'none' }}>
                                 <option value="" disabled>{t('vendorrequestcreate.please_select_the_invoice')}</option>
                                 {invoices.map(inv => {
+                                    let invName = `Hóa đơn tháng ${inv.month}/${inv.year}`;
+                                    let invType = 'Định kỳ';
+                                    if (inv.details && inv.details.length > 0) {
+                                        const hasPenalty = inv.details.some(d => d.feeTypeName?.toLowerCase().includes('phạt') || d.feeTypeName?.toLowerCase().includes('penalty'));
+                                        if (hasPenalty) {
+                                            invName = 'Hóa đơn tiền phạt';
+                                            invType = 'Phạt vi phạm';
+                                        } else if (inv.details.length === 1 && !['điện', 'nước', 'rác', 'bảo vệ', 'thuê', 'electric', 'water', 'waste', 'rent', 'security'].some(k => inv.details[0].feeTypeName?.toLowerCase().includes(k))) {
+                                            invName = inv.details[0].feeTypeName || 'Hóa đơn phát sinh';
+                                            invType = 'Phát sinh';
+                                        }
+                                    }
+
                                     return (
                                         <option key={inv.invoiceId} value={inv.invoiceId}>
-                                            [{getInvoiceStatusText(inv.status)}] Hóa đơn Tháng {inv.month}/{inv.year} (Sạp {inv.stallCode}) - {inv.totalAmount?.toLocaleString()}đ
+                                            [{getInvoiceStatusText(inv.status)}] {invName} ({invType}) (Sạp {inv.stallCode}) - {inv.totalAmount?.toLocaleString()}đ
                                         </option>
                                     );
                                 })}
@@ -228,11 +253,38 @@ export default function VendorRequestCreate({ onBack, onSuccess, prefillViolatio
                     </div>
                 )}
 
-                {requestType === 'InvoiceDispute' && prefillInvoiceId && (
-                    <div style={{ display: 'none' }}>
-                        <input type="hidden" value={invoiceId} />
-                    </div>
-                )}
+                {requestType === 'InvoiceDispute' && prefillInvoiceId && (() => {
+                    const inv = invoices.find(i => i.invoiceId === parseInt(prefillInvoiceId));
+                    let invName = `Hóa đơn tháng`;
+                    let invType = 'Định kỳ';
+                    if (inv) {
+                        invName = `Hóa đơn tháng ${inv.month}/${inv.year}`;
+                        if (inv.details && inv.details.length > 0) {
+                            const hasPenalty = inv.details.some(d => d.feeTypeName?.toLowerCase().includes('phạt') || d.feeTypeName?.toLowerCase().includes('penalty'));
+                            if (hasPenalty) {
+                                invName = 'Hóa đơn tiền phạt';
+                                invType = 'Phạt vi phạm';
+                            } else if (inv.details.length === 1 && !['điện', 'nước', 'rác', 'bảo vệ', 'thuê', 'electric', 'water', 'waste', 'rent', 'security'].some(k => inv.details[0].feeTypeName?.toLowerCase().includes(k))) {
+                                invName = inv.details[0].feeTypeName || 'Hóa đơn phát sinh';
+                                invType = 'Phát sinh';
+                            }
+                        }
+                    }
+
+                    return (
+                        <div style={{ background: '#eff6ff', padding: '16px', borderRadius: '8px', border: '1px solid #bfdbfe' }}>
+                            <input type="hidden" value={invoiceId} />
+                            <label style={{ display: 'block', fontSize: '12px', color: '#1d4ed8', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '8px' }}>Hóa Đơn Đang Khiếu Nại</label>
+                            {inv ? (
+                                <div style={{ fontSize: '14px', color: '#1e3a8a', fontWeight: '500' }}>
+                                    {invName} ({invType}) - Kỳ: Tháng {inv.month}/{inv.year} - Tổng tiền: {inv.totalAmount?.toLocaleString()}đ
+                                </div>
+                            ) : (
+                                <div style={{ fontSize: '14px', color: '#1e3a8a' }}>Đang tải thông tin hóa đơn #{prefillInvoiceId}...</div>
+                            )}
+                        </div>
+                    );
+                })()}
 
                 <div>
                     <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', marginBottom: '8px' }}>{t('vendorrequestcreate.request_title')}</label>

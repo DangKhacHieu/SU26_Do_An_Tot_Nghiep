@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
+import { getAuthHeaders } from '../../utils/authHeaders';
 import './ContentListManager.css';
 
 const API_BASE = "http://localhost:5056/api/manager/contents";
@@ -53,7 +54,7 @@ export default function ContentListManager({ navigate, addToast }) {
       if (typeFilter) url += `type=${encodeURIComponent(typeFilter)}&`;
       if (roleFilter) url += `targetRole=${encodeURIComponent(roleFilter)}&`;
       
-      const res = await fetch(url);
+      const res = await fetch(url, { headers: getAuthHeaders() });
       if (res.ok) {
         setContents(await res.json());
       } else {
@@ -70,7 +71,10 @@ export default function ContentListManager({ navigate, addToast }) {
     if (!targetContent || actionLoading) return;
     setActionLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/${targetContent.notiId}`, { method: 'DELETE' });
+      const res = await fetch(`${API_BASE}/${targetContent.notiId}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+      });
       if (res.ok) {
         addToast('Xóa bài viết/thông báo thành công!', 'success');
         setDeleteModalOpen(false);
@@ -147,10 +151,6 @@ export default function ContentListManager({ navigate, addToast }) {
             <option value="">{t('contentlistmanager.all_categories')}</option>
             <option value="Article">Homepage Article</option>
             <option value="Announcement">Role Announcement</option>
-            <option value="System">System Notification</option>
-            <option value="Invoice">Invoice Alert</option>
-            <option value="Violation">Violation Notice</option>
-            <option value="Request">Request Update</option>
           </select>
 
           <select className="filter-select" value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>

@@ -1091,9 +1091,22 @@ namespace STMM.Business.Services
             try
             {
                 dispute.Status = request.Approve ? "Approved" : "Rejected";
+                dispute.PayerDecisionNote = request.Feedback;
                 dispute.UpdatedAt = DateTime.UtcNow;
                 _requestRepository.Update(dispute);
-                
+
+                // Revert invoice nếu nó đang kẹt ở trạng thái "Disputed" (dữ liệu cũ)
+                // Với luồng mới, hóa đơn không bị đổi thành Disputed, nhưng cần xử lý dữ liệu cũ
+                if (dispute.InvoiceId.HasValue)
+                {
+                    var invoiceForRevert = await _invoiceRepository.GetByIdAsync(dispute.InvoiceId.Value, ct);
+                    if (invoiceForRevert != null && invoiceForRevert.Status == "Disputed")
+                    {
+                        invoiceForRevert.Status = "Unpaid";
+                        _invoiceRepository.Update(invoiceForRevert);
+                    }
+                }
+
                 string refundMsg = "";
                 if (request.Approve && request.IsRefund && request.RefundAmount > 0 && dispute.InvoiceId.HasValue)
                 {
@@ -1112,7 +1125,7 @@ namespace STMM.Business.Services
                             var payment = new Payment
                             {
                                 InvoiceId = dispute.InvoiceId.Value,
-                                Amount = request.RefundAmount.Value, // Refund amount is recorded as positive (or negative if preferred, but usually positive with Refunded status)
+                                Amount = request.RefundAmount.Value,
                                 Method = request.RefundMethod ?? "Cash",
                                 TransactionCode = string.IsNullOrWhiteSpace(request.TransactionCode) ? $"RF-REQ-{requestId}" : request.TransactionCode,
                                 PaidAt = DateTime.UtcNow,
@@ -1124,8 +1137,9 @@ namespace STMM.Business.Services
                             string methodText = request.RefundMethod == "Transfer" ? "Chuyển khoản" : "Tiền mặt";
                             refundMsg = $" Ban quản lý đã hoàn lại số tiền {request.RefundAmount.Value:#,##0} VNĐ qua hình thức {methodText}.";
                         }
-                        else if (invoice.Status == "Unpaid" || invoice.Status == "Draft")
+                        else if (invoice.Status == "Unpaid" || invoice.Status == "Draft" || invoice.Status == "Disputed")
                         {
+                            // Disputed chỉ xảy ra với dữ liệu cũ, xử lý giống Unpaid
                             var feeTypeId = invoice.InvoiceDetails.FirstOrDefault()?.FeeTypeId ?? 1;
                             var detail = new InvoiceDetail
                             {
@@ -1140,6 +1154,8 @@ namespace STMM.Business.Services
                             invoice.InvoiceDetails.Add(detail);
                             invoice.TotalAmount -= request.RefundAmount.Value;
                             if (invoice.TotalAmount < 0) invoice.TotalAmount = 0;
+                            // Đảm bảo trả về Unpaid sau khi giảm trừ (không để kẹt Disputed)
+                            if (invoice.Status == "Disputed") invoice.Status = "Unpaid";
                             
                             refundMsg = $" Hóa đơn của bạn đã được giảm trừ {request.RefundAmount.Value:#,##0} VNĐ.";
                         }
@@ -1276,6 +1292,16 @@ namespace STMM.Business.Services
 
                 foreach (var srv in validServices)
                 {
+                    if (srv.Reg.Status == "PendingCancellation")
+                    {
+                        // Hết chu kỳ cũ, đến chu kỳ mới nhưng user đã hủy gia hạn
+                        // Cập nhật trạng thái thành Cancelled và không tính phí tháng này
+                        srv.Reg.Status = "Cancelled";
+                        srv.Reg.CancelledAt = DateTime.UtcNow;
+                        _serviceRegistrationRepository.Update(srv.Reg);
+                        continue;
+                    }
+
                     var srvDetail = new InvoiceDetail
                     {
                         FeeTypeId = srv.Reg.Service.FeeTypeId,

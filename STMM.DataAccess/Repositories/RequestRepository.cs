@@ -30,6 +30,10 @@ namespace STMM.DataAccess.Repositories
                 .Include(r => r.Stall)
                 .Include(r => r.Vendor)
                     .ThenInclude(v => v.User)
+                .Include(r => r.Invoice)
+                    .ThenInclude(i => i.InvoiceDetails)
+                        .ThenInclude(d => d.FeeType)
+                .Include(r => r.Violation)
                 .AsQueryable();
 
             if (vendorId.HasValue)
@@ -84,12 +88,20 @@ namespace STMM.DataAccess.Repositories
 
         public async Task<Request?> GetRequestWithRelationsAsync(int requestId, bool tracking, CancellationToken ct = default)
         {
-            var query = _context.Requests
+            IQueryable<Request> query = _context.Requests
                 .Include(r => r.Stall)
                 .Include(r => r.Vendor)
                     .ThenInclude(v => v.User)
-                .AsQueryable();
-            if (!tracking) query = query.AsNoTracking();
+                .Include(r => r.Invoice)
+                    .ThenInclude(i => i.InvoiceDetails)
+                        .ThenInclude(d => d.FeeType)
+                .Include(r => r.Violation);
+
+            if (!tracking)
+            {
+                query = query.AsNoTracking();
+            }
+
             return await query.FirstOrDefaultAsync(r => r.RequestId == requestId, ct);
         }
 
@@ -103,6 +115,10 @@ namespace STMM.DataAccess.Repositories
                     .ThenInclude(s => s.Area)
                 .Include(r => r.Vendor)
                     .ThenInclude(v => v.User)
+                .Include(r => r.Invoice)
+                    .ThenInclude(i => i.InvoiceDetails)
+                        .ThenInclude(d => d.FeeType)
+                .Include(r => r.Violation)
                 .AsNoTracking()
                 .FirstOrDefaultAsync(r =>
                     r.RequestId == requestId &&

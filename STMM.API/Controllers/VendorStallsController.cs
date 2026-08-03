@@ -1,10 +1,11 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.EntityFrameworkCore;
-using STMM.DataAccess.Data;
+using STMM.Business.Interfaces;
+using STMM.DataAccess.IRepositories;
 using System.Security.Claims;
-using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
+using System.Linq;
 
 namespace STMM.API.Controllers
 {
@@ -13,15 +14,17 @@ namespace STMM.API.Controllers
     [Authorize]
     public class VendorStallsController : ControllerBase
     {
-        private readonly AppDbContext _context;
+        private readonly IVendorServiceManagement _vendorServiceManagement;
+        private readonly IVendorRepository _vendorRepository;
 
-        public VendorStallsController(AppDbContext context)
+        public VendorStallsController(IVendorServiceManagement vendorServiceManagement, IVendorRepository vendorRepository)
         {
-            _context = context;
+            _vendorServiceManagement = vendorServiceManagement;
+            _vendorRepository = vendorRepository;
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetMyStalls()
+        public async Task<IActionResult> GetMyStalls(CancellationToken ct)
         {
             var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (!int.TryParse(userIdStr, out int userId))
@@ -29,17 +32,24 @@ namespace STMM.API.Controllers
                 return Unauthorized();
             }
 
-            var stalls = await _context.Contracts
-                .Where(c => c.Vendor.UserId == userId && c.Status == "Active" && c.IsDeleted != true)
-                .Include(c => c.Stall)
-                .Select(c => new { 
-                    StallId = c.Stall.StallId,
-                    Code = c.Stall.Code
-                })
-                .Distinct()
-                .ToListAsync();
+            var vendors = await _vendorRepository.FindAsync(v => v.UserId == userId, ct);
+            var vendor = vendors.FirstOrDefault();
+            if (vendor == null)
+            {
+                return BadRequest("Vendor không tồn tại.");
+            }
 
-            return Ok(stalls);
+            var vendorId = vendor.VendorId;
+
+            var stalls = await _vendorServiceManagement.GetMyStallsAsync(vendorId, ct);
+            
+            // Map to the specific anonymous object shape expected by the frontend
+            var result = stalls.Select(s => new {
+                StallId = s.StallId,
+                Code = s.Code
+            });
+
+            return Ok(result);
         }
     }
 }

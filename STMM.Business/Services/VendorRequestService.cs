@@ -55,7 +55,7 @@ namespace STMM.Business.Services
 
             if (!string.IsNullOrWhiteSpace(queryParams.Status))
             {
-                var validStatuses = new[] { "Pending", "Quoted", "Approved", "Rejected", "Cancelled", "In_Progress" };
+                var validStatuses = new[] { "Pending", "Approved", "Rejected", "Cancelled", "In_Progress", "Quoted" };
                 if (!validStatuses.Contains(queryParams.Status.Trim()))
                     throw new BadRequestException("Trạng thái yêu cầu không hợp lệ.");
             }
@@ -126,9 +126,23 @@ namespace STMM.Business.Services
                 if (!dto.InvoiceId.HasValue)
                     throw new BadRequestException("Vui lòng cung cấp ID hóa đơn cần khiếu nại.");
                 
-                var invoice = await _invoiceRepository.GetByIdAsync(dto.InvoiceId.Value);
-                if (invoice == null)
-                    throw new BadRequestException("Không tìm thấy hóa đơn cần khiếu nại.");
+                var invoice = await _invoiceRepository.GetInvoiceDetailsWithRelationsAsync(dto.InvoiceId.Value);
+                if (invoice == null || invoice.Contract?.VendorId != vendorId)
+                    throw new BadRequestException("Không tìm thấy hóa đơn cần khiếu nại hoặc hóa đơn không thuộc về sạp của bạn.");
+
+                if (invoice.Status == "Adjusted")
+                {
+                    throw new BadRequestException("Hóa đơn này đã được điều chỉnh, không thể khiếu nại lại.");
+                }
+
+                // Check if there is already an active dispute for this invoice
+                var existingDispute = await _requestRepository.FindAsync(r => r.InvoiceId == dto.InvoiceId.Value && (r.Status == "Pending" || r.Status == "Reviewing"));
+                if (existingDispute.Any())
+                {
+                    throw new BadRequestException("Hóa đơn này đang được khiếu nại, không thể khiếu nại lại.");
+                }
+
+                // KHÔNG đổi trạng thái invoice thành Disputed nữa theo requirement mới
             }
             else
             {
@@ -206,6 +220,27 @@ namespace STMM.Business.Services
             request.Status = "Cancelled";
             request.UpdatedAt = DateTime.UtcNow;
 
+            if (request.RequestType == "InvoiceDispute" && request.InvoiceId.HasValue)
+            {
+                var invoice = await _invoiceRepository.GetByIdAsync(request.InvoiceId.Value);
+                if (invoice != null && invoice.Status == "Disputed")
+                {
+                    // Revert về Unpaid (Phục vụ cho các dữ liệu cũ đã bị đổi thành Disputed)
+                    invoice.Status = "Unpaid";
+                    _invoiceRepository.Update(invoice);
+                }
+            }
+            
+            if (request.RequestType == "ViolationAppeal" && request.ViolationId.HasValue)
+            {
+                var violation = await _violationRepository.GetByIdAsync(request.ViolationId.Value);
+                if (violation != null && violation.Status == "Appealed")
+                {
+                    violation.Status = "Issued";
+                    _violationRepository.Update(violation);
+                }
+            }
+
             _requestRepository.Update(request);
             await _requestRepository.SaveChangesAsync();
 
@@ -240,16 +275,16 @@ namespace STMM.Business.Services
                 throw new BadRequestException("Báo giá này đã được xử lý trước đó.");
             }
 
-            request.IsQuoteApproved = decision.Approve;
+            request.IsQuoteApproved = decision.IsApproved;
             
-            if (decision.Approve)
+            if (decision.IsApproved)
             {
                 request.Status = "Approved";
             }
             else
             {
                 request.Status = "Cancelled";
-                request.VendorRejectReason = decision.RejectReason;
+                request.VendorRejectReason = decision.Reason;
             }
             
             request.UpdatedAt = DateTime.UtcNow;
@@ -258,9 +293,9 @@ namespace STMM.Business.Services
             var tasks = await _staffTaskRepository.FindAsync(t => t.RequestId == requestId, ct);
             foreach (var task in tasks)
             {
-                if (decision.Approve)
+                if (decision.IsApproved)
                 {
-                    if (task.Status == "PendingApproval")
+                    if (task.Status == "PendingManagerReview" || task.Status == "PendingApproval") // StaffTask waits at ManagerReview/Approval
                     {
                         task.Status = "In_Progress";
                         _staffTaskRepository.Update(task);
@@ -268,7 +303,7 @@ namespace STMM.Business.Services
                 }
                 else
                 {
-                    if (task.Status == "PendingApproval" || task.Status == "Pending" || task.Status == "In_Progress")
+                    if (task.Status == "PendingManagerReview" || task.Status == "PendingApproval" || task.Status == "Pending")
                     {
                         task.Status = "Cancelled";
                         _staffTaskRepository.Update(task);
