@@ -235,7 +235,7 @@ namespace STMM.DataAccess.Repositories
                 query = query.Where(i => i.Contract.Stall.Area.MarketId == marketId.Value);
             }
             return await query.SelectMany(i => i.InvoiceDetails)
-                .Where(d => d.FeeType.Name.ToLower().Contains("phạt") || 
+                .Where(d => d.FeeType.Name.ToLower().Contains("phạt") ||
                             d.FeeType.Name.ToLower().Contains("vi phạm") ||
                             d.Invoice.InvoiceType == "Violation")
                 .SumAsync(d => (decimal?)d.Amount, ct) ?? 0;
