@@ -1,5 +1,8 @@
 using AutoMapper;
 using FluentValidation;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using Npgsql;
 using STMM.Business.DTOs.Common;
 using STMM.Business.DTOs.Meter;
 using STMM.Business.Exceptions;
@@ -24,6 +27,8 @@ namespace STMM.Business.Services
         private readonly IUserRepository _userRepository;
         private readonly IStaffTaskRepository _staffTaskRepository;
         private readonly IStallRepository _stallRepository;
+        private readonly IFileUploadService _fileUploadService;
+        private readonly ILogger<MeterReadingService> _logger;
 
         public MeterReadingService(
             IMeterRepository meterRepo,
@@ -32,7 +37,9 @@ namespace STMM.Business.Services
             IValidator<CreateMeterReadingRequest> validator,
             IUserRepository userRepository,
             IStaffTaskRepository staffTaskRepository,
-            IStallRepository stallRepository)
+            IStallRepository stallRepository,
+            IFileUploadService fileUploadService,
+            ILogger<MeterReadingService> logger)
         {
             _meterRepo = meterRepo;
             _readingRepo = readingRepo;
@@ -41,6 +48,8 @@ namespace STMM.Business.Services
             _userRepository = userRepository;
             _staffTaskRepository = staffTaskRepository;
             _stallRepository = stallRepository;
+            _fileUploadService = fileUploadService;
+            _logger = logger;
         }
 
         public async Task<PagedResult<MeterReadingDto>> GetReadingsByStallIdAsync(
@@ -68,50 +77,7 @@ namespace STMM.Business.Services
             };
         }
 
-        public async Task<MeterDto> GetMeterByIdAsync(int userId, int meterId, CancellationToken ct = default)
-        {
-            var marketId = await GetStaffMarketIdAsync(userId, ct);
-            var meter = await _meterRepo.GetMeterWithStallForMarketAsync(meterId, marketId, ct);
-            if (meter == null)
-                throw new NotFoundException($"Meter with ID {meterId} not found.");
 
-            var dto = _mapper.Map<MeterDto>(meter);
-            var latest = await _readingRepo.GetLatestReadingByMeterIdAsync(meterId, ct);
-            dto.LastReadingValue = latest?.NewValue;
-            dto.LastReadingImageUrl = latest?.ImageUrl;
-
-            return dto;
-        }
-
-        public async Task<IEnumerable<MeterDto>> GetUnassignedMetersAsync(string? type, CancellationToken ct = default)
-        {
-            var meters = await _meterRepo.FindAsync(m => m.StallId == null && m.IsActive == true);
-            if (!string.IsNullOrEmpty(type))
-            {
-                meters = meters.Where(m => m.Type == type);
-            }
-            return _mapper.Map<IEnumerable<MeterDto>>(meters);
-        }
-
-        public async Task<IEnumerable<MeterDto>> GetMetersByStallIdAsync(int userId, int stallId, CancellationToken ct = default)
-        {
-            var marketId = await GetStaffMarketIdAsync(userId, ct);
-            var meters = (await _meterRepo.GetMetersByStallForMarketAsync(stallId, marketId, ct)).ToList();
-            if (meters.Count == 0)
-            {
-                throw new NotFoundException($"No active meters were found for stall {stallId} in your market.");
-            }
-
-            var dtos = _mapper.Map<IEnumerable<MeterDto>>(meters).ToList();
-
-            foreach (var dto in dtos)
-            {
-                var latest = await _readingRepo.GetLatestReadingByMeterIdAsync(dto.MeterId, ct);
-                dto.LastReadingValue = latest?.NewValue;
-            }
-
-            return dtos;
-        }
 
         public async Task<MeterReadingDto> CreateReadingAsync(
             int userId, CreateMeterReadingRequest request, CancellationToken ct = default)
@@ -121,33 +87,32 @@ namespace STMM.Business.Services
                 throw new BadRequestException(string.Join("; ", validation.Errors.Select(e => e.ErrorMessage)));
 
             var marketId = await GetStaffMarketIdAsync(userId, ct);
-            var meter = await _meterRepo.GetMeterWithStallForMarketAsync(request.MeterId, marketId, ct);
+            var recordedAt = DateOnly.ParseExact(request.RecordedAt, "yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+            var meter = await _meterRepo.GetEligibleMeterForReadingAsync(
+                request.MeterId, marketId, userId, recordedAt, ct);
             if (meter == null)
-                throw new NotFoundException($"Meter with ID {request.MeterId} not found.");
-            if (meter.IsActive != true)
-                throw new BadRequestException($"Meter {meter.SerialNumber} is inactive.");
-            var effectiveDate = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
-            if (!meter.StallId.HasValue ||
-                !await _staffTaskRepository.HasActiveUtilityTaskForStallAsync(
-                    userId,
-                    meter.StallId.Value,
-                    effectiveDate,
-                    ct))
             {
+                // Preserve the existing inactive-meter error without revealing
+                // whether a meter is in another market or lacks an eligible task.
+                var marketMeter = await _meterRepo.GetMeterWithStallForMarketAsync(request.MeterId, marketId, ct);
+                if (marketMeter != null && marketMeter.IsActive != true)
+                    throw new BadRequestException($"Meter {marketMeter.SerialNumber} is inactive.");
+
                 throw new NotFoundException($"Meter with ID {request.MeterId} not found.");
             }
-
-            var recordedAt = DateOnly.ParseExact(request.RecordedAt, "yyyy-MM-dd", CultureInfo.InvariantCulture);
 
             var exists = await _readingRepo.ExistsByMeterAndDateAsync(request.MeterId, recordedAt, ct);
             if (exists)
                 throw new BadRequestException($"A reading already exists for meter {meter.SerialNumber} on {request.RecordedAt}.");
 
             var latest = await _readingRepo.GetLatestReadingByMeterIdAsync(request.MeterId, ct);
-            var oldValue = request.IsReplaced ? 0 : (latest?.NewValue ?? 0);
+            var oldValue = latest?.NewValue ?? 0;
 
-            if (!request.IsReplaced && request.NewValue < oldValue)
+            if (request.NewValue < oldValue)
                 throw new BadRequestException($"New value ({request.NewValue}) must be >= previous value ({oldValue}).");
+
+            var uploadedUrl = await _fileUploadService.UploadImageAsync(request.Image, "meter-readings", ct);
 
             var reading = new MeterReading
             {
@@ -156,14 +121,35 @@ namespace STMM.Business.Services
                 NewValue = request.NewValue,
                 RecordedAt = recordedAt,
                 CreatedByUserId = userId,
-                ImageUrl = request.ImageUrl
+                ImageUrl = uploadedUrl
             };
 
             await _readingRepo.AddAsync(reading, ct);
-            await _readingRepo.SaveChangesAsync(ct);
+            try
+            {
+                await _readingRepo.SaveChangesAsync(ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to save MeterReading entity. Cleaning up uploaded Cloudinary image.");
+                await _fileUploadService.DeleteImageAsync(uploadedUrl, ct);
+
+                if (ex is DbUpdateException dbEx && IsMeterReadingUniqueViolation(dbEx))
+                {
+                    throw new BadRequestException($"A reading already exists for meter {meter.SerialNumber} on {request.RecordedAt}.");
+                }
+                throw;
+            }
 
             reading.Meter = meter;
             return _mapper.Map<MeterReadingDto>(reading);
+        }
+
+        private static bool IsMeterReadingUniqueViolation(DbUpdateException exception)
+        {
+            return exception.InnerException is PostgresException postgres &&
+                   postgres.SqlState == PostgresErrorCodes.UniqueViolation &&
+                   postgres.ConstraintName == "meter_readings_meter_id_recorded_at_key";
         }
 
         private async Task<int> GetStaffMarketIdAsync(int userId, CancellationToken ct)

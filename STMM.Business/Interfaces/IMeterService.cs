@@ -14,5 +14,6 @@ namespace STMM.Business.Interfaces
         Task<bool> DeleteMeterAsync(int id, int? currentUserId = null, CancellationToken ct = default);
 
         Task<IEnumerable<MeterDto>> GetUnassignedMetersAsync(string? type, int userId, CancellationToken ct = default);
+        Task<IEnumerable<MeterDto>> GetMetersByStallIdAsync(int userId, int stallId, CancellationToken ct = default);
     }
 }

@@ -9,6 +9,8 @@ namespace STMM.DataAccess.IRepositories
     {
         Task<List<int>> GetAssignedIssueIdsAsync(int staffUserId, CancellationToken ct = default);
         Task<bool> HasAssignedTaskAsync(int issueId, int staffUserId, CancellationToken ct = default);
+        Task<bool> HasActiveTaskForIssueAsync(int issueId, CancellationToken ct = default);
+        Task<bool> HasActiveTaskForRequestAsync(int requestId, CancellationToken ct = default);
         Task<bool> HasActiveUtilityTaskForStallAsync(
             int staffUserId,
             int stallId,
@@ -38,7 +40,15 @@ namespace STMM.DataAccess.IRepositories
             CancellationToken ct = default);
             
         Task<StaffTask?> GetTaskByIdWithRelationsAsync(int taskId, CancellationToken ct = default);
-        Task<StaffTask?> GetTaskByIdForStaffAsync(int taskId, int staffUserId, CancellationToken ct = default);
+        Task<StaffTask?> GetTaskByIdForStaffAsync(
+            int taskId,
+            int staffUserId,
+            CancellationToken ct = default);
+        Task<StaffTask?> GetTaskByIdForStaffAsync(
+            int taskId,
+            int staffUserId,
+            bool includeMaterials,
+            CancellationToken ct = default);
         Task<StaffTask?> GetTaskByIdForMarketAsync(int taskId, int marketId, CancellationToken ct = default);
         Task<IReadOnlyList<StaffTask>> GetRepairTasksForRequestInMarketAsync(
             int requestId,

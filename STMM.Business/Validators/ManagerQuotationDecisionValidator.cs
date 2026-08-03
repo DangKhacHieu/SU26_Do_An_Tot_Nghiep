@@ -9,8 +9,7 @@ namespace STMM.Business.Validators
         {
             ManagerQuotationDecisionRequest.ApproveAsMarket,
             ManagerQuotationDecisionRequest.SendToVendor,
-            ManagerQuotationDecisionRequest.ReturnForRevision,
-            ManagerQuotationDecisionRequest.Reject
+            ManagerQuotationDecisionRequest.ReturnForRevision
         };
 
         public ManagerQuotationDecisionValidator()
@@ -46,8 +45,7 @@ namespace STMM.Business.Validators
 
         private static bool RequiresDecisionNote(ManagerQuotationDecisionRequest request)
         {
-            var closesOrReturnsRequest = request.Action is ManagerQuotationDecisionRequest.ReturnForRevision
-                or ManagerQuotationDecisionRequest.Reject;
+            var closesOrReturnsRequest = request.Action is ManagerQuotationDecisionRequest.ReturnForRevision;
             var usesOtherClause = AssignsPayer(request)
                 && request.ContractClause == ManagerQuotationDecisionRequest.OtherContractClause;
 

@@ -50,7 +50,6 @@ export default function StaffDashboard({ baseUrl, staffName, onOpenTasks, onOpen
     <main className="staff-dashboard-page">
       <header className="staff-dashboard-hero">
         <div><span>{t('staffdashboard.daily_overview')}</span><h1>Welcome back, {staffName || t('staffdashboard.staff')}</h1><p>{t('staffdashboard.review_your_workload_and')}</p></div>
-        <button type="button" className="btn-primary-dark" onClick={onOpenTasks}>{t('staffdashboard.view_all_tasks')}</button>
       </header>
       {error ? <div className="error-state">{error}</div> : null}
       <section className="staff-dashboard-stats" aria-label={t('staffdashboard.task_summary')}>

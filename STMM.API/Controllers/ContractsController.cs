@@ -182,7 +182,8 @@ namespace STMM.API.Controllers
         }
 
         [HttpPost("{id}/files")]
-        public async Task<ActionResult<ContractDto>> AttachFiles(int id, [FromBody] AttachContractFilesRequest request, CancellationToken ct)
+        [Consumes("multipart/form-data")]
+        public async Task<ActionResult<ContractDto>> AttachFiles(int id, [FromForm] AttachContractFilesRequest request, CancellationToken ct)
         {
             try
             {

@@ -28,5 +28,15 @@ namespace STMM.Business.DTOs.Request
         public string? RepairComment { get; set; }
         public DateTime? CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
+
+        public string? InvoiceName { get; set; }
+        public string? InvoiceType { get; set; }
+        public string? InvoiceMonthYear { get; set; }
+        public decimal? InvoiceTotalAmount { get; set; }
+        public string? InvoiceStatus { get; set; }
+
+        public string? ViolationTitle { get; set; }
+        public decimal? ViolationFineAmount { get; set; }
+        public string? ViolationStatus { get; set; }
     }
 }

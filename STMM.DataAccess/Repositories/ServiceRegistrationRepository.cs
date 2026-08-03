@@ -16,7 +16,7 @@ namespace STMM.DataAccess.Repositories
         {
             return await _context.ServiceRegistrations
                 .Include(sr => sr.Service)
-                .Where(sr => sr.StallId == stallId && sr.Status == "Active")
+                .Where(sr => sr.StallId == stallId && (sr.Status == "Active" || sr.Status == "PendingCancellation"))
                 .ToListAsync(ct);
         }
 

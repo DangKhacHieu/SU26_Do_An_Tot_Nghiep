@@ -24,6 +24,24 @@ namespace STMM.DataAccess.Repositories
             return await query.AsNoTracking().ToListAsync(cancellationToken);
         }
 
+        public async Task<IReadOnlyList<RepairPrice>> GetActiveForMarketAsync(int marketId, CancellationToken ct = default)
+        {
+            return await _context.RepairPrices
+                .Where(r => r.IsActive == true && (r.MarketId == marketId || r.MarketId == null))
+                .OrderBy(r => r.ItemName)
+                .AsNoTracking()
+                .ToListAsync(ct);
+        }
+
+        public async Task<RepairPrice?> GetActiveByIdForMarketAsync(int repairPriceId, int marketId, CancellationToken ct = default)
+        {
+            return await _context.RepairPrices
+                .FirstOrDefaultAsync(r => r.RepairPriceId == repairPriceId &&
+                                          r.IsActive == true &&
+                                          (r.MarketId == marketId || r.MarketId == null),
+                                    ct);
+        }
+
         public async Task<bool> IsItemNameExistsAsync(string itemName, int? excludeId = null, int? marketId = null, CancellationToken ct = default)
         {
             var query = _context.RepairPrices.AsQueryable();

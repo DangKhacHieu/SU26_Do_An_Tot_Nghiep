@@ -121,7 +121,7 @@ export default function VendorMyServices({ vendorId, searchTerm = '', setSearchT
                     <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="premium-select">
                         <option value="All">{t('vendormyservices.all') || 'Tất cả'}</option>
                         <option value="Active">{t('vendormyservices.active') || 'Đang hoạt động'}</option>
-                        <option value="Pending">{t('vendormyservices.waiting_for_approval') || 'Chờ duyệt'}</option>
+                        <option value="PendingCancellation">{t('vendormyservices.renewal_canceled') || 'Đã hủy gia hạn'}</option>
                         <option value="Cancelled">{t('vendormyservices.canceled') || 'Đã hủy'}</option>
                     </select>
                 </div>
@@ -135,6 +135,7 @@ export default function VendorMyServices({ vendorId, searchTerm = '', setSearchT
                             <th>{t('vendormyservices.service_name') || 'Tên dịch vụ'}</th>
                             <th>{t('vendormyservices.type') || 'Loại'}</th>
                             <th>{t('vendormyservices.date') || 'Ngày đăng ký'}</th>
+                            <th>{t('vendormyservices.expiration_date') || 'Ngày hết hạn'}</th>
                             <th>{t('vendormyservices.status') || 'Trạng thái'}</th>
                             <th style={{ textAlign: 'center' }}>{t('vendormyservices.operation') || 'Thao tác'}</th>
                         </tr>
@@ -142,7 +143,7 @@ export default function VendorMyServices({ vendorId, searchTerm = '', setSearchT
                     <tbody>
                         {paginatedServices.length === 0 ? (
                             <tr>
-                                <td colSpan="6" style={{ padding: '32px', textAlign: 'center', color: '#94a3b8' }}>
+                                <td colSpan="7" style={{ padding: '32px', textAlign: 'center', color: '#94a3b8' }}>
                                     {t('vendormyservices.no_matching_data_found') || 'Không tìm thấy dữ liệu'}
                                 </td>
                             </tr>
@@ -153,7 +154,7 @@ export default function VendorMyServices({ vendorId, searchTerm = '', setSearchT
                                 if (service.status === 'Active' && service.isAutoRenew !== false) {
                                     badgeClass = 'premium-badge-success';
                                     statusText = t('vendormyservices.active') || 'Đang hoạt động';
-                                } else if (service.status === 'Active' && service.isAutoRenew === false) {
+                                } else if (service.status === 'PendingCancellation' || (service.status === 'Active' && service.isAutoRenew === false)) {
                                     badgeClass = 'premium-badge-warning';
                                     statusText = t('vendormyservices.renewal_canceled') || 'Đã hủy gia hạn';
                                 } else if (service.status === 'Pending') {
@@ -170,6 +171,7 @@ export default function VendorMyServices({ vendorId, searchTerm = '', setSearchT
                                     <td className="fw-bold">{service.serviceName}</td>
                                     <td>{service.isMandatory ? (t('vendormyservices.obligatory') || 'Bắt buộc') : (t('vendormyservices.selfselect') || 'Tự chọn')}</td>
                                     <td>{new Date(service.registeredAt).toLocaleDateString('vi-VN')}</td>
+                                    <td>{service.endDate ? new Date(service.endDate).toLocaleDateString('vi-VN') : t('vendormyservices.n_a') || 'N/A'}</td>
                                     <td>
                                         <span className={`premium-badge ${badgeClass}`}>
                                             {statusText}
@@ -183,7 +185,7 @@ export default function VendorMyServices({ vendorId, searchTerm = '', setSearchT
                                                 className="premium-btn-action">
                                                 {loadingDetailId === service.registrationId ? (t('vendormyservices.loading') || 'Đang tải...') : (t('vendormyservices.detail') || 'Chi tiết')}
                                             </button>
-                                            {service.status !== 'Cancelled' && !(service.status === 'Active' && service.isAutoRenew === false) && (
+                                            {service.status !== 'Cancelled' && service.status !== 'PendingCancellation' && !(service.status === 'Active' && service.isAutoRenew === false) && (
                                                 <button 
                                                     onClick={() => handleCancelClick(service)}
                                                     className="premium-btn-danger">
@@ -198,7 +200,7 @@ export default function VendorMyServices({ vendorId, searchTerm = '', setSearchT
                         )}
                         {paginatedServices.length < pageSize && Array.from({ length: Math.max(0, pageSize - paginatedServices.length) }).map((_, i) => (
                              <tr key={`empty-${i}`} style={{ height: '52px' }}>
-                                <td colSpan="6"></td>
+                                <td colSpan="7"></td>
                              </tr>
                         ))}
                     </tbody>
@@ -250,10 +252,10 @@ export default function VendorMyServices({ vendorId, searchTerm = '', setSearchT
                             <button onClick={() => setViewMyService(null)} style={{ position: 'absolute', top: '16px', right: '16px', background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white', width: '32px', height: '32px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', transition: 'background 0.2s' }}>✕</button>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
                                 <span style={{ 
-                                    background: viewMyService.status === 'Active' && viewMyService.isAutoRenew !== false ? '#059669' : viewMyService.status === 'Active' && viewMyService.isAutoRenew === false ? '#d97706' : viewMyService.status === 'Pending' ? '#d97706' : '#dc2626', 
+                                    background: viewMyService.status === 'Active' && viewMyService.isAutoRenew !== false ? '#059669' : viewMyService.status === 'PendingCancellation' || (viewMyService.status === 'Active' && viewMyService.isAutoRenew === false) ? '#d97706' : viewMyService.status === 'Pending' ? '#d97706' : '#dc2626', 
                                     padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: '600', color: 'white' 
                                 }}>
-                                    {viewMyService.status === 'Active' && viewMyService.isAutoRenew === false ? t('vendormyservices.renewal_canceled') : viewMyService.status === 'Active' ? t('vendormyservices.active') : viewMyService.status === 'Pending' ? t('vendormyservices.waiting_for_approval') : t('vendormyservices.canceled')}
+                                    {viewMyService.status === 'PendingCancellation' || (viewMyService.status === 'Active' && viewMyService.isAutoRenew === false) ? t('vendormyservices.renewal_canceled') : viewMyService.status === 'Active' ? t('vendormyservices.active') : viewMyService.status === 'Pending' ? t('vendormyservices.waiting_for_approval') : t('vendormyservices.canceled')}
                                 </span>
                                 <span style={{ background: 'rgba(255,255,255,0.2)', padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: '600' }}>
                                     Sạp: {viewMyService.stallCode}
@@ -288,7 +290,7 @@ export default function VendorMyServices({ vendorId, searchTerm = '', setSearchT
                                 <div style={{ textAlign: 'right' }}>
                                     <span style={{ color: '#64748b', fontSize: '13px', display: 'block', marginBottom: '4px', fontWeight: '600' }}>{t('vendormyservices.expiration_daterenewal')}</span>
                                     <strong style={{ fontSize: '15px', color: '#0f172a' }}>
-                                        {viewMyService.endDate ? new Date(viewMyService.endDate).toLocaleDateString('vi-VN') : 'N/A'}
+                                        {viewMyService.endDate ? new Date(viewMyService.endDate).toLocaleDateString('vi-VN') : t('vendormyservices.n_a') || 'N/A'}
                                     </strong>
                                 </div>
                             </div>
@@ -296,7 +298,7 @@ export default function VendorMyServices({ vendorId, searchTerm = '', setSearchT
                             {/* Actions */}
                             <div style={{ display: 'flex', gap: '12px' }}>
                                 <button onClick={() => setViewMyService(null)} style={{ flex: 1, padding: '12px', border: '1px solid #cbd5e1', background: 'white', color: '#475569', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s' }}>{t('vendormyservices.close')}</button>
-                                {viewMyService.status !== 'Cancelled' && !(viewMyService.status === 'Active' && viewMyService.isAutoRenew === false) && (
+                                {viewMyService.status !== 'Cancelled' && viewMyService.status !== 'PendingCancellation' && !(viewMyService.status === 'Active' && viewMyService.isAutoRenew === false) && (
                                     <button onClick={() => { setViewMyService(null); handleCancelClick(viewMyService); }} style={{ flex: 1, padding: '12px', border: 'none', background: '#fee2e2', color: '#dc2626', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', transition: 'background 0.2s' }}>
                                         {t('vendormyservices.cancel_this_service')}
                                     </button>

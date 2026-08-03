@@ -43,3 +43,20 @@ export const showConfirm = (title, text) => {
         cancelButtonText: i18n.t('alert.cancel')
     });
 };
+
+export const showToast = (title, icon = 'success', timer = 3000) => {
+    return Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: icon,
+        title: title,
+        showConfirmButton: false,
+        timer: timer,
+        timerProgressBar: true,
+        didOpen: (toast) => {
+            toast.addEventListener('mouseenter', Swal.stopTimer);
+            toast.addEventListener('mouseleave', Swal.resumeTimer);
+        }
+    });
+};
+

@@ -8,20 +8,9 @@ namespace STMM.Business.Validators
     {
         public CompleteTaskValidator()
         {
-            RuleFor(x => x.ImageAfterUrl)
-                .Must(IsValidUrl)
-                .When(x => !string.IsNullOrEmpty(x.ImageAfterUrl))
-                .WithMessage("Image after must be a valid URL.");
-
-            RuleFor(x => x.ImageBeforeUrl)
-                .Must(IsValidUrl)
-                .When(x => !string.IsNullOrEmpty(x.ImageBeforeUrl))
-                .WithMessage("Image before must be a valid URL.");
-        }
-
-        private bool IsValidUrl(string? url)
-        {
-            return Uri.TryCreate(url, UriKind.Absolute, out _);
+            RuleFor(x => x.CompletionNotes)
+                .MaximumLength(1000)
+                .WithMessage("Completion notes cannot exceed 1000 characters.");
         }
     }
 }

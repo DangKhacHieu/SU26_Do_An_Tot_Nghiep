@@ -19,6 +19,7 @@ namespace STMM.DataAccess.IRepositories
             CancellationToken ct = default);
 
         Task<Request?> GetRequestWithRelationsAsync(int requestId, CancellationToken ct = default);
+        Task<Request?> GetRequestWithRelationsAsync(int requestId, bool tracking, CancellationToken ct = default);
 
         Task<Request?> GetRequestWithRelationsForMarketAsync(
             int requestId,

@@ -146,86 +146,89 @@ namespace STMM.Business.Services
             }
 
             var marketId = await GetUserMarketIdAsync(staffUserId, ct);
-            var invoice = await _invoiceRepository.GetInvoiceWithRelationsForPaymentAsync(request.InvoiceId, marketId, ct);
+            Invoice invoice;
+            Payment payment;
 
-            if (invoice == null)
+            await using (var transaction = await _invoiceRepository.BeginTransactionAsync(ct))
             {
-                throw new NotFoundException($"Invoice with ID {request.InvoiceId} not found.");
-            }
-
-            if (invoice.Status != "Unpaid")
-            {
-                throw new BadRequestException(
-                    $"Invoice is in status '{invoice.Status}'. Payment can only be collected for 'Unpaid' invoices.");
-            }
-
-            using var transaction = await _invoiceRepository.BeginTransactionAsync(ct);
-            try
-            {
-                var transactionCode = $"CASH-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..8].ToUpper()}";
-                var payment = new Payment
-                {
-                    InvoiceId = invoice.InvoiceId,
-                    Amount = invoice.TotalAmount,
-                    Method = "Cash",
-                    TransactionCode = transactionCode,
-                    PaidAt = DateTime.UtcNow,
-                    Status = "Pending"
-                };
-
-                await _paymentRepository.AddAsync(payment, ct);
-
-                invoice.Status = "Pending Confirmation";
-
-                var vendor = invoice.Contract.Vendor;
-                var stall = invoice.Contract.Stall;
-
                 try
                 {
-                    await _notificationService.CreateAsync(new CreateNotificationRequest
+                    if (!await _invoiceRepository.LockInvoiceForPaymentAsync(request.InvoiceId, marketId, ct))
+                        throw new NotFoundException($"Invoice with ID {request.InvoiceId} not found.");
+
+                    invoice = await _invoiceRepository.GetInvoiceWithRelationsForPaymentAsync(request.InvoiceId, marketId, ct)
+                        ?? throw new NotFoundException($"Invoice with ID {request.InvoiceId} not found.");
+
+                    if (invoice.Status != "Unpaid")
                     {
-                        Title = "Cash Payment Recorded",
-                        Content = $"Staff recorded cash payment for invoice of month {invoice.Month}/{invoice.Year} " +
-                                  $"at stall {stall.Code} for amount {invoice.TotalAmount:#,##0} VND. " +
-                                  $"Please wait for accountant confirmation.",
-                        NotiType = "Invoice",
-                        CreatedByUserId = staffUserId,
-                        TargetUserId = vendor.UserId
-                    }, ct);
-                }
-                catch (Exception exception)
-                {
-                    _logger.LogError(
-                        exception,
-                        "Unable to notify vendor {VendorUserId} about cash payment for invoice {InvoiceId}.",
-                        vendor.UserId,
-                        invoice.InvoiceId);
-                }
+                        throw new BadRequestException(
+                            $"Invoice is in status '{invoice.Status}'. Payment can only be collected for 'Unpaid' invoices.");
+                    }
 
-                await _invoiceRepository.SaveChangesAsync(ct);
-                await transaction.CommitAsync(ct);
+                    payment = new Payment
+                    {
+                        InvoiceId = invoice.InvoiceId,
+                        Amount = invoice.TotalAmount,
+                        Method = "Cash",
+                        TransactionCode = $"CASH-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..8].ToUpper()}",
+                        PaidAt = DateTime.UtcNow,
+                        Status = "Pending"
+                    };
 
-                return new PaymentResultDto
+                    await _paymentRepository.AddAsync(payment, ct);
+                    invoice.Status = "Pending Confirmation";
+                    await _invoiceRepository.SaveChangesAsync(ct);
+                    await transaction.CommitAsync(ct);
+                }
+                catch (DbUpdateConcurrencyException)
                 {
-                    PaymentId = payment.PaymentId,
-                    InvoiceId = invoice.InvoiceId,
-                    Amount = payment.Amount,
-                    Method = payment.Method,
-                    TransactionCode = payment.TransactionCode,
-                    PaidAt = payment.PaidAt,
-                    NewInvoiceStatus = invoice.Status
-                };
+                    await transaction.RollbackAsync(ct);
+                    throw new ConflictException("Hóa đơn này đã được cập nhật bởi một người khác. Vui lòng tải lại trang.");
+                }
+                catch
+                {
+                    await transaction.RollbackAsync(ct);
+                    throw;
+                }
             }
-            catch (DbUpdateConcurrencyException)
+
+            var vendor = invoice.Contract.Vendor;
+            var stall = invoice.Contract.Stall;
+
+            // Notifying outside the transaction on purpose: a slow or failing notification must not
+            // hold the invoice row lock, nor roll back a payment that was already committed.
+            try
             {
-                await transaction.RollbackAsync(ct);
-                throw new ConflictException("Hóa đơn này đã được cập nhật bởi một người khác. Vui lòng tải lại trang.");
+                await _notificationService.CreateAsync(new CreateNotificationRequest
+                {
+                    Title = "Cash Payment Recorded",
+                    Content = $"Staff recorded cash payment for invoice of month {invoice.Month}/{invoice.Year} " +
+                              $"at stall {stall.Code} for amount {invoice.TotalAmount:#,##0} VND. " +
+                              $"Please wait for accountant confirmation.",
+                    NotiType = "Invoice",
+                    CreatedByUserId = staffUserId,
+                    TargetUserId = vendor.UserId
+                }, ct);
             }
-            catch (Exception)
+            catch (Exception exception)
             {
-                await transaction.RollbackAsync(ct);
-                throw;
+                _logger.LogError(
+                    exception,
+                    "Unable to notify vendor {VendorUserId} about cash payment for invoice {InvoiceId}.",
+                    vendor.UserId,
+                    invoice.InvoiceId);
             }
+
+            return new PaymentResultDto
+            {
+                PaymentId = payment.PaymentId,
+                InvoiceId = invoice.InvoiceId,
+                Amount = payment.Amount,
+                Method = payment.Method,
+                TransactionCode = payment.TransactionCode,
+                PaidAt = payment.PaidAt,
+                NewInvoiceStatus = invoice.Status
+            };
         }
 
         /// <inheritdoc />
@@ -1096,9 +1099,22 @@ namespace STMM.Business.Services
             try
             {
                 dispute.Status = request.Approve ? "Approved" : "Rejected";
+                dispute.PayerDecisionNote = request.Feedback;
                 dispute.UpdatedAt = DateTime.UtcNow;
                 _requestRepository.Update(dispute);
-                
+
+                // Revert invoice nếu nó đang kẹt ở trạng thái "Disputed" (dữ liệu cũ)
+                // Với luồng mới, hóa đơn không bị đổi thành Disputed, nhưng cần xử lý dữ liệu cũ
+                if (dispute.InvoiceId.HasValue)
+                {
+                    var invoiceForRevert = await _invoiceRepository.GetByIdAsync(dispute.InvoiceId.Value, ct);
+                    if (invoiceForRevert != null && invoiceForRevert.Status == "Disputed")
+                    {
+                        invoiceForRevert.Status = "Unpaid";
+                        _invoiceRepository.Update(invoiceForRevert);
+                    }
+                }
+
                 string refundMsg = "";
                 if (request.Approve && request.IsRefund && request.RefundAmount > 0 && dispute.InvoiceId.HasValue)
                 {
@@ -1132,7 +1148,7 @@ namespace STMM.Business.Services
                             var payment = new Payment
                             {
                                 InvoiceId = dispute.InvoiceId.Value,
-                                Amount = request.RefundAmount.Value, // Refund amount is recorded as positive (or negative if preferred, but usually positive with Refunded status)
+                                Amount = request.RefundAmount.Value,
                                 Method = request.RefundMethod ?? "Cash",
                                 TransactionCode = string.IsNullOrWhiteSpace(request.TransactionCode) ? $"RF-REQ-{requestId}" : request.TransactionCode,
                                 PaidAt = DateTime.UtcNow,
@@ -1144,8 +1160,10 @@ namespace STMM.Business.Services
                             string methodText = request.RefundMethod == "Transfer" ? "Chuyển khoản" : "Tiền mặt";
                             refundMsg = $" Ban quản lý đã hoàn lại số tiền {request.RefundAmount.Value:#,##0} VNĐ qua hình thức {methodText}. Hóa đơn của bạn đã được cập nhật lại.";
                         }
-                        else if (invoice.Status == "Unpaid" || invoice.Status == "Draft")
+                        else if (invoice.Status == "Unpaid" || invoice.Status == "Draft" || invoice.Status == "Disputed")
                         {
+                            // Đảm bảo trả về Unpaid sau khi giảm trừ (không để kẹt Disputed)
+                            if (invoice.Status == "Disputed") invoice.Status = "Unpaid";
                             refundMsg = $" Hóa đơn của bạn đã được giảm trừ {request.RefundAmount.Value:#,##0} VNĐ.";
                         }
                     }
@@ -1281,6 +1299,16 @@ namespace STMM.Business.Services
 
                 foreach (var srv in validServices)
                 {
+                    if (srv.Reg.Status == "PendingCancellation")
+                    {
+                        // Hết chu kỳ cũ, đến chu kỳ mới nhưng user đã hủy gia hạn
+                        // Cập nhật trạng thái thành Cancelled và không tính phí tháng này
+                        srv.Reg.Status = "Cancelled";
+                        srv.Reg.CancelledAt = DateTime.UtcNow;
+                        _serviceRegistrationRepository.Update(srv.Reg);
+                        continue;
+                    }
+
                     var srvDetail = new InvoiceDetail
                     {
                         FeeTypeId = srv.Reg.Service.FeeTypeId,

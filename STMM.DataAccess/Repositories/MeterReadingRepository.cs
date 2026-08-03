@@ -61,10 +61,15 @@ namespace STMM.DataAccess.Repositories
 
         public async Task<MeterReading?> GetMeterReadingByMonthAndYearAsync(int meterId, int month, int year, CancellationToken ct = default)
         {
+            // Billing depends on this being the *last* reading of the month, so the ordering
+            // is part of the contract — an unordered FirstOrDefault would invoice an arbitrary
+            // reading whenever a meter was read more than once in the same month.
             return await _context.MeterReadings
-                .Where(mr => mr.MeterId == meterId && 
-                             mr.RecordedAt.Month == month && 
+                .Where(mr => mr.MeterId == meterId &&
+                             mr.RecordedAt.Month == month &&
                              mr.RecordedAt.Year == year)
+                .OrderByDescending(mr => mr.RecordedAt)
+                .ThenByDescending(mr => mr.MeterReadingId)
                 .FirstOrDefaultAsync(ct);
         }
     }

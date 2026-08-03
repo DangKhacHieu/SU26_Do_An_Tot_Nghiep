@@ -1,9 +1,10 @@
 import { useTranslation } from 'react-i18next';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getAuthHeaders } from '../../utils/authHeaders';
+import { getEnumCls, getEnumLabel, VIOLATION_STATUS_MAP } from '../../constants/enumMaps';
 import './ViolationList.css';
 
-const PAGE_SIZE = 8;
+const PAGE_SIZE = 5;
 
 const readProblemDetail = async (response, t) => {
   try {
@@ -15,7 +16,7 @@ const readProblemDetail = async (response, t) => {
 };
 
 export default function ViolationList({ baseUrl, onViewDetails, onOpenCreateModal }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const [violations, setViolations] = useState([]);
   const [pageNumber, setPageNumber] = useState(1);
@@ -80,7 +81,7 @@ export default function ViolationList({ baseUrl, onViewDetails, onOpenCreateModa
           <button type="submit" className="btn-secondary">{t('violationlist.search')}</button>
           {appliedSearch ? <button type="button" className="btn-filter-clear" onClick={() => { setSearchQuery(''); setAppliedSearch(''); setPageNumber(1); }}>{t('violationlist.clear')}</button> : null}
         </form>
-        <button type="button" className="btn-primary" onClick={onOpenCreateModal}>+ Report Violation</button>
+        <button type="button" className="btn-primary" onClick={onOpenCreateModal}>+ {t('violationlist.report_violation')}</button>
       </div>
 
       {loading ? <div className="loading-state">{t('violationlist.loading_violations')}</div> : null}
@@ -89,7 +90,7 @@ export default function ViolationList({ baseUrl, onViewDetails, onOpenCreateModa
       {!loading && !error && visibleViolations.length > 0 ? (
         <>
           <div className="table-card">
-            <div className="table-card-header"><span className="table-card-title">{t('violationlist.violations')}</span><span className="table-count-badge">{totalCount} violations</span></div>
+            <div className="table-card-header"><span className="table-card-title">{t('violationlist.violations')}</span><span className="table-count-badge">{t('violationlist.violation_count', { count: totalCount })}</span></div>
             <div className="table-responsive">
               <table className="staff-table">
                 <thead><tr><th>{t('violationlist.id')}</th><th>{t('violationlist.violation')}</th><th>{t('violationlist.location')}</th><th>{t('violationlist.fine')}</th><th>{t('violationlist.status')}</th><th>{t('violationlist.reported')}</th><th>{t('violationlist.action')}</th></tr></thead>
@@ -99,9 +100,9 @@ export default function ViolationList({ baseUrl, onViewDetails, onOpenCreateModa
                       <td><strong>#{violation.violationId}</strong></td>
                       <td>{violation.title}</td>
                       <td><span className="badge-stall">{violation.stallCode || t('violationlist.unknown_stall')}</span></td>
-                      <td>{Number(violation.fineAmount || 0).toLocaleString(t('violationlist.enus'))} VND</td>
-                      <td><span className={`status-badge ${violation.status?.toLowerCase() || t('violationlist.pending')}`}>{violation.status || t('violationlist.pending')}</span></td>
-                      <td>{violation.createdAt ? new Date(violation.createdAt).toLocaleDateString(t('violationlist.enus')) : t('violationlist.na')}</td>
+                      <td>{Number(violation.fineAmount || 0).toLocaleString(i18n.resolvedLanguage?.startsWith('vi') ? 'vi-VN' : 'en-US')} VND</td>
+                      <td><span className={`status-badge ${getEnumCls(violation.status, VIOLATION_STATUS_MAP, 'pending')}`}>{getEnumLabel(violation.status || 'Pending', VIOLATION_STATUS_MAP, t)}</span></td>
+                      <td>{violation.createdAt ? new Date(violation.createdAt).toLocaleDateString(i18n.resolvedLanguage?.startsWith('vi') ? 'vi-VN' : 'en-US') : t('violationlist.na')}</td>
                       <td><button type="button" className="btn-link" onClick={() => onViewDetails(violation.violationId)}>{t('violationlist.view_details')}</button></td>
                     </tr>
                   ))}
@@ -111,7 +112,7 @@ export default function ViolationList({ baseUrl, onViewDetails, onOpenCreateModa
           </div>
           {totalPages > 1 ? (
             <div className="pagination-wrapper">
-              <span className="pagination-info">Page {safePageNumber} of {totalPages}</span>
+              <span className="pagination-info">{t('violationlist.page_of', { page: safePageNumber, totalPages })}</span>
               <div className="pagination-buttons">
                 <button className="btn-page" onClick={() => setPageNumber((page) => Math.max(1, page - 1))} disabled={safePageNumber === 1}>{t('violationlist.prev')}</button>
                 <button className="btn-page" onClick={() => setPageNumber((page) => Math.min(totalPages, page + 1))} disabled={safePageNumber === totalPages}>{t('violationlist.next')}</button>

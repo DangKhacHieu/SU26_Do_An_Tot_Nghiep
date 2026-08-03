@@ -72,7 +72,8 @@ namespace STMM.API.Controllers
         }
 
         /// <summary>
-        /// Manager xác định bên chịu phí và bước xử lý tiếp theo của báo giá.
+        /// UC-147 Resolve Request Quotation: Manager xác định bên chịu phí và bước xử lý tiếp theo của báo giá.
+        /// ReturnForRevision là alternative flow; payer determination là subflow nội bộ, không phải UC độc lập.
         /// </summary>
         [HttpPost("{id}/resolve-quotation")]
         public async Task<IActionResult> ResolveQuotation(

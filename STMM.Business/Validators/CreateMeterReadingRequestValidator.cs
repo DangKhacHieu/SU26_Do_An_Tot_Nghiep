@@ -18,19 +18,40 @@ namespace STMM.Business.Validators
                 .WithMessage("NewValue must not be negative.");
 
             RuleFor(x => x.RecordedAt)
+                .Cascade(CascadeMode.Stop)
                 .NotEmpty()
                 .WithMessage("RecordedAt is required.")
-                .Must(val => DateOnly.TryParseExact(val, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out _))
-                .WithMessage("RecordedAt must be a valid date (yyyy-MM-dd).");
+                .Must(val => TryParseRecordedAt(val, out _))
+                .WithMessage("RecordedAt must be a valid date (yyyy-MM-dd).")
+                .Must(BeInCurrentMonthAndNotInFuture)
+                .WithMessage("RecordedAt must fall within the current month and cannot be a future date.");
 
-            RuleFor(x => x.ImageUrl)
-                .NotEmpty()
-                .WithMessage("Image URL is required (photo of meter face).");
+            RuleFor(x => x.Image)
+                .NotNull()
+                .WithMessage("Meter reading evidence image is required.");
+        }
 
-            RuleFor(x => x.ImageUrl)
-                .Must(url => Uri.TryCreate(url, UriKind.Absolute, out _))
-                .When(x => !string.IsNullOrEmpty(x.ImageUrl))
-                .WithMessage("Image URL format is invalid.");
+        private static bool TryParseRecordedAt(string? value, out DateOnly recordedAt) =>
+            DateOnly.TryParseExact(value, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out recordedAt);
+
+        /// <summary>
+        /// A reading dated outside the current billing month corrupts the per-meter chain:
+        /// the newest reading wins when resolving the previous value, so a future date would
+        /// permanently block the meter and a backdated one would bill the wrong period.
+        /// </summary>
+        private static bool BeInCurrentMonthAndNotInFuture(string? value)
+        {
+            if (!TryParseRecordedAt(value, out var recordedAt))
+            {
+                return false;
+            }
+
+            // Readings are taken in market-local time (UTC+7), matching how staff task periods are computed.
+            var today = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
+
+            return recordedAt <= today
+                && recordedAt.Year == today.Year
+                && recordedAt.Month == today.Month;
         }
     }
 }

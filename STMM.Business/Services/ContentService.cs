@@ -48,19 +48,56 @@ namespace STMM.Business.Services
         public async Task<IEnumerable<ContentDto>> GetContentsAsync(string? type, string? targetRole, int? currentUserId = null, CancellationToken ct = default)
         {
             var (caller, callerMarketId, isManager) = await GetCallerInfoAsync(currentUserId, ct);
+            System.Console.WriteLine($"[DEBUG GETCONTENTS] currentUserId: {currentUserId}, callerMarketId: {callerMarketId}, isManager: {isManager}");
             if (isManager && !callerMarketId.HasValue)
             {
+                System.Console.WriteLine($"[DEBUG GETCONTENTS] isManager is true but callerMarketId is null! Returning empty list.");
                 return new List<ContentDto>();
             }
 
             var results = await _notificationRepository.GetNotificationsAsync(type, targetRole, ct);
+            System.Console.WriteLine($"[DEBUG GETCONTENTS] Fetched results count from DB: {results.Count()}");
 
             if (callerMarketId.HasValue)
             {
                 results = results.Where(n => n.CreatedByUserId == currentUserId.Value || (n.CreatedByUser != null && n.CreatedByUser.MarketId == callerMarketId.Value));
             }
+            System.Console.WriteLine($"[DEBUG GETCONTENTS] After MarketId filtering: {results.Count()}");
 
-            return _mapper.Map<IEnumerable<ContentDto>>(results);
+            // Chỉ lấy loại Article (Tin tức) và Announcement (Thông báo)
+            results = results.Where(n => n.NotiType == "Article" || n.NotiType == "Announcement");
+            System.Console.WriteLine($"[DEBUG GETCONTENTS] After NotiType filtering: {results.Count()}");
+
+            // Nhóm các bản ghi trùng lặp theo tiêu đề, nội dung, loại, người tạo và thời gian tạo làm tròn đến phút
+            var groupedResults = results
+                .GroupBy(n => new { 
+                    n.Title, 
+                    n.Content, 
+                    n.NotiType, 
+                    n.CreatedByUserId,
+                    RoundedTime = n.CreatedAt.HasValue 
+                        ? new DateTime(n.CreatedAt.Value.Year, n.CreatedAt.Value.Month, n.CreatedAt.Value.Day, n.CreatedAt.Value.Hour, n.CreatedAt.Value.Minute, 0)
+                        : DateTime.MinValue
+                })
+                .Select(g => {
+                    var first = g.First();
+                    if (g.Count() > 1)
+                    {
+                        var roles = g.Where(x => x.TargetUser != null && x.TargetUser.Role != null)
+                                     .Select(x => x.TargetUser.Role.Name)
+                                     .Distinct()
+                                     .ToList();
+                        if (roles.Count == 1)
+                        {
+                            first.TargetRole = roles[0];
+                            first.TargetUserId = null;
+                        }
+                    }
+                    return first;
+                })
+                .ToList();
+
+            return _mapper.Map<IEnumerable<ContentDto>>(groupedResults);
         }
 
         public async Task<ContentDto> GetContentByIdAsync(int id, int? currentUserId = null, CancellationToken ct = default)
@@ -83,7 +120,33 @@ namespace STMM.Business.Services
                 throw new NotFoundException($"Không tìm thấy thông báo có ID {id}.");
             }
 
-            return _mapper.Map<ContentDto>(content);
+            var dto = _mapper.Map<ContentDto>(content);
+
+            // Tìm toàn bộ nhóm bản ghi để thiết lập TargetRole động
+            var groupNotifications = await _notificationRepository.FindAsync(n =>
+                n.CreatedByUserId == content.CreatedByUserId &&
+                n.Title == content.Title &&
+                n.Content == content.Content &&
+                n.NotiType == content.NotiType &&
+                n.CreatedAt.HasValue && content.CreatedAt.HasValue &&
+                Math.Abs((n.CreatedAt.Value - content.CreatedAt.Value).TotalSeconds) <= 10,
+                ct);
+
+            if (groupNotifications.Count() > 1)
+            {
+                var roles = groupNotifications
+                    .Where(x => x.TargetUser != null && x.TargetUser.Role != null)
+                    .Select(x => x.TargetUser.Role.Name)
+                    .Distinct()
+                    .ToList();
+                if (roles.Count == 1)
+                {
+                    dto.TargetRole = roles[0];
+                    dto.TargetUserId = null;
+                }
+            }
+
+            return dto;
         }
 
         public async Task<ContentDto> CreateContentAsync(CreateContentRequest request, int? currentUserId = null, CancellationToken ct = default)
@@ -99,7 +162,7 @@ namespace STMM.Business.Services
                 throw new BadRequestException(string.Join("; ", valResult.Errors.Select(e => e.ErrorMessage)));
             }
 
-            int creatorId = request.CreatedByUserId ?? 0;
+            int creatorId = request.CreatedByUserId ?? currentUserId ?? 0;
             if (creatorId <= 0)
             {
                 var managerUser = await _userRepository.GetFirstManagerOrAdminAsync(ct);
@@ -119,6 +182,10 @@ namespace STMM.Business.Services
             if (targetUserIds.Count == 0 && !string.IsNullOrWhiteSpace(request.TargetRole))
             {
                 var recipients = await _userRepository.GetActiveUsersByRoleAsync(request.TargetRole, ct);
+                if (callerMarketId.HasValue && !request.TargetRole.Equals("Public", StringComparison.OrdinalIgnoreCase))
+                {
+                    recipients = recipients.Where(u => u.MarketId == callerMarketId.Value).ToList();
+                }
                 targetUserIds.AddRange(recipients.Select(user => user.UserId));
             }
 
@@ -129,6 +196,7 @@ namespace STMM.Business.Services
             }
 
             Notification lastNotification = null!;
+            var now = DateTime.UtcNow;
             foreach (var userId in targetUserIds)
             {
                 var notification = new Notification
@@ -140,7 +208,7 @@ namespace STMM.Business.Services
                     TargetUserId = userId,
                     CreatedByUserId = creatorId,
                     IsRead = false,
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = now
                 };
                 await _notificationRepository.AddAsync(notification, ct);
                 lastNotification = notification;
@@ -181,13 +249,24 @@ namespace STMM.Business.Services
                 throw new NotFoundException($"Không tìm thấy thông báo có ID {id}.");
             }
 
-            notification.Title = request.Title;
-            notification.Content = request.Content;
-            notification.NotiType = request.NotiType ?? "Article";
-            notification.TargetRole = request.TargetRole;
-            notification.TargetUserId = request.TargetUserId;
+            // Tìm toàn bộ nhóm bản ghi liên quan để cập nhật đồng loạt
+            var groupNotifications = await _notificationRepository.FindAsync(n =>
+                n.CreatedByUserId == notification.CreatedByUserId &&
+                n.Title == notification.Title &&
+                n.Content == notification.Content &&
+                n.NotiType == notification.NotiType &&
+                n.CreatedAt.HasValue && notification.CreatedAt.HasValue &&
+                Math.Abs((n.CreatedAt.Value - notification.CreatedAt.Value).TotalSeconds) <= 10,
+                ct);
 
-            _notificationRepository.Update(notification);
+            foreach (var noti in groupNotifications)
+            {
+                noti.Title = request.Title;
+                noti.Content = request.Content;
+                noti.NotiType = request.NotiType ?? "Article";
+                _notificationRepository.Update(noti);
+            }
+
             await _notificationRepository.SaveChangesAsync(ct);
 
             if (notification.TargetUserId.HasValue)
@@ -218,7 +297,21 @@ namespace STMM.Business.Services
                 throw new NotFoundException($"Không tìm thấy thông báo có ID {id}.");
             }
 
-            _notificationRepository.Delete(notification);
+            // Tìm toàn bộ nhóm bản ghi liên quan để xóa đồng loạt
+            var groupNotifications = await _notificationRepository.FindAsync(n =>
+                n.CreatedByUserId == notification.CreatedByUserId &&
+                n.Title == notification.Title &&
+                n.Content == notification.Content &&
+                n.NotiType == notification.NotiType &&
+                n.CreatedAt.HasValue && notification.CreatedAt.HasValue &&
+                Math.Abs((n.CreatedAt.Value - notification.CreatedAt.Value).TotalSeconds) <= 10,
+                ct);
+
+            foreach (var noti in groupNotifications)
+            {
+                _notificationRepository.Delete(noti);
+            }
+
             var result = await _notificationRepository.SaveChangesAsync(ct);
             return result > 0;
         }

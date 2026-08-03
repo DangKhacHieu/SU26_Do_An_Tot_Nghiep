@@ -26,6 +26,15 @@ namespace STMM.API.Controllers
             return Ok(result);
         }
 
+        [HttpGet("stalls/lookup")]
+        public async Task<IActionResult> GetStallsForIssueLookup(
+            [FromQuery] string? search,
+            CancellationToken ct)
+        {
+            var result = await _issueService.GetIssueStallsLookupAsync(GetUserId(), search, ct);
+            return Ok(result);
+        }
+
         [HttpGet("{id:int}")]
         public async Task<IActionResult> GetIssueById(int id, CancellationToken ct)
         {
@@ -34,8 +43,9 @@ namespace STMM.API.Controllers
         }
 
         [HttpPost]
+        [Consumes("multipart/form-data")]
         public async Task<IActionResult> CreateIssue(
-            [FromBody] CreateIssueRequest request,
+            [FromForm] CreateIssueRequest request,
             CancellationToken ct)
         {
             var result = await _issueService.CreateIssueAsync(GetUserId(), request, ct);

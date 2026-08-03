@@ -8,11 +8,21 @@ namespace STMM.DataAccess.IRepositories
         Task<IEnumerable<Meter>> GetMetersByStallForMarketAsync(int stallId, int marketId, CancellationToken ct = default);
         Task<Meter?> GetMeterWithStallAsync(int meterId, CancellationToken ct = default);
         Task<Meter?> GetMeterWithStallForMarketAsync(int meterId, int marketId, CancellationToken ct = default);
+        Task<Meter?> GetEligibleMeterForReadingAsync(
+            int meterId,
+            int marketId,
+            int staffUserId,
+            DateOnly effectiveDate,
+            CancellationToken ct = default);
         Task<Meter?> GetMeterForMarketAsync(int meterId, int marketId, CancellationToken ct = default);
         Task<Meter?> GetMeterForUpdateInMarketAsync(int meterId, int marketId, CancellationToken ct = default);
         Task<IReadOnlyList<Meter>> GetMetersForMarketAsync(int? marketId, CancellationToken ct = default);
+        Task<IReadOnlyList<(Meter Meter, MeterReading? LatestReading)>> GetMetersWithLatestReadingForMarketAsync(int? marketId, CancellationToken ct = default);
+        Task<IReadOnlyList<(Meter Meter, MeterReading? LatestReading)>> GetMetersWithLatestReadingByStallForMarketAsync(int stallId, int marketId, CancellationToken ct = default);
+        Task<(Meter Meter, MeterReading? LatestReading)?> GetMeterWithLatestReadingForMarketAsync(int meterId, int marketId, CancellationToken ct = default);
         Task<bool> ExistsSerialNumberAsync(string serialNumber, int marketId, int? excludeMeterId = null, CancellationToken ct = default);
         Task<IEnumerable<Meter>> GetUnassignedMetersAsync(string? type, int? marketId = null, CancellationToken ct = default);
+        Task<IReadOnlyList<(Meter Meter, MeterReading? LatestReading)>> GetUnassignedMetersWithLatestReadingAsync(string? type, int? marketId = null, CancellationToken ct = default);
         Task<Meter?> GetMeterWithReadingsAsync(int meterId, CancellationToken ct = default);
         Task<Meter?> GetActiveMeterByStallAndTypeAsync(int stallId, string meterType, CancellationToken ct = default);
     }

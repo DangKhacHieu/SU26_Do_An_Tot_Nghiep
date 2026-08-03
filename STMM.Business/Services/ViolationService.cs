@@ -28,6 +28,7 @@ namespace STMM.Business.Services
         private readonly IContractRepository _contractRepository;
         private readonly IFeeTypeRepository _feeTypeRepository;
         private readonly IInvoiceRepository _invoiceRepository;
+        private readonly IFileUploadService _fileUploadService;
         private readonly ILogger<ViolationService> _logger;
 
         public ViolationService(
@@ -40,6 +41,7 @@ namespace STMM.Business.Services
             IContractRepository contractRepository,
             IFeeTypeRepository feeTypeRepository,
             IInvoiceRepository invoiceRepository,
+            IFileUploadService fileUploadService,
             ILogger<ViolationService> logger)
         {
             _violationRepository = violationRepository;
@@ -51,6 +53,7 @@ namespace STMM.Business.Services
             _contractRepository = contractRepository;
             _feeTypeRepository = feeTypeRepository;
             _invoiceRepository = invoiceRepository;
+            _fileUploadService = fileUploadService;
             _logger = logger;
         }
 
@@ -80,10 +83,15 @@ namespace STMM.Business.Services
         {
 
             var marketId = await GetMarketIdAsync(userId, "staff", ct);
-            var stall = await _stallRepository.GetStallForMarketAsync(request.StallId, marketId, ct)
+            var effectiveDate = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
+            var stall = await _stallRepository.GetEligibleRentedStallForMarketAsync(request.StallId, marketId, effectiveDate, ct)
                 ?? throw new NotFoundException($"Stall with ID {request.StallId} not found.");
 
-            var types = await _violationTypeRepository.FindAsync(vt => vt.ViolationTypeId == request.ViolationTypeId && vt.IsActive != false, ct);
+            var types = await _violationTypeRepository.FindAsync(
+                vt => vt.ViolationTypeId == request.ViolationTypeId &&
+                      vt.IsActive != false &&
+                      (vt.MarketId == null || vt.MarketId == marketId),
+                ct);
             var violationType = types.FirstOrDefault();
 
             if (violationType == null)
@@ -94,16 +102,28 @@ namespace STMM.Business.Services
             var managers = await _userRepository.GetActiveManagersByMarketAsync(
                 marketId, ct);
 
+            var uploadedUrl = await _fileUploadService.UploadImageAsync(request.Image, "violations", ct);
+
             var violation = _mapper.Map<Violation>(request);
             violation.CreatedByUserId = userId;
+            violation.ImageUrl = uploadedUrl;
             violation.Status = "Pending";
             violation.CreatedAt = DateTime.UtcNow;
             violation.UpdatedAt = DateTime.UtcNow;
 
             violation.FineAmount = violationType.DefaultFine;
 
-            await _violationRepository.AddAsync(violation, ct);
-            await _violationRepository.SaveChangesAsync(ct);
+            try
+            {
+                await _violationRepository.AddAsync(violation, ct);
+                await _violationRepository.SaveChangesAsync(ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to save Violation to database. Cleaning up uploaded Cloudinary image.");
+                await _fileUploadService.DeleteImageAsync(uploadedUrl, ct);
+                throw;
+            }
 
             violation.Stall = stall;
             violation.ViolationType = violationType;

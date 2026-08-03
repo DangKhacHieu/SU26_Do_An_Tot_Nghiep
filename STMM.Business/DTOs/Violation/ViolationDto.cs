@@ -16,5 +16,6 @@ namespace STMM.Business.DTOs.Violation
         public DateTime? NotifiedAt { get; set; }
         public DateTime? CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
+        public System.Collections.Generic.List<STMM.Business.DTOs.Request.RequestDto>? Requests { get; set; }
     }
 }

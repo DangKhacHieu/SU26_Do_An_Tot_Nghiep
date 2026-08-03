@@ -5,7 +5,6 @@ namespace STMM.Business.DTOs.Request
         public const string ApproveAsMarket = "ApproveAsMarket";
         public const string SendToVendor = "SendToVendor";
         public const string ReturnForRevision = "ReturnForRevision";
-        public const string Reject = "Reject";
 
         public const string OtherContractClause = "Khác / Không áp dụng điều khoản cụ thể";
 

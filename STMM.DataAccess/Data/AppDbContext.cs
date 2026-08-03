@@ -617,6 +617,8 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => e.MeterId, "idx_meter_readings_meter_id");
 
+            entity.HasIndex(e => new { e.MeterId, e.RecordedAt }, "meter_readings_meter_id_recorded_at_key").IsUnique();
+
             entity.Property(e => e.MeterReadingId)
                 .HasComment("Mã bản ghi chỉ số điện nước")
                 .UseIdentityAlwaysColumn()
@@ -1239,7 +1241,15 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => e.IssueId, "idx_staff_tasks_issue_id");
 
+            entity.HasIndex(e => e.IssueId, "ux_staff_tasks_active_issue")
+                .IsUnique()
+                .HasFilter("issue_id IS NOT NULL AND (status IS NULL OR status NOT IN ('Completed', 'Cancelled'))");
+
             entity.HasIndex(e => e.RequestId, "idx_staff_tasks_request_id");
+
+            entity.HasIndex(e => e.RequestId, "ux_staff_tasks_active_request")
+                .IsUnique()
+                .HasFilter("request_id IS NOT NULL AND (status IS NULL OR status NOT IN ('Completed', 'Cancelled'))");
 
             entity.Property(e => e.TaskId)
                 .HasComment("Mã tác vụ")
@@ -1281,7 +1291,7 @@ public partial class AppDbContext : DbContext
                 .HasComment("Vòng đời: Pending → PendingApproval → In_Progress → Completed | Cancelled")
                 .HasColumnName("status");
             entity.Property(e => e.TaskType)
-                .HasComment("Repair, Maintenance, UtilityReading, CashCollection")
+                .HasComment("Repair, Maintenance, UtilityReading")
                 .HasColumnName("task_type");
             entity.Property(e => e.Title)
                 .HasComment("Tiêu đề tác vụ")

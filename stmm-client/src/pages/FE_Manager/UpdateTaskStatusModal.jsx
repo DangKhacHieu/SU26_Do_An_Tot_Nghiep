@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { getAuthHeaders } from '../../utils/authHeaders';
 import './UpdateTaskStatusModal.css';
 
 export default function UpdateTaskStatusModal({ taskId, currentStatus, mode = 'status', baseUrl, onClose, onSuccess, addToast }) {
+  const { t } = useTranslation();
   const isCancelMode = mode === 'cancel';
   const [newStatus, setNewStatus] = useState(isCancelMode ? 'Cancelled' : '');
   const [submitting, setSubmitting] = useState(false);
@@ -16,21 +18,21 @@ export default function UpdateTaskStatusModal({ taskId, currentStatus, mode = 's
 
   if (isCancelMode) {
     if (['Pending', 'PendingApproval', 'In_Progress'].includes(oldStatus)) {
-      allowedOptions.push({ value: 'Cancelled', label: 'Cancel Task' });
+      allowedOptions.push({ value: 'Cancelled', label: t('updatetaskstatusmodal.cancel_task') });
     }
   } else if (oldStatus === 'Pending') {
-    allowedOptions.push({ value: 'Cancelled', label: 'Cancel Task' });
+    allowedOptions.push({ value: 'Cancelled', label: t('updatetaskstatusmodal.cancel_task') });
   } else if (oldStatus === 'PendingApproval') {
-    allowedOptions.push({ value: 'In_Progress', label: 'Approve Quotation & Start' });
-    allowedOptions.push({ value: 'Cancelled', label: 'Reject Quotation & Cancel' });
+    allowedOptions.push({ value: 'In_Progress', label: t('updatetaskstatusmodal.approve_and_start') });
+    allowedOptions.push({ value: 'Cancelled', label: t('updatetaskstatusmodal.reject_and_cancel') });
   } else if (oldStatus === 'In_Progress') {
-    allowedOptions.push({ value: 'Cancelled', label: 'Cancel Task' });
+    allowedOptions.push({ value: 'Cancelled', label: t('updatetaskstatusmodal.cancel_task') });
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!newStatus) {
-      addToast('Please select a target status.', 'warning');
+      addToast(t('updatetaskstatusmodal.status_required'), 'warning');
       return;
     }
 
@@ -46,16 +48,18 @@ export default function UpdateTaskStatusModal({ taskId, currentStatus, mode = 's
       });
 
       if (res.ok) {
-        addToast(isCancelMode ? 'Task cancelled successfully!' : `Task status updated to ${newStatus} successfully!`, 'success');
+        addToast(isCancelMode
+          ? t('updatetaskstatusmodal.cancelled_successfully')
+          : t('updatetaskstatusmodal.updated_successfully', { status: newStatus }), 'success');
         const updatedTask = await res.json();
         onSuccess(updatedTask);
       } else {
         const errText = await res.text();
-        addToast(errText || 'Failed to update task status.', 'error');
+        addToast(errText || t('updatetaskstatusmodal.update_failed'), 'error');
       }
     } catch (err) {
       console.error('Error updating status:', err);
-      addToast('Network error. Failed to update status.', 'error');
+      addToast(t('updatetaskstatusmodal.network_error'), 'error');
     } finally {
       setSubmitting(false);
     }
@@ -65,13 +69,13 @@ export default function UpdateTaskStatusModal({ taskId, currentStatus, mode = 's
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-box" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '440px' }}>
         <div className="modal-head">
-          <h3>{isCancelMode ? 'Cancel Task' : 'Update Task Status'}</h3>
+          <h3>{isCancelMode ? t('updatetaskstatusmodal.cancel_task') : t('updatetaskstatusmodal.title')}</h3>
           <button id="btn-status-close" className="modal-close" onClick={onClose}>&times;</button>
         </div>
         <form onSubmit={handleSubmit}>
           <div className="modal-body">
             <div className="status-current-badge-wrap">
-              <span className="status-current-label">CURRENT STATUS:</span>
+              <span className="status-current-label">{t('updatetaskstatusmodal.current_status')}</span>
               <span className={`status-badge-val status-${oldStatus.toLowerCase()}`}>
                 {oldStatus.replace('_', ' ')}
               </span>
@@ -79,17 +83,20 @@ export default function UpdateTaskStatusModal({ taskId, currentStatus, mode = 's
 
             {isCancelMode && allowedOptions.length > 0 && (
               <div className="status-cancel-summary">
-                This action will move the task from <strong>{oldStatus.replace('_', ' ')}</strong> to <strong>Cancelled</strong>.
+                {t('updatetaskstatusmodal.cancel_summary', {
+                  currentStatus: oldStatus.replace('_', ' '),
+                  targetStatus: 'Cancelled',
+                })}
               </div>
             )}
 
             {allowedOptions.length === 0 ? (
               <div className="status-no-transitions-msg">
-                No state transitions are allowed from <strong>{oldStatus.replace('_', ' ')}</strong> state.
+                {t('updatetaskstatusmodal.no_transitions', { status: oldStatus.replace('_', ' ') })}
               </div>
             ) : !isCancelMode ? (
               <div className="form-group">
-                <label className="form-label required-field">TARGET STATUS</label>
+                <label className="form-label required-field">{t('updatetaskstatusmodal.target_status')}</label>
                 <div className="flat-radio-buttons-container">
                   {allowedOptions.map((opt) => {
                     const isSelected = newStatus === opt.value;
@@ -119,7 +126,7 @@ export default function UpdateTaskStatusModal({ taskId, currentStatus, mode = 's
           </div>
           <div className="modal-foot">
             <button id="btn-status-cancel" type="button" className="btn-secondary" onClick={onClose} disabled={submitting}>
-              CANCEL
+              {t('updatetaskstatusmodal.cancel')}
             </button>
             <button 
               id="btn-status-submit"
@@ -127,7 +134,9 @@ export default function UpdateTaskStatusModal({ taskId, currentStatus, mode = 's
               className="btn-primary" 
               disabled={submitting || allowedOptions.length === 0 || !newStatus}
             >
-              {submitting ? (isCancelMode ? 'CANCELLING...' : 'UPDATING...') : (isCancelMode ? 'CANCEL TASK' : 'UPDATE STATUS')}
+              {submitting
+                ? (isCancelMode ? t('updatetaskstatusmodal.cancelling') : t('updatetaskstatusmodal.updating'))
+                : (isCancelMode ? t('updatetaskstatusmodal.cancel_task') : t('updatetaskstatusmodal.update_status'))}
             </button>
           </div>
         </form>

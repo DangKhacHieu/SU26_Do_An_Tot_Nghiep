@@ -11,7 +11,7 @@ export default function MeterReadingHistory({ stallId, baseUrl, onViewMeterDetai
   const [totalCount, setTotalCount] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [pageNumber, setPageNumber] = useState(1);
-  const [pageSize] = useState(10);
+  const [pageSize] = useState(5);
   const [meterType, setMeterType] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -39,7 +39,7 @@ export default function MeterReadingHistory({ stallId, baseUrl, onViewMeterDetai
     } finally {
       setLoading(false);
     }
-  }, [baseUrl, meterType, pageNumber, pageSize, stallId]);
+  }, [baseUrl, meterType, pageNumber, pageSize, stallId, t]);
 
   useEffect(() => {
     fetchReadings();
@@ -65,8 +65,8 @@ export default function MeterReadingHistory({ stallId, baseUrl, onViewMeterDetai
             className="filter-select"
           >
             <option value="">{t('meterreadinghistory.all_utilities')}</option>
-            <option value={t('meterreadinghistory.electricity')}>{t('meterreadinghistory.electricity')}</option>
-            <option value={t('meterreadinghistory.water')}>{t('meterreadinghistory.water')}</option>
+            <option value="Electricity">{t('meterreadinghistory.electricity')}</option>
+            <option value="Water">{t('meterreadinghistory.water')}</option>
           </select>
 
           <button className="btn-secondary" onClick={fetchReadings} disabled={loading}>
@@ -75,10 +75,10 @@ export default function MeterReadingHistory({ stallId, baseUrl, onViewMeterDetai
 
         <div style={{ display: 'flex', gap: '10px' }}>
           <button className="btn-secondary-outline" onClick={onBack}>
-            &larr; Back
+            &larr; {t('meterreadinghistory.back')}
           </button>
           <button className="btn-primary" onClick={onOpenRecordModal}>
-            + Record Reading
+            + {t('meterreadinghistory.record_reading')}
           </button>
         </div>
       </div>
@@ -129,8 +129,8 @@ export default function MeterReadingHistory({ stallId, baseUrl, onViewMeterDetai
                         </button>
                       </td>
                       <td>
-                        <span className={`status-badge ${r.meterType?.toLowerCase() === t('meterreadinghistory.electricity') ? t('meterreadinghistory.approved') : t('meterreadinghistory.finalized')}`}>
-                          {r.meterType === t('meterreadinghistory.electricity') ? '⚡ Electricity' : '💧 Water'}
+                        <span className={`status-badge ${r.meterType?.toLowerCase() === 'electricity' ? 'approved' : 'finalized'}`}>
+                          {r.meterType?.toLowerCase() === 'electricity' ? `⚡ ${t('meterreadinghistory.electricity')}` : `💧 ${t('meterreadinghistory.water')}`}
                         </span>
                       </td>
                       <td>{r.oldValue}</td>
@@ -142,8 +142,8 @@ export default function MeterReadingHistory({ stallId, baseUrl, onViewMeterDetai
                         {r.imageUrl ? (
                           <a 
                             href={r.imageUrl} 
-                            target={t('meterreadinghistory.blank')} 
-                            rel={t('meterreadinghistory.noopener_noreferrer')}
+                            target="_blank"
+                            rel="noopener noreferrer"
                             className="btn-link"
                             style={{ color: '#0066cc' }}
                           >
@@ -180,7 +180,7 @@ export default function MeterReadingHistory({ stallId, baseUrl, onViewMeterDetai
               {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
                 <button
                   key={p}
-                  className={`btn-page ${pageNumber === p ? t('meterreadinghistory.active') : ''}`}
+                  className={`btn-page ${pageNumber === p ? 'active' : ''}`}
                   onClick={() => setPageNumber(p)}
                 >
                   {p}
