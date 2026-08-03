@@ -38,6 +38,7 @@ namespace STMM.Business.Services
         private readonly ILogger<BillingService> _logger;
         private readonly FluentValidation.IValidator<ReceiveCashPaymentRequest> _paymentValidator;
         private readonly FluentValidation.IValidator<MeterReadingAdjustmentRequest> _meterAdjustmentValidator;
+        private readonly FluentValidation.IValidator<CreateAdHocInvoiceRequest> _createAdHocInvoiceValidator;
 
         public BillingService(
             IInvoiceRepository invoiceRepository,
@@ -58,7 +59,8 @@ namespace STMM.Business.Services
             IAuditLogRepository auditLogRepository,
             ILogger<BillingService> logger,
             FluentValidation.IValidator<ReceiveCashPaymentRequest> paymentValidator,
-            FluentValidation.IValidator<MeterReadingAdjustmentRequest> meterAdjustmentValidator)
+            FluentValidation.IValidator<MeterReadingAdjustmentRequest> meterAdjustmentValidator,
+            FluentValidation.IValidator<CreateAdHocInvoiceRequest> createAdHocInvoiceValidator)
         {
             _invoiceRepository = invoiceRepository;
             _paymentRepository = paymentRepository;
@@ -79,6 +81,7 @@ namespace STMM.Business.Services
             _logger = logger;
             _paymentValidator = paymentValidator;
             _meterAdjustmentValidator = meterAdjustmentValidator;
+            _createAdHocInvoiceValidator = createAdHocInvoiceValidator;
         }
 
         public async Task<InvoiceDto> GetInvoiceDetailAsync(
@@ -335,9 +338,11 @@ namespace STMM.Business.Services
         /// <inheritdoc />
         public async Task<InvoiceDto> CreateAdHocInvoiceAsync(CreateAdHocInvoiceRequest request, int accountantUserId, CancellationToken ct = default)
         {
-            if (request.Amount <= 0 || request.Month is < 1 or > 12 || request.Year is < 2000 or > 2100 || request.DueDate == default)
+            var valResult = await _createAdHocInvoiceValidator.ValidateAsync(request, ct);
+            if (!valResult.IsValid)
             {
-                throw new BadRequestException("Số tiền hóa đơn phải lớn hơn 0, và kỳ hóa đơn phải hợp lệ.");
+                var errors = string.Join("; ", valResult.Errors.Select(e => e.ErrorMessage));
+                throw new BadRequestException(errors);
             }
 
             var feeType = await _feeTypeRepository.GetByIdAsync(request.FeeTypeId, ct);
@@ -363,57 +368,69 @@ namespace STMM.Business.Services
                 }
             }
 
-            // Cho phép tạo nhiều Hóa đơn đột xuất trong cùng 1 tháng
-            // var duplicated = await _invoiceRepository.Query().AnyAsync(i =>
-            //     i.ContractId == contract.ContractId && i.Month == request.Month && i.Year == request.Year &&
-            //     i.InvoiceType == "AdHoc" && i.Status != "Canceled" && i.IsDeleted != true, ct);
-            // if (duplicated)
-            //     throw new BadRequestException("An ad-hoc invoice already exists for this contract and billing period.");
-
-            var invoice = new Invoice
+            using var transaction = await _invoiceRepository.BeginTransactionAsync(ct);
+            try
             {
-                ContractId = contract.ContractId,
-                Month = request.Month,
-                Year = request.Year,
-                TotalAmount = request.Amount,
-                Status = "Unpaid",
-                InvoiceType = "AdHoc",
-                DueDate = request.DueDate,
-                CreatedAt = DateTime.UtcNow,
-                IsDeleted = false
-            };
-
-            await _invoiceRepository.AddAsync(invoice, ct);
-            await _invoiceRepository.SaveChangesAsync(ct);
-
-            var detail = new InvoiceDetail
-            {
-                InvoiceId = invoice.InvoiceId,
-                FeeTypeId = request.FeeTypeId,
-                Description = request.Description,
-                Quantity = 1,
-                UnitPrice = request.Amount,
-                Amount = request.Amount
-            };
-            invoice.InvoiceDetails.Add(detail);
-
-            await _invoiceRepository.SaveChangesAsync(ct);
-
-            var freshInvoice = await _invoiceRepository.GetInvoiceDetailsWithRelationsAsync(invoice.InvoiceId, ct);
-
-            if (freshInvoice?.Contract?.Vendor != null)
-            {
-                await _notificationService.CreateAsync(new CreateNotificationRequest
+                var invoice = new Invoice
                 {
-                    CreatedByUserId = accountantUserId,
-                    TargetUserId = freshInvoice.Contract.Vendor.UserId,
-                    Title = "Thông báo: Hóa đơn mới đã được phát hành",
-                    Content = $"Hóa đơn kỳ {freshInvoice.Month}/{freshInvoice.Year} cho sạp {freshInvoice.Contract.Stall?.Code} đã được ban quản lý phát hành với tổng số tiền là {freshInvoice.TotalAmount:#,##0} VNĐ. Vui lòng thanh toán trước ngày {freshInvoice.DueDate?.ToString("dd/MM/yyyy")}.",
-                    NotiType = "Invoice"
-                }, ct);
-            }
+                    ContractId = contract.ContractId,
+                    Month = request.Month,
+                    Year = request.Year,
+                    TotalAmount = request.Amount,
+                    Status = "Unpaid",
+                    InvoiceType = "AdHoc",
+                    DueDate = request.DueDate,
+                    CreatedAt = DateTime.UtcNow,
+                    IsDeleted = false
+                };
 
-            return MapInvoiceToDto(freshInvoice!);
+                await _invoiceRepository.AddAsync(invoice, ct);
+                await _invoiceRepository.SaveChangesAsync(ct);
+
+                var detail = new InvoiceDetail
+                {
+                    InvoiceId = invoice.InvoiceId,
+                    FeeTypeId = request.FeeTypeId,
+                    Description = request.Description,
+                    Quantity = 1,
+                    UnitPrice = request.Amount,
+                    Amount = request.Amount
+                };
+                invoice.InvoiceDetails.Add(detail);
+
+                // Add AuditLog
+                var auditLog = new AuditLog
+                {
+                    UserId = accountantUserId,
+                    Action = $"CreateAdHocInvoice_M{request.Month}_Y{request.Year}_Amount{request.Amount}_Stall{contract.Stall?.Code}",
+                    CreatedAt = DateTime.UtcNow
+                };
+                await _auditLogRepository.AddAsync(auditLog, ct);
+
+                await _invoiceRepository.SaveChangesAsync(ct);
+                await transaction.CommitAsync(ct);
+
+                var freshInvoice = await _invoiceRepository.GetInvoiceDetailsWithRelationsAsync(invoice.InvoiceId, ct);
+
+                if (freshInvoice?.Contract?.Vendor != null)
+                {
+                    await _notificationService.CreateAsync(new CreateNotificationRequest
+                    {
+                        CreatedByUserId = accountantUserId,
+                        TargetUserId = freshInvoice.Contract.Vendor.UserId,
+                        Title = "Thông báo: Hóa đơn mới đã được phát hành",
+                        Content = $"Hóa đơn kỳ {freshInvoice.Month}/{freshInvoice.Year} cho sạp {freshInvoice.Contract.Stall?.Code} đã được ban quản lý phát hành với tổng số tiền là {freshInvoice.TotalAmount:#,##0} VNĐ. Vui lòng thanh toán trước ngày {freshInvoice.DueDate?.ToString("dd/MM/yyyy")}.",
+                        NotiType = "Invoice"
+                    }, ct);
+                }
+
+                return MapInvoiceToDto(freshInvoice!);
+            }
+            catch (Exception)
+            {
+                await transaction.RollbackAsync(ct);
+                throw;
+            }
         }
 
         /// <inheritdoc />
@@ -865,12 +882,14 @@ namespace STMM.Business.Services
                 var activeContract = s.Contracts.FirstOrDefault(c => c.Status == "Active" && c.IsDeleted != true);
                 var vendor = activeContract?.Vendor;
                 
+                var today = DateOnly.FromDateTime(DateTime.UtcNow);
                 var unpaidInvoices = s.Contracts.SelectMany(c => c.Invoices)
-                    .Where(i => i.IsDeleted != true && (i.Status == "Unpaid" || i.Status == "Pending Confirmation"))
+                    .Where(i => i.IsDeleted != true && (i.Status == "Unpaid" || i.Status == "Pending Confirmation") && i.DueDate.HasValue && i.DueDate.Value < today)
                     .ToList();
 
                 decimal rentDebt = 0;
                 decimal utilityDebt = 0;
+                decimal violationDebt = 0;
                 DateOnly? lastDueDate = null;
 
                 foreach (var inv in unpaidInvoices)
@@ -890,6 +909,10 @@ namespace STMM.Business.Services
                         {
                             rentDebt += det.Amount;
                         }
+                        else if (feeName.Contains("phạt") || feeName.Contains("vi phạm") || inv.InvoiceType == "Violation")
+                        {
+                            violationDebt += det.Amount;
+                        }
                         else
                         {
                             utilityDebt += det.Amount;
@@ -897,11 +920,6 @@ namespace STMM.Business.Services
                     }
                 }
 
-                var unpaidViolations = s.Violations
-                      .Where(v => v.Status == "Pending" || v.Status == "Notified" || v.Status == "Appealed" || v.Status == "Rejected")
-                    .ToList();
-
-                decimal violationDebt = unpaidViolations.Sum(v => v.FineAmount ?? v.ViolationType?.DefaultFine ?? 0);
                 var totalDebt = rentDebt + utilityDebt + violationDebt;
 
                 if (totalDebt > 0)
@@ -945,8 +963,9 @@ namespace STMM.Business.Services
             var activeContract = stall.Contracts.FirstOrDefault(c => c.Status == "Active" && c.IsDeleted != true);
             var vendor = activeContract?.Vendor;
 
+            var today = DateOnly.FromDateTime(DateTime.UtcNow);
             var unpaidInvoices = stall.Contracts.SelectMany(c => c.Invoices)
-                .Where(i => i.IsDeleted != true && (i.Status == "Unpaid" || i.Status == "Pending Confirmation"))
+                .Where(i => i.IsDeleted != true && (i.Status == "Unpaid" || i.Status == "Pending Confirmation") && i.DueDate.HasValue && i.DueDate.Value < today)
                 .OrderByDescending(i => i.Year)
                 .ThenByDescending(i => i.Month)
                 .Select(i => new UnpaidInvoiceDetailDto
@@ -961,18 +980,7 @@ namespace STMM.Business.Services
                 })
                 .ToList();
 
-              var unpaidViolations = stall.Violations
-                  .Where(v => v.Status == "Pending" || v.Status == "Notified" || v.Status == "Appealed" || v.Status == "Rejected")
-                .OrderByDescending(v => v.CreatedAt)
-                .Select(v => new UnpaidViolationDetailDto
-                {
-                    ViolationId = v.ViolationId,
-                    Title = v.Title,
-                    Description = v.Description,
-                    FineAmount = v.FineAmount ?? v.ViolationType?.DefaultFine ?? 0,
-                    CreatedAt = v.CreatedAt
-                })
-                .ToList();
+              var unpaidViolations = new List<UnpaidViolationDetailDto>();
 
             return new StallDebtDetailDto
             {
@@ -1102,6 +1110,21 @@ namespace STMM.Business.Services
                             throw new BadRequestException("Số tiền hoàn/giảm trừ không được vượt quá tổng tiền của hóa đơn.");
                         }
 
+                        var feeTypeId = invoice.InvoiceDetails.FirstOrDefault()?.FeeTypeId ?? 1;
+                        var detail = new InvoiceDetail
+                        {
+                            InvoiceId = invoice.InvoiceId,
+                            Description = invoice.Status == "Paid" ? "Hoàn tiền do giải quyết khiếu nại" : "Giảm trừ do giải quyết khiếu nại hóa đơn",
+                            Amount = -request.RefundAmount.Value,
+                            UnitPrice = -request.RefundAmount.Value,
+                            Quantity = 1,
+                            FeeTypeId = feeTypeId
+                        };
+
+                        invoice.InvoiceDetails.Add(detail);
+                        invoice.TotalAmount -= request.RefundAmount.Value;
+                        if (invoice.TotalAmount < 0) invoice.TotalAmount = 0;
+
                         if (invoice.Status == "Paid")
                         {
                             var originalPayment = invoice.Payments.FirstOrDefault(p => p.Status == "Verified" || p.Status == "Paid");
@@ -1119,25 +1142,10 @@ namespace STMM.Business.Services
                             await _paymentRepository.AddAsync(payment, ct);
                             
                             string methodText = request.RefundMethod == "Transfer" ? "Chuyển khoản" : "Tiền mặt";
-                            refundMsg = $" Ban quản lý đã hoàn lại số tiền {request.RefundAmount.Value:#,##0} VNĐ qua hình thức {methodText}.";
+                            refundMsg = $" Ban quản lý đã hoàn lại số tiền {request.RefundAmount.Value:#,##0} VNĐ qua hình thức {methodText}. Hóa đơn của bạn đã được cập nhật lại.";
                         }
                         else if (invoice.Status == "Unpaid" || invoice.Status == "Draft")
                         {
-                            var feeTypeId = invoice.InvoiceDetails.FirstOrDefault()?.FeeTypeId ?? 1;
-                            var detail = new InvoiceDetail
-                            {
-                                InvoiceId = invoice.InvoiceId,
-                                Description = "Giảm trừ do giải quyết khiếu nại hóa đơn",
-                                Amount = -request.RefundAmount.Value,
-                                UnitPrice = -request.RefundAmount.Value,
-                                Quantity = 1,
-                                FeeTypeId = feeTypeId
-                            };
-
-                            invoice.InvoiceDetails.Add(detail);
-                            invoice.TotalAmount -= request.RefundAmount.Value;
-                            if (invoice.TotalAmount < 0) invoice.TotalAmount = 0;
-                            
                             refundMsg = $" Hóa đơn của bạn đã được giảm trừ {request.RefundAmount.Value:#,##0} VNĐ.";
                         }
                     }

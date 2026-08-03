@@ -19,7 +19,7 @@ const getStatusBadge = (status) => {
 
 const canCreateInvoice = (vio) => {
   if (vio.status === 'Paid' || vio.status === 'Finalized') return false;
-  if (vio.status === 'Rejected') return true;
+  if (vio.status === 'Rejected' || vio.status === 'FinalApproved') return true;
   if (vio.status === 'Notified') {
     const createdDate = new Date(vio.createdAt || vio.date);
     const oneWeekAgo = new Date();
@@ -51,6 +51,7 @@ export default function ViolationsPenalties() {
   const [activeModal, setActiveModal] = useState(null);
   const [selectedItem, setSelectedItem] = useState(null);
   const [invoiceConfirmVio, setInvoiceConfirmVio] = useState(null);
+  const [invoiceForm, setInvoiceForm] = useState({ amount: 0, dueDate: '', description: '' });
   const [typeForm, setTypeForm] = useState({ name: '', description: '', defaultFine: 500000, isActive: true });
   const [modalError, setModalError] = useState(null);
 
@@ -182,6 +183,14 @@ export default function ViolationsPenalties() {
 
   const handleCreateInvoiceClick = (vio) => {
     setInvoiceConfirmVio(vio);
+    const date = new Date();
+    date.setDate(date.getDate() + 7);
+    const dueDate = date.toISOString().split('T')[0];
+    setInvoiceForm({
+      amount: vio.fineAmount || vio.penalty || 0,
+      dueDate: dueDate,
+      description: `Tiền phạt vi phạm nội quy: ${vio.title}`
+    });
   };
 
   const confirmCreateInvoice = () => {
@@ -193,7 +202,14 @@ export default function ViolationsPenalties() {
     } else {
       setModalError(null);
       const token = localStorage.getItem('accessToken');
-      fetch(`http://localhost:5056/api/violations/${violationId}/invoice`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } })
+      fetch(`http://localhost:5056/api/violations/${violationId}/invoice`, { 
+        method: 'POST', 
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` 
+        },
+        body: JSON.stringify(invoiceForm)
+      })
         .then(async r => { 
           if (!r.ok) {
             const errData = await r.json().catch(() => ({}));
@@ -312,7 +328,11 @@ export default function ViolationsPenalties() {
                             <td><span style={{ fontWeight: 600 }}>{vio.title}</span></td>
                             <td><span className="acc-badge neutral">{vio.violationTypeName || vio.violationType?.name || '—'}</span></td>
                             <td><span style={{ color: 'var(--text-muted)', fontSize: 13 }}>{vio.createdAt ? formatDate(vio.createdAt) : (vio.date || '—')}</span></td>
-                            <td className="text-right"><strong style={{ color: 'var(--danger)' }}>{(vio.fineAmount || vio.penalty || 0).toLocaleString('vi-VN')} ₫</strong></td>
+                            <td className="text-right" style={{ whiteSpace: 'nowrap' }}>
+                              <strong style={{ color: 'var(--danger)' }}>
+                                {((vio.fineAmount || vio.penalty) > 0 ? (vio.fineAmount || vio.penalty) : 200000).toLocaleString('vi-VN')} ₫
+                              </strong>
+                            </td>
                             <td><span className={cls}>{label}</span></td>
                             <td className="text-right">
                               <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
@@ -573,21 +593,43 @@ export default function ViolationsPenalties() {
       {/* Modal: Confirm Invoice */}
       {invoiceConfirmVio && (
         <div className="acc-modal-overlay" onClick={() => setInvoiceConfirmVio(null)}>
-          <div className="modal-container modal-container-sm" onClick={e => e.stopPropagation()}>
+          <div className="acc-modal-container" onClick={e => e.stopPropagation()}>
             <div className="acc-modal-header">
-              <span className="acc-modal-title">{t('violationspenalties.confirm_invoicing')}</span>
+              <span className="acc-modal-title">{t('violationspenalties.confirm_invoicing')} cho VIO-{invoiceConfirmVio.violationId}</span>
               <button className="acc-modal-close" onClick={() => setInvoiceConfirmVio(null)}><X size={16} /></button>
             </div>
-            <div className="acc-modal-body">
-              <div className="alert alert-warning">
-                <AlertTriangle size={16} className="alert-icon" />
-                <span>{t('violationspenalties.are_you_sure_you')}<strong>{(invoiceConfirmVio.fineAmount || invoiceConfirmVio.penalty || 0).toLocaleString('vi-VN')} ₫</strong> {t('violationspenalties.for_minutes')}<strong>VIO-{invoiceConfirmVio.violationId}</strong>?<br/><br/>{t('violationspenalties.this_action_cannot_be')}</span>
+            <form onSubmit={e => { e.preventDefault(); confirmCreateInvoice(); }}>
+              <div className="acc-modal-body">
+                {modalError && (
+                  <div className="alert alert-danger" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', whiteSpace: 'pre-line' }}>
+                    <AlertTriangle size={16} className="alert-icon" />
+                    <span>{modalError}</span>
+                  </div>
+                )}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                  <div>
+                    <label className="acc-form-label">{t('violationspenalties.amount')} (VNĐ)</label>
+                    <input type="number" className="acc-input" required min={1} value={invoiceForm.amount}
+                      onChange={e => setInvoiceForm({ ...invoiceForm, amount: parseFloat(e.target.value) || 0 })} />
+                  </div>
+                  <div>
+                    <label className="acc-form-label">{t('violationspenalties.due_date') || 'Hạn thanh toán'}</label>
+                    <input type="date" className="acc-input" required value={invoiceForm.dueDate}
+                      onChange={e => setInvoiceForm({ ...invoiceForm, dueDate: e.target.value })} />
+                  </div>
+                </div>
+                <div>
+                  <label className="acc-form-label">{t('violationspenalties.describe')} lý do</label>
+                  <textarea className="form-textarea" required rows={3} maxLength={500}
+                    value={invoiceForm.description}
+                    onChange={e => setInvoiceForm({ ...invoiceForm, description: e.target.value })} />
+                </div>
               </div>
-            </div>
-            <div className="acc-modal-footer">
-              <button className="acc-btn-secondary" onClick={() => setInvoiceConfirmVio(null)}>{t('violationspenalties.cancel')}</button>
-              <button className="acc-btn-primary" onClick={confirmCreateInvoice}>{t('violationspenalties.invoicing')}</button>
-            </div>
+              <div className="acc-modal-footer">
+                <button type="button" className="acc-btn-secondary" onClick={() => setInvoiceConfirmVio(null)}>{t('violationspenalties.cancel')}</button>
+                <button type="submit" className="acc-btn-primary">{t('violationspenalties.invoicing')}</button>
+              </div>
+            </form>
           </div>
         </div>
       )}

@@ -195,7 +195,7 @@ export default function CreateViolationModal({ baseUrl, onClose, onSuccess, pref
 
           <div className="form-group">
             <label className="form-label required-field" htmlFor={t('createviolationmodal.violationfine')}>{t('createviolationmodal.fine_amount_vnd')}</label>
-            <input id="violation-fine" type="number" min="0" className="form-input" value={fineAmount} onChange={(event) => setFineAmount(event.target.value)} />
+            <input id="violation-fine" type="number" min="0" className="form-input" value={fineAmount} onChange={(event) => setFineAmount(event.target.value)} disabled />
           </div>
 
           <div className="form-group">

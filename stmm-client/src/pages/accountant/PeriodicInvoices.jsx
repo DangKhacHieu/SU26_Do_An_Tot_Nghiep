@@ -10,10 +10,12 @@ export default function PeriodicInvoices() {
 
   const getStatusBadge = (status) => {
     const map = {
-      'Paid': { cls: 'badge badge-success', label: 'Paid' },
-      'Unpaid': { cls: 'badge badge-warning', label: 'Unpaid' },
-      'Draft': { cls: 'badge badge-info', label: 'Draft' },
-      'Overdue': { cls: 'badge badge-danger', label: 'Overdue' },
+      'Paid': { cls: 'badge badge-success', label: t('periodicinvoices.paid') },
+      'Unpaid': { cls: 'badge badge-warning', label: t('periodicinvoices.waiting_for_collection_unpaid') },
+      'Draft': { cls: 'badge badge-info', label: t('periodicinvoices.draft') },
+      'Overdue': { cls: 'badge badge-danger', label: t('periodicinvoices.overdue') },
+      'Disputed': { cls: 'badge badge-neutral', label: t('periodicinvoices.disputed') },
+      'Canceled': { cls: 'badge badge-neutral', label: t('periodicinvoices.canceled') }
     };
     return map[status] || { cls: 'badge badge-neutral', label: status };
   };
@@ -144,8 +146,9 @@ export default function PeriodicInvoices() {
         throw new Error(errData.detail || errData.title || t('periodicinvoices.create_invoice_failed'));
       }
       
-      const result = await response.json().catch(() => ({ generatedCount: 0 }));
-      showNotification('success', t('periodicinvoices.created_invoices_success', { count: result.generatedCount || 0 }));
+      const result = await response.json().catch(() => ({ count: 0 }));
+      const generatedCount = result.count ?? result.Count ?? result.generatedCount ?? 0;
+      showNotification('success', t('periodicinvoices.created_invoices_success', { count: generatedCount }));
       setAutoGenerateModal(null);
       fetchInvoices();
       
@@ -226,12 +229,18 @@ export default function PeriodicInvoices() {
   };
 
   const getInvoiceTypeLabel = (i) => {
-    if (isInvoicePeriodic(i)) return 'Định kì';
-    if (i.invoiceType === 'Violation' && (!i.details || i.details.length === 0)) return 'Vi phạm';
+    if (isInvoicePeriodic(i)) return t('periodicinvoices.periodic');
+    if (i.invoiceType === 'Violation' && (!i.details || i.details.length === 0)) return t('periodicinvoices.violation');
     if (i.details && i.details.length > 0 && i.details[0].feeTypeName) {
-      return i.details[0].feeTypeName;
+      const name = i.details[0].feeTypeName;
+      const lower = name.toLowerCase();
+      if (lower.includes('phạt') || lower.includes('fine') || lower.includes('violation')) return t('periodicinvoices.fine');
+      if (lower.includes('sửa') || lower.includes('repair')) return t('periodicinvoices.repair');
+      if (lower.includes('dịch vụ') || lower.includes('service')) return t('periodicinvoices.service_fee');
+      if (lower.includes('thuê') || lower.includes('rent')) return t('periodicinvoices.rent_fee');
+      return name;
     }
-    return 'Đột xuất';
+    return t('periodicinvoices.adhoc');
   };
 
   const getInvoiceTypeBadge = (i) => {
@@ -352,10 +361,11 @@ export default function PeriodicInvoices() {
   };
 
   const handleBulkApprove = () => {
+    const count = selectedIds.length;
     if (isMock) {
       setInvoices(invoices.map(inv => selectedIds.includes(inv.invoiceId) ? { ...inv, status: 'Unpaid' } : inv));
       setSelectedIds([]); setActiveModal(null);
-      showNotification('success', t('periodicinvoices.selectedidslength_invoice_issued_successfully'));
+      showNotification('success', t('periodicinvoices.selectedidslength_invoice_issued_successfully', { count }));
     } else {
       fetch('http://localhost:5056/api/accountant/billing/invoices/bulk-approve', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` }, body: JSON.stringify({ invoiceIds: selectedIds }) })
         .then(async r => { 
@@ -363,7 +373,7 @@ export default function PeriodicInvoices() {
             const errData = await r.json().catch(() => ({}));
             throw new Error(errData.detail || errData.title || t('periodicinvoices.error_when_mass_approving'));
           }
-          showNotification('success', t('periodicinvoices.approval_of_selectedidslength_invoice')); 
+          showNotification('success', t('periodicinvoices.approval_of_selectedidslength_invoice', { count })); 
           setSelectedIds([]); 
           setActiveModal(null); 
           fetchInvoices(); 
@@ -416,13 +426,13 @@ export default function PeriodicInvoices() {
               {shouldShowAutoGenerate() && (
                 <button className="acc-btn-primary" style={{ backgroundColor: 'var(--success)', color: 'white' }} onClick={() => setAutoGenerateModal(true)}>
                   <RefreshCw size={15} />
-                  <span>Tạo hóa đơn {new Date().getMonth() + 1}/{new Date().getFullYear()}</span>
+                  <span>{t('periodicinvoices.generate_invoices_month_year', { month: new Date().getMonth() + 1, year: new Date().getFullYear() })}</span>
                 </button>
               )}
               {selectedIds.length > 0 && (
                 <button className="btn btn-success" onClick={() => setActiveModal('bulk')}>
                   <CheckCircle size={15} />
-                  <span>Phát hành hàng loạt ({selectedIds.length})</span>
+                  <span>{t('periodicinvoices.bulk_issue_count', { count: selectedIds.length })}</span>
                 </button>
               )}
             </>
@@ -430,7 +440,7 @@ export default function PeriodicInvoices() {
           {activeTab === 'irregular' && (
             <button className="acc-btn-primary" onClick={() => setActiveModal('adhoc')}>
               <Plus size={15} />
-              <span>Hóa đơn đột xuất</span>
+              <span>{t('periodicinvoices.unexpected_bills')}</span>
             </button>
           )}
         </div>
@@ -455,7 +465,10 @@ export default function PeriodicInvoices() {
 
       {/* Tabs */}
       <div className="acc-tabs-header">
-        {[{ id: 'periodic', label: 'Hóa đơn định kì', icon: FileText }, { id: 'irregular', label: 'Hóa đơn phát sinh', icon: AlertTriangle }].map(tab => {
+        {[
+          { id: 'periodic', label: t('periodicinvoices.periodic_tab'), icon: FileText }, 
+          { id: 'irregular', label: t('periodicinvoices.irregular_tab'), icon: AlertTriangle }
+        ].map(tab => {
           const Icon = tab.icon;
           return (
             <button key={tab.id} className={`acc-tab-btn ${activeTab === tab.id ? 'active' : ''}`} onClick={() => { setActiveTab(tab.id); setCurrentPage(1); setSelectedIds([]); }}>
@@ -499,22 +512,22 @@ export default function PeriodicInvoices() {
           <p className="loading-text">{t('periodicinvoices.loading_invoice_list')}</p>
         </div>
       ) : (
-        <div className="card" style={{ overflow: 'hidden' }}>
-          <table className="acc-table">
+        <div className="acc-card" style={{ overflowX: 'auto', padding: 0 }}>
+          <table className="acc-table" style={{ width: '100%', minWidth: '860px' }}>
             <thead>
               <tr>
-                <th style={{ width: 40, padding: '11px 16px' }}>
+                <th style={{ width: 36, padding: '10px 12px' }}>
                   <input type="checkbox" onChange={handleSelectAll}
                     checked={displayedInvoices.length > 0 && displayedInvoices.filter(i => i.status === 'Draft').every(i => selectedIds.includes(i.invoiceId))} />
                 </th>
-                <th>{t('periodicinvoices.hd_code')}</th>
-                <th>{t('periodicinvoices.invoice_type')}</th>
-                <th>{t('periodicinvoices.kiosk')}</th>
-                <th>{t('periodicinvoices.tenants')}</th>
-                <th>{t('periodicinvoices.ky_and_due_date')}</th>
-                <th className="text-right">{t('periodicinvoices.total_money')}</th>
-                <th>{t('periodicinvoices.status')}</th>
-                <th className="text-right">{t('periodicinvoices.operation')}</th>
+                <th style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>{t('periodicinvoices.hd_code')}</th>
+                <th style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>{t('periodicinvoices.invoice_type')}</th>
+                <th style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>{t('periodicinvoices.kiosk')}</th>
+                <th style={{ padding: '10px 12px' }}>{t('periodicinvoices.tenants')}</th>
+                <th style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>{t('periodicinvoices.ky_and_due_date')}</th>
+                <th className="text-right" style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>{t('periodicinvoices.total_money')}</th>
+                <th style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>{t('periodicinvoices.status')}</th>
+                <th className="text-right" style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>{t('periodicinvoices.operation')}</th>
               </tr>
             </thead>
             <tbody>
@@ -522,39 +535,48 @@ export default function PeriodicInvoices() {
                 const { cls, label } = getStatusBadge(inv.status);
                 return (
                   <tr key={inv.invoiceId}>
-                    <td style={{ padding: '13px 16px' }}>
+                    <td style={{ padding: '10px 12px' }}>
                       {inv.status === 'Draft' ? (
                         <input type="checkbox" checked={selectedIds.includes(inv.invoiceId)} onChange={() => handleSelectRow(inv.invoiceId)} />
                       ) : <input type="checkbox" disabled style={{ opacity: 0.3 }} />}
                     </td>
-                    <td><span style={{ fontWeight: 600, color: 'var(--text-title)', fontFamily: 'monospace', fontSize: 13 }}>INV-{inv.invoiceId}</span></td>
-                    <td>
-                        <span className={`badge ${getInvoiceTypeBadge(inv)}`} style={{ fontSize: 11 }}>
-                          {getInvoiceTypeLabel(inv)}
-                        </span>
-                      </td>
-                    <td><span style={{ fontWeight: 700 }}>{inv.stallCode}</span></td>
-                    <td>{inv.vendorName}</td>
-                    <td>
+                    <td style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>
+                      <span style={{ fontWeight: 600, color: 'var(--text-title)', fontFamily: 'monospace', fontSize: 13 }}>INV-{inv.invoiceId}</span>
+                    </td>
+                    <td style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>
+                      <span className={`badge ${getInvoiceTypeBadge(inv)}`} style={{ fontSize: 11 }}>
+                        {getInvoiceTypeLabel(inv)}
+                      </span>
+                    </td>
+                    <td style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>
+                      <span style={{ fontWeight: 700 }}>{inv.stallCode}</span>
+                    </td>
+                    <td style={{ padding: '10px 12px' }}>{inv.vendorName}</td>
+                    <td style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                        <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>{t('periodicinvoices.month_short')}{inv.month}/{inv.year}</span>
+                        <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>{t('periodicinvoices.month')} {inv.month}/{inv.year}</span>
                         <span style={{ color: 'var(--text-secondary)', fontSize: 12 }}>({inv.dueDate || '—'})</span>
                       </div>
                     </td>
-                    <td className="text-right"><span style={{ fontWeight: 700, color: 'var(--text-title)' }}>{inv.totalAmount.toLocaleString('vi-VN')} ₫</span></td>
-                    <td><span className={cls}>{label}</span></td>
-                    <td className="text-right">
-                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
-                        <button className="acc-btn-secondary btn-sm" onClick={() => openDetails(inv)}>
-                          <Eye size={13} /> {t('periodicinvoices.detail')}</button>
+                    <td className="text-right" style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>
+                      <span style={{ fontWeight: 700, color: 'var(--text-title)' }}>{inv.totalAmount.toLocaleString('vi-VN')} ₫</span>
+                    </td>
+                    <td style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>
+                      <span className={cls}>{label}</span>
+                    </td>
+                    <td className="text-right" style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 5, flexWrap: 'nowrap' }}>
+                        <button className="acc-btn-secondary btn-sm" style={{ padding: '4px 8px', fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 4 }} onClick={() => openDetails(inv)}>
+                          <Eye size={13} /> {t('periodicinvoices.detail')}
+                        </button>
                         {(inv.status === 'Draft' || inv.status === 'Unpaid') && (
                           <>
                             {activeTab === 'periodic' && (
-                              <button className="btn btn-sm" style={{ background: 'var(--primary-light)', color: 'var(--primary)', border: '1px solid var(--primary-border)' }} onClick={() => openAdjustModal(inv)}>
+                              <button className="btn btn-sm" style={{ background: 'var(--primary-light)', color: 'var(--primary)', border: '1px solid var(--primary-border)', padding: '4px 8px', fontSize: 12, whiteSpace: 'nowrap' }} onClick={() => openAdjustModal(inv)}>
                                 {t('periodicinvoices.record_data')}
                               </button>
                             )}
-                            <button className="btn btn-sm" style={{ background: 'var(--danger-light)', color: 'var(--danger)', border: '1px solid var(--danger)' }} onClick={() => openCancelModal(inv)}>
+                            <button className="btn btn-sm" style={{ background: 'var(--danger-light)', color: 'var(--danger)', border: '1px solid var(--danger)', padding: '4px 8px', fontSize: 12, whiteSpace: 'nowrap' }} onClick={() => openCancelModal(inv)}>
                               {t('periodicinvoices.cancel')}
                             </button>
                           </>

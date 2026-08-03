@@ -100,10 +100,7 @@ namespace STMM.Business.Services
             violation.CreatedAt = DateTime.UtcNow;
             violation.UpdatedAt = DateTime.UtcNow;
 
-            if ((violation.FineAmount == null || violation.FineAmount == 0) && violationType.DefaultFine.HasValue)
-            {
-                violation.FineAmount = violationType.DefaultFine.Value;
-            }
+            violation.FineAmount = violationType.DefaultFine;
 
             await _violationRepository.AddAsync(violation, ct);
             await _violationRepository.SaveChangesAsync(ct);
@@ -275,7 +272,7 @@ namespace STMM.Business.Services
             return false;
         }
 
-        public async Task<bool> CreateInvoiceForViolationAsync(int violationId, int accountantUserId, CancellationToken ct = default)
+        public async Task<bool> CreateInvoiceForViolationAsync(int violationId, int accountantUserId, CreateViolationInvoiceRequest request = null, CancellationToken ct = default)
         {
             var accountantUser = await _userRepository.GetByIdAsync(accountantUserId, ct);
             if (accountantUser == null || !accountantUser.MarketId.HasValue)
@@ -320,11 +317,11 @@ namespace STMM.Business.Services
                 ContractId = contract.ContractId,
                 Month = DateTime.UtcNow.Month,
                 Year = DateTime.UtcNow.Year,
-                TotalAmount = violation.FineAmount.Value,
+                TotalAmount = request?.Amount ?? violation.FineAmount.Value,
                 Status = "Unpaid",
                 InvoiceType = "Violation",
                 ViolationId = violationId,
-                DueDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(7)),
+                DueDate = request?.DueDate ?? DateOnly.FromDateTime(DateTime.UtcNow.AddDays(7)),
                 CreatedAt = DateTime.UtcNow,
                 IsDeleted = false
             };
@@ -332,10 +329,10 @@ namespace STMM.Business.Services
             var invoiceDetail = new InvoiceDetail
             {
                 FeeTypeId = feeType.FeeTypeId,
-                Description = $"Tiền phạt vi phạm: {violation.Title}",
+                Description = string.IsNullOrWhiteSpace(request?.Description) ? $"Tiền phạt vi phạm: {violation.Title}" : request.Description,
                 Quantity = 1,
-                UnitPrice = violation.FineAmount.Value,
-                Amount = violation.FineAmount.Value,
+                UnitPrice = request?.Amount ?? violation.FineAmount.Value,
+                Amount = request?.Amount ?? violation.FineAmount.Value,
             };
 
             invoice.InvoiceDetails.Add(invoiceDetail);

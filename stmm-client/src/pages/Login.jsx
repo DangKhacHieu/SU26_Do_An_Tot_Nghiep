@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 
 const MOCK_ACCOUNTS = [
+  { email: 'ketoan.caikhe@stmm.vn', password: '123456', name: 'Kế Toán Chợ Cái Khế', roleName: 'Accountant', userId: 5, roleId: 3 },
   { email: 'binhlt.accountant@stmm.vn', password: '123456', name: 'Lê Thanh Bình', roleName: 'Accountant', userId: 1, roleId: 3 },
   { email: 'admin@stmm.vn', password: '123456', name: 'Nguyễn Văn Trị', roleName: 'Admin', userId: 2, roleId: 1 }
 ];

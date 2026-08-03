@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using STMM.Business.DTOs.Dashboard;
 using STMM.Business.DTOs.Violation;
 using STMM.Business.Interfaces;
 using System.Security.Claims;
@@ -108,10 +109,10 @@ namespace STMM.API.Controllers
         /// </summary>
         [HttpPost("{id}/invoice")]
         [Authorize(Roles = "Accountant,Admin")]
-        public async Task<IActionResult> CreateInvoiceForViolation(int id, CancellationToken ct)
+        public async Task<IActionResult> CreateInvoiceForViolation(int id, [FromBody] CreateViolationInvoiceRequest request, CancellationToken ct)
         {
             var userId = GetUserId();
-            var success = await _violationService.CreateInvoiceForViolationAsync(id, userId, ct);
+            var success = await _violationService.CreateInvoiceForViolationAsync(id, userId, request, ct);
             if (!success) return BadRequest(new { message = "Không thể tạo hóa đơn cho vi phạm này." });
 
             var ipAddress = Request.HttpContext.Connection.RemoteIpAddress?.ToString();
