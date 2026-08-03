@@ -93,6 +93,12 @@ export default function RepairPrice() {
       return;
     }
     
+    // Validation for unit
+    if (!formState.unit || formState.unit.trim() === '') {
+      setModalError(t('repairprice.please_enter_unit') || 'Vui lòng nhập đơn vị tính.');
+      return;
+    }
+    
     // Validation for price
     if (!formState.price || parseFloat(formState.price) <= 0) {
       setModalError(t('repairprice.price_must_be_positive'));
@@ -394,10 +400,10 @@ export default function RepairPrice() {
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                   <div>
-                    <label className="acc-form-label">{t('repairprice.n_v_tnh')}</label>
-                    <select className="form-select" value={formState.unit} onChange={e => setFormState({ ...formState, unit: e.target.value })}>
-                      {[t('repairprice.female'), t('repairprice.time'), t('repairprice.meter'), 'Kg', t('repairprice.set'), t('repairprice.bin'), 'm²'].map(u => <option key={u} value={u}>{u}</option>)}
-                    </select>
+                    <label className="acc-form-label">{t('repairprice.n_v_tnh') || 'Đơn vị tính'}</label>
+                    <input type="text" className="acc-input" required maxLength={50}
+                      placeholder="VD: Cái, Lần, Mét..."
+                      value={formState.unit} onChange={e => setFormState({ ...formState, unit: e.target.value })} />
                   </div>
                   <div>
                     <label className="acc-form-label">{t('repairprice.unit_price_vnd')}</label>

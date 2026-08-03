@@ -662,7 +662,7 @@ namespace STMM.Business.Services
                 StallCategory = stall?.Category?.Name ?? string.Empty,
                 VendorName = vendor?.BusinessName ?? vendorUser?.Name ?? string.Empty,
                 VendorPhone = vendorUser?.Phone ?? string.Empty,
-                InvoiceType = isIrregular ? "Irregular" : "Periodic",
+                InvoiceType = !string.IsNullOrEmpty(invoice.InvoiceType) && invoice.InvoiceType != "Periodic" ? invoice.InvoiceType : (isIrregular ? "Irregular" : "Periodic"),
                 Details = invoice.InvoiceDetails.Select(d => new InvoiceDetailDto
                 {
                     InvoiceDetailId = d.InvoiceDetailId,
@@ -1222,6 +1222,13 @@ namespace STMM.Business.Services
             var rentFeeType = await _feeTypeRepository.GetRentFeeTypeAsync(marketId, ct);
             int rentFeeTypeId = rentFeeType?.FeeTypeId ?? 1;
 
+            var vatConfig = await _systemConfigRepository.GetSystemConfigByKeyAsync("vat_tax_rate", marketId, ct);
+            decimal vatRate = 0;
+            if (vatConfig != null && decimal.TryParse(vatConfig.ConfigValue, out var parsedVat))
+            {
+                vatRate = parsedVat;
+            }
+
             int count = 0;
             var newInvoices = new List<Invoice>();
 
@@ -1318,6 +1325,25 @@ namespace STMM.Business.Services
                         Amount = srv.Amount
                     };
                     invoice.InvoiceDetails.Add(srvDetail);
+                }
+
+                // Add VAT if applicable
+                if (vatRate > 0)
+                {
+                    decimal vatAmount = Math.Round(totalAmount * (vatRate / 100m), 0);
+                    if (vatAmount > 0)
+                    {
+                        var vatDetail = new InvoiceDetail
+                        {
+                            FeeTypeId = 8, // Thuế GTGT (VAT)
+                            Description = $"Thuế GTGT ({vatRate}%)",
+                            Quantity = 1,
+                            UnitPrice = vatAmount,
+                            Amount = vatAmount
+                        };
+                        invoice.InvoiceDetails.Add(vatDetail);
+                        invoice.TotalAmount += vatAmount;
+                    }
                 }
 
                 newInvoices.Add(invoice);
@@ -1420,6 +1446,90 @@ namespace STMM.Business.Services
             if (activeDays >= totalDaysInMonth) return fullAmount;
 
             return Math.Round((fullAmount / totalDaysInMonth) * activeDays, 0);
+        }
+
+        /// <inheritdoc />
+        public async Task<int> ProcessOverdueInvoicesAsync(CancellationToken ct = default)
+        {
+            int processedCount = 0;
+            var today = DateOnly.FromDateTime(DateTime.Today);
+            
+            // Get all Unpaid or Overdue invoices that are past due date
+            var invoices = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.ToListAsync(
+                _invoiceRepository.Query()
+                .Include(i => i.InvoiceDetails)
+                .Include(i => i.Contract)
+                    .ThenInclude(c => c.Stall)
+                        .ThenInclude(s => s.Area)
+                .Where(i => 
+                    (i.Status == "Unpaid" || i.Status == "Overdue") && 
+                    i.DueDate.HasValue && 
+                    i.DueDate.Value < today &&
+                    i.IsDeleted != true), ct);
+
+            foreach (var invoice in invoices)
+            {
+                int? marketId = invoice.Contract?.Stall?.Area?.MarketId;
+                
+                // Update status to Overdue if it's currently Unpaid
+                if (invoice.Status == "Unpaid")
+                {
+                    invoice.Status = "Overdue";
+                }
+
+                // Get late fee rate config
+                var rateConfig = await _systemConfigRepository.GetSystemConfigByKeyAsync("late_penalty_rate_per_day", marketId, ct);
+                decimal dailyRate = 0.05m / 100m; // Default 0.05%
+                if (rateConfig != null && decimal.TryParse(rateConfig.ConfigValue, out decimal configRate))
+                {
+                    dailyRate = configRate / 100m;
+                }
+
+                // Calculate days late
+                int daysLate = today.DayNumber - invoice.DueDate.Value.DayNumber;
+                
+                // Find existing penalty line item (FeeTypeId = 7)
+                var penaltyDetail = invoice.InvoiceDetails.FirstOrDefault(d => d.FeeTypeId == 7);
+                
+                // We calculate penalty based on the ORIGINAL total amount (excluding current penalty)
+                decimal originalTotal = penaltyDetail != null ? invoice.TotalAmount - penaltyDetail.Amount : invoice.TotalAmount;
+                decimal penaltyAmount = Math.Round(originalTotal * dailyRate * daysLate, 0);
+
+                if (penaltyAmount > 0)
+                {
+                    if (penaltyDetail == null)
+                    {
+                        penaltyDetail = new InvoiceDetail
+                        {
+                            InvoiceId = invoice.InvoiceId,
+                            FeeTypeId = 7, // Standardized ID for "Phạt chậm nộp"
+                            Description = $"Phạt chậm nộp ({daysLate} ngày)",
+                            Quantity = 1,
+                            UnitPrice = penaltyAmount,
+                            Amount = penaltyAmount
+                        };
+                        invoice.InvoiceDetails.Add(penaltyDetail);
+                        invoice.TotalAmount = originalTotal + penaltyAmount;
+                    }
+                    else
+                    {
+                        penaltyDetail.Description = $"Phạt chậm nộp ({daysLate} ngày)";
+                        penaltyDetail.UnitPrice = penaltyAmount;
+                        penaltyDetail.Amount = penaltyAmount;
+                        invoice.TotalAmount = originalTotal + penaltyAmount;
+                    }
+                }
+                
+                _invoiceRepository.Update(invoice);
+                processedCount++;
+            }
+
+            if (processedCount > 0)
+            {
+                await _invoiceRepository.SaveChangesAsync(ct);
+            }
+
+            return processedCount;
         }
 
         /// <inheritdoc />

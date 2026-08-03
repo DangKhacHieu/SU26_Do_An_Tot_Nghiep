@@ -174,7 +174,7 @@ builder.Services.AddScoped<IVnpayService, VnpayService>();
 
 
 // Register Background Services
-builder.Services.AddHostedService<STMM.API.BackgroundServices.MonthlyBillingWorker>();
+builder.Services.AddHostedService<STMM.API.BackgroundServices.NightlyMaintenanceWorker>();
 
 // 1. Controllers & JSON Options
 builder.Services.AddControllers(options => 
