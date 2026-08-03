@@ -41,6 +41,7 @@ export default function PaymentVerification() {
   const [selectedItem, setSelectedItem] = useState(null);
   const [selectedInvoiceDetail, setSelectedInvoiceDetail] = useState(null);
   const [loadingPopup, setLoadingPopup] = useState(false);
+  const [modalError, setModalError] = useState('');
   const [rejectionNote, setRejectionNote] = useState('');
   const [reminderMessage, setReminderMessage] = useState('');
   const [disputeApprove, setDisputeApprove] = useState(true);
@@ -128,6 +129,7 @@ export default function PaymentVerification() {
 
   const submitRejectPayment = (e) => {
     e.preventDefault();
+    setModalError('');
     
     // Validation for rejection note
     if (!rejectionNote || rejectionNote.trim() === '') {
@@ -234,6 +236,7 @@ export default function PaymentVerification() {
 
   const submitResolveDispute = (e) => {
     e.preventDefault();
+    setModalError('');
     
     // Validation for dispute feedback
     if (!disputeFeedback || disputeFeedback.trim() === '') {
@@ -646,6 +649,7 @@ export default function PaymentVerification() {
             </div>
             <form onSubmit={submitRejectPayment}>
               <div className="acc-modal-body">
+                {modalError ? <p className="form-error">{modalError}</p> : null}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, background: 'var(--bg-base)', padding: 14, borderRadius: 'var(--radius-md)', fontSize: 13.5 }}>
                   <div><span style={{ color: 'var(--text-muted)' }}>{t('paymentverification.stall')}</span><strong>{selectedItem.stallCode}</strong></div>
                   <div><span style={{ color: 'var(--text-muted)' }}>{t('paymentverification.small_business')}</span>{selectedItem.tenantName}</div>
@@ -857,6 +861,7 @@ export default function PaymentVerification() {
             </div>
             <form onSubmit={submitResolveDispute}>
               <div className="acc-modal-body" style={{ display: 'flex', gap: 24, padding: '24px', overflowY: 'auto', maxHeight: '70vh' }}>
+                {modalError ? <p className="form-error">{modalError}</p> : null}
                 {/* Left Column: Original Invoice Info */}
                 <div style={{ flex: 1, borderRight: '1px solid var(--border-color)', paddingRight: 24 }}>
                   <h4 style={{ margin: '0 0 16px 0', fontSize: 16, color: 'var(--text-main)' }}>{t('paymentverification.original_invoice_information')}</h4>

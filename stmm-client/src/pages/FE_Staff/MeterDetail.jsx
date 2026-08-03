@@ -106,7 +106,7 @@ export default function MeterDetail({ meterId, baseUrl, onBack }) {
           <div className="meter-hero-meta">
             <h3>{meterTypeLabel} ({unitLabel})</h3>
             <p className="meter-hero-subtitle">
-              <span>📍 {meter.stallCode || `Stall ID: ${meter.stallId}`}</span>
+              <span>📍 {meter.stallId ? (meter.stallCode || `Stall ID: ${meter.stallId}`) : t('meterdetail.in_warehouse', 'Chưa lắp đặt (trong kho)')}</span>
               <span>•</span>
               <span>📅 {formatDate(meter.installedAt)}</span>
             </p>
@@ -160,7 +160,7 @@ export default function MeterDetail({ meterId, baseUrl, onBack }) {
 
               <div className="meter-info-item">
                 <span className="meter-info-label">📍 {t('meterdetail.stall_code_location')}</span>
-                <span className="meter-info-value">{meter.stallCode || `Stall ID: ${meter.stallId}`}</span>
+                <span className="meter-info-value">{meter.stallId ? (meter.stallCode || `Stall ID: ${meter.stallId}`) : t('meterdetail.in_warehouse', 'Chưa lắp đặt (trong kho)')}</span>
               </div>
 
               <div className="meter-info-item">

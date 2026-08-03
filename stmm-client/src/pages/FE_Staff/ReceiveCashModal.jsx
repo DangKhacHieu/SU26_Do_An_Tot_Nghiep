@@ -55,15 +55,6 @@ export default function ReceiveCashModal({ stallId, stallCode, invoiceId, baseUr
       t('receivecashmodal.confirm_cash_title', { stallCode, defaultValue: `Xác nhận thu tiền sạp ${stallCode}` }),
       t('receivecashmodal.confirm_cash_text', { amount: formattedAmount, defaultValue: `Bạn đã nhận đủ ${formattedAmount} VND tiền mặt?` })
     );
-
-    if (!confirmResult.isConfirmed) return;
-
-    const formattedAmount = invoice.totalAmount.toLocaleString(i18n.resolvedLanguage?.startsWith('vi') ? 'vi-VN' : 'en-US');
-    const confirmResult = await showConfirm(
-      t('receivecashmodal.confirm_cash_title', { stallCode, defaultValue: `Xác nhận thu tiền sạp ${stallCode}` }),
-      t('receivecashmodal.confirm_cash_text', { amount: formattedAmount, defaultValue: `Bạn đã nhận đủ ${formattedAmount} VND tiền mặt?` })
-    );
-
     if (!confirmResult.isConfirmed) return;
 
     setSubmitting(true);

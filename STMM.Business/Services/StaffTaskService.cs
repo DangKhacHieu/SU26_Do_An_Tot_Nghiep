@@ -70,28 +70,59 @@ namespace STMM.Business.Services
             int? managerUserId,
             CancellationToken ct = default)
         {
-            if (managerUserId.HasValue)
+            // F-01: một điều kiện duy nhất qua GetManagerMarketIdAsync, giống GetTaskByIdForManagerAsync.
+            // Bỏ fallback GetByIdAsync vì nó không lọc IsDeleted -> tài khoản Manager đã xoá mềm
+            // vẫn đọc được toàn bộ công việc của chợ.
+            if (!managerUserId.HasValue)
             {
-                var manager = await _userRepository.GetUserByIdWithRoleAsync(managerUserId.Value, ct)
-                    ?? await _userRepository.GetByIdAsync(managerUserId.Value, ct);
-                if (manager != null && manager.MarketId == null)
-                {
-                    throw new ForbiddenException("The account is not assigned to a market.");
-                }
-                if (manager?.MarketId != null)
-                {
-                    var items = await _staffTaskRepository.GetTasksForMarketAsync(manager.MarketId.Value, ct);
-                    return _mapper.Map<List<TaskSummaryDto>>(items);
-                }
+                throw new ForbiddenException("The manager account is not assigned to a market.");
             }
-            return new List<TaskSummaryDto>();
+
+            var marketId = await GetManagerMarketIdAsync(managerUserId.Value, ct);
+            var items = await _staffTaskRepository.GetTasksForMarketAsync(marketId, ct);
+            return _mapper.Map<List<TaskSummaryDto>>(items);
         }
 
         /// <inheritdoc />
         public async Task<IReadOnlyList<TaskSummaryDto>> GetTasksForStaffAsync(int staffUserId, CancellationToken ct = default)
         {
             var items = await _staffTaskRepository.GetTasksForStaffAsync(staffUserId, ct);
-            return _mapper.Map<List<TaskSummaryDto>>(items);
+            var dtos = _mapper.Map<List<TaskSummaryDto>>(items);
+
+            var utilityTasks = dtos.Where(t => t.TaskType == "UtilityReading" && t.AreaId.HasValue).ToList();
+            var areaStallsDict = new Dictionary<int, List<int>>();
+
+            if (utilityTasks.Any())
+            {
+                var uniqueAreaIds = utilityTasks.Select(t => t.AreaId!.Value).Distinct();
+                var localToday = DateTime.UtcNow.AddHours(7);
+                var effectiveDate = DateOnly.FromDateTime(localToday);
+
+                foreach (var areaId in uniqueAreaIds)
+                {
+                    var stallsInArea = await _stallRepository.GetStallsChecklistByAreaAsync(
+                        areaId, effectiveDate, localToday.Year, localToday.Month, ct);
+
+                    areaStallsDict[areaId] = stallsInArea
+                        .Where(s => s.HasElectricityMeter || s.HasWaterMeter)
+                        .Select(s => s.StallId)
+                        .ToList();
+                }
+            }
+
+            foreach (var task in dtos)
+            {
+                if (task.TaskType == "UtilityReading" && task.AreaId.HasValue)
+                {
+                    task.RelatedStallIds = areaStallsDict.GetValueOrDefault(task.AreaId.Value, new List<int>());
+                }
+                else if (task.StallId.HasValue)
+                {
+                    task.RelatedStallIds = new List<int> { task.StallId.Value };
+                }
+            }
+
+            return dtos;
         }
 
         /// <inheritdoc />

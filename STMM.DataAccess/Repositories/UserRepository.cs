@@ -46,9 +46,9 @@ namespace STMM.DataAccess.Repositories
             if (!string.IsNullOrEmpty(search))
             {
                 var searchLower = search.ToLower();
-                query = query.Where(u => u.Name.ToLower().Contains(searchLower) 
-                                       || u.Email.ToLower().Contains(searchLower) 
-                                       || u.Phone.Contains(searchLower) 
+                query = query.Where(u => u.Name.ToLower().Contains(searchLower)
+                                       || u.Email.ToLower().Contains(searchLower)
+                                       || u.Phone.Contains(searchLower)
                                        || u.Cccd.Contains(searchLower));
             }
 

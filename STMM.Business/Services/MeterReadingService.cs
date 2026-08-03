@@ -25,7 +25,6 @@ namespace STMM.Business.Services
         private readonly IMapper _mapper;
         private readonly IValidator<CreateMeterReadingRequest> _validator;
         private readonly IUserRepository _userRepository;
-        private readonly IStaffTaskRepository _staffTaskRepository;
         private readonly IStallRepository _stallRepository;
         private readonly IFileUploadService _fileUploadService;
         private readonly ILogger<MeterReadingService> _logger;
@@ -36,7 +35,6 @@ namespace STMM.Business.Services
             IMapper mapper,
             IValidator<CreateMeterReadingRequest> validator,
             IUserRepository userRepository,
-            IStaffTaskRepository staffTaskRepository,
             IStallRepository stallRepository,
             IFileUploadService fileUploadService,
             ILogger<MeterReadingService> logger)
@@ -46,7 +44,6 @@ namespace STMM.Business.Services
             _mapper = mapper;
             _validator = validator;
             _userRepository = userRepository;
-            _staffTaskRepository = staffTaskRepository;
             _stallRepository = stallRepository;
             _fileUploadService = fileUploadService;
             _logger = logger;

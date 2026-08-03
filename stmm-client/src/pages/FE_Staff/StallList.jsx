@@ -213,7 +213,8 @@ export default function StallList({ baseUrl, onShowNotification, onViewMeterHist
 
                   <hr className="card-divider" />
 
-                  <div className="task-tags-container">
+                  {(stall.taskTypes || []).length > 0 ? (
+                    <div className="task-tags-container">
                     <span className="tags-title">{t('stalllist.checklist_tasks')}</span>
                     {(stall.taskTypes || []).length === 0 ? (
                       <span className="no-tasks-tag">✅ {t('stalllist.completed')}</span>
@@ -226,7 +227,8 @@ export default function StallList({ baseUrl, onShowNotification, onViewMeterHist
                         ))}
                       </div>
                     )}
-                  </div>
+                    </div>
+                  ) : null}
 
                   {stall.hasUnpaidInvoice && (
                     <div className="debt-summary-box">
@@ -237,13 +239,15 @@ export default function StallList({ baseUrl, onShowNotification, onViewMeterHist
                 </div>
 
                 <div className="stall-card-actions">
-                  <button 
+                  {stall.stallStatus === STALL_STATUS.RENTED ? (
+                    <button
                     className="btn-card-action violation-btn" 
                     onClick={() => openModal('violation', stall.stallId, stall.stallCode)}
                     title={t('stalllist.report_violation_for_this')}
                   >
                     ⚠️ Violation
-                  </button>
+                    </button>
+                  ) : null}
 
                   {stall.stallStatus === STALL_STATUS.RENTED && (() => {
                     const hasUtilityTask = (stall.taskTypes || []).includes(TASK_TYPE.UTILITY_READING);
@@ -314,6 +318,7 @@ export default function StallList({ baseUrl, onShowNotification, onViewMeterHist
         <CreateViolationModal
           baseUrl={baseUrl}
           prefilledStallId={activeStallId}
+          prefilledStallCode={activeStallCode}
           onClose={closeModal}
           onSuccess={(newViolation) => 
             handleModalSuccess(`Successfully reported violation ${newViolation.violationId} for stall ${activeStallCode}`)

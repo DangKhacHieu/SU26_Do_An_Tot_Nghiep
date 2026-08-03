@@ -19,5 +19,6 @@ namespace STMM.Business.DTOs.Task
         public decimal? ActualCost { get; set; }
         public DateTime? CreatedAt { get; set; }
         public DateTime? CompletedAt { get; set; }
+        public List<int>? RelatedStallIds { get; set; }
     }
 }

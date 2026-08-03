@@ -2368,6 +2368,7 @@
     "decision_notes_must_be": "Ghi chú quyết định phải có ít nhất 10 ký tự.",
     "operation_failed": "Thao tác thất bại.",
     "processed_selectedactionlabel_decisionaction": "Đã xử lý: ${selectedAction?.label || decision.action}.",
+    "request_processed_with_action": "Đã xử lý yêu cầu: {{action}}.",
     "operation_failed_please_try": "Thao tác thất bại. Vui lòng thử lại.",
     "no_description": "(Không có mô tả)",
     "small_businesses_accept": "Tiểu thương chịu",

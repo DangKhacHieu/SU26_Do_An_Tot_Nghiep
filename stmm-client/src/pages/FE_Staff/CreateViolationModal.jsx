@@ -5,7 +5,7 @@ import readProblemDetail from '../../utils/readProblemDetail';
 import { showToast } from '../../utils/alert';
 import './CreateViolationModal.css';
 
-export default function CreateViolationModal({ baseUrl, onClose, onSuccess, prefilledStallId }) {
+export default function CreateViolationModal({ baseUrl, onClose, onSuccess, prefilledStallId, prefilledStallCode }) {
   const { t } = useTranslation();
 
   const [violationTypes, setViolationTypes] = useState([]);
@@ -222,6 +222,11 @@ export default function CreateViolationModal({ baseUrl, onClose, onSuccess, pref
               disabled={loadingOptions || Boolean(prefilledStallId)}
             >
               <option value="">{t('createviolationmodal.select_a_stall')}</option>
+              {prefilledStallId && !stalls.some((s) => String(s.stallId) === String(prefilledStallId)) && (
+                <option value={String(prefilledStallId)}>
+                  {prefilledStallCode ? prefilledStallCode : `Stall #${prefilledStallId}`}
+                </option>
+              )}
               {stalls.map((stall) => (
                 <option key={stall.stallId} value={stall.stallId}>
                   {stall.stallCode} - {stall.areaName}{stall.vendorName ? ` (${stall.vendorName})` : ''}

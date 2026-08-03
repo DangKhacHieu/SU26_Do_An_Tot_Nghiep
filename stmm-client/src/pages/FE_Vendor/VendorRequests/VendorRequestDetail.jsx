@@ -59,6 +59,7 @@ export default function VendorRequestDetail({ requestId, onBack, onSuccess }) {
         }
     };
 
+    const handleResolveQuote = async (approve) => {
         let reason = '';
         if (!approve) {
             const { value: text, isConfirmed } = await Swal.fire({
