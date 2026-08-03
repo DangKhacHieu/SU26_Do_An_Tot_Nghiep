@@ -269,14 +269,24 @@ namespace STMM.Business.Services
                 throw new NotFoundException($"Không tìm thấy yêu cầu sửa chữa ID {requestId}.");
             }
 
+            if (request.RequestType != "FacilityIssue")
+            {
+                throw new BadRequestException("Chỉ có thể phê duyệt báo giá cho các yêu cầu sửa chữa cơ sở vật chất.");
+            }
+
+            if (request.Status != "Quoted")
+            {
+                throw new BadRequestException("Yêu cầu này không ở trạng thái chờ duyệt báo giá.");
+            }
+
             if (request.PaidBy != "Vendor")
             {
                 throw new BadRequestException("Yêu cầu này không do tiểu thương chi trả nên không thể phê duyệt.");
             }
 
-            if (request.Status != "Quoted")
+            if (request.IsQuoteApproved != null)
             {
-                throw new BadRequestException("Chỉ có thể phê duyệt/từ chối báo giá khi yêu cầu đang ở trạng thái chờ Vendor phản hồi (Quoted).");
+                throw new BadRequestException("Báo giá này đã được xử lý trước đó.");
             }
 
             request.IsQuoteApproved = decision.IsApproved;
@@ -287,7 +297,7 @@ namespace STMM.Business.Services
             }
             else
             {
-                request.Status = "Cancelled"; // Changed to Cancelled instead of Rejected based on plan
+                request.Status = "Cancelled";
                 request.VendorRejectReason = decision.Reason;
             }
             
@@ -314,7 +324,6 @@ namespace STMM.Business.Services
                     }
                 }
             }
-            await _staffTaskRepository.SaveChangesAsync(ct);
 
             _requestRepository.Update(request);
             await _requestRepository.SaveChangesAsync(ct);

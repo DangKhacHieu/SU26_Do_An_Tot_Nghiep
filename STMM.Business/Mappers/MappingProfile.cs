@@ -16,6 +16,7 @@ using STMM.Business.DTOs.Market;
 using STMM.Business.DTOs.Review;
 using STMM.Business.DTOs.AuditLog;
 using STMM.Business.DTOs.Feedback;
+using STMM.Business.DTOs.Issue;
 
 namespace STMM.Business.Mappers
 {
@@ -64,6 +65,13 @@ namespace STMM.Business.Mappers
                 .ForMember(dest => dest.ViolationType, opt => opt.Ignore())
                 .ForMember(dest => dest.Requests, opt => opt.Ignore())
                 .ForMember(dest => dest.Stall, opt => opt.Ignore());
+
+            // Infrastructure issue mappings
+            CreateMap<Issue, IssueDto>()
+                .ForMember(dest => dest.StallCode, opt => opt.MapFrom(src => src.Stall != null ? src.Stall.Code : string.Empty))
+                .ForMember(dest => dest.CreatedByName, opt => opt.MapFrom(src => src.CreatedByUser != null ? src.CreatedByUser.Name : string.Empty))
+                .ForMember(dest => dest.AssignedTaskId, opt => opt.MapFrom(src => src.StaffTasks.FirstOrDefault() != null ? src.StaffTasks.FirstOrDefault()!.TaskId : (int?)null))
+                .ForMember(dest => dest.AssignedTaskStatus, opt => opt.MapFrom(src => src.StaffTasks.FirstOrDefault() != null ? src.StaffTasks.FirstOrDefault()!.Status : null));
 
             CreateMap<ViolationType, ViolationTypeDto>();
             // Auth mappings

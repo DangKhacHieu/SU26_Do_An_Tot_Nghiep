@@ -42,6 +42,18 @@ const STATUS_META = {
   Rejected:  { labelKey: 'refuse',                 labelFallback: 'Từ chối',         cls: 'status-rejected'  },
 };
 
+const MANAGER_ACTION_TRANSLATION_KEYS = Object.freeze({
+  ApproveAsMarket: 'repairresponsibilityguide.the_market_pays_the',
+  SendToVendor: 'repairresponsibilityguide.small_businesses_pay_the',
+  ReturnForRevision: 'repairresponsibilityguide.pay_staff_to_edit',
+  Reject: 'repairresponsibilityguide.refuse_repair_request'
+});
+
+const getManagerActionLabel = (t, action) => {
+  const translationKey = MANAGER_ACTION_TRANSLATION_KEYS[action];
+  return translationKey ? t(translationKey) : action;
+};
+
 /* ── Icons ── */
 const IconArrowLeft = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -189,10 +201,12 @@ export default function RequestDetailManager({ requestId, baseUrl, navigate, add
         throw new Error(errorMessage);
       }
 
-      const selectedAction = MANAGER_QUOTATION_ACTION_OPTIONS.find(
-        option => option.value === decision.action
+      addToast(
+        t('requestdetailmanager.request_processed_with_action', {
+          action: getManagerActionLabel(t, decision.action)
+        }),
+        'success'
       );
-      addToast(`Đã xử lý: ${selectedAction?.label || decision.action}.`, 'success');
       setDecision({ action: '', contractClause: '', decisionNote: '' });
       await fetchRequestDetail();
     } catch (err) {
@@ -479,11 +493,7 @@ export default function RequestDetailManager({ requestId, baseUrl, navigate, add
                   >
                     <option value="">{t('requestdetailmanager.choose_a_decision')}</option>
                     {MANAGER_QUOTATION_ACTION_OPTIONS.map(option => {
-                      let label = option.label;
-                      if (option.value === 'ApproveAsMarket') label = t('repairresponsibilityguide.the_market_pays_the');
-                      else if (option.value === 'SendToVendor') label = t('repairresponsibilityguide.small_businesses_pay_the');
-                      else if (option.value === 'ReturnForRevision') label = t('repairresponsibilityguide.pay_staff_to_edit');
-                      else if (option.value === 'Reject') label = t('repairresponsibilityguide.refuse_repair_request');
+                      const label = getManagerActionLabel(t, option.value);
                       return (
                         <option key={option.value} value={option.value}>
                           {label}

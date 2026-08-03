@@ -5,6 +5,7 @@ using STMM.Business.Interfaces;
 using STMM.DataAccess.IRepositories;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using System.Linq;
 
 namespace STMM.API.Controllers
 {
@@ -14,13 +15,16 @@ namespace STMM.API.Controllers
     public class VendorRequestsController : ControllerBase
     {
         private readonly IVendorRequestService _vendorRequestService;
+        private readonly IVendorRepository _vendorRepository;
         private readonly IAuditLogService _auditLogService;
 
         public VendorRequestsController(
             IVendorRequestService vendorRequestService, 
+            IVendorRepository vendorRepository,
             IAuditLogService auditLogService)
         {
             _vendorRequestService = vendorRequestService;
+            _vendorRepository = vendorRepository;
             _auditLogService = auditLogService;
         }
 
@@ -32,8 +36,13 @@ namespace STMM.API.Controllers
                 throw new System.UnauthorizedAccessException("User ID is not found in the token.");
             }
 
-            var vendorId = await _vendorRequestService.GetVendorIdByUserIdAsync(userId);
-            return vendorId;
+            var vendors = await _vendorRepository.FindAsync(v => v.UserId == userId);
+            var vendor = System.Linq.Enumerable.FirstOrDefault(vendors);
+            if (vendor == null)
+            {
+                throw new System.UnauthorizedAccessException("Vendor profile not found for this user.");
+            }
+            return vendor.VendorId;
         }
 
         private int GetUserId()

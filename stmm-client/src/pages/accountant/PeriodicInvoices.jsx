@@ -373,7 +373,7 @@ export default function PeriodicInvoices() {
             const errData = await r.json().catch(() => ({}));
             throw new Error(errData.detail || errData.title || t('periodicinvoices.error_when_mass_approving'));
           }
-          showNotification('success', t('periodicinvoices.approval_of_selectedidslength_invoice', { count })); 
+          showNotification('success', t('periodicinvoices.approval_of_selectedidslength_invoice', { count }));
           setSelectedIds([]); 
           setActiveModal(null); 
           fetchInvoices(); 
@@ -466,7 +466,7 @@ export default function PeriodicInvoices() {
       {/* Tabs */}
       <div className="acc-tabs-header">
         {[
-          { id: 'periodic', label: t('periodicinvoices.periodic_tab'), icon: FileText }, 
+          { id: 'periodic', label: t('periodicinvoices.periodic_tab'), icon: FileText },
           { id: 'irregular', label: t('periodicinvoices.irregular_tab'), icon: AlertTriangle }
         ].map(tab => {
           const Icon = tab.icon;

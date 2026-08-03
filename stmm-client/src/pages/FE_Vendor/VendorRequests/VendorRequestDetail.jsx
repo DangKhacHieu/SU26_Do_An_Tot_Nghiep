@@ -11,6 +11,8 @@ export default function VendorRequestDetail({ requestId, onBack, onSuccess }) {
     const [loading, setLoading] = useState(true);
     const [isCancelling, setIsCancelling] = useState(false);
     const [isResolvingQuote, setIsResolvingQuote] = useState(false);
+    const [declineMode, setDeclineMode] = useState(false);
+    const [rejectReason, setRejectReason] = useState('');
 
     useEffect(() => {
         const fetchRequestDetail = async () => {
@@ -101,6 +103,7 @@ export default function VendorRequestDetail({ requestId, onBack, onSuccess }) {
                 headers: { Authorization: `Bearer ${token}` }
             });
             await showSuccess(t('vendorrequestdetail.success'), approve ? t('vendorrequestdetail.quote_approved_successfully') : t('vendorrequestdetail.quote_successfully_declined'));
+            setDeclineMode(false);
             onSuccess();
         } catch (err) {
             console.error(t('vendorrequestdetail.error_when_processing_quote'), err);
@@ -197,7 +200,7 @@ export default function VendorRequestDetail({ requestId, onBack, onSuccess }) {
             </div>
 
             {/* Phản hồi từ BQL */}
-            {request.status !== 'Pending' && request.status !== 'Cancelled' && (
+            {request.status !== 'Pending' && (request.status !== 'Cancelled' || request.quotationAmount != null) && (
                 <div style={{ border: '1px solid #c7d2fe', borderRadius: '8px', padding: '24px', marginBottom: '24px', background: '#eef2ff' }}>
                     <h3 style={{ margin: '0 0 20px 0', fontSize: '16px', fontWeight: 'bold', color: '#3730a3', borderBottom: '1px solid #c7d2fe', paddingBottom: '12px' }}>{t('vendorrequestdetail.response_from_management')}</h3>
                     
@@ -244,6 +247,14 @@ export default function VendorRequestDetail({ requestId, onBack, onSuccess }) {
                                 </div>
                             </div>
                         )}
+                        {request.vendorRejectReason && (
+                            <div style={{ gridColumn: '1 / -1', marginTop: '12px' }}>
+                                <label style={{ display: 'block', fontSize: '12px', color: '#991b1b', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '4px' }}>Lý do từ chối của bạn</label>
+                                <div style={{ fontSize: '14px', lineHeight: '1.6', background: '#fef2f2', padding: '16px', borderRadius: '6px', whiteSpace: 'pre-wrap', border: '1px solid #fecaca', color: '#7f1d1d' }}>
+                                    {request.vendorRejectReason}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
@@ -261,40 +272,63 @@ export default function VendorRequestDetail({ requestId, onBack, onSuccess }) {
             )}
 
             {/* Vendor Quotation Approval Actions */}
-            {request.status === 'Quoted' && request.paidBy === 'Vendor' && request.isQuoteApproved === null && (
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '24px', borderTop: '1px solid #e5e7eb', paddingTop: '24px' }}>
-                    <button
-                        onClick={() => handleResolveQuote(true)}
-                        disabled={isResolvingQuote}
-                        style={{
-                            background: '#10b981',
-                            color: '#ffffff',
-                            border: 'none',
-                            padding: '12px 24px',
-                            borderRadius: '6px',
-                            fontWeight: 'bold',
-                            cursor: isResolvingQuote ? 'not-allowed' : 'pointer',
-                            transition: 'background 0.2s'
-                        }}
-                    >
-                        {t('vendorrequestdetail.approve_quote_agree_to')}
-                    </button>
-                    <button
-                        onClick={() => handleResolveQuote(false)}
-                        disabled={isResolvingQuote}
-                        style={{
-                            background: '#ef4444',
-                            color: '#ffffff',
-                            border: 'none',
-                            padding: '12px 24px',
-                            borderRadius: '6px',
-                            fontWeight: 'bold',
-                            cursor: isResolvingQuote ? 'not-allowed' : 'pointer',
-                            transition: 'background 0.2s'
-                        }}
-                    >
-                        {t('vendorrequestdetail.refuse_to_quote')}
-                    </button>
+            {request.status === 'Quoted' && request.paidBy === 'Vendor' && request.isQuoteApproved == null && (
+                <div style={{ marginTop: '24px', borderTop: '1px solid #e5e7eb', paddingTop: '24px' }}>
+                    {declineMode ? (
+                        <div style={{ background: '#fef2f2', padding: '16px', borderRadius: '8px', border: '1px solid #fecaca' }}>
+                            <label style={{ display: 'block', fontSize: '13px', color: '#991b1b', fontWeight: 'bold', marginBottom: '8px' }}>
+                                {t('vendorrequestdetail.reason_for_refusal') || 'Lý do từ chối (Bắt buộc, 10-1000 ký tự)'}
+                            </label>
+                            <textarea
+                                value={rejectReason}
+                                onChange={(e) => setRejectReason(e.target.value)}
+                                rows="3"
+                                style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #fca5a5', marginBottom: '12px', boxSizing: 'border-box' }}
+                                placeholder={t('vendorrequestdetail.enter_reason_placeholder') || 'Nhập lý do chi tiết...'}
+                            />
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+                                <button
+                                    onClick={() => setDeclineMode(false)}
+                                    disabled={isResolvingQuote}
+                                    style={{
+                                        background: '#f3f4f6', color: '#374151', border: 'none', padding: '8px 16px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer'
+                                    }}
+                                >
+                                    {t('vendorrequestdetail.cancel')}
+                                </button>
+                                <button
+                                    onClick={() => handleResolveQuote(false)}
+                                    disabled={isResolvingQuote}
+                                    style={{
+                                        background: '#ef4444', color: '#ffffff', border: 'none', padding: '8px 16px', borderRadius: '6px', fontWeight: 'bold', cursor: isResolvingQuote ? 'not-allowed' : 'pointer'
+                                    }}
+                                >
+                                    {t('vendorrequestdetail.confirm_refusal') || 'Xác nhận từ chối'}
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+                            <button
+                                onClick={() => handleResolveQuote(true)}
+                                disabled={isResolvingQuote}
+                                style={{
+                                    background: '#10b981', color: '#ffffff', border: 'none', padding: '12px 24px', borderRadius: '6px', fontWeight: 'bold', cursor: isResolvingQuote ? 'not-allowed' : 'pointer'
+                                }}
+                            >
+                                {t('vendorrequestdetail.approve_quote_agree_to')}
+                            </button>
+                            <button
+                                onClick={() => setDeclineMode(true)}
+                                disabled={isResolvingQuote}
+                                style={{
+                                    background: '#ef4444', color: '#ffffff', border: 'none', padding: '12px 24px', borderRadius: '6px', fontWeight: 'bold', cursor: isResolvingQuote ? 'not-allowed' : 'pointer'
+                                }}
+                            >
+                                {t('vendorrequestdetail.refuse_to_quote')}
+                            </button>
+                        </div>
+                    )}
                 </div>
             )}
         </div>

@@ -317,7 +317,7 @@ namespace STMM.Business.Services
         {
             var user = await _userRepository.GetByIdAsync(userId, ct);
             var items = await _systemConfigRepository.GetAllAsync(user?.MarketId, ct);
-            
+
             // Lọc ra các cấu hình ưu tiên (nếu có riêng của Market thì bỏ qua cái Global)
             var itemsList = items.GroupBy(x => x.ConfigKey)
                                  .Select(g => g.OrderByDescending(x => x.MarketId).First())

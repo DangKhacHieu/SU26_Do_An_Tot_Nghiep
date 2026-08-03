@@ -70,7 +70,8 @@ namespace STMM.Business.Services
                 StallId = s.StallId,
                 StallCode = s.StallCode,
                 AreaName = s.AreaName,
-                VendorName = s.VendorName
+                VendorName = s.VendorName,
+                StallStatus = s.StallStatus
             });
         }
 

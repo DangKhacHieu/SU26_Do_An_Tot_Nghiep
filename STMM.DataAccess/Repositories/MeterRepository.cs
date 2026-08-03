@@ -193,13 +193,16 @@ namespace STMM.DataAccess.Repositories
             int marketId,
             CancellationToken ct = default)
         {
+            // F-03: lọc theo cột Meter.MarketId, thống nhất với GetMetersWithLatestReadingForMarketAsync
+            // và GetUnassignedMetersWithLatestReadingAsync. Điều kiện cũ (m.Stall != null &&
+            // m.Stall.Area.MarketId) khiến công tơ đang trong kho (StallId = null) hiện trong danh
+            // sách nhưng trả 404 khi mở chi tiết.
             var result = await _context.Meters
                 .Include(m => m.Stall)
                     .ThenInclude(s => s!.Area)
                 .Where(m =>
                     m.MeterId == meterId &&
-                    m.Stall != null &&
-                    m.Stall.Area.MarketId == marketId)
+                    m.MarketId == marketId)
                 .Select(m => new
                 {
                     Meter = m,

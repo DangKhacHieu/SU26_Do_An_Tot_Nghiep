@@ -2,6 +2,7 @@ import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
 import axios from 'axios';
+import { installAuthRefreshInterceptor } from './services/authSession';
 
 import translationVI from './locales/vi.json';
 import translationEN from './locales/en.json';
@@ -37,5 +38,9 @@ axios.interceptors.request.use((config) => {
   config.headers['Accept-Language'] = lang;
   return config;
 });
+
+// Components that import Axios directly share this interceptor. It retries a
+// request with a new access token when the 15-minute token expires.
+installAuthRefreshInterceptor(axios);
 
 export default i18n;

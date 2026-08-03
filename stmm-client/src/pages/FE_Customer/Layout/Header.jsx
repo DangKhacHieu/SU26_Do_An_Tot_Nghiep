@@ -109,7 +109,6 @@ export default function Header({
   };
 
   const handleMarketClick = (marketId) => {
-    setIsMarketDropdownOpen(false);
     if (onGoToStallsMap) {
       onGoToStallsMap(marketId);
     } else {

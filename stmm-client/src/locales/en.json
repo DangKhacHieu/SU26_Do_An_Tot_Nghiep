@@ -2373,6 +2373,7 @@
     "decision_notes_must_be": "Decision notes must be at least 10 characters.",
     "operation_failed": "Operation failed.",
     "processed_selectedactionlabel_decisionaction": "Processed: ${selectedAction?.label || decision.action}.",
+    "request_processed_with_action": "Request processed: {{action}}.",
     "operation_failed_please_try": "Operation failed. Please try again.",
     "no_description": "(No description)",
     "small_businesses_accept": "Small businesses accept",

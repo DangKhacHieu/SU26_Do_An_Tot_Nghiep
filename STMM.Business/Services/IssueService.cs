@@ -2,11 +2,13 @@ using FluentValidation;
 using Microsoft.Extensions.Logging;
 using STMM.Business.DTOs.Common;
 using STMM.Business.DTOs.Issue;
+using STMM.Business.DTOs.StallTask;
 using STMM.Business.DTOs.Notification;
 using STMM.Business.Exceptions;
 using STMM.Business.Interfaces;
 using STMM.DataAccess.Entities;
 using STMM.DataAccess.IRepositories;
+using AutoMapper;
 
 namespace STMM.Business.Services
 {
@@ -19,6 +21,7 @@ namespace STMM.Business.Services
         private readonly IFileUploadService _fileUploadService;
         private readonly IValidator<CreateIssueRequest> _createValidator;
         private readonly ILogger<IssueService> _logger;
+        private readonly IMapper _mapper;
 
         public IssueService(
             IIssueRepository issueRepository,
@@ -27,7 +30,8 @@ namespace STMM.Business.Services
             INotificationService notificationService,
             IFileUploadService fileUploadService,
             IValidator<CreateIssueRequest> createValidator,
-            ILogger<IssueService> logger)
+            ILogger<IssueService> logger,
+            IMapper mapper)
         {
             _issueRepository = issueRepository;
             _stallRepository = stallRepository;
@@ -36,6 +40,7 @@ namespace STMM.Business.Services
             _fileUploadService = fileUploadService;
             _createValidator = createValidator;
             _logger = logger;
+            _mapper = mapper;
         }
 
         /// <inheritdoc />
@@ -44,23 +49,29 @@ namespace STMM.Business.Services
             CancellationToken ct = default)
         {
             var items = await _issueRepository.GetIssuesForStaffAsync(staffUserId, ct);
-            return items.Select(MapIssueToDto).ToList();
+            return items.Select(_mapper.Map<IssueDto>).ToList();
         }
 
-        public async Task<IEnumerable<STMM.Business.DTOs.StallTask.StaffStallLookupDto>> GetIssueStallsLookupAsync(
+        public async Task<IEnumerable<StaffStallLookupDto>> GetIssueStallsLookupAsync(
             int staffUserId,
             string? search,
             CancellationToken ct = default)
         {
-            var marketId = await GetMarketIdAsync(staffUserId, "staff", ct);
+            var user = await _userRepository.GetUserByIdWithRoleAsync(staffUserId, ct);
+            if (user?.MarketId == null)
+            {
+                throw new ForbiddenException($"The staff account is not assigned to a market.");
+            }
+            var marketId = user.MarketId.Value;
             var effectiveDate = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
             var items = await _stallRepository.GetStaffIssueStallLookupAsync(marketId, search, 50, effectiveDate, ct);
-            return items.Select(x => new STMM.Business.DTOs.StallTask.StaffStallLookupDto
+            return items.Select(item => new StaffStallLookupDto
             {
-                StallId = x.StallId,
-                StallCode = x.StallCode,
-                AreaName = x.AreaName,
-                VendorName = x.VendorName
+                StallId = item.StallId,
+                StallCode = item.StallCode,
+                AreaName = item.AreaName,
+                VendorName = item.VendorName,
+                StallStatus = item.StallStatus
             });
         }
 
@@ -73,7 +84,7 @@ namespace STMM.Business.Services
             var issue = await _issueRepository.GetIssueForStaffAsync(issueId, staffUserId, ct)
                 ?? throw new NotFoundException($"Issue with ID {issueId} not found.");
 
-            return MapIssueToDto(issue);
+            return _mapper.Map<IssueDto>(issue);
         }
 
         /// <inheritdoc />
@@ -88,8 +99,12 @@ namespace STMM.Business.Services
                 throw new BadRequestException(
                     string.Join("; ", validationResult.Errors.Select(error => error.ErrorMessage)));
             }
-
-            var marketId = await GetMarketIdAsync(staffUserId, "staff", ct);
+            var user = await _userRepository.GetUserByIdWithRoleAsync(staffUserId, ct);
+            if (user?.MarketId == null)
+            {
+                throw new ForbiddenException($"The staff account is not assigned to a market.");
+            }
+            var marketId = user.MarketId.Value;
             var effectiveDate = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
             var stall = await _stallRepository.GetEligibleIssueStallForMarketAsync(request.StallId, marketId, effectiveDate, ct)
                 ?? throw new NotFoundException($"Stall with ID {request.StallId} not found.");
@@ -128,10 +143,9 @@ namespace STMM.Business.Services
             }
 
             issue.Stall = stall;
-            var users = await _userRepository.FindAsync(user => user.UserId == staffUserId, ct);
-            issue.CreatedByUser = users.FirstOrDefault()!;
+            issue.CreatedByUser = user;
 
-            return MapIssueToDto(issue);
+            return _mapper.Map<IssueDto>(issue);
         }
 
         /// <inheritdoc />
@@ -189,18 +203,7 @@ namespace STMM.Business.Services
             var issue = await _issueRepository.GetIssueForManagerAsync(issueId, marketId, ct)
                 ?? throw new NotFoundException($"Issue with ID {issueId} not found.");
 
-            return MapIssueToDto(issue);
-        }
-
-        private async Task<int> GetMarketIdAsync(int userId, string accountType, CancellationToken ct)
-        {
-            var user = await _userRepository.GetUserByIdWithRoleAsync(userId, ct);
-            if (user?.MarketId == null)
-            {
-                throw new ForbiddenException($"The {accountType} account is not assigned to a market.");
-            }
-
-            return user.MarketId.Value;
+            return _mapper.Map<IssueDto>(issue);
         }
 
         private async Task TryNotifyManagerAsync(

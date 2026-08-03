@@ -201,7 +201,7 @@ export default function TaskDetailManager({ taskId, baseUrl, onBack, addToast, n
   const materialsTotal = (task.materials || []).reduce((acc, m) => acc + (m.amount || 0), 0);
   const isActiveTask = task.status !== 'Completed' && task.status !== 'Cancelled';
   const canCancelTask = ['Pending', 'PendingApproval', 'In_Progress'].includes(task.status);
-  const canResolveQuotation = task.status === 'PendingApproval' && task.requestId === null;
+  const canResolveQuotation = task.status === 'PendingApproval' && task.requestId == null;
   const quoteWarningTone = task.requestPaidBy === 'Market' ? 'market' : task.requestPaidBy === 'Vendor' ? 'vendor' : 'neutral';
 
   return (
@@ -428,15 +428,9 @@ export default function TaskDetailManager({ taskId, baseUrl, onBack, addToast, n
               </h3>
               
               <div className="quotation-approval-copy">
-                {task.requestId ? (
-                  <p>
-                    {t('taskdetailmanager.linked_task_cost_prefix')} <strong>Request #REQ-{task.requestId}</strong>. {t('taskdetailmanager.market_cost')}
-                  </p>
-                ) : (
-                  <p>
-                    {t('taskdetailmanager.general_market_cost')}
-                  </p>
-                )}
+                <p>
+                  {t('taskdetailmanager.general_market_cost')}
+                </p>
                 <p>
                   {t('taskdetailmanager.estimated_cost')}: <strong className="quotation-total">{formatCurrency(materialsTotal)}</strong>
                 </p>

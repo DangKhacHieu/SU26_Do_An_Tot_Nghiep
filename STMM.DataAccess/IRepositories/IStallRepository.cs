@@ -29,7 +29,12 @@ namespace STMM.DataAccess.IRepositories
         IEnumerable<string> PendingTaskTypes
     );
 
-    public record StaffStallLookupQueryResult(int StallId, string StallCode, string AreaName, string? VendorName);
+    public record StaffStallLookupQueryResult(
+        int StallId,
+        string StallCode,
+        string AreaName,
+        string? VendorName,
+        string StallStatus);
 
     public interface IStallRepository : IBaseRepository<Stall>
     {

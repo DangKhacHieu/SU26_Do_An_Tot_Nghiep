@@ -93,7 +93,10 @@ namespace STMM.Business.Services
                 throw new BadRequestException(string.Join("; ", validationResult.Errors.Select(e => e.ErrorMessage)));
             }
 
-            var user = await _userRepo.GetByIdAsync(userId, ct);
+            // F-11: dùng GetUserByIdWithRoleAsync (có lọc IsDeleted) thay cho GetByIdAsync,
+            // đồng bộ với 5 method còn lại của service. GetByIdAsync là FindAsync thuần,
+            // không lọc soft-delete -> Manager đã xoá mềm vẫn tạo được công tơ.
+            var user = await _userRepo.GetUserByIdWithRoleAsync(userId, ct);
             if (user == null || user.MarketId == null)
             {
                 throw new BadRequestException("The manager account does not own an approved market yet. Meters can only be created once your market is approved.");
@@ -131,21 +134,14 @@ namespace STMM.Business.Services
                 throw new BadRequestException(string.Join("; ", validationResult.Errors.Select(e => e.ErrorMessage)));
             }
 
-            var meter = await _meterRepo.GetMeterWithStallAsync(id, ct);
+            // F-12: lọc chợ ngay trong truy vấn bằng GetMeterForUpdateInMarketAsync thay vì tải
+            // không lọc rồi so trong bộ nhớ. Bỏ điều kiện string.Equals(Role.Name, "Manager") —
+            // kiểm tra chợ không được phụ thuộc vào chuỗi tên role trong CSDL.
+            var marketId = await GetCallerMarketIdAsync(currentUserId, id, ct);
+
+            var meter = await _meterRepo.GetMeterForUpdateInMarketAsync(id, marketId, ct);
             if (meter == null)
                 throw new NotFoundException($"Meter with ID {id} not found.");
-
-            if (currentUserId.HasValue)
-            {
-                var user = await _userRepo.GetUserByIdWithRoleAsync(currentUserId.Value, ct);
-                if (user != null && string.Equals(user.Role?.Name, "Manager", StringComparison.OrdinalIgnoreCase))
-                {
-                    if (!user.MarketId.HasValue || meter.MarketId != user.MarketId.Value)
-                    {
-                        throw new NotFoundException($"Meter with ID {id} not found.");
-                    }
-                }
-            }
 
             if (meter.StallId.HasValue && request.Type.Trim() != meter.Type)
             {
@@ -248,6 +244,26 @@ namespace STMM.Business.Services
                 dto.LastReadingImageUrl = x.LatestReading?.ImageUrl;
                 return dto;
             }).ToList();
+        }
+
+        /// <summary>
+        /// F-12: phân giải chợ của người gọi cho các thao tác ghi trên Meter.
+        /// Trả về NotFoundException thay vì ForbiddenException để không tiết lộ sự tồn tại của công tơ.
+        /// </summary>
+        private async Task<int> GetCallerMarketIdAsync(int? currentUserId, int meterId, CancellationToken ct)
+        {
+            if (!currentUserId.HasValue)
+            {
+                throw new NotFoundException($"Meter with ID {meterId} not found.");
+            }
+
+            var user = await _userRepo.GetUserByIdWithRoleAsync(currentUserId.Value, ct);
+            if (user?.MarketId == null)
+            {
+                throw new NotFoundException($"Meter with ID {meterId} not found.");
+            }
+
+            return user.MarketId.Value;
         }
     }
 }

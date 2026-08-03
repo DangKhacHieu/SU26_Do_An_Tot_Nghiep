@@ -83,10 +83,8 @@ namespace STMM.DataAccess.Repositories
             return (items, totalCount);
         }
 
-        public async Task<Request?> GetRequestWithRelationsAsync(int requestId, CancellationToken ct = default)
-        {
-            return await GetRequestWithRelationsAsync(requestId, false, ct);
-        }
+        public Task<Request?> GetRequestWithRelationsAsync(int requestId, CancellationToken ct = default)
+            => GetRequestWithRelationsAsync(requestId, tracking: false, ct);
 
         public async Task<Request?> GetRequestWithRelationsAsync(int requestId, bool tracking, CancellationToken ct = default)
         {

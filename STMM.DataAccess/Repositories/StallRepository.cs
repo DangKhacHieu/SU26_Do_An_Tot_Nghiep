@@ -20,27 +20,6 @@ namespace STMM.DataAccess.Repositories
                 s.IsDeleted != true &&
                 s.Area.MarketId == marketId);
 
-            query = query.Where(s =>
-                s.Contracts.Any(c => c.IsDeleted != true && c.Status == "Active" &&
-                                     c.Invoices.Any(i => i.IsDeleted != true && i.Status == "Unpaid")) ||
-                s.Issues.Any(i => i.StaffTasks.Any(t =>
-                    t.AssignedToUserId == staffUserId &&
-                    t.Status != "Completed" &&
-                    t.Status != "Cancelled")) ||
-                s.Requests.Any(r => r.StaffTasks.Any(t =>
-                    t.AssignedToUserId == staffUserId &&
-                    t.Status != "Completed" &&
-                    t.Status != "Cancelled")) ||
-                s.Area.StaffTasks.Any(t =>
-                    t.AssignedToUserId == staffUserId &&
-                    t.Status != "Completed" &&
-                    t.Status != "Cancelled" &&
-                    t.TaskType == "UtilityReading" &&
-                    s.Contracts.Any(c =>
-                        c.IsDeleted != true &&
-                        c.Status != "Terminated" &&
-                        c.Status != "TerminatedEarly")));
-
             var stallsList = await query
                 .OrderBy(s => s.Code)
                 .Select(s => new {
@@ -140,12 +119,7 @@ namespace STMM.DataAccess.Repositories
         {
             var query = _context.Stalls
                 .Where(s => s.IsDeleted != true &&
-                            s.Area.MarketId == marketId &&
-                            s.Status == "Rented" &&
-                            s.Contracts.Any(c => c.IsDeleted != true &&
-                                                 c.Status == "Active" &&
-                                                 c.StartDate <= effectiveDate &&
-                                                 c.EndDate >= effectiveDate));
+                            s.Area.MarketId == marketId);
 
             if (!string.IsNullOrWhiteSpace(search))
             {
@@ -169,7 +143,8 @@ namespace STMM.DataAccess.Repositories
                                .OrderByDescending(c => c.StartDate)
                                .ThenByDescending(c => c.ContractId)
                                .Select(c => c.Vendor.User.Name ?? c.Vendor.BusinessName)
-                               .FirstOrDefault()))
+                               .FirstOrDefault(),
+                    s.Status ?? string.Empty))
                 .AsNoTracking()
                 .ToListAsync(ct);
         }
@@ -183,13 +158,7 @@ namespace STMM.DataAccess.Repositories
         {
             var query = _context.Stalls
                 .Where(s => s.Area.MarketId == marketId &&
-                            s.IsDeleted != true &&
-                            (s.Status == "Maintenance" ||
-                             (s.Status == "Rented" &&
-                              s.Contracts.Any(c => c.IsDeleted != true &&
-                                                   c.Status == "Active" &&
-                                                   c.StartDate <= effectiveDate &&
-                                                   c.EndDate >= effectiveDate))));
+                            s.IsDeleted != true);
 
             if (!string.IsNullOrWhiteSpace(search))
             {
@@ -214,7 +183,8 @@ namespace STMM.DataAccess.Repositories
                                .OrderByDescending(c => c.StartDate)
                                .ThenByDescending(c => c.ContractId)
                                .Select(c => c.Vendor.User.Name ?? c.Vendor.BusinessName)
-                               .FirstOrDefault()))
+                               .FirstOrDefault(),
+                    s.Status ?? string.Empty))
                 .AsNoTracking()
                 .ToListAsync(ct);
         }
@@ -245,10 +215,11 @@ namespace STMM.DataAccess.Repositories
                     s.IsDeleted != true &&
                     s.Area.MarketId == marketId &&
                     s.Status == "Rented" &&
-                    s.Contracts.Any(c => c.IsDeleted != true &&
-                                         c.Status == "Active" &&
-                                         c.StartDate <= effectiveDate &&
-                                         c.EndDate >= effectiveDate),
+                    s.Contracts.Any(c =>
+                        c.IsDeleted != true &&
+                        c.Status == "Active" &&
+                        c.StartDate <= effectiveDate &&
+                        c.EndDate >= effectiveDate),
                     ct);
         }
 
@@ -264,13 +235,7 @@ namespace STMM.DataAccess.Repositories
                 .FirstOrDefaultAsync(s =>
                     s.StallId == stallId &&
                     s.IsDeleted != true &&
-                    s.Area.MarketId == marketId &&
-                    (s.Status == "Maintenance" ||
-                     (s.Status == "Rented" &&
-                      s.Contracts.Any(c => c.IsDeleted != true &&
-                                           c.Status == "Active" &&
-                                           c.StartDate <= effectiveDate &&
-                                           c.EndDate >= effectiveDate))),
+                    s.Area.MarketId == marketId,
                     ct);
         }
 

@@ -202,11 +202,11 @@ export default function ViolationsPenalties() {
     } else {
       setModalError(null);
       const token = localStorage.getItem('accessToken');
-      fetch(`http://localhost:5056/api/violations/${violationId}/invoice`, { 
-        method: 'POST', 
-        headers: { 
+      fetch(`http://localhost:5056/api/violations/${violationId}/invoice`, {
+        method: 'POST',
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}` 
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(invoiceForm)
       })

@@ -10,3 +10,4 @@ namespace STMM.Business.DTOs.Request
         public string? Reason { get; set; }
     }
 }
+

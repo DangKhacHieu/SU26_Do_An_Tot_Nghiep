@@ -467,7 +467,7 @@ namespace STMM.Business.Services
                     throw new BadRequestException("Token không hợp lệ");
                 }
 
-                var user = await _userRepository.GetByIdAsync(userId, ct);
+                var user = await _userRepository.GetUserByIdWithRoleAsync(userId, ct);
                 if (user == null || user.Status == "Suspended" || user.Status == "Locked")
                 {
                     throw new BadRequestException("Tài khoản không hợp lệ");
