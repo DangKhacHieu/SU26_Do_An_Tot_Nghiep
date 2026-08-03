@@ -1017,6 +1017,7 @@ const MarketAreaList = ({ user }) => {
                               polygonClipPath={getPolygonClipPath(area)}
                               validateStallBounds={(x, y, w, h) => validateStallBounds(area, x, y, w, h)}
                               marketCategories={marketCategories}
+                              isHovered={hoveredAreaId === area.areaId}
                             />
                           </div>
                         )}
