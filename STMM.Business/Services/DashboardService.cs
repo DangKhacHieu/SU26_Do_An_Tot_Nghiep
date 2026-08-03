@@ -91,9 +91,9 @@ namespace STMM.Business.Services
             }
             string repChangeStr = repChange >= 0 ? $"+{repChange:F1}%" : $"{repChange:F1}%";
 
-            // 5. Violations & Penalties Fines
-            var finesThisMonth = await _violationRepository.GetTotalFinesAsync(thisMonthStart, nextMonthStart, marketId, ct);
-            var finesLastMonth = await _violationRepository.GetTotalFinesAsync(lastMonthStart, lastMonthEnd, marketId, ct);
+            // 5. Violations & Penalties Fines (Based on Paid Invoices)
+            var finesThisMonth = await _invoiceRepository.GetTotalViolationFinesAsync(thisMonthStart, nextMonthStart, marketId, ct);
+            var finesLastMonth = await _invoiceRepository.GetTotalViolationFinesAsync(lastMonthStart, lastMonthEnd, marketId, ct);
 
             decimal fineChange = 0;
             if (finesLastMonth > 0)

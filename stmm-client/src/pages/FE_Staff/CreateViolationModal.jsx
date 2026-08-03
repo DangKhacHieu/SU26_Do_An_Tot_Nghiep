@@ -262,6 +262,7 @@ export default function CreateViolationModal({ baseUrl, onClose, onSuccess, pref
                 setFineAmount(event.target.value);
                 setFieldErrors((prev) => ({ ...prev, fineAmount: null }));
               }}
+              disabled
             />
             {fieldErrors.fineAmount && <span className="error-text">{fieldErrors.fineAmount}</span>}
           </div>
