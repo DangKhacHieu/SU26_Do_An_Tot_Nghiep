@@ -16,7 +16,18 @@ export default function CreateViolationModal({ baseUrl, onClose, onSuccess, pref
   const [description, setDescription] = useState('');
   const [fineAmount, setFineAmount] = useState('');
   const [selectedFile, setSelectedFile] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState(null);
   const [loadingOptions, setLoadingOptions] = useState(true);
+
+  useEffect(() => {
+    if (!selectedFile) {
+      setPreviewUrl(null);
+      return;
+    }
+    const url = URL.createObjectURL(selectedFile);
+    setPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [selectedFile]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [dragActive, setDragActive] = useState(false);
@@ -136,6 +147,7 @@ export default function CreateViolationModal({ baseUrl, onClose, onSuccess, pref
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    if (submitting) return;
     setError('');
 
     if (!validateForm()) {
@@ -256,6 +268,12 @@ export default function CreateViolationModal({ baseUrl, onClose, onSuccess, pref
               id="violation-fine"
               type="number"
               min="0"
+              max="999999999"
+              onKeyDown={(e) => {
+                if (['e', 'E', '+', '-'].includes(e.key)) {
+                  e.preventDefault();
+                }
+              }}
               className={`form-input ${fieldErrors.fineAmount ? 'error-border' : ''}`}
               value={fineAmount}
               onChange={(event) => {
@@ -299,10 +317,10 @@ export default function CreateViolationModal({ baseUrl, onClose, onSuccess, pref
             </div>
             {fieldErrors.image && <span className="error-text">{fieldErrors.image}</span>}
 
-            {selectedFile ? (
+            {selectedFile && previewUrl ? (
               <div className="preview-images-grid">
                 <div className="preview-image-card">
-                  <img src={URL.createObjectURL(selectedFile)} alt={t('createviolationmodal.violation_evidence')} className="preview-image-thumb" />
+                  <img src={previewUrl} alt={t('createviolationmodal.violation_evidence')} className="preview-image-thumb" />
                   <button type="button" className="preview-image-remove" onClick={() => setSelectedFile(null)}>&times;</button>
                 </div>
               </div>

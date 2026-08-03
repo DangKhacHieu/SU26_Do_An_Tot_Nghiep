@@ -13,7 +13,18 @@ export default function CreateIssueModal({ baseUrl, onClose, onSuccess, prefille
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [selectedImageFiles, setSelectedImageFiles] = useState([]);
+  const [previewUrls, setPreviewUrls] = useState([]);
   const [loadingStalls, setLoadingStalls] = useState(true);
+
+  useEffect(() => {
+    if (!selectedImageFiles || selectedImageFiles.length === 0) {
+      setPreviewUrls([]);
+      return;
+    }
+    const urls = selectedImageFiles.map((file) => URL.createObjectURL(file));
+    setPreviewUrls(urls);
+    return () => urls.forEach((url) => URL.revokeObjectURL(url));
+  }, [selectedImageFiles]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [dragActive, setDragActive] = useState(false);
@@ -104,6 +115,7 @@ export default function CreateIssueModal({ baseUrl, onClose, onSuccess, prefille
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    if (submitting) return;
     setError('');
 
     if (!validateForm()) {
@@ -238,7 +250,7 @@ export default function CreateIssueModal({ baseUrl, onClose, onSuccess, prefille
               <div className="preview-images-grid">
                 {selectedImageFiles.map((file, index) => (
                   <div className="preview-image-card" key={`${file.name}-${index}`}>
-                    <img src={URL.createObjectURL(file)} alt={`Issue evidence ${index + 1}`} className="preview-image-thumb" />
+                    <img src={previewUrls[index] || ''} alt={`Issue evidence ${index + 1}`} className="preview-image-thumb" />
                     <button type="button" className="preview-image-remove" onClick={() => setSelectedImageFiles((current) => current.filter((_, itemIndex) => itemIndex !== index))}>&times;</button>
                   </div>
                 ))}

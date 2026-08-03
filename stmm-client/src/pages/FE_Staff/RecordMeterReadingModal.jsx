@@ -22,6 +22,17 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, onClose, onS
     return `${yyyy}-${mm}-${dd}`;
   });
   const [selectedFile, setSelectedFile] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState(null);
+
+  useEffect(() => {
+    if (!selectedFile) {
+      setPreviewUrl(null);
+      return;
+    }
+    const url = URL.createObjectURL(selectedFile);
+    setPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [selectedFile]);
 
   const [loading, setLoading] = useState(false);
   const [loadingMeters, setLoadingMeters] = useState(false);
@@ -120,9 +131,14 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, onClose, onS
       errors.meterId = 'Vui lòng chọn đồng hồ đo.';
     }
 
-    if (newValue === '' || isNaN(Number(newValue)) || Number(newValue) < 0) {
+    const numVal = Number(newValue);
+    if (newValue === '' || isNaN(numVal) || numVal < 0) {
       errors.newValue = 'Chỉ số mới không được âm và phải là số hợp lệ.';
-    } else if (selectedMeter && selectedMeter.lastReadingValue !== null && Number(newValue) < selectedMeter.lastReadingValue) {
+    } else if (!Number.isInteger(numVal)) {
+      errors.newValue = 'Chỉ số mới phải là số nguyên (không chứa số thập phân).';
+    } else if (numVal > 999999) {
+      errors.newValue = 'Chỉ số mới không được vượt quá 999,999.';
+    } else if (selectedMeter && selectedMeter.lastReadingValue !== null && numVal < selectedMeter.lastReadingValue) {
       errors.newValue = `Chỉ số mới phải lớn hơn hoặc bằng chỉ số cũ (${selectedMeter.lastReadingValue}).`;
     }
 
@@ -145,6 +161,7 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, onClose, onS
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (loading) return;
     setSubmitError(null);
 
     if (!validateForm()) {
@@ -230,7 +247,14 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, onClose, onS
             <label className="form-label required-field">{t('recordmeterreadingmodal.new_reading_value')}</label>
             <input
               type="number"
-              step="any"
+              min="0"
+              max="999999"
+              step="1"
+              onKeyDown={(e) => {
+                if (['.', ',', 'e', 'E', '+', '-'].includes(e.key)) {
+                  e.preventDefault();
+                }
+              }}
               placeholder={t('recordmeterreadingmodal.enter_current_meter_digit')}
               value={newValue}
               onChange={(e) => {
@@ -289,10 +313,10 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, onClose, onS
             {imageError && <div className="error-text">{t('recordmeterreadingmodal.upload_error')}: {imageError}</div>}
             {formErrors.imageUrl && <span className="error-text">{formErrors.imageUrl}</span>}
 
-            {selectedFile && (
+            {selectedFile && previewUrl && (
               <div className="preview-images-grid">
                 <div className="preview-image-card">
-                  <img src={URL.createObjectURL(selectedFile)} alt={t('recordmeterreadingmodal.meter_evidence_preview')} className="preview-image-thumb" />
+                  <img src={previewUrl} alt={t('recordmeterreadingmodal.meter_evidence_preview')} className="preview-image-thumb" />
                   <button 
                     type="button" 
                     className="preview-image-remove"
