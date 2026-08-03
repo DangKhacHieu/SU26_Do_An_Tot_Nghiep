@@ -257,6 +257,11 @@ export default function PaymentVerification() {
         return;
       }
       
+      // Validate transaction code for bank transfer (only for Paid invoices)
+      if (selectedItem.invoiceStatus === 'Paid' && refundMethod === 'Transfer' && (!transactionCode || transactionCode.trim() === '')) {
+        setModalError(t('paymentverification.please_enter_transaction_code') || 'Vui lòng nhập Mã giao dịch hoàn tiền.');
+        return;
+      }
     }
     
     if (isMock) { setDisputes(d => d.map(x => x.requestId === selectedItem.requestId ? { ...x, status: disputeApprove ? 'Approved' : 'Rejected' } : x)); showNotification('success', t('paymentverification.dispute_resolved_success', { action: disputeApprove ? t('paymentverification.accept') : t('paymentverification.refuse') })); setActiveModal(null); }
@@ -268,17 +273,29 @@ export default function PaymentVerification() {
         feedback: disputeFeedback,
         isRefund,
         refundAmount: isRefund ? (parseInt(refundAmount) || 0) : 0,
-        refundMethod: isRefund ? refundMethod : null,
-        transactionCode: isRefund ? transactionCode : null
+        refundMethod: (isRefund && selectedItem.invoiceStatus === 'Paid') ? refundMethod : null,
+        transactionCode: (isRefund && selectedItem.invoiceStatus === 'Paid') ? transactionCode : null
       }) 
     })
       .then(r => { if (!r.ok) throw new Error(); showNotification('success', t('paymentverification.appeal_responded_successfully')); setActiveModal(null); loadAllData(); })
       .catch(() => showNotification('danger', t('paymentverification.appeal_processing_failed')));
   };
 
-  const filteredPayments = payments.filter(p => [p.transactionCode, p.stallCode, p.tenantName].some(s => s.toLowerCase().includes(searchQuery.toLowerCase())));
+  const filteredPayments = payments
+    .filter(p => [p.transactionCode, p.stallCode, p.tenantName].some(s => s.toLowerCase().includes(searchQuery.toLowerCase())))
+    .sort((a, b) => {
+      if (a.status === 'Pending' && b.status !== 'Pending') return -1;
+      if (a.status !== 'Pending' && b.status === 'Pending') return 1;
+      return new Date(b.paidAt || 0) - new Date(a.paidAt || 0);
+    });
   const filteredDebts = debts.filter(d => [d.stallCode, d.tenantName].some(s => s.toLowerCase().includes(searchQuery.toLowerCase())));
-  const filteredDisputes = disputes.filter(d => [d.stallCode, d.tenantName, d.title].some(s => s.toLowerCase().includes(searchQuery.toLowerCase())));
+  const filteredDisputes = disputes
+    .filter(d => [d.stallCode, d.tenantName, d.title].some(s => s.toLowerCase().includes(searchQuery.toLowerCase())))
+    .sort((a, b) => {
+      if (a.status === 'Pending' && b.status !== 'Pending') return -1;
+      if (a.status !== 'Pending' && b.status === 'Pending') return 1;
+      return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+    });
 
   // --- Chức năng tính Tuổi Nợ (Debt Aging) ---
   const getDebtAgingInfo = (lastDueDate) => {
@@ -688,26 +705,26 @@ export default function PaymentVerification() {
               ) : selectedInvoiceDetail && (
                 <>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, background: 'var(--bg-base)', padding: 14, borderRadius: 'var(--radius-md)', fontSize: 13.5 }}>
-                    <div><span style={{ color: 'var(--text-muted)' }}>{t('paymentverification.stall')}</span><strong>{selectedInvoiceDetail.stallCode}</strong></div>
-                    <div><span style={{ color: 'var(--text-muted)' }}>{t('paymentverification.month')}</span>Th.{selectedInvoiceDetail.month}/{selectedInvoiceDetail.year}</div>
-                    <div><span style={{ color: 'var(--text-muted)' }}>{t('paymentverification.small_business')}</span>{selectedInvoiceDetail.vendorName}</div>
-                    <div><span style={{ color: 'var(--text-muted)' }}>{t('paymentverification.status')}</span><span className="acc-badge warning">{selectedInvoiceDetail.status}</span></div>
+                    <div><span style={{ color: 'var(--text-muted)', marginRight: '4px' }}>{t('paymentverification.stall')}</span><strong>{selectedInvoiceDetail.stallCode}</strong></div>
+                    <div><span style={{ color: 'var(--text-muted)', marginRight: '4px' }}>{t('paymentverification.month')}</span>Th.{selectedInvoiceDetail.month}/{selectedInvoiceDetail.year}</div>
+                    <div><span style={{ color: 'var(--text-muted)', marginRight: '4px' }}>{t('paymentverification.small_business')}</span>{selectedInvoiceDetail.vendorName}</div>
+                    <div><span style={{ color: 'var(--text-muted)', marginRight: '4px' }}>{t('paymentverification.status')}</span><span className="acc-badge warning">{selectedInvoiceDetail.status}</span></div>
                   </div>
                   <table className="acc-table">
-                    <thead><tr><th>{t('paymentverification.fees')}</th><th>{t('paymentverification.describe')}</th><th className="text-right">{t('paymentverification.quantity')}</th><th className="text-right">{t('paymentverification.unit_price')}</th><th className="text-right">{t('paymentverification.make_money')}</th></tr></thead>
+                    <thead><tr><th>{t('paymentverification.fees')}</th><th>{t('paymentverification.describe')}</th><th className="text-right">{t('paymentverification.quantity')}</th><th className="text-right">{t('paymentverification.unit_price')}</th><th className="text-right" style={{ whiteSpace: 'nowrap' }}>{t('paymentverification.make_money')}</th></tr></thead>
                     <tbody>
                       {selectedInvoiceDetail.details?.map((d, i) => (
                         <tr key={i}>
                           <td><strong>{d.feeTypeName}</strong></td>
                           <td style={{ color: 'var(--text-muted)' }}>{d.description}</td>
                           <td className="text-right">{d.quantity}</td>
-                          <td className="text-right">{d.unitPrice.toLocaleString('vi-VN')} ₫</td>
-                          <td className="text-right"><strong>{d.amount.toLocaleString('vi-VN')} ₫</strong></td>
+                          <td className="text-right" style={{ whiteSpace: 'nowrap' }}>{d.unitPrice.toLocaleString('vi-VN')} ₫</td>
+                          <td className="text-right" style={{ whiteSpace: 'nowrap' }}><strong>{d.amount.toLocaleString('vi-VN')} ₫</strong></td>
                         </tr>
                       ))}
                       <tr style={{ background: 'var(--primary-light)', fontWeight: 800 }}>
                         <td colSpan={4} className="text-right">{t('paymentverification.total')}</td>
-                        <td className="text-right" style={{ color: 'var(--primary)', fontSize: 15 }}>{formatCurrency(selectedInvoiceDetail.totalAmount)}</td>
+                        <td className="text-right" style={{ color: 'var(--primary)', fontSize: 15, whiteSpace: 'nowrap' }}>{formatCurrency(selectedInvoiceDetail.totalAmount)}</td>
                       </tr>
                     </tbody>
                   </table>
@@ -957,8 +974,12 @@ export default function PaymentVerification() {
                                   </div>
                                   
                                   <div>
-                                    <label className="acc-form-label">{t('paymentverification.transaction_code_if_any')}</label>
-                                    <input type="text" className="acc-input" value={transactionCode} onChange={e => setTransactionCode(e.target.value)} placeholder="VD: FT2605..." />
+                                    <label className="acc-form-label">
+                                      {t('paymentverification.transaction_code') || 'Mã giao dịch'} <span style={{ color: 'red' }}>*</span>
+                                    </label>
+                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                      <input type="text" className="acc-input" style={{ flex: 1 }} value={transactionCode} onChange={e => setTransactionCode(e.target.value)} placeholder="VD: FT2605..." />
+                                    </div>
                                   </div>
                                 </>
                               )}

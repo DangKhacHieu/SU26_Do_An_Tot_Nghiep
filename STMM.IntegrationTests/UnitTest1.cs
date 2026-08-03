@@ -1,10 +1,9 @@
-﻿namespace STMM.IntegrationTests;
+namespace STMM.IntegrationTests;
 
 public class UnitTest1
 {
     [Fact]
     public void Test1()
     {
-
     }
 }
