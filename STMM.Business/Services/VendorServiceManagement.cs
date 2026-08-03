@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using STMM.Business.DTOs.Service;
+using STMM.Business.DTOs.Stall;
 using STMM.Business.Exceptions;
 using STMM.Business.Interfaces;
 using STMM.DataAccess.Entities;
@@ -20,19 +21,33 @@ public class VendorServiceManagement : IVendorServiceManagement
     private readonly IInvoiceRepository _invoiceRepository;
     private readonly IContractRepository _contractRepository;
     private readonly IStallRepository _stallRepository;
+    private readonly IVendorRepository _vendorRepository;
 
     public VendorServiceManagement(
         IServiceRepository serviceRepository,
         IServiceRegistrationRepository serviceRegistrationRepository,
         IInvoiceRepository invoiceRepository,
         IContractRepository contractRepository,
-        IStallRepository stallRepository)
+        IStallRepository stallRepository,
+        IVendorRepository vendorRepository)
     {
         _serviceRepository = serviceRepository;
         _serviceRegistrationRepository = serviceRegistrationRepository;
         _invoiceRepository = invoiceRepository;
         _contractRepository = contractRepository;
         _stallRepository = stallRepository;
+        _vendorRepository = vendorRepository;
+    }
+
+    public async Task<int> GetVendorIdByUserIdAsync(int userId, CancellationToken ct = default)
+    {
+        var vendors = await _vendorRepository.FindAsync(v => v.UserId == userId, ct);
+        var vendor = vendors.FirstOrDefault();
+        if (vendor != null)
+        {
+            return vendor.VendorId;
+        }
+        throw new UnauthorizedAccessException("Không xác định được danh tính người bán.");
     }
 
     public async Task<IEnumerable<ServiceDto>> GetAvailableServicesAsync(int vendorId, CancellationToken ct = default)
@@ -101,8 +116,8 @@ public class VendorServiceManagement : IVendorServiceManagement
         if (registration.VendorId != vendorId)
             throw new UnauthorizedAccessException("Bạn không có quyền truy cập thông tin dịch vụ này.");
 
-        if (registration.Service == null || registration.Service.IsActive != true)
-            throw new InvalidOperationException("Dịch vụ này đã bị hệ thống ngừng cung cấp hoặc xóa bỏ.");
+        if (registration.Service == null)
+            throw new InvalidOperationException("Không tìm thấy thông tin dịch vụ.");
 
         return new ServiceRegistrationDto
         {
@@ -121,7 +136,7 @@ public class VendorServiceManagement : IVendorServiceManagement
         };
     }
 
-    public async Task<IEnumerable<STMM.Business.DTOs.Stall.StallDto>> GetMyStallsAsync(int vendorId, CancellationToken ct = default)
+    public async Task<IEnumerable<StallDto>> GetMyStallsAsync(int vendorId, CancellationToken ct = default)
     {
         var vendorContracts = await _contractRepository.Query()
             .Include(c => c.Stall)
@@ -130,7 +145,7 @@ public class VendorServiceManagement : IVendorServiceManagement
 
         var stalls = vendorContracts.Select(c => c.Stall).Where(s => s != null).DistinctBy(s => s.StallId);
         
-        return stalls.Select(s => new STMM.Business.DTOs.Stall.StallDto
+        return stalls.Select(s => new StallDto
         {
             StallId = s.StallId,
             Code = s.Code,
@@ -182,7 +197,7 @@ public class VendorServiceManagement : IVendorServiceManagement
             var stall = await _stallRepository.Query()
                 .Include(s => s.Area)
                 .FirstOrDefaultAsync(s => s.StallId == request.StallId, ct);
-            if (stall != null && stall.Area.MarketId != service.MarketId.Value)
+            if (stall != null && stall.Area?.MarketId != service.MarketId.Value)
             {
                 throw new BadRequestException("Dịch vụ này không được cung cấp tại chợ của sạp bạn đang thuê.");
             }

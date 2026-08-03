@@ -20,6 +20,7 @@ namespace STMM.Business.Services
         private readonly IViolationRepository _violationRepository;
         private readonly IInvoiceRepository _invoiceRepository;
         private readonly IStaffTaskRepository _staffTaskRepository;
+        private readonly IVendorRepository _vendorRepository;
         private readonly IMapper _mapper;
 
         public VendorRequestService(
@@ -28,6 +29,7 @@ namespace STMM.Business.Services
             IViolationRepository violationRepository, 
             IInvoiceRepository invoiceRepository,
             IStaffTaskRepository staffTaskRepository,
+            IVendorRepository vendorRepository,
             IMapper mapper)
         {
             _requestRepository = requestRepository;
@@ -35,7 +37,19 @@ namespace STMM.Business.Services
             _violationRepository = violationRepository;
             _invoiceRepository = invoiceRepository;
             _staffTaskRepository = staffTaskRepository;
+            _vendorRepository = vendorRepository;
             _mapper = mapper;
+        }
+
+        public async Task<int> GetVendorIdByUserIdAsync(int userId)
+        {
+            var vendors = await _vendorRepository.FindAsync(v => v.UserId == userId);
+            var vendor = vendors.FirstOrDefault();
+            if (vendor == null)
+            {
+                throw new UnauthorizedAccessException("Vendor profile not found for this user.");
+            }
+            return vendor.VendorId;
         }
 
         public async Task<PagedResult<RequestDto>> GetMyRequestsAsync(int vendorId, RequestQueryParams queryParams)

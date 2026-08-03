@@ -21,12 +21,10 @@ namespace STMM.API.Controllers;
 public class VendorServicesController : ControllerBase
 {
     private readonly IVendorServiceManagement _vendorServiceManagement;
-    private readonly IVendorRepository _vendorRepository;
 
-    public VendorServicesController(IVendorServiceManagement vendorServiceManagement, IVendorRepository vendorRepository)
+    public VendorServicesController(IVendorServiceManagement vendorServiceManagement)
     {
         _vendorServiceManagement = vendorServiceManagement;
-        _vendorRepository = vendorRepository;
     }
 
     private async Task<int> GetVendorIdAsync(CancellationToken ct)
@@ -34,12 +32,7 @@ public class VendorServicesController : ControllerBase
         var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (int.TryParse(userIdStr, out var userId))
         {
-            var vendors = await _vendorRepository.FindAsync(v => v.UserId == userId, ct);
-            var vendor = vendors.FirstOrDefault();
-            if (vendor != null)
-            {
-                return vendor.VendorId;
-            }
+            return await _vendorServiceManagement.GetVendorIdByUserIdAsync(userId, ct);
         }
         throw new UnauthorizedAccessException("Không xác định được danh tính người bán.");
     }
@@ -47,25 +40,39 @@ public class VendorServicesController : ControllerBase
     [HttpGet("available")]
     public async Task<IActionResult> GetAvailableServices(CancellationToken ct)
     {
-        var vendorId = await GetVendorIdAsync(ct);
-        var services = await _vendorServiceManagement.GetAvailableServicesAsync(vendorId, ct);
-        return Ok(services);
+        try
+        {
+            var vendorId = await GetVendorIdAsync(ct);
+            var services = await _vendorServiceManagement.GetAvailableServicesAsync(vendorId, ct);
+            return Ok(services);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
     }
 
     [HttpGet("my-services")]
     public async Task<IActionResult> GetMyServices(CancellationToken ct)
     {
-        var vendorId = await GetVendorIdAsync(ct);
-        var myServices = await _vendorServiceManagement.GetMyServicesAsync(vendorId, ct);
-        return Ok(myServices);
+        try
+        {
+            var vendorId = await GetVendorIdAsync(ct);
+            var myServices = await _vendorServiceManagement.GetMyServicesAsync(vendorId, ct);
+            return Ok(myServices);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
     }
 
     [HttpGet("{id}")]
     public async Task<IActionResult> GetServiceDetail(int id, CancellationToken ct)
     {
-        var vendorId = await GetVendorIdAsync(ct);
         try
         {
+            var vendorId = await GetVendorIdAsync(ct);
             var serviceDetail = await _vendorServiceManagement.GetServiceDetailAsync(vendorId, id, ct);
             return Ok(serviceDetail);
         }
@@ -90,9 +97,16 @@ public class VendorServicesController : ControllerBase
     [HttpGet("my-stalls")]
     public async Task<IActionResult> GetMyStalls(CancellationToken ct)
     {
-        var vendorId = await GetVendorIdAsync(ct);
-        var stalls = await _vendorServiceManagement.GetMyStallsAsync(vendorId, ct);
-        return Ok(stalls);
+        try
+        {
+            var vendorId = await GetVendorIdAsync(ct);
+            var stalls = await _vendorServiceManagement.GetMyStallsAsync(vendorId, ct);
+            return Ok(stalls);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
     }
 
     [HttpPost("register")]

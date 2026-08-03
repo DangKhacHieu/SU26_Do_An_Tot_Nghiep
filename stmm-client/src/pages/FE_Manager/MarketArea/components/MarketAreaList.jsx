@@ -8,6 +8,7 @@ import { getAllCategories } from '../api/categoryApi';
 import { getAllMarkets, deactivateMarket } from '../../../../services/marketApi';
 import { Rnd } from 'react-rnd';
 import StallLayoutEditor from './StallLayoutEditor';
+import PolygonDrawer from './PolygonDrawer';
 
 const MarketAreaList = ({ user }) => {
   const { t } = useTranslation();
@@ -48,6 +49,7 @@ const MarketAreaList = ({ user }) => {
 
   const [selectedArea, setSelectedArea] = useState(null); // For editing
   const [isFormVisible, setIsFormVisible] = useState(false);
+  const [isDrawingMultipleAreas, setIsDrawingMultipleAreas] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [renderKey, setRenderKey] = useState(0); // To force re-render when needed
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
@@ -204,6 +206,43 @@ const MarketAreaList = ({ user }) => {
       fetchAreas();
     } catch (error) {
       console.error('Error saving area:', error);
+    }
+  };
+
+  const handleSaveMultipleAreas = async (polygons) => {
+    try {
+      let localAreas = [...areas];
+      for (let i = 0; i < polygons.length; i++) {
+        const p = polygons[i];
+        
+        let baseName = "Khu vực mới";
+        let counter = 1;
+        let newName = `${baseName} ${counter}`;
+        while (localAreas.some(a => a.name === newName)) {
+            counter++;
+            newName = `${baseName} ${counter}`;
+        }
+        localAreas.push({name: newName});
+        
+        const createPayload = {
+          name: newName,
+          description: '',
+          categoryName: '',
+          size: Math.round(p.areaM2 * 100) / 100,
+          marketId: marketId,
+          minX: p.minX,
+          minY: p.minY,
+          maxX: p.minX + p.width,
+          maxY: p.minY + p.height,
+          svgPath: p.svgPath
+        };
+        await createArea(createPayload);
+      }
+      setIsDrawingMultipleAreas(false);
+      fetchAreas();
+    } catch (error) {
+      console.error('Error saving multiple areas:', error);
+      setErrorMessage(error.message || 'Lỗi khi lưu khu vực mới');
     }
   };
 
@@ -588,7 +627,25 @@ const MarketAreaList = ({ user }) => {
           </div>
         )}
 
-        {/* Error Modal */}
+        {/* Batch Draw Modal */}
+        {isDrawingMultipleAreas && (
+          <div style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.8)', zIndex: 9999}}>
+            <PolygonDrawer 
+              marketPolygon={marketPolygon}
+              existingAreas={areas}
+              svgOffsetX={svgOffsetX}
+              svgOffsetY={svgOffsetY}
+              cWidth={cWidth}
+              cHeight={cHeight}
+              maxAllowedAreaSize={marketSize}
+              allowMultiple={true}
+              onComplete={handleSaveMultipleAreas}
+              onCancel={() => setIsDrawingMultipleAreas(false)}
+            />
+          </div>
+        )}
+        
+        {/* Header Actions */}
         {errorMessage && (
           <div style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', zIndex: 9999, display: 'flex', justifyContent: 'center', alignItems: 'center'}}>
             <div style={{background: 'var(--bg-panel)', padding: '32px', borderRadius: '16px', minWidth: '400px', maxWidth: '500px', boxShadow: '0 10px 30px rgba(0,0,0,0.2)', textAlign: 'center'}}>
@@ -670,7 +727,10 @@ const MarketAreaList = ({ user }) => {
                  <button onClick={handleResetZoom} style={{background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 12, marginLeft: 4, color: 'var(--color-primary)'}} title={'Khôi phục'}>↺</button>
               </div>
               {isEditMode && (
-                <button onClick={handleAddNew} style={{background: '#517594', color: 'white', padding: '8px 20px', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold'}}>{t('marketFloorPlan.areaList.add_area')}</button>
+                <>
+                  <button onClick={() => setIsDrawingMultipleAreas(true)} style={{background: '#10b981', color: 'white', padding: '8px 20px', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', marginRight: '8px'}}>+ Vẽ nhanh khu vực</button>
+                  <button onClick={handleAddNew} style={{background: '#517594', color: 'white', padding: '8px 20px', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold'}}>{t('marketFloorPlan.areaList.add_area')}</button>
+                </>
               )}
               <button 
                 onClick={() => setIsEditMode(!isEditMode)}

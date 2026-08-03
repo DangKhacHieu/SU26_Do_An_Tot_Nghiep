@@ -131,9 +131,13 @@
    ═══════════════════════════════════════════════════════ */
 .listContainer {
   font-family: var(--mw-font);
-  max-width: 1200px;
+  width: 100%;
+  max-width: 100%;
   margin: 0 auto;
-  padding: 32px;
+  padding: 32px 40px;
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
 }
 
 .toolbar {
@@ -232,6 +236,7 @@
 .card:hover .cardArrow { background: var(--mw-primary); color: #fff; transform: translateX(3px); }
 
 /* Empty state */
+/* Empty state */
 .emptyState {
   text-align: center;
   padding: 80px 40px;
@@ -242,6 +247,130 @@
 .emptyIcon { font-size: 56px; margin-bottom: 16px; }
 .emptyState h3 { font-size: 20px; font-weight: 700; color: var(--mw-text); margin: 0 0 8px 0; }
 .emptyState p  { font-size: 15px; color: var(--mw-text-secondary); margin: 0 0 24px 0; }
+
+/* Table Styles - Enhanced Premium Design */
+.tableContainer {
+  background: var(--mw-surface);
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03), 0 1px 3px rgba(0,0,0,0.02);
+  transition: box-shadow 0.3s ease;
+}
+
+.tableContainer:hover {
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06), 0 2px 8px rgba(0,0,0,0.04);
+}
+
+.table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.table th {
+  background: #f8fafc;
+  color: #64748b;
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 18px 24px;
+  text-align: left;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.table td {
+  padding: 20px 24px;
+  border-bottom: 1px solid #f1f5f9;
+  color: var(--mw-text);
+  font-size: 14px;
+  vertical-align: middle;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.table tr:last-child td {
+  border-bottom: none;
+}
+
+.table tr {
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  position: relative;
+}
+
+.table tr:hover td {
+  background: #f8fafc;
+}
+
+.table tr:hover {
+  transform: translateY(-1px);
+  z-index: 10;
+  box-shadow: inset 3px 0 0 0 var(--mw-primary);
+}
+
+.table tr:hover .cardArrow { 
+  background: var(--mw-primary); 
+  color: #fff; 
+  transform: translateX(4px); 
+  box-shadow: 0 4px 12px rgba(59,130,246,0.3);
+}
+
+.marketNameCell {
+  font-weight: 600;
+  color: #0f172a;
+  font-size: 15px;
+}
+
+/* Pagination - Enhanced */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 32px;
+}
+
+.pageBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  height: 40px;
+  padding: 0 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  background: var(--mw-surface);
+  color: var(--mw-text-secondary);
+  font-family: var(--mw-font);
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.pageBtn:hover:not(:disabled) {
+  background: #f8fafc;
+  color: var(--mw-primary);
+  border-color: #e2e8f0;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+}
+
+.pageBtn.activePage {
+  background: var(--mw-primary);
+  color: #fff;
+  border-color: var(--mw-primary);
+  box-shadow: 0 4px 12px rgba(59,130,246,0.3);
+}
+
+.pageBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+  background: #f1f5f9;
+}
 
 /* ═══════════════════════════════════════════════════════
    WIZARD (CREATE MARKET)

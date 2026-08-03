@@ -19,14 +19,10 @@ namespace STMM.API.Controllers
     public class VendorFeedbacksController : ControllerBase
     {
         private readonly IFeedbackService _feedbackService;
-        private readonly IVendorRepository _vendorRepository;
 
-        public VendorFeedbacksController(
-            IFeedbackService feedbackService,
-            IVendorRepository vendorRepository)
+        public VendorFeedbacksController(IFeedbackService feedbackService)
         {
             _feedbackService = feedbackService;
-            _vendorRepository = vendorRepository;
         }
 
         /// <summary>
@@ -40,14 +36,7 @@ namespace STMM.API.Controllers
                 throw new System.UnauthorizedAccessException("Không tìm thấy thông tin người dùng trong token.");
             }
 
-            var vendors = await _vendorRepository.FindAsync(v => v.UserId == userId);
-            var vendor = vendors.FirstOrDefault();
-            if (vendor == null)
-            {
-                throw new System.UnauthorizedAccessException("Không tìm thấy hồ sơ Vendor của người dùng này.");
-            }
-
-            return vendor.VendorId;
+            return await _feedbackService.GetVendorIdByUserIdAsync(userId);
         }
 
         /// <summary>

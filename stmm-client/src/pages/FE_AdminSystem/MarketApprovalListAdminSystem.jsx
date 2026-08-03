@@ -37,7 +37,14 @@ export default function MarketApprovalListAdminSystem({ navigate, addToast }) {
     setLoading(true);
     try {
       const data = await getAllMarkets();
-      setMarkets(data);
+      // Sort newest first by createdAt or marketId
+      const sortedData = (data || []).sort((a, b) => {
+        if (a.createdAt && b.createdAt) {
+          return new Date(b.createdAt) - new Date(a.createdAt);
+        }
+        return (b.marketId || 0) - (a.marketId || 0);
+      });
+      setMarkets(sortedData);
     } catch (error) {
       console.error("Failed to load markets:", error);
       addToast('Không thể tải danh sách chợ chờ duyệt.', 'error');
@@ -126,6 +133,27 @@ export default function MarketApprovalListAdminSystem({ navigate, addToast }) {
   };
 
   const hasFilters = searchQuery !== '' || statusFilter !== '';
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
+  
+  // Whenever filters change, reset page to 1
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, statusFilter]);
+
+  // Pagination logic
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentFilteredMarkets = filteredMarkets.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredMarkets.length / itemsPerPage);
+
+  const handlePageChange = (page) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
+  };
 
   if (viewingMarketId) {
     const activeMarket = markets.find(m => m.marketId === viewingMarketId);
@@ -286,9 +314,9 @@ export default function MarketApprovalListAdminSystem({ navigate, addToast }) {
                 </tr>
               </thead>
               <tbody>
-                {filteredMarkets.map((m, idx) => (
+                {currentFilteredMarkets.map((m, idx) => (
                   <tr key={m.marketId}>
-                    <td className="row-no">{idx + 1}</td>
+                    <td className="row-no">{indexOfFirstItem + idx + 1}</td>
                     <td>
                       <div className="user-identity">
                         <div className="user-avatar-cell" style={{ background: '#8b5cf6' }}>
@@ -369,6 +397,37 @@ export default function MarketApprovalListAdminSystem({ navigate, addToast }) {
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {/* Pagination Controls */}
+        {!loading && filteredMarkets.length > 0 && totalPages > 0 && (
+          <div className="pagination">
+            <button 
+              className="page-btn" 
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+            >
+              &lt;
+            </button>
+            
+            {[...Array(totalPages)].map((_, i) => (
+              <button
+                key={i + 1}
+                className={`page-btn ${currentPage === i + 1 ? 'active' : ''}`}
+                onClick={() => handlePageChange(i + 1)}
+              >
+                {i + 1}
+              </button>
+            ))}
+            
+            <button 
+              className="page-btn" 
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+            >
+              &gt;
+            </button>
           </div>
         )}
       </div>

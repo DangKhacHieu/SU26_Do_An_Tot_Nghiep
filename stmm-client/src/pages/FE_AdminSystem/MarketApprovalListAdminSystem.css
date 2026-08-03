@@ -207,3 +207,52 @@
   line-height: 1;
 }
 
+/* Pagination - Enhanced Premium */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 24px;
+  margin-bottom: 24px;
+}
+
+.page-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--border-color, #e2e8f0);
+  background: #ffffff;
+  color: var(--text-sub, #64748b);
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.page-btn:hover:not(:disabled) {
+  background: #f8fafc;
+  color: var(--primary, #3b82f6);
+  border-color: var(--primary, #3b82f6);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
+}
+
+.page-btn.active {
+  background: var(--primary, #3b82f6);
+  color: #fff;
+  border-color: var(--primary, #3b82f6);
+  box-shadow: 0 4px 12px rgba(var(--primary-rgb, 59, 130, 246), 0.35);
+}
+
+.page-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  background: transparent;
+  color: #94a3b8;
+  border-color: #e2e8f0;
+}

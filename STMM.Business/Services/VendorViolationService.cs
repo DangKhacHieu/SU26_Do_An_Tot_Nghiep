@@ -14,15 +14,18 @@ namespace STMM.Business.Services
     {
         private readonly IViolationRepository _violationRepository;
         private readonly IContractRepository _contractRepository;
+        private readonly IVendorRepository _vendorRepository;
         private readonly IMapper _mapper;
 
         public VendorViolationService(
             IViolationRepository violationRepository,
             IContractRepository contractRepository,
+            IVendorRepository vendorRepository,
             IMapper mapper)
         {
             _violationRepository = violationRepository;
             _contractRepository = contractRepository;
+            _vendorRepository = vendorRepository;
             _mapper = mapper;
         }
 
@@ -73,6 +76,18 @@ namespace STMM.Business.Services
             }
 
             return _mapper.Map<ViolationDto>(violation);
+        }
+
+        public async Task<int> GetVendorIdByUserIdAsync(int userId, CancellationToken ct = default)
+        {
+            var vendors = await _vendorRepository.FindAsync(v => v.UserId == userId, ct);
+            var vendor = vendors.FirstOrDefault();
+            if (vendor == null)
+            {
+                throw new System.UnauthorizedAccessException("Không tìm thấy hồ sơ Vendor của người dùng này.");
+            }
+
+            return vendor.VendorId;
         }
     }
 }

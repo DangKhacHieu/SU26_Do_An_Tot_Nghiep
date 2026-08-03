@@ -173,7 +173,7 @@ namespace STMM.Business.Services
             int defaultCategoryId = firstCategory?.CategoryId ?? 1;
 
             // 2. Map and Save using EF Core Graph Insertion and Transaction
-            using var transaction = await _context.Database.BeginTransactionAsync();
+            using var transaction = await _marketRepository.BeginTransactionAsync();
             try
             {
                 var newMarket = new Market
@@ -199,7 +199,7 @@ namespace STMM.Business.Services
                     {
                         Name = areaReq.Name,
                         Description = areaReq.Description,
-                        CategoryId = areaReq.CategoryId > 0 ? areaReq.CategoryId : defaultCategoryId,
+                        CategoryId = areaReq.CategoryId > 0 ? areaReq.CategoryId : null,
                         Size = areaReq.Size,
                         SvgPath = areaReq.SvgPath,
                         MinX = areaReq.MinX,
@@ -237,8 +237,8 @@ namespace STMM.Business.Services
                     newMarket.Areas.Add(newArea);
                 }
 
-                _context.Markets.Add(newMarket);
-                await _context.SaveChangesAsync();
+                await _marketRepository.AddAsync(newMarket);
+                await _marketRepository.SaveChangesAsync();
                 await transaction.CommitAsync();
 
                 return _mapper.Map<MarketDto>(newMarket);
