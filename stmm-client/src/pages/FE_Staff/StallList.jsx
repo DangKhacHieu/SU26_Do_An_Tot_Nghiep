@@ -318,7 +318,6 @@ export default function StallList({ baseUrl, onShowNotification, onViewMeterHist
         <CreateViolationModal
           baseUrl={baseUrl}
           prefilledStallId={activeStallId}
-          prefilledStallCode={activeStallCode}
           onClose={closeModal}
           onSuccess={(newViolation) => 
             handleModalSuccess(`Successfully reported violation ${newViolation.violationId} for stall ${activeStallCode}`)

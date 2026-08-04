@@ -110,13 +110,26 @@ export default function CompleteTaskForm({ task, baseUrl, onRefreshTask, onShowN
   // A repair task still needs both photos on the server, so it can only be completed outside
   // In_Progress when both were already stored.
   const photoEvidenceBlocked = requiresPhotos && !canEditPhotos && !hasStoredPhotos;
+  const isPending = task.status === TASK_STATUS.PENDING;
+  const isInProgress = task.status === TASK_STATUS.IN_PROGRESS;
   const isUtilityReading = task.taskType === TASK_TYPE.UTILITY_READING;
+  const isChecklistComplete = Boolean(
+    isUtilityReading
+    && utilityProgress
+    && utilityProgress.total > 0
+    && utilityProgress.completed === utilityProgress.total
+  );
   const isChecklistIncomplete = Boolean(
     isUtilityReading
     && utilityProgress
     && utilityProgress.total > 0
     && utilityProgress.completed < utilityProgress.total
   );
+  const isExecutionReady = isUtilityReading
+    ? (isInProgress || isChecklistComplete)
+    : isInProgress;
+
+  const isLocked = isPending || !isExecutionReady;
 
   const setImageFile = (target, file) => {
     if (target === 'before') setImageBeforeFile(file);
@@ -141,6 +154,14 @@ export default function CompleteTaskForm({ task, baseUrl, onRefreshTask, onShowN
   const handleSubmit = async (event) => {
     event.preventDefault();
     setSubmitError(null);
+
+    if (isLocked) {
+      setSubmitError(t(
+        'completetaskform.task_locked_hint',
+        'Tác vụ phải ở trạng thái In Progress (hoặc hoàn thành checklist đo điện nước) mới có thể báo cáo hoàn thành.'
+      ));
+      return;
+    }
 
     if (photoEvidenceBlocked) {
       setSubmitError(t(
@@ -265,15 +286,22 @@ export default function CompleteTaskForm({ task, baseUrl, onRefreshTask, onShowN
             placeholder={t('completetaskform.add_completion_details_quality')}
             value={completionNotes}
             onChange={(event) => setCompletionNotes(event.target.value)}
+            disabled={isLocked || loading}
             rows="3"
             className="form-input"
           />
         </div>
 
+        {isLocked ? (
+          <p className="helper-text photos-locked-note" style={{ color: '#d97706', marginTop: '6px', fontWeight: 600 }}>
+            🔒 {t('completetaskform.task_pending_lock_hint', 'Chỉ có thể nhập ghi chú và báo cáo hoàn thành khi tác vụ ở trạng thái In Progress (hoặc hoàn thành checklist đo điện nước).')}
+          </p>
+        ) : null}
+
         <div className="form-actions complete-task-actions">
           <button
             type="submit"
-            disabled={loading || isChecklistIncomplete || photoEvidenceBlocked}
+            disabled={isLocked || loading || isChecklistIncomplete || photoEvidenceBlocked}
             className="btn-primary-dark submit-completion-btn"
           >
             <Camera size={16} aria-hidden="true" />

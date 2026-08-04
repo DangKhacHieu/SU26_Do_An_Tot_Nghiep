@@ -23,7 +23,6 @@ namespace STMM.Business.Services
         private readonly IUserRepository _userRepository;
         private readonly IIssueRepository _issueRepository;
         private readonly IRequestRepository _requestRepository;
-        private readonly IViolationRepository _violationRepository;
         private readonly IStallRepository _stallRepository;
         private readonly IAreaRepository _areaRepository;
         private readonly INotificationService _notificationService;
@@ -53,7 +52,6 @@ namespace STMM.Business.Services
             _userRepository = userRepository;
             _issueRepository = issueRepository;
             _requestRepository = requestRepository;
-            _violationRepository = violationRepository;
             _stallRepository = stallRepository;
             _areaRepository = areaRepository;
             _notificationService = notificationService;
@@ -70,9 +68,6 @@ namespace STMM.Business.Services
             int? managerUserId,
             CancellationToken ct = default)
         {
-            // F-01: một điều kiện duy nhất qua GetManagerMarketIdAsync, giống GetTaskByIdForManagerAsync.
-            // Bỏ fallback GetByIdAsync vì nó không lọc IsDeleted -> tài khoản Manager đã xoá mềm
-            // vẫn đọc được toàn bộ công việc của chợ.
             if (!managerUserId.HasValue)
             {
                 throw new ForbiddenException("The manager account is not assigned to a market.");
@@ -240,11 +235,6 @@ namespace STMM.Business.Services
                 await EnsureAreaInMarketAsync(request.Stall.AreaId, marketId, "Request", ct);
                 if (await _staffTaskRepository.HasActiveTaskForRequestAsync(request.RequestId, ct))
                     throw new BadRequestException("An active task already exists for this request.");
-                if (request.RequestType == "ViolationAppeal" && request.ViolationId.HasValue)
-                {
-                    var violation = await _violationRepository.GetByIdAsync(request.ViolationId.Value, ct);
-                    imageBeforeUrl = violation?.ImageUrl;
-                }
             }
 
             var task = new StaffTask

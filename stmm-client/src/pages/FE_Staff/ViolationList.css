@@ -1,4 +1,9 @@
 /* Filters & Forms */
+.violation-list-container ::selection {
+  background: #dbeafe;
+  color: #1e3a8a;
+}
+
 .filters-wrapper {
   display: flex;
   flex-wrap: wrap;
@@ -124,14 +129,16 @@
 }
 
 /* Status Badges */
-.status-badge {
+.violation-list-container .status-badge {
   display: inline-block;
   padding: 2px 8px;
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
   border-radius: 9999px;
-  border: 1px solid transparent;
+  background-color: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
 }
 
 .status-badge.reported,
@@ -145,6 +152,18 @@
   background-color: #dbeafe;
   color: #1d4ed8;
   border-color: #bfdbfe;
+}
+
+.violation-list-container .status-badge.notified {
+  background-color: #dbeafe;
+  color: #1d4ed8;
+  border-color: #bfdbfe;
+}
+
+.violation-list-container .status-badge.appealed {
+  background-color: #f5f3ff;
+  color: #6d28d9;
+  border-color: #ddd6fe;
 }
 
 .status-badge.resolved,
