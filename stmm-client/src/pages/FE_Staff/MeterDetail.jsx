@@ -11,11 +11,13 @@ export default function MeterDetail({ meterId, baseUrl, onBack }) {
   const [meter, setMeter] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [imgError, setImgError] = useState(false);
 
   useEffect(() => {
     const fetchMeterDetail = async () => {
       setLoading(true);
       setError(null);
+      setImgError(false);
       try {
         const response = await fetch(`${baseUrl}/api/meters/${meterId}`, { headers: getAuthHeaders() });
         if (!response.ok) {
@@ -32,6 +34,16 @@ export default function MeterDetail({ meterId, baseUrl, onBack }) {
 
     fetchMeterDetail();
   }, [meterId, baseUrl, t]);
+
+  const getResolvedImageUrl = (url) => {
+    if (!url) return null;
+    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
+      return url;
+    }
+    const cleanBase = baseUrl ? baseUrl.replace(/\/+$/, '') : '';
+    const cleanPath = url.startsWith('/') ? url : `/${url}`;
+    return `${cleanBase}${cleanPath}`;
+  };
 
   const formatDate = (dateString) => {
     if (!dateString) return t('meterdetail.na');
@@ -181,13 +193,13 @@ export default function MeterDetail({ meterId, baseUrl, onBack }) {
             </div>
 
             <div className="meter-evidence-container">
-              {meter.lastReadingImageUrl ? (
+              {meter.lastReadingImageUrl && !imgError ? (
                 <div className="meter-evidence-wrapper">
                   <img
-                    src={meter.lastReadingImageUrl}
+                    src={getResolvedImageUrl(meter.lastReadingImageUrl)}
                     alt={t('meterdetail.latest_meter_reading_evidence')}
                     className="meter-evidence-img"
-                    onError={(event) => { event.currentTarget.hidden = true; }}
+                    onError={() => setImgError(true)}
                   />
                 </div>
               ) : (
