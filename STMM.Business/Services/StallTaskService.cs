@@ -42,7 +42,7 @@ namespace STMM.Business.Services
                     StallId = s.StallId,
                     StallCode = s.StallCode,
                     StallCategory = s.StallCategory,
-                    StallStatus = s.StallStatus,
+                    StallStatus = !string.IsNullOrWhiteSpace(s.VendorName) ? "Rented" : (string.IsNullOrWhiteSpace(s.StallStatus) ? "Available" : s.StallStatus),
                     VendorName = s.VendorName,
                     VendorPhone = s.VendorPhone,
                     HasUnpaidInvoice = s.HasUnpaidInvoice,
@@ -71,7 +71,7 @@ namespace STMM.Business.Services
                 StallCode = s.StallCode,
                 AreaName = s.AreaName,
                 VendorName = s.VendorName,
-                StallStatus = s.StallStatus
+                StallStatus = !string.IsNullOrWhiteSpace(s.VendorName) ? "Rented" : (string.IsNullOrWhiteSpace(s.StallStatus) ? "Available" : s.StallStatus)
             });
         }
 

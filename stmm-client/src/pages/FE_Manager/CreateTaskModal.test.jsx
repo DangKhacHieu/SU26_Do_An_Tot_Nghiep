@@ -60,8 +60,17 @@ describe('CreateTaskModal - UtilityReading Restriction', () => {
       if (url.includes('/api/Areas')) {
         return Promise.resolve({ ok: true, json: async () => areaData });
       }
+      if (url.includes('/api/Stalls')) {
+        return Promise.resolve({ ok: true, json: async () => [
+          { stallId: 1, areaId: 101, status: 'Rented' },
+          { stallId: 2, areaId: 102, status: 'Rented' }
+        ] });
+      }
       if (url.includes('/api/manager/tasks')) {
         return Promise.resolve({ ok: true, json: async () => existingTasks });
+      }
+      if (url.includes('/api/manager/requests')) {
+        return Promise.resolve({ ok: true, json: async () => ({ items: [] }) });
       }
       return Promise.resolve({ ok: false });
     });
@@ -120,6 +129,9 @@ describe('CreateTaskModal - UtilityReading Restriction', () => {
       }
       if (url.includes('/api/manager/issues')) {
         return Promise.resolve({ ok: true, json: async () => ({ items: issueData }) });
+      }
+      if (url.includes('/api/manager/requests')) {
+        return Promise.resolve({ ok: true, json: async () => ({ items: [] }) });
       }
       return Promise.resolve({ ok: false });
     });

@@ -1,12 +1,19 @@
 import { useTranslation } from 'react-i18next';
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { getAuthHeaders } from '../../utils/authHeaders';
 import readProblemDetail from '../../utils/readProblemDetail';
+import { showToast } from '../../utils/alert';
 import './RecordMeterReadingModal.css';
 
-import { showToast } from '../../utils/alert';
-
-export default function RecordMeterReadingModal({ stallId, baseUrl, onClose, onSuccess }) {
+export default function RecordMeterReadingModal({
+  stallId,
+  baseUrl,
+  onClose,
+  onSuccess,
+  hasElectricityReadingThisMonth = false,
+  hasWaterReadingThisMonth = false,
+  taskCreatedAt = null
+}) {
   const { t } = useTranslation();
 
   const [meters, setMeters] = useState([]);
@@ -14,13 +21,32 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, onClose, onS
   const [selectedMeter, setSelectedMeter] = useState(null);
   
   const [newValue, setNewValue] = useState('');
-  const [recordedAt, setRecordedAt] = useState(() => {
+
+  const maxDateStr = (() => {
     const today = new Date();
     const yyyy = today.getFullYear();
     const mm = String(today.getMonth() + 1).padStart(2, '0');
     const dd = String(today.getDate()).padStart(2, '0');
     return `${yyyy}-${mm}-${dd}`;
-  });
+  })();
+
+  const minDateStr = (() => {
+    if (taskCreatedAt) {
+      const dateObj = new Date(taskCreatedAt);
+      if (!Number.isNaN(dateObj.getTime())) {
+        const yyyy = dateObj.getFullYear();
+        const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const dd = String(dateObj.getDate()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd}`;
+      }
+    }
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    return `${yyyy}-${mm}-01`;
+  })();
+
+  const [recordedAt, setRecordedAt] = useState(maxDateStr);
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
 
@@ -49,7 +75,20 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, onClose, onS
         const response = await fetch(`${baseUrl}/api/meters/stall/${stallId}`, { headers: getAuthHeaders() });
         if (response.ok) {
           const data = await response.json();
-          setMeters(data);
+          const availableMeters = (Array.isArray(data) ? data : []).filter((meter) => {
+            if (meter.type === 'Electricity') return !hasElectricityReadingThisMonth;
+            if (meter.type === 'Water') return !hasWaterReadingThisMonth;
+            return true;
+          });
+
+          setMeters(availableMeters);
+
+          // When only one utility type remains, select it automatically so the
+          // staff member cannot accidentally submit the type already recorded.
+          if (availableMeters.length === 1) {
+            setMeterId(String(availableMeters[0].meterId));
+            setSelectedMeter(availableMeters[0]);
+          }
         } else {
           setSubmitError(await readProblemDetail(response, t('recordmeterreadingmodal.unable_to_load_meters')));
         }
@@ -61,7 +100,7 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, onClose, onS
     };
 
     fetchMeters();
-  }, [stallId, baseUrl, t]);
+  }, [baseUrl, hasElectricityReadingThisMonth, hasWaterReadingThisMonth, stallId, t]);
 
   const handleMeterChange = (e) => {
     const id = e.target.value;
@@ -148,6 +187,10 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, onClose, onS
       const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
       if (!dateRegex.test(recordedAt)) {
         errors.recordedAt = 'Ngày ghi nhận phải đúng định dạng YYYY-MM-DD.';
+      } else if (recordedAt > maxDateStr) {
+        errors.recordedAt = t('recordmeterreadingmodal.future_date_not_allowed', { defaultValue: 'Ngày ghi nhận không được vượt quá ngày hiện tại.' });
+      } else if (minDateStr && recordedAt < minDateStr) {
+        errors.recordedAt = t('recordmeterreadingmodal.date_before_created_not_allowed', { min: minDateStr, defaultValue: `Ngày ghi nhận không được trước ngày tạo (${minDateStr}).` });
       }
     }
 
@@ -270,6 +313,8 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, onClose, onS
             <label className="form-label required-field">{t('recordmeterreadingmodal.recorded_date')}</label>
             <input
               type="date"
+              min={minDateStr}
+              max={maxDateStr}
               value={recordedAt}
               onChange={(e) => {
                 setRecordedAt(e.target.value);
@@ -277,6 +322,11 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, onClose, onS
               }}
               className={`form-input ${formErrors.recordedAt ? 'error-border' : ''}`}
             />
+            {minDateStr && maxDateStr ? (
+              <span className="helper-text" style={{ color: '#475569', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+                📅 {t('recordmeterreadingmodal.date_range_hint', { min: minDateStr, max: maxDateStr, defaultValue: `Chỉ cho phép chọn từ ngày ${minDateStr} đến ${maxDateStr} (Hôm nay).` })}
+              </span>
+            ) : null}
             {formErrors.recordedAt && <span className="error-text">{formErrors.recordedAt}</span>}
           </div>
 
@@ -302,11 +352,11 @@ export default function RecordMeterReadingModal({ stallId, baseUrl, onClose, onS
               <div className="drag-drop-content">
                 <span className="upload-icon">📸</span>
                 {selectedFile ? (
-                  <p>{t('recordmeterreadingmodal.image_uploaded_remove_the')}</p>
+                  <p>{t('recordmeterreadingmodal.image_uploaded_remove_the', 'Đã đính kèm ảnh minh chứng. Bấm để chọn lại ảnh khác.')}</p>
                 ) : (
-                  <p>{t('recordmeterreadingmodal.drag_and_drop_image')}<strong style={{ color: '#4f46e5' }}>{t('recordmeterreadingmodal.click_to_select')}</strong></p>
+                  <p>{t('recordmeterreadingmodal.drag_and_drop_image', 'Kéo thả ảnh vào đây hoặc ')}<strong style={{ color: '#4f46e5' }}>{t('recordmeterreadingmodal.click_to_select', 'bấm để chọn ảnh')}</strong></p>
                 )}
-                <span className="helper-text">{t('recordmeterreadingmodal.supports_jpg_png_webp')}</span>
+                <span className="helper-text">{t('recordmeterreadingmodal.supports_jpg_png_webp', 'Hỗ trợ định dạng JPG, PNG hoặc WEBP (Tối đa 5MB)')}</span>
               </div>
             </div>
 

@@ -111,8 +111,6 @@ namespace STMM.Business.Services
             violation.CreatedAt = DateTime.UtcNow;
             violation.UpdatedAt = DateTime.UtcNow;
 
-            violation.FineAmount = violationType.DefaultFine;
-
             try
             {
                 await _violationRepository.AddAsync(violation, ct);
