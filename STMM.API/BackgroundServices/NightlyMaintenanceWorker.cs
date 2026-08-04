@@ -10,14 +10,15 @@ using System.Threading.Tasks;
 
 namespace STMM.API.BackgroundServices
 {
-    public class MonthlyBillingWorker : BackgroundService
+    public class NightlyMaintenanceWorker : BackgroundService
     {
         private readonly IServiceProvider _serviceProvider;
-        private readonly ILogger<MonthlyBillingWorker> _logger;
-        private int _lastRunMonth = -1;
-        private int _lastRunYear = -1;
+        private readonly ILogger<NightlyMaintenanceWorker> _logger;
+        
+        // Track the last processed day to ensure we only run once per day
+        private DateTime _lastRunDate = DateTime.MinValue;
 
-        public MonthlyBillingWorker(IServiceProvider serviceProvider, ILogger<MonthlyBillingWorker> logger)
+        public NightlyMaintenanceWorker(IServiceProvider serviceProvider, ILogger<NightlyMaintenanceWorker> logger)
         {
             _serviceProvider = serviceProvider;
             _logger = logger;
@@ -25,7 +26,7 @@ namespace STMM.API.BackgroundServices
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            _logger.LogInformation("MonthlyBillingWorker started.");
+            _logger.LogInformation("NightlyMaintenanceWorker started.");
 
             while (!stoppingToken.IsCancellationRequested)
             {
@@ -33,14 +34,22 @@ namespace STMM.API.BackgroundServices
                 {
                     var today = DateTime.Today;
 
-                    // Only run if we haven't run successfully for the current month/year
-                    if (today.Month != _lastRunMonth || today.Year != _lastRunYear)
+                    // Only run once a day, preferably around midnight (e.g. 00:00 to 01:00)
+                    // For the sake of testing/demo, we'll run it immediately if it hasn't run today.
+                    if (today > _lastRunDate)
                     {
                         using (var scope = _serviceProvider.CreateScope())
                         {
                             var systemConfigRepository = scope.ServiceProvider.GetRequiredService<ISystemConfigRepository>();
                             var billingService = scope.ServiceProvider.GetRequiredService<IBillingService>();
 
+                            _logger.LogInformation($"[NightlyMaintenanceWorker] Starting daily maintenance routines for {today:yyyy-MM-dd}...");
+
+                            // 1. Process Overdue Invoices (Dynamic Late Penalties)
+                            int overdueProcessed = await billingService.ProcessOverdueInvoicesAsync(stoppingToken);
+                            _logger.LogInformation($"[NightlyMaintenanceWorker] Processed {overdueProcessed} overdue invoices and applied daily penalties.");
+
+                            // 2. Generate Monthly Invoices
                             // Get auto invoice day configuration
                             var config = systemConfigRepository.Query()
                                 .FirstOrDefault(c => c.ConfigKey == "auto_invoice_day");
@@ -53,21 +62,23 @@ namespace STMM.API.BackgroundServices
 
                             if (today.Day >= targetDay)
                             {
-                                _logger.LogInformation($"Today is Day {today.Day}, which meets or exceeds auto_invoice_day ({targetDay}). Starting auto generation of monthly invoices.");
-                                
+                                // We check if we already generated for THIS month in the BillingService logic
+                                // (AutoGenerateMonthlyInvoicesAsync internally prevents duplicates).
                                 int generatedCount = await billingService.AutoGenerateMonthlyInvoicesAsync(today.Month, today.Year, null, stoppingToken);
-                                
-                                _logger.LogInformation($"Auto monthly invoice generation completed. Generated {generatedCount} invoices for {today.Month}/{today.Year}.");
-
-                                _lastRunMonth = today.Month;
-                                _lastRunYear = today.Year;
+                                if (generatedCount > 0)
+                                {
+                                    _logger.LogInformation($"[NightlyMaintenanceWorker] Auto monthly invoice generation completed. Generated {generatedCount} invoices for {today.Month}/{today.Year}.");
+                                }
                             }
+
+                            _lastRunDate = today;
+                            _logger.LogInformation("[NightlyMaintenanceWorker] All daily maintenance routines completed successfully.");
                         }
                     }
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Error occurred in MonthlyBillingWorker execution.");
+                    _logger.LogError(ex, "[NightlyMaintenanceWorker] Error occurred during nightly execution.");
                 }
 
                 // Wait 12 hours before next check
