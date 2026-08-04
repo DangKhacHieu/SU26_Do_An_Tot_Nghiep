@@ -154,4 +154,27 @@ public class VendorServicesController : ControllerBase
             return BadRequest(new { message = ex.Message });
         }
     }
+
+    [HttpPost("{id}/reactivate")]
+    public async Task<IActionResult> ReactivateService(int id, CancellationToken ct)
+    {
+        try
+        {
+            var vendorId = await GetVendorIdAsync(ct);
+            await _vendorServiceManagement.ReactivateServiceAsync(vendorId, id, ct);
+            return Ok(new { message = "Kích hoạt lại dịch vụ thành công." });
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (BadRequestException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
 }

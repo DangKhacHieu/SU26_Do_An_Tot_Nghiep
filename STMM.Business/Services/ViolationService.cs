@@ -292,7 +292,7 @@ namespace STMM.Business.Services
             return false;
         }
 
-        public async Task<bool> CreateInvoiceForViolationAsync(int violationId, int accountantUserId, CreateViolationInvoiceRequest request = null, CancellationToken ct = default)
+        public async Task<bool> CreateInvoiceForViolationAsync(int violationId, int accountantUserId, CreateViolationInvoiceRequest? request = null, CancellationToken ct = default)
         {
             var accountantUser = await _userRepository.GetByIdAsync(accountantUserId, ct);
             if (accountantUser == null || !accountantUser.MarketId.HasValue)

@@ -10,6 +10,7 @@ using STMM.Business.Interfaces;
 using STMM.DataAccess.Entities;
 using STMM.DataAccess.IRepositories;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -39,6 +40,7 @@ namespace STMM.Business.Services
         private readonly FluentValidation.IValidator<ReceiveCashPaymentRequest> _paymentValidator;
         private readonly FluentValidation.IValidator<MeterReadingAdjustmentRequest> _meterAdjustmentValidator;
         private readonly FluentValidation.IValidator<CreateAdHocInvoiceRequest> _createAdHocInvoiceValidator;
+        private static readonly ConcurrentDictionary<int, SemaphoreSlim> _adjustLocks = new ConcurrentDictionary<int, SemaphoreSlim>();
 
         public BillingService(
             IInvoiceRepository invoiceRepository,
@@ -439,7 +441,11 @@ namespace STMM.Business.Services
         /// <inheritdoc />
         public async Task<bool> AdjustMeterReadingAsync(int creatorUserId, MeterReadingAdjustmentRequest request, CancellationToken ct = default)
         {
-            var valResult = await _meterAdjustmentValidator.ValidateAsync(request, ct);
+            var _lock = _adjustLocks.GetOrAdd(request.StallId, new SemaphoreSlim(1, 1));
+            await _lock.WaitAsync(ct);
+            try
+            {
+                var valResult = await _meterAdjustmentValidator.ValidateAsync(request, ct);
             if (!valResult.IsValid)
             {
                 var errors = string.Join(" ", valResult.Errors.Select(e => e.ErrorMessage));
@@ -511,7 +517,8 @@ namespace STMM.Business.Services
                 // We get the non-canceled invoice for this contract, month, year
                 var existingInvoice = await _invoiceRepository.Query()
                     .Include(i => i.InvoiceDetails)
-                    .Where(i => i.ContractId == contract.ContractId && i.Month == request.Month && i.Year == request.Year && i.IsDeleted != true && i.Status != "Canceled" && i.InvoiceType != "Adjustment")
+                    .Where(i => i.ContractId == contract.ContractId && i.Month == request.Month && i.Year == request.Year && i.IsDeleted != true && i.Status != "Canceled")
+                    .OrderByDescending(i => i.InvoiceId)
                     .FirstOrDefaultAsync(ct);
 
                 if (existingInvoice != null)
@@ -547,7 +554,12 @@ namespace STMM.Business.Services
 
                     decimal totalAmountForUtility = UtilityPricingCalculator.CalculatePrice(consumption, tiers);
 
-                    if (existingInvoice.Status == "Draft")
+                    if (existingInvoice.Status == "Paid")
+                    {
+                        throw new BadRequestException("Không thể điều chỉnh chỉ số cho hóa đơn đã thanh toán. Vui lòng hoàn tiền hoặc hủy thanh toán trước.");
+                    }
+
+                    if (existingInvoice.Status == "Draft" || (existingInvoice.InvoiceType == "Adjustment" && existingInvoice.Status == "Unpaid"))
                     {
                         // It is safe to overwrite a Draft invoice
                         var detail = existingInvoice.InvoiceDetails.FirstOrDefault(d => d.FeeTypeId == feeTypeId);
@@ -633,6 +645,11 @@ namespace STMM.Business.Services
             }
 
             return true;
+            }
+            finally
+            {
+                _lock.Release();
+            }
         }
 
         private static InvoiceDto MapInvoiceToDto(Invoice invoice)

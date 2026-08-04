@@ -77,6 +77,28 @@ export default function VendorMyServices({ vendorId, searchTerm = '', setSearchT
         }
     };
 
+    const handleReactivateClick = async (service) => {
+        const text = 'Bạn có chắc chắn muốn kích hoạt lại dịch vụ này để hệ thống tự động gia hạn vào kỳ tới?';
+        const result = await showConfirm('Xác nhận kích hoạt lại', text);
+        if (result.isConfirmed) {
+            handleConfirmReactivate(service);
+        }
+    };
+
+    const handleConfirmReactivate = async (service) => {
+        try {
+            const token = localStorage.getItem('accessToken');
+            const response = await axios.post(`http://localhost:5056/api/vendor/services/${service.registrationId}/reactivate`, {}, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            await showSuccess('Thành công', response.data.message);
+            fetchMyServices();
+        } catch (err) {
+            const msg = err.response?.data?.message || 'Đã xảy ra lỗi khi kích hoạt lại dịch vụ.';
+            showError('Lỗi', msg);
+        }
+    };
+
     useEffect(() => {
         setPageNumber(1);
     }, [searchTerm, statusFilter]);
@@ -190,6 +212,13 @@ export default function VendorMyServices({ vendorId, searchTerm = '', setSearchT
                                                     onClick={() => handleCancelClick(service)}
                                                     className="premium-btn-danger">
                                                     {t('vendormyservices.cancel') || 'Hủy'}
+                                                </button>
+                                            )}
+                                            {(service.status === 'PendingCancellation' || (service.status === 'Active' && service.isAutoRenew === false)) && (
+                                                <button 
+                                                    onClick={() => handleReactivateClick(service)}
+                                                    className="premium-btn-success" style={{ backgroundColor: '#10b981', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '13px', fontWeight: '500' }}>
+                                                    Kích hoạt lại
                                                 </button>
                                             )}
                                         </div>

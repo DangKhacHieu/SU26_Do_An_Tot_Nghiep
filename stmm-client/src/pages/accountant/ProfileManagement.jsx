@@ -179,7 +179,7 @@ export default function ProfileManagement() {
         })
       })
       .then(async res => {
-        if (!res.ok) {
+        if (res.status === 401) { localStorage.removeItem('accessToken'); window.location.href = '/login'; throw new Error('401'); } if (!res.ok) {
           const errData = await res.json().catch(() => ({}));
           throw new Error(errData.detail || errData.title || t('profilemanagement.unable_to_save_profile'));
         }
@@ -258,7 +258,7 @@ export default function ProfileManagement() {
         })
       })
       .then(async res => {
-        if (!res.ok) {
+        if (res.status === 401) { localStorage.removeItem('accessToken'); window.location.href = '/login'; throw new Error('401'); } if (!res.ok) {
           const errData = await res.json().catch(() => ({}));
           throw new Error(errData.detail || errData.title || t('profilemanagement.password_change_failed'));
         }

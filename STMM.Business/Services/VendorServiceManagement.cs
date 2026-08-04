@@ -322,4 +322,38 @@ public class VendorServiceManagement : IVendorServiceManagement
         _serviceRegistrationRepository.Update(registration);
         await _serviceRegistrationRepository.SaveChangesAsync(ct);
     }
+
+    public async Task ReactivateServiceAsync(int vendorId, int registrationId, CancellationToken ct = default)
+    {
+        if (registrationId <= 0)
+        {
+            throw new ArgumentException("ID đăng ký dịch vụ không hợp lệ.");
+        }
+
+        var registration = await _serviceRegistrationRepository.GetByIdAsync(registrationId, ct);
+        
+        if (registration == null || registration.VendorId != vendorId)
+        {
+            throw new BadRequestException("Không tìm thấy thông tin đăng ký dịch vụ.");
+        }
+
+        if (registration.Status == "Active" && registration.IsAutoRenew)
+        {
+            throw new BadRequestException("Dịch vụ này đang được tự động gia hạn.");
+        }
+
+        if (registration.Status == "PendingCancellation" || (registration.Status == "Active" && !registration.IsAutoRenew))
+        {
+            registration.Status = "Active";
+            registration.IsAutoRenew = true;
+            registration.CancelledAt = null;
+        }
+        else
+        {
+            throw new BadRequestException("Chỉ có thể kích hoạt lại các dịch vụ đang chờ hủy gia hạn. Các dịch vụ đã hủy hoàn toàn vui lòng đăng ký mới.");
+        }
+
+        _serviceRegistrationRepository.Update(registration);
+        await _serviceRegistrationRepository.SaveChangesAsync(ct);
+    }
 }

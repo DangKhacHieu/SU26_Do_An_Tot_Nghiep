@@ -73,9 +73,9 @@ export default function PaymentVerification() {
       } catch (e) {}
     }
     Promise.all([
-      fetch(`http://localhost:5056/api/accountant/payments/pending?userId=${userIdStr}`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` } }).then(r => { if (!r.ok) throw new Error(); return r.json(); }),
-      fetch(`http://localhost:5056/api/accountant/payments/debts?userId=${userIdStr}`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` } }).then(r => { if (!r.ok) throw new Error(); return r.json(); }),
-      fetch(`http://localhost:5056/api/accountant/payments/disputes?userId=${userIdStr}`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` } }).then(r => { if (!r.ok) throw new Error(); return r.json(); })
+      fetch(`http://localhost:5056/api/accountant/payments/pending?userId=${userIdStr}`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` } }).then(r => { if (r.status === 401) { localStorage.removeItem('accessToken'); window.location.href = '/login'; throw new Error('401'); } if (!r.ok) throw new Error(); return r.json(); }),
+      fetch(`http://localhost:5056/api/accountant/payments/debts?userId=${userIdStr}`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` } }).then(r => { if (r.status === 401) { localStorage.removeItem('accessToken'); window.location.href = '/login'; throw new Error('401'); } if (!r.ok) throw new Error(); return r.json(); }),
+      fetch(`http://localhost:5056/api/accountant/payments/disputes?userId=${userIdStr}`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` } }).then(r => { if (r.status === 401) { localStorage.removeItem('accessToken'); window.location.href = '/login'; throw new Error('401'); } if (!r.ok) throw new Error(); return r.json(); })
     ])
       .then(([pay, debt, disp]) => { setPayments(pay); setDebts(debt); setDisputes(disp); setLoading(false); })
       .catch(() => { setTimeout(() => { setPayments(getMockPayments()); setDebts(getMockDebts()); setDisputes(getMockDisputes()); setIsMock(true); setLoading(false); }, 500); });
@@ -107,9 +107,13 @@ export default function PaymentVerification() {
   const getMockInvoiceDetail = (invoiceId) => ({
     invoiceId, month: 5, year: 2026, totalAmount: 3240000, status: 'Unpaid',
     stallCode: 'Kiosk B-05', vendorName: t('paymentverification.tran_thi_b'),
+    dueDate: '2026-05-25', createdAt: '2026-05-01T08:00:00Z', vendorPhone: '0901234567', invoiceType: 'Periodic',
     details: [
       { invoiceDetailId: 1, feeTypeName: t('paymentverification.premises_rent'), description: t('paymentverification.kiosk_rental_in_may'), quantity: 1, unitPrice: 3000000, amount: 3000000 },
       { invoiceDetailId: 2, feeTypeName: t('paymentverification.electricity_bills_for_daily'), description: t('paymentverification.electricity_consumption_80_kwh'), quantity: 80, unitPrice: 3000, amount: 240000 }
+    ],
+    payments: [
+      { paymentId: 1, transactionCode: 'MOCK-TX-001', amount: 3240000, method: 'Cash', paidAt: '2026-05-20T10:30:00Z', status: 'Pending' }
     ]
   });
   const getMockStallDebtDetail = (stallId) => ({
@@ -123,7 +127,7 @@ export default function PaymentVerification() {
     if (!window.confirm(t('paymentverification.confirm_transaction_approval_paytransactioncode', { transactionCode: pay.transactionCode, amount: formatCurrency(pay.amount) }))) return;
     if (isMock) { setPayments(p => p.map(x => x.paymentId === pay.paymentId ? { ...x, status: 'Approved' } : x)); showNotification('success', t('paymentverification.successful_transaction_confirmed')); }
     else fetch(`http://localhost:5056/api/accountant/payments/${pay.paymentId}/verify?userId=1`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` }, body: JSON.stringify({ approve: true }) })
-      .then(r => { if (!r.ok) throw new Error(); showNotification('success', t('paymentverification.successful_payment_confirmation')); loadAllData(); })
+      .then(r => { if (r.status === 401) { localStorage.removeItem('accessToken'); window.location.href = '/login'; throw new Error('401'); } if (!r.ok) throw new Error(); showNotification('success', t('paymentverification.successful_payment_confirmation')); loadAllData(); })
       .catch(() => showNotification('danger', t('paymentverification.unable_to_approve_payment')));
   };
 
@@ -139,20 +143,20 @@ export default function PaymentVerification() {
     
     if (isMock) { setPayments(p => p.filter(x => x.paymentId !== selectedItem.paymentId)); showNotification('success', t('paymentverification.selecteditemtransactioncode_transaction_declined')); setActiveModal(null); }
     else fetch(`http://localhost:5056/api/accountant/payments/${selectedItem.paymentId}/verify?userId=1`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` }, body: JSON.stringify({ approve: false, rejectionNote }) })
-      .then(r => { if (!r.ok) throw new Error(); showNotification('success', t('paymentverification.payment_refused')); setActiveModal(null); loadAllData(); })
+      .then(r => { if (r.status === 401) { localStorage.removeItem('accessToken'); window.location.href = '/login'; throw new Error('401'); } if (!r.ok) throw new Error(); showNotification('success', t('paymentverification.payment_refused')); setActiveModal(null); loadAllData(); })
       .catch(() => showNotification('danger', t('paymentverification.payment_cannot_be_refused')));
   };
 
   const handleViewOriginalInvoice = (invoiceId, stallCode) => {
     setLoadingPopup(true); setSelectedItem({ invoiceId, stallCode }); setActiveModal('invoice_detail');
     if (isMock) { setSelectedInvoiceDetail(getMockInvoiceDetail(invoiceId)); setLoadingPopup(false); }
-    else fetch(`http://localhost:5056/api/accountant/billing/invoices/${invoiceId}`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` } }).then(r => r.json()).then(d => { setSelectedInvoiceDetail(d); setLoadingPopup(false); }).catch(() => { setSelectedInvoiceDetail(getMockInvoiceDetail(invoiceId)); setLoadingPopup(false); });
+    else fetch(`http://localhost:5056/api/accountant/billing/invoices/${invoiceId}`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` } }).then(r => { if (r.status === 401) { localStorage.removeItem('accessToken'); window.location.href = '/login'; throw new Error('401'); } if (!r.ok) throw new Error(r.statusText); return r.json(); }).then(d => { setSelectedInvoiceDetail(d); setLoadingPopup(false); }).catch(() => { setSelectedInvoiceDetail(getMockInvoiceDetail(invoiceId)); setLoadingPopup(false); });
   };
 
   const handleViewDebtDetail = (debt) => {
     setLoadingPopup(true); setSelectedItem(debt); setActiveModal('debt_detail');
     if (isMock) { setSelectedInvoiceDetail(getMockStallDebtDetail(debt.stallId)); setLoadingPopup(false); }
-    else fetch(`http://localhost:5056/api/accountant/payments/debts/${debt.stallId}`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` } }).then(r => r.json()).then(d => { setSelectedInvoiceDetail(d); setLoadingPopup(false); }).catch(() => { setSelectedInvoiceDetail(getMockStallDebtDetail(debt.stallId)); setLoadingPopup(false); });
+    else fetch(`http://localhost:5056/api/accountant/payments/debts/${debt.stallId}`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` } }).then(r => { if (r.status === 401) { localStorage.removeItem('accessToken'); window.location.href = '/login'; throw new Error('401'); } if (!r.ok) throw new Error(r.statusText); return r.json(); }).then(d => { setSelectedInvoiceDetail(d); setLoadingPopup(false); }).catch(() => { setSelectedInvoiceDetail(getMockStallDebtDetail(debt.stallId)); setLoadingPopup(false); });
   };
 
   const handlePrintStatement = () => {
@@ -219,7 +223,7 @@ export default function PaymentVerification() {
     e.preventDefault();
     if (isMock) { showNotification('success', t('paymentverification.debt_reminder_sent_to')); setActiveModal(null); }
     else fetch('http://localhost:5056/api/accountant/payments/debts/notify?userId=1', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` }, body: JSON.stringify({ stallId: selectedItem.stallId, customMessage: reminderMessage }) })
-      .then(r => { if (!r.ok) throw new Error(); showNotification('success', t('paymentverification.debt_reminder_sent_successfully')); setActiveModal(null); })
+      .then(r => { if (r.status === 401) { localStorage.removeItem('accessToken'); window.location.href = '/login'; throw new Error('401'); } if (!r.ok) throw new Error(); showNotification('success', t('paymentverification.debt_reminder_sent_successfully')); setActiveModal(null); })
       .catch(() => showNotification('danger', t('paymentverification.sending_debt_reminder_failed')));
   };
 
@@ -232,6 +236,19 @@ export default function PaymentVerification() {
     setRefundMethod('Transfer');
     setTransactionCode('');
     setActiveModal('resolve_dispute');
+    
+    if (dispute.invoiceId) {
+      if (isMock) {
+        setSelectedInvoiceDetail(getMockInvoiceDetail(dispute.invoiceId));
+      } else {
+        fetch(`http://localhost:5056/api/accountant/billing/invoices/${dispute.invoiceId}`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` } })
+          .then(r => r.json())
+          .then(d => setSelectedInvoiceDetail(d))
+          .catch(() => setSelectedInvoiceDetail(null));
+      }
+    } else {
+      setSelectedInvoiceDetail(null);
+    }
   };
 
   const submitResolveDispute = (e) => {
@@ -277,7 +294,7 @@ export default function PaymentVerification() {
         transactionCode: (isRefund && selectedItem.invoiceStatus === 'Paid') ? transactionCode : null
       }) 
     })
-      .then(r => { if (!r.ok) throw new Error(); showNotification('success', t('paymentverification.appeal_responded_successfully')); setActiveModal(null); loadAllData(); })
+      .then(r => { if (r.status === 401) { localStorage.removeItem('accessToken'); window.location.href = '/login'; throw new Error('401'); } if (!r.ok) throw new Error(); showNotification('success', t('paymentverification.appeal_responded_successfully')); setActiveModal(null); loadAllData(); })
       .catch(() => showNotification('danger', t('paymentverification.appeal_processing_failed')));
   };
 
@@ -704,11 +721,18 @@ export default function PaymentVerification() {
                 </div>
               ) : selectedInvoiceDetail && (
                 <>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, background: 'var(--bg-base)', padding: 14, borderRadius: 'var(--radius-md)', fontSize: 13.5 }}>
-                    <div><span style={{ color: 'var(--text-muted)', marginRight: '4px' }}>{t('paymentverification.stall')}</span><strong>{selectedInvoiceDetail.stallCode}</strong></div>
-                    <div><span style={{ color: 'var(--text-muted)', marginRight: '4px' }}>{t('paymentverification.month')}</span>Th.{selectedInvoiceDetail.month}/{selectedInvoiceDetail.year}</div>
-                    <div><span style={{ color: 'var(--text-muted)', marginRight: '4px' }}>{t('paymentverification.small_business')}</span>{selectedInvoiceDetail.vendorName}</div>
-                    <div><span style={{ color: 'var(--text-muted)', marginRight: '4px' }}>{t('paymentverification.status')}</span><span className="acc-badge warning">{selectedInvoiceDetail.status}</span></div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 24px', background: '#f8fafc', padding: '16px 20px', borderRadius: '8px', fontSize: 14, border: '1px solid var(--border-color)', marginBottom: 20 }}>
+                    <div><span style={{ color: 'var(--text-muted)', marginRight: '8px', display: 'inline-block', width: '120px' }}>{t('paymentverification.stall')}</span><strong>{selectedInvoiceDetail.stallCode}</strong></div>
+                    <div><span style={{ color: 'var(--text-muted)', marginRight: '8px', display: 'inline-block', width: '120px' }}>{t('paymentverification.invoice_period')}</span><strong>Tháng {selectedInvoiceDetail.month}/{selectedInvoiceDetail.year}</strong></div>
+                    
+                    <div><span style={{ color: 'var(--text-muted)', marginRight: '8px', display: 'inline-block', width: '120px' }}>{t('paymentverification.small_business')}</span><strong>{selectedInvoiceDetail.vendorName}</strong></div>
+                    <div><span style={{ color: 'var(--text-muted)', marginRight: '8px', display: 'inline-block', width: '120px' }}>{t('paymentverification.phone') || 'Số điện thoại:'}</span><strong>{selectedInvoiceDetail.vendorPhone || 'N/A'}</strong></div>
+                    
+                    <div><span style={{ color: 'var(--text-muted)', marginRight: '8px', display: 'inline-block', width: '120px' }}>{t('paymentverification.issue_date') || 'Ngày phát hành:'}</span><strong>{selectedInvoiceDetail.createdAt ? formatDate(selectedInvoiceDetail.createdAt) : '—'}</strong></div>
+                    <div><span style={{ color: 'var(--text-muted)', marginRight: '8px', display: 'inline-block', width: '120px' }}>{t('paymentverification.due_date') || 'Hạn chót:'}</span><strong style={{ color: 'var(--danger)' }}>{selectedInvoiceDetail.dueDate ? formatDate(selectedInvoiceDetail.dueDate) : '—'}</strong></div>
+                    
+                    <div><span style={{ color: 'var(--text-muted)', marginRight: '8px', display: 'inline-block', width: '120px' }}>{t('paymentverification.invoice_type') || 'Loại hóa đơn:'}</span><strong>{selectedInvoiceDetail.invoiceType === 'AdHoc' ? 'Đột xuất' : (selectedInvoiceDetail.invoiceType === 'Adjustment' ? 'Điều chỉnh' : 'Định kỳ')}</strong></div>
+                    <div><span style={{ color: 'var(--text-muted)', marginRight: '8px', display: 'inline-block', width: '120px' }}>{t('paymentverification.status')}</span><span className={`badge ${selectedInvoiceDetail.status === 'Paid' ? 'badge-success' : selectedInvoiceDetail.status === 'Unpaid' ? 'badge-warning' : 'badge-neutral'}`}>{selectedInvoiceDetail.status}</span></div>
                   </div>
                   <table className="acc-table">
                     <thead><tr><th>{t('paymentverification.fees')}</th><th>{t('paymentverification.describe')}</th><th className="text-right">{t('paymentverification.quantity')}</th><th className="text-right">{t('paymentverification.unit_price')}</th><th className="text-right" style={{ whiteSpace: 'nowrap' }}>{t('paymentverification.make_money')}</th></tr></thead>
@@ -728,6 +752,33 @@ export default function PaymentVerification() {
                       </tr>
                     </tbody>
                   </table>
+                  {selectedInvoiceDetail.payments && selectedInvoiceDetail.payments.length > 0 && (
+                    <div style={{ marginTop: 24 }}>
+                      <h4 style={{ fontSize: 15, marginBottom: 12, color: 'var(--text-main)', fontWeight: 600 }}>{t('paymentverification.payment_history') || 'Lịch sử thanh toán'}</h4>
+                      <table className="acc-table" style={{ fontSize: 13, border: '1px solid var(--border-color)', borderRadius: 8, overflow: 'hidden' }}>
+                        <thead>
+                          <tr style={{ backgroundColor: '#f1f5f9' }}>
+                            <th style={{ padding: '10px 16px' }}>{t('paymentverification.transaction_code') || 'Mã giao dịch'}</th>
+                            <th style={{ padding: '10px 16px' }}>{t('paymentverification.payment_date') || 'Ngày thanh toán'}</th>
+                            <th style={{ padding: '10px 16px' }}>{t('paymentverification.method') || 'Phương thức'}</th>
+                            <th className="text-right" style={{ padding: '10px 16px' }}>{t('paymentverification.amount') || 'Số tiền'}</th>
+                            <th style={{ padding: '10px 16px' }}>{t('paymentverification.status')}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {selectedInvoiceDetail.payments.map((p, idx) => (
+                            <tr key={idx}>
+                              <td style={{ padding: '10px 16px' }}><strong>{p.transactionCode}</strong></td>
+                              <td style={{ padding: '10px 16px' }}>{formatDate(p.paidAt)}</td>
+                              <td style={{ padding: '10px 16px' }}>{p.method === 'Transfer' ? 'Chuyển khoản' : 'Tiền mặt'}</td>
+                              <td className="text-right" style={{ color: 'var(--success)', fontWeight: 'bold', padding: '10px 16px' }}>{formatCurrency(p.amount)}</td>
+                              <td style={{ padding: '10px 16px' }}><span className={`badge ${p.status === 'Approved' ? 'badge-success' : p.status === 'Pending' ? 'badge-warning' : 'badge-danger'}`}>{p.status}</span></td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </>
               )}
             </div>
@@ -883,23 +934,45 @@ export default function PaymentVerification() {
                 <div style={{ flex: 1, borderRight: '1px solid var(--border-color)', paddingRight: 24 }}>
                   <h4 style={{ margin: '0 0 16px 0', fontSize: 16, color: 'var(--text-main)' }}>{t('paymentverification.original_invoice_information')}</h4>
                   <div style={{ padding: 16, backgroundColor: '#f8fafc', borderRadius: 8, border: '1px solid var(--border-color)' }}>
-                    <div style={{ marginBottom: 12 }}>
-                      <span style={{ fontSize: 13, color: 'var(--text-light)', display: 'block' }}>{t('paymentverification.invoice_period')}</span>
-                      <strong style={{ fontSize: 15 }}>{t('paymentverification.month_year', { month: selectedItem.invoiceMonth, year: selectedItem.invoiceYear })}</strong>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
+                      <div>
+                        <span style={{ fontSize: 13, color: 'var(--text-light)', display: 'block' }}>{t('paymentverification.invoice_period')}</span>
+                        <strong style={{ fontSize: 15 }}>{t('paymentverification.month_year', { month: selectedItem.invoiceMonth, year: selectedItem.invoiceYear })}</strong>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <span style={{ fontSize: 13, color: 'var(--text-light)', display: 'block' }}>{t('paymentverification.status')}</span>
+                        <span className={`badge ${selectedItem.invoiceStatus === 'Paid' ? 'badge-success' : 'badge-warning'}`}>
+                          {selectedItem.invoiceStatus}
+                        </span>
+                      </div>
                     </div>
-                    <div style={{ marginBottom: 12 }}>
+                    <div style={{ marginBottom: 16 }}>
                       <span style={{ fontSize: 13, color: 'var(--text-light)', display: 'block' }}>{t('paymentverification.booth')}</span>
                       <strong style={{ fontSize: 15 }}>{selectedItem.stallCode} - {selectedItem.tenantName}</strong>
                     </div>
-                    <div>
+
+                    {selectedInvoiceDetail && selectedInvoiceDetail.details && (
+                      <div style={{ marginBottom: 16, borderTop: '1px dashed #cbd5e1', paddingTop: 12 }}>
+                        <span style={{ fontSize: 13, color: 'var(--text-light)', display: 'block', marginBottom: 8 }}>{t('paymentverification.invoice_details', 'Chi tiết các khoản phí')}</span>
+                        <div style={{ maxHeight: 200, overflowY: 'auto', paddingRight: 4 }}>
+                          {selectedInvoiceDetail.details.map((d, idx) => (
+                            <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 13, backgroundColor: '#fff', padding: '8px', borderRadius: '4px', border: '1px solid #e2e8f0' }}>
+                              <div style={{ flex: 1, paddingRight: 8 }}>
+                                <div style={{ fontWeight: 600 }}>{d.feeTypeName}</div>
+                                <div style={{ color: 'var(--text-light)', fontSize: 12 }}>{d.description} {d.quantity > 1 ? `(x${d.quantity})` : ''}</div>
+                              </div>
+                              <div style={{ fontWeight: 600, color: 'var(--text-main)', alignSelf: 'center' }}>
+                                {formatCurrency(d.amount)}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: 12 }}>
                       <span style={{ fontSize: 13, color: 'var(--text-light)', display: 'block' }}>{t('paymentverification.total_invoice_amount')}</span>
-                      <strong style={{ fontSize: 18, color: 'var(--primary)' }}>{formatCurrency(selectedItem.invoiceTotalAmount)}</strong>
-                    </div>
-                    <div style={{ marginTop: 12 }}>
-                      <span style={{ fontSize: 13, color: 'var(--text-light)', display: 'block' }}>{t('paymentverification.status')}</span>
-                      <span className={`badge ${selectedItem.invoiceStatus === 'Paid' ? 'badge-success' : 'badge-warning'}`}>
-                        {selectedItem.invoiceStatus}
-                      </span>
+                      <strong style={{ fontSize: 20, color: 'var(--primary)' }}>{formatCurrency(selectedItem.invoiceTotalAmount)}</strong>
                     </div>
                   </div>
                 </div>
