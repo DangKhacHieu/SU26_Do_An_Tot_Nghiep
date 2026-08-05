@@ -8,6 +8,9 @@ using STMM.Business.Interfaces;
 
 namespace STMM.API.Controllers
 {
+    /// <summary>
+    /// API Controller managing business categories for market managers.
+    /// </summary>
     [ApiController]
     [Route("api/manager/business-categories")]
     public class BusinessCategoriesController : ControllerBase
@@ -26,6 +29,9 @@ namespace STMM.API.Controllers
             return null;
         }
 
+        /// <summary>
+        /// Retrieves all business categories matching search filter criteria.
+        /// </summary>
         [HttpGet]
         public async Task<ActionResult<IEnumerable<BusinessCategoryDto>>> GetAllCategories(
             [FromQuery] string? search = null,
@@ -44,6 +50,9 @@ namespace STMM.API.Controllers
             }
         }
 
+        /// <summary>
+        /// Gets details of a specific business category by its identifier.
+        /// </summary>
         [HttpGet("{id}")]
         public async Task<ActionResult<BusinessCategoryDto>> GetCategoryById(int id, CancellationToken ct)
         {
@@ -63,6 +72,9 @@ namespace STMM.API.Controllers
             }
         }
 
+        /// <summary>
+        /// Creates a new business category.
+        /// </summary>
         [HttpPost]
         public async Task<ActionResult<BusinessCategoryDto>> CreateCategory(
             [FromBody] CreateBusinessCategoryRequest request,
@@ -84,6 +96,9 @@ namespace STMM.API.Controllers
             }
         }
 
+        /// <summary>
+        /// Updates an existing business category.
+        /// </summary>
         [HttpPut("{id}")]
         public async Task<ActionResult<BusinessCategoryDto>> UpdateCategory(
             int id,
@@ -110,6 +125,9 @@ namespace STMM.API.Controllers
             }
         }
 
+        /// <summary>
+        /// Deletes a business category by its identifier.
+        /// </summary>
         [HttpDelete("{id}")]
         public async Task<ActionResult> DeleteCategory(int id, CancellationToken ct)
         {
