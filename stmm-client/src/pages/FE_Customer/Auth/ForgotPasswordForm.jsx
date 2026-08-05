@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import authService from "../../../services/authService";
 import "./ForgotPasswordForm.css";
 
 export default function ForgotPasswordForm({ onBack, onGoToLogin }) {
+  const { t } = useTranslation();
   const [step, setStep] = useState(1); // 1: Enter email, 2: Verify OTP, 3: Reset password
   const [email, setEmail] = useState("");
   const [otpCode, setOtpCode] = useState("");
@@ -190,9 +192,9 @@ export default function ForgotPasswordForm({ onBack, onGoToLogin }) {
                 </div>
               </div>
 
-              {error && <div className="forgot-message error">{error}</div>}
+              {error && <div className="forgot-message error">{t(error)}</div>}
               {success && (
-                <div className="forgot-message success">{success}</div>
+                <div className="forgot-message success">{t(success)}</div>
               )}
 
               <button
@@ -223,9 +225,9 @@ export default function ForgotPasswordForm({ onBack, onGoToLogin }) {
                 </div>
               </div>
 
-              {error && <div className="forgot-message error">{error}</div>}
+              {error && <div className="forgot-message error">{t(error)}</div>}
               {success && (
-                <div className="forgot-message success">{success}</div>
+                <div className="forgot-message success">{t(success)}</div>
               )}
 
               <button
@@ -276,9 +278,9 @@ export default function ForgotPasswordForm({ onBack, onGoToLogin }) {
                 </div>
               </div>
 
-              {error && <div className="forgot-message error">{error}</div>}
+              {error && <div className="forgot-message error">{t(error)}</div>}
               {success && (
-                <div className="forgot-message success">{success}</div>
+                <div className="forgot-message success">{t(success)}</div>
               )}
 
               <button

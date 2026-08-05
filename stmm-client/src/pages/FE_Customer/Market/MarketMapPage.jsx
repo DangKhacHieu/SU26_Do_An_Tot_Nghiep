@@ -56,10 +56,40 @@ export default function MarketMapPage({
     setPanPosition({ x: 0, y: 0 });
   };
 
-  const handleWheelZoom = (e) => {
-    const delta = e.deltaY < 0 ? 0.15 : -0.15;
-    setZoomScale((prev) => Math.min(Math.max(prev + delta, 0.5), 3.5));
-  };
+  const [showZoomTip, setShowZoomTip] = useState(false);
+  const zoomTipTimeoutRef = useRef(null);
+  const viewportRef = useRef(null);
+
+  useEffect(() => {
+    const viewportEl = viewportRef.current;
+    if (!viewportEl) return;
+
+    const handleWheel = (e) => {
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        const scaleAmount = -e.deltaY * 0.001;
+        const delta = Math.min(Math.max(scaleAmount, -0.15), 0.15);
+        setZoomScale((prev) => Math.min(Math.max(prev + delta, 0.5), 3.5));
+      } else {
+        setShowZoomTip(true);
+        if (zoomTipTimeoutRef.current) {
+          clearTimeout(zoomTipTimeoutRef.current);
+        }
+        zoomTipTimeoutRef.current = setTimeout(() => {
+          setShowZoomTip(false);
+        }, 1500);
+      }
+    };
+
+    viewportEl.addEventListener("wheel", handleWheel, { passive: false });
+
+    return () => {
+      viewportEl.removeEventListener("wheel", handleWheel);
+      if (zoomTipTimeoutRef.current) {
+        clearTimeout(zoomTipTimeoutRef.current);
+      }
+    };
+  }, [loading, marketMap]);
 
   const handleMouseDownMap = (e) => {
     if (e.button !== 0) return;
@@ -522,13 +552,18 @@ export default function MarketMapPage({
 
                 {/* Interactive Map Canvas Viewer */}
                 <div
+                  ref={viewportRef}
                   className={`canvas-wrapper ${isDraggingMap ? "dragging" : ""}`}
-                  onWheel={handleWheelZoom}
                   onMouseDown={handleMouseDownMap}
                   onMouseMove={handleMouseMoveMap}
                   onMouseUp={handleMouseUpMap}
                   onMouseLeave={handleMouseUpMap}
                 >
+                  {showZoomTip && (
+                    <div className="map-zoom-tip">
+                      {t("marketmappage.hold_ctrl_to_zoom") || "Cuộn chuột + giữ Ctrl để thu phóng bản đồ"}
+                    </div>
+                  )}
                   {/* Floating Zoom & Pan Controls Bar */}
                   <div className="map-zoom-controls" onClick={(e) => e.stopPropagation()}>
                     <button type="button" className="zoom-btn" onClick={handleZoomIn} title="Zoom In (+)">➕</button>
@@ -659,6 +694,7 @@ export default function MarketMapPage({
                                   return (
                                     <g
                                       key={stall.stallId || stall.code}
+                                      id={`stall-node-${stall.stallId}`}
                                       transform={`translate(${renderX}, ${renderY})`}
                                       className={`stall-rect-group ${
                                         isOccupied ? "occupied" : isAvailable ? "available" : "maintenance"

@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import authService from "../../../services/authService";
 import "./RegisterForm.css";
 
 export default function RegisterForm({ onBack, onGoToLogin, onRegistered }) {
+  const { t } = useTranslation();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -219,9 +221,9 @@ export default function RegisterForm({ onBack, onGoToLogin, onRegistered }) {
                 </div>
               </div>
 
-              {error && <div className="register-message error">{error}</div>}
+              {error && <div className="register-message error">{t(error)}</div>}
               {success && (
-                <div className="register-message success">{success}</div>
+                <div className="register-message success">{t(success)}</div>
               )}
 
               <button
@@ -390,9 +392,9 @@ export default function RegisterForm({ onBack, onGoToLogin, onRegistered }) {
               </div>
             </div>
 
-            {error && <div className="register-message error">{error}</div>}
+            {error && <div className="register-message error">{t(error)}</div>}
             {success && (
-              <div className="register-message success">{success}</div>
+              <div className="register-message success">{t(success)}</div>
             )}
 
             <button
