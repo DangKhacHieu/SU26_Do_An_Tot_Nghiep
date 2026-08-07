@@ -120,6 +120,8 @@ export default function VendorBillsList({ vendorId, stallId }) {
                 return <span className="bill-badge badge-warning">{t('vendorbillslist.not_yet_paid')}</span>;
             case 'overdue':
                 return <span className="bill-badge badge-danger">{t('vendorbillslist.overdue')}</span>;
+            case 'disputed':
+                return <span className="bill-badge badge-info" style={{ backgroundColor: '#0ea5e9', color: 'white' }}>{t('vendorbillslist.disputed') || 'Đang khiếu nại'}</span>;
             default:
                 return <span className="bill-badge badge-secondary">{status}</span>;
         }
@@ -224,6 +226,9 @@ export default function VendorBillsList({ vendorId, stallId }) {
                                     } else if (inv.status?.toLowerCase() === 'overdue') {
                                         badgeClass = 'premium-badge-danger';
                                         statusText = t('vendorbillslist.overdue') || 'Quá hạn';
+                                    } else if (inv.status?.toLowerCase() === 'disputed') {
+                                        badgeClass = 'premium-badge-info';
+                                        statusText = t('vendorbillslist.disputed') || 'Đang khiếu nại';
                                     }
 
                                     const { name: invName, type: invType } = getInvoiceInfo(inv);
@@ -346,6 +351,7 @@ export default function VendorBillsList({ vendorId, stallId }) {
                             </table>
                         </div>
                         <div className="bill-modal-footer">
+                            {selectedInvoice.status?.toLowerCase() !== 'disputed' && (
                             <button 
                                 className="btn-cancel" 
                                 style={{ backgroundColor: '#f59e0b', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', marginRight: 'auto' }}
@@ -357,6 +363,7 @@ export default function VendorBillsList({ vendorId, stallId }) {
                                 }}>
                                 {i18n.language === 'en' ? 'Invoice Complaint' : 'Khiếu nại hóa đơn'}
                             </button>
+                            )}
                              {selectedInvoice.status?.toLowerCase() !== 'paid' && (
                                 <div className="payment-options" style={{ display: 'flex', gap: '10px' }}>
                                     <button 

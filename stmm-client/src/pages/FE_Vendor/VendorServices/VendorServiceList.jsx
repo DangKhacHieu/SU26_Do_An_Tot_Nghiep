@@ -83,7 +83,14 @@ export default function VendorServiceList({ vendorId, searchTerm = '', setSearch
             });
             setMyServices(myServicesRes.data || []);
         } catch (err) {
-            const msg = err.response?.data?.detail || err.response?.data?.message || t('vendorservicelist.an_error_occurred_when');
+            let msg = err.response?.data?.detail || err.response?.data?.message || t('vendorservicelist.an_error_occurred_when');
+            
+            if (msg && typeof msg === 'string' && msg.startsWith('PENDING_CANCELLATION_ERROR|')) {
+                const dateParts = msg.split('|');
+                const endDate = dateParts.length > 1 ? dateParts[1] : '';
+                msg = t('vendorservicelist.pending_cancellation_error', { date: endDate });
+            }
+
             showError(t('vendorservicelist.failure'), msg);
         } finally {
             setIsRegistering(false);

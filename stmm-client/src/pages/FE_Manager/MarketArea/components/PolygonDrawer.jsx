@@ -23,10 +23,12 @@ const PolygonDrawer = ({
     cWidth = 4000,
     cHeight = 4000,
     maxAllowedAreaSize,
-    stallMode = false
+    stallMode = false,
+    allowMultiple = false
 }) => {
     const { t } = useTranslation();
     const [points, setPoints] = useState([]);
+    const [drawnPolygons, setDrawnPolygons] = useState([]);
     const [mousePos, setMousePos] = useState(null);
     const [isClosed, setIsClosed] = useState(false);
     const canvasRef = useRef(null);
@@ -81,10 +83,10 @@ const PolygonDrawer = ({
         setMousePos({ x, y });
     };
 
-    const handleFinish = () => {
+    const validateAndGetPolygon = () => {
         if (points.length < 3) {
             setErrorMsg(t('marketFloorPlan.polygonDrawer.min_points'));
-            return;
+            return null;
         }
 
         // Chuyển sang tọa độ thật (database coordinates)
@@ -99,7 +101,7 @@ const PolygonDrawer = ({
         if (maxAllowedAreaSize > 0 && areaM2 > maxAllowedAreaSize) {
             setErrorMsg(t('marketFloorPlan.polygonDrawer.exceeds_limit', { drawn: Math.round(areaM2), max: Math.round(maxAllowedAreaSize) }));
             setIsClosed(false);
-            return;
+            return null;
         }
 
         // Tạo mảng điểm cho polygon-clipping
@@ -114,7 +116,7 @@ const PolygonDrawer = ({
             if (intersectionWithMarket.length === 0) {
                 setErrorMsg(stallMode ? t('marketFloorPlan.polygonDrawer.stall_in_area') : t('marketFloorPlan.polygonDrawer.area_in_market'));
                 setIsClosed(false);
-                return;
+                return null;
             }
             
             // So sánh diện tích giao cắt với diện tích vẽ. Nếu nhỏ hơn => bị rớt ra ngoài 1 phần.
@@ -128,7 +130,7 @@ const PolygonDrawer = ({
             if (Math.abs(intersectionArea - areaPx) > 100) {
                 setErrorMsg(stallMode ? t('marketFloorPlan.polygonDrawer.stall_out_bounds') : t('marketFloorPlan.polygonDrawer.area_out_bounds'));
                 setIsClosed(false);
-                return;
+                return null;
             }
         }
 
@@ -166,13 +168,65 @@ const PolygonDrawer = ({
                             break;
                         }
                     }
+                } else {
+                    // Xử lý các khu vực hoặc sạp cũ chỉ là hình chữ nhật (không có svgPath)
+                    let exMinX = 0;
+                    let exMinY = 0;
+                    let width = area.width || 100;
+                    let height = area.height || 100;
+                    
+                    if (stallMode) {
+                        exMinX = area.mapX ?? area.MapX ?? 0;
+                        exMinY = area.mapY ?? area.MapY ?? 0;
+                    } else {
+                        exMinX = area.minX ?? area.MinX ?? 0;
+                        exMinY = area.minY ?? area.MinY ?? 0;
+                        if (area.maxX !== undefined && area.minX !== undefined) {
+                            width = parseFloat(area.maxX) - parseFloat(area.minX);
+                        }
+                        if (area.maxY !== undefined && area.minY !== undefined) {
+                            height = parseFloat(area.maxY) - parseFloat(area.minY);
+                        }
+                    }
+                    
+                    const exPoly = [[
+                        [exMinX, exMinY],
+                        [exMinX + width, exMinY],
+                        [exMinX + width, exMinY + height],
+                        [exMinX, exMinY + height],
+                        [exMinX, exMinY]
+                    ]];
+                    
+                    const overlap = polygonClipping.intersection(drawnPoly, exPoly);
+                    if (overlap.length > 0) {
+                        hasOverlap = true;
+                        break;
+                    }
                 }
             }
             
             if (hasOverlap) {
                 setErrorMsg(stallMode ? t('marketFloorPlan.polygonDrawer.stall_overlap') : t('marketFloorPlan.polygonDrawer.area_overlap'));
                 setIsClosed(false);
-                return;
+                return null;
+            }
+        }
+        
+        // 3. Kiểm tra đè lấp lên các sạp VỪA MỚI VẼ trong drawnPolygons
+        if (drawnPolygons.length > 0) {
+            let hasOverlap = false;
+            for (let dp of drawnPolygons) {
+                const exPoly = [dp.dbPoints.map(p => [p.x, p.y])];
+                const overlap = polygonClipping.intersection(drawnPoly, exPoly);
+                if (overlap.length > 0) {
+                    hasOverlap = true;
+                    break;
+                }
+            }
+            if (hasOverlap) {
+                setErrorMsg(stallMode ? t('marketFloorPlan.polygonDrawer.stall_overlap') : t('marketFloorPlan.polygonDrawer.area_overlap'));
+                setIsClosed(false);
+                return null;
             }
         }
 
@@ -191,14 +245,44 @@ const PolygonDrawer = ({
         });
         path += 'Z';
         
-        onComplete({
+        return {
             svgPath: path,
             minX: minX,
             minY: minY,
             width: maxX - minX,
             height: maxY - minY,
-            areaM2: areaM2
-        });
+            areaM2: areaM2,
+            dbPoints: dbPoints
+        };
+    };
+
+    const handleAddStall = () => {
+        const polygonData = validateAndGetPolygon();
+        if (polygonData) {
+            setDrawnPolygons([...drawnPolygons, polygonData]);
+            setPoints([]);
+            setIsClosed(false);
+            setErrorMsg('');
+        }
+    };
+
+    const handleFinish = () => {
+        let finalPolygons = [...drawnPolygons];
+        if (points.length >= 3 && isClosed) {
+            const polygonData = validateAndGetPolygon();
+            if (polygonData) {
+                finalPolygons.push(polygonData);
+            } else {
+                return; // Validation failed, do not close
+            }
+        }
+        
+        if (finalPolygons.length === 0) {
+            setErrorMsg(t('marketFloorPlan.polygonDrawer.min_points'));
+            return;
+        }
+
+        onComplete(finalPolygons);
     };
 
     const handleClear = () => {
@@ -242,7 +326,14 @@ const PolygonDrawer = ({
                     </div>
                     <div style={{ display: 'flex', gap: '12px' }}>
                         <button onClick={handleClear} style={{ padding: '8px 16px', border: '1px solid #cbd5e1', background: 'transparent', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>{t('marketFloorPlan.polygonDrawer.clear')}</button>
-                        <button onClick={handleFinish} disabled={points.length < 3 || !isClosed} style={{ padding: '8px 16px', border: 'none', background: (points.length >= 3 && isClosed) ? '#10b981' : '#94a3b8', color: 'white', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>{t('marketFloorPlan.polygonDrawer.save')}</button>
+                        {(stallMode || allowMultiple) && (
+                            <button onClick={handleAddStall} disabled={points.length < 3 || !isClosed} style={{ padding: '8px 16px', border: '1px solid #10b981', color: (points.length >= 3 && isClosed) ? '#10b981' : '#94a3b8', background: 'transparent', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>
+                                + {stallMode ? t('marketFloorPlan.polygonDrawer.add_stall', 'Hoàn thành & Vẽ tiếp') : t('marketFloorPlan.polygonDrawer.add_area', 'Hoàn thành & Vẽ tiếp')}
+                            </button>
+                        )}
+                        <button onClick={handleFinish} disabled={(points.length < 3 || !isClosed) && drawnPolygons.length === 0} style={{ padding: '8px 16px', border: 'none', background: ((points.length >= 3 && isClosed) || drawnPolygons.length > 0) ? '#10b981' : '#94a3b8', color: 'white', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>
+                            {drawnPolygons.length > 0 ? t('marketFloorPlan.polygonDrawer.save_all', `Lưu tất cả (${drawnPolygons.length + (isClosed ? 1 : 0)})`) : t('marketFloorPlan.polygonDrawer.save')}
+                        </button>
                         <button onClick={onCancel} style={{ padding: '8px 16px', border: 'none', background: '#ef4444', color: 'white', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>{t('marketFloorPlan.polygonDrawer.close')}</button>
                     </div>
                 </div>
@@ -312,6 +403,27 @@ const PolygonDrawer = ({
                                 />
                             );
                         })}
+
+                        {/* Các hình VỪA MỚI VẼ xong trong phiên này */}
+                        {drawnPolygons.map((dp, idx) => (
+                            <svg key={`drawn-${idx}`} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none' }}>
+                                <g transform={`translate(${svgOffsetX + dp.minX}, ${svgOffsetY + dp.minY})`}>
+                                    <path d={dp.svgPath} fill="rgba(16, 185, 129, 0.2)" stroke="#10b981" strokeWidth="2" strokeDasharray="4 2" />
+                                </g>
+                                {/* Text Label */}
+                                <text 
+                                    x={svgOffsetX + dp.minX + dp.width / 2} 
+                                    y={svgOffsetY + dp.minY + dp.height / 2} 
+                                    fill="#047857" 
+                                    fontSize="14" 
+                                    fontWeight="bold" 
+                                    textAnchor="middle" 
+                                    dominantBaseline="middle"
+                                >
+                                    {stallMode ? `Sạp Mới ${idx + 1}` : `Khu vực ${idx + 1}`}
+                                </text>
+                            </svg>
+                        ))}
 
                         {/* Hình đang vẽ */}
                         <svg style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none' }}>

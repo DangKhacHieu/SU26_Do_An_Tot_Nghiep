@@ -6,13 +6,15 @@ import {
     getAllStallsByAreaId, 
     updateStallLocation, 
     deactivateStall, 
-    updateStallStatus 
+    updateStallStatus,
+    createStall
 } from '../api/stallApi';
+import { getAreaById } from '../api/marketAreaApi';
 import StallForm from './StallForm';
 import PolygonDrawer from './PolygonDrawer';
 import styles from './StallLayoutEditor.module.css';
 
-const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, areaHeight, areaSize, polygonClipPath, svgPath, validateStallBounds, marketCategories }) => {
+const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, areaHeight, areaSize, polygonClipPath, svgPath, validateStallBounds, marketCategories, isHovered }) => {
   const { t } = useTranslation();
 
     const [stalls, setStalls] = useState([]);
@@ -365,7 +367,8 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
                                     background: 'transparent',
                                     border: 'none',
                                     boxShadow: 'none',
-                                    overflow: 'visible'
+                                    overflow: 'visible',
+                                    pointerEvents: 'none'
                                 } : {})
                             }}
                         >
@@ -544,12 +547,61 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
                                 parseFloat(m[2])
                             ]);
                         })()}
-                        onComplete={(drawData) => {
-                            setDrawnStallData(drawData);
+                        onComplete={async (drawnArray) => {
+                            if (!Array.isArray(drawnArray)) {
+                                drawnArray = [drawnArray];
+                            }
                             setIsDrawingStall(false);
-                            // If we are drawing a new stall, selectedStall is null, form opens via drawnData
-                            // If redrawing, selectedStall stays active, form opens to update it.
-                            setIsFormOpen(true);
+
+                            if (selectedStall && drawnArray.length === 1) {
+                                // If redrawing, selectedStall stays active, form opens to update it.
+                                setDrawnStallData(drawnArray[0]);
+                                setIsFormOpen(true);
+                            } else if (drawnArray.length > 0) {
+                                // Bulk create new stalls
+                                setLoading(true);
+                                try {
+                                    let areaCat = '';
+                                    try {
+                                        const areaData = await getAreaById(areaId);
+                                        if (areaData && areaData.categoryName) {
+                                            areaCat = areaData.categoryName;
+                                        }
+                                    } catch (err) {
+                                        console.error('Failed to fetch area category', err);
+                                    }
+                                    
+                                    for (let i = 0; i < drawnArray.length; i++) {
+                                        const data = drawnArray[i];
+                                        const size = Math.round((data.areaM2 || 0) * 100) / 100;
+                                        await createStall({
+                                            areaId,
+                                            status: 'Available',
+                                            categoryName: areaCat,
+                                            size: size,
+                                            width: data.width,
+                                            height: data.height,
+                                            mapX: data.minX,
+                                            mapY: data.minY,
+                                            svgPath: data.svgPath,
+                                            electricityMeterId: null,
+                                            waterMeterId: null
+                                        });
+                                    }
+                                    await fetchStalls();
+                                } catch (error) {
+                                    console.error('Failed to bulk create stalls:', error);
+                                    let errorMsg = error.message;
+                                    if (error.response?.data?.errors) {
+                                        errorMsg = Object.values(error.response.data.errors).flat().join(' ');
+                                    } else if (error.response?.data?.message) {
+                                        errorMsg = error.response.data.message;
+                                    }
+                                    setErrorMessage(t('marketFloorPlan.stallEditor.error') + ': ' + errorMsg);
+                                } finally {
+                                    setLoading(false);
+                                }
+                            }
                         }}
                         onCancel={() => {
                             setIsDrawingStall(false);
@@ -565,32 +617,34 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
 
     const inlineContent = (
         <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-            <div style={{ position: 'absolute', top: 8, left: 8, background: 'rgba(255, 255, 255, 0.9)', padding: '6px 12px', borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.15)', display: 'flex', gap: 16, alignItems: 'center', fontSize: 12, zIndex: 100, border: '1px solid var(--border-color)', width: 'max-content', backdropFilter: 'blur(4px)' }}>
-               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--color-primary)' }}></div>
-                  <span style={{ color: 'var(--text-secondary)' }}>{t('marketFloorPlan.stallEditor.area_label')}</span>
-                  <strong style={{ color: 'var(--text-primary)' }}>{areaSize} m²</strong>
-               </div>
-               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10b981' }}></div>
-                  <span style={{ color: 'var(--text-secondary)' }}>{t('marketFloorPlan.stallEditor.used_label')}</span>
-                  <strong style={{ color: 'var(--text-primary)' }}>{Math.round(totalUsedStallArea * 100) / 100} m²</strong>
-               </div>
-               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: remainingStallArea > 0 ? '#eab308' : '#ef4444' }}></div>
-                  <span style={{ color: 'var(--text-secondary)' }}>{t('marketFloorPlan.stallEditor.empty_label')}</span>
-                  <strong style={{ color: remainingStallArea > 0 ? 'var(--text-primary)' : '#ef4444' }}>{remainingStallArea} m²</strong>
-               </div>
+            {(isHovered || isSplitViewActive) && (
+                <div style={{ position: 'absolute', top: '12px', left: '12px', background: 'rgba(255, 255, 255, 0.95)', padding: '6px 12px', borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.2)', display: 'flex', gap: 16, alignItems: 'center', fontSize: 13, zIndex: 200, border: '1px solid var(--border-color)', width: 'max-content', backdropFilter: 'blur(4px)' }}>
+                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--color-primary)' }}></div>
+                      <span style={{ color: 'var(--text-secondary)' }}>{t('marketFloorPlan.stallEditor.area_label')}</span>
+                      <strong style={{ color: 'var(--text-primary)' }}>{areaSize} m²</strong>
+                   </div>
+                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10b981' }}></div>
+                      <span style={{ color: 'var(--text-secondary)' }}>{t('marketFloorPlan.stallEditor.used_label')}</span>
+                      <strong style={{ color: 'var(--text-primary)' }}>{Math.round(totalUsedStallArea * 100) / 100} m²</strong>
+                   </div>
+                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: remainingStallArea > 0 ? '#eab308' : '#ef4444' }}></div>
+                      <span style={{ color: 'var(--text-secondary)' }}>{t('marketFloorPlan.stallEditor.empty_label')}</span>
+                      <strong style={{ color: remainingStallArea > 0 ? 'var(--text-primary)' : '#ef4444' }}>{remainingStallArea} m²</strong>
+                   </div>
 
-               {isEditMode && !isSplitViewActive && (
-                  <button 
-                      onClick={(e) => { e.stopPropagation(); setSelectedStall(null); setDrawnStallData(null); setIsDrawingStall(true); }} 
-                      style={{background: 'var(--color-primary)', color: 'white', border: 'none', padding: '4px 10px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', marginLeft: '8px'}}
-                  >
-                      <i className="fa-solid fa-plus" style={{marginRight: 4}}></i> {t('marketFloorPlan.stallEditor.draw_new')}
-                  </button>
-               )}
-            </div>
+                   {isEditMode && !isSplitViewActive && (
+                      <button 
+                          onClick={(e) => { e.stopPropagation(); setSelectedStall(null); setDrawnStallData(null); setIsDrawingStall(true); }} 
+                          style={{background: 'var(--color-primary)', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', marginLeft: '8px', fontSize: '13px'}}
+                      >
+                          <i className="fa-solid fa-plus" style={{marginRight: 4}}></i> {t('marketFloorPlan.stallEditor.draw_new')}
+                      </button>
+                   )}
+                </div>
+            )}
             <div className={styles.editorContainer} style={{ width: '100%', height: '100%' }}>
                 {renderCanvas(false)}
             </div>

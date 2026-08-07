@@ -6,7 +6,7 @@ import { showToast } from '../../utils/alert';
 import './CreateViolationModal.css';
 
 export default function CreateViolationModal({ baseUrl, onClose, onSuccess, prefilledStallId }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const [violationTypes, setViolationTypes] = useState([]);
   const [stalls, setStalls] = useState([]);
@@ -16,7 +16,18 @@ export default function CreateViolationModal({ baseUrl, onClose, onSuccess, pref
   const [description, setDescription] = useState('');
   const [fineAmount, setFineAmount] = useState('');
   const [selectedFile, setSelectedFile] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState(null);
   const [loadingOptions, setLoadingOptions] = useState(true);
+
+  useEffect(() => {
+    if (!selectedFile) {
+      setPreviewUrl(null);
+      return;
+    }
+    const url = URL.createObjectURL(selectedFile);
+    setPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [selectedFile]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [dragActive, setDragActive] = useState(false);
@@ -49,9 +60,7 @@ export default function CreateViolationModal({ baseUrl, onClose, onSuccess, pref
 
     const fineNum = Number(fineAmount);
     if (fineAmount === '' || isNaN(fineNum) || fineNum < 0) {
-      errors.fineAmount = 'Số tiền phạt không được âm.';
-    } else if (fineNum >= 1000000000) {
-      errors.fineAmount = 'Số tiền phạt phải nhỏ hơn 1 tỷ VNĐ.';
+      errors.fineAmount = 'Số tiền phạt không hợp lệ.';
     }
 
     if (!selectedFile) {
@@ -99,8 +108,19 @@ export default function CreateViolationModal({ baseUrl, onClose, onSuccess, pref
           throw new Error(await readProblemDetail(stallsResponse, t('createviolationmodal.unable_to_load_stalls')));
         }
         if (!active) return;
+        const loadedStalls = await stallsResponse.json();
+        const rentedStalls = Array.isArray(loadedStalls)
+          ? loadedStalls.filter((stall) => stall.stallStatus === 'Rented' || Boolean(stall.vendorName))
+          : [];
+
         setViolationTypes(await typesResponse.json());
-        setStalls(await stallsResponse.json());
+        setStalls(rentedStalls);
+
+        // A prefilled stall can become unavailable while the modal is opening.
+        // Keep the form consistent with the selectable list in that case.
+        if (prefilledStallId && !rentedStalls.some((stall) => String(stall.stallId) === String(prefilledStallId))) {
+          setStallId('');
+        }
       } catch (loadError) {
         if (active) setError(loadError.message);
       } finally {
@@ -110,7 +130,7 @@ export default function CreateViolationModal({ baseUrl, onClose, onSuccess, pref
 
     loadOptions();
     return () => { active = false; };
-  }, [baseUrl, t]);
+  }, [baseUrl, prefilledStallId, t]);
 
   const handleTypeChange = (event) => {
     const nextId = event.target.value;
@@ -120,6 +140,8 @@ export default function CreateViolationModal({ baseUrl, onClose, onSuccess, pref
     if (selectedType) {
       setTitle(`Violation: ${selectedType.name}`);
       setFineAmount(String(selectedType.defaultFine ?? 0));
+    } else {
+      setFineAmount('');
     }
   };
 
@@ -136,6 +158,7 @@ export default function CreateViolationModal({ baseUrl, onClose, onSuccess, pref
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    if (submitting) return;
     setError('');
 
     if (!validateForm()) {
@@ -207,7 +230,10 @@ export default function CreateViolationModal({ baseUrl, onClose, onSuccess, pref
                 setStallId(event.target.value);
                 setFieldErrors((prev) => ({ ...prev, stallId: null }));
               }}
-              disabled={loadingOptions || Boolean(prefilledStallId)}
+              disabled={loadingOptions || (
+                Boolean(prefilledStallId) &&
+                stalls.some((stall) => String(stall.stallId) === String(prefilledStallId))
+              )}
             >
               <option value="">{t('createviolationmodal.select_a_stall')}</option>
               {stalls.map((stall) => (
@@ -258,11 +284,15 @@ export default function CreateViolationModal({ baseUrl, onClose, onSuccess, pref
               min="0"
               className={`form-input ${fieldErrors.fineAmount ? 'error-border' : ''}`}
               value={fineAmount}
-              onChange={(event) => {
-                setFineAmount(event.target.value);
-                setFieldErrors((prev) => ({ ...prev, fineAmount: null }));
-              }}
+              readOnly
+              disabled
+              style={{ backgroundColor: '#f8fafc', cursor: 'not-allowed', color: '#1e293b', fontWeight: 600 }}
             />
+            {fineAmount ? (
+              <span className="helper-text" style={{ color: '#475569', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+                🔒 {t('createviolationmodal.auto_filled_from_type', 'Tự động áp dụng theo Mức phạt quy định của Loại vi phạm')}: <strong>{Number(fineAmount).toLocaleString(i18n?.language?.startsWith('vi') ? 'vi-VN' : 'en-US')} VNĐ</strong>
+              </span>
+            ) : null}
             {fieldErrors.fineAmount && <span className="error-text">{fieldErrors.fineAmount}</span>}
           </div>
 
@@ -290,19 +320,19 @@ export default function CreateViolationModal({ baseUrl, onClose, onSuccess, pref
               <div className="drag-drop-content">
                 <span className="upload-icon">📸</span>
                 {selectedFile ? (
-                  <p>{t('createviolationmodal.image_uploaded_remove_the')}</p>
+                  <p>{t('createviolationmodal.image_uploaded_remove_the', 'Đã đính kèm ảnh minh chứng. Bấm để chọn lại ảnh khác.')}</p>
                 ) : (
-                  <p>{t('createviolationmodal.drag_and_drop_image')}<strong style={{ color: '#4f46e5' }}>{t('createviolationmodal.click_to_select')}</strong></p>
+                  <p>{t('createviolationmodal.drag_and_drop_image', 'Kéo thả ảnh vào đây hoặc ')}<strong style={{ color: '#4f46e5' }}>{t('createviolationmodal.click_to_select', 'bấm để chọn ảnh')}</strong></p>
                 )}
-                <span className="helper-text">{t('createviolationmodal.supports_jpg_png_webp')}</span>
+                <span className="helper-text">{t('createviolationmodal.supports_jpg_png_webp', 'Hỗ trợ định dạng JPG, PNG hoặc WEBP (Tối đa 5MB)')}</span>
               </div>
             </div>
             {fieldErrors.image && <span className="error-text">{fieldErrors.image}</span>}
 
-            {selectedFile ? (
+            {selectedFile && previewUrl ? (
               <div className="preview-images-grid">
                 <div className="preview-image-card">
-                  <img src={URL.createObjectURL(selectedFile)} alt={t('createviolationmodal.violation_evidence')} className="preview-image-thumb" />
+                  <img src={previewUrl} alt={t('createviolationmodal.violation_evidence')} className="preview-image-thumb" />
                   <button type="button" className="preview-image-remove" onClick={() => setSelectedFile(null)}>&times;</button>
                 </div>
               </div>

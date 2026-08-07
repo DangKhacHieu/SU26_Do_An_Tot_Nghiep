@@ -9,5 +9,6 @@ namespace STMM.Business.Interfaces
     {
         Task<PagedResult<ViolationDto>> GetMyViolationsAsync(int vendorId, ViolationQueryParams queryParams, CancellationToken ct = default);
         Task<ViolationDto?> GetViolationDetailAsync(int vendorId, int violationId, CancellationToken ct = default);
+        Task<int> GetVendorIdByUserIdAsync(int userId, CancellationToken ct = default);
     }
 }

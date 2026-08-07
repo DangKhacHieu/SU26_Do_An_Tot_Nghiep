@@ -14,8 +14,10 @@ namespace STMM.Business.Validators
                 .WithMessage("MeterId must be greater than 0.");
 
             RuleFor(x => x.NewValue)
-                .GreaterThanOrEqualTo(0)
-                .WithMessage("NewValue must not be negative.");
+                .InclusiveBetween(0, 999999)
+                .WithMessage("Chỉ số mới phải nằm trong khoảng từ 0 đến 999,999.")
+                .Must(x => x % 1 == 0)
+                .WithMessage("Chỉ số mới phải là số nguyên.");
 
             RuleFor(x => x.RecordedAt)
                 .Cascade(CascadeMode.Stop)

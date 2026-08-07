@@ -413,10 +413,35 @@
 
 /* Selected stall */
 .stall-rect-group.selected rect,
-.stall-rect-group.selected path {
-  fill: #fff9c4 !important;
-  stroke: #f57f17 !important;
-  stroke-width: 3 !important;
+.stall-rect-group.selected path,
+.stall-rect-group.selected.occupied rect,
+.stall-rect-group.selected.occupied path,
+.stall-rect-group.selected.available rect,
+.stall-rect-group.selected.available path,
+.stall-rect-group.selected.maintenance rect,
+.stall-rect-group.selected.maintenance path {
+  fill: #ede9fe !important; /* Light violet/purple */
+  stroke: #7c3aed !important; /* Vibrant purple */
+  stroke-width: 3.5px !important;
+  animation: stallSelectedBlink 1.2s infinite ease-in-out !important;
+}
+
+@keyframes stallSelectedBlink {
+  0% {
+    fill-opacity: 0.5;
+    stroke-opacity: 0.7;
+    stroke-width: 3px;
+  }
+  50% {
+    fill-opacity: 1;
+    stroke-opacity: 1;
+    stroke-width: 4.5px;
+  }
+  100% {
+    fill-opacity: 0.5;
+    stroke-opacity: 0.7;
+    stroke-width: 3px;
+  }
 }
 
 /* Highlighted stall (search result) */
@@ -1405,4 +1430,46 @@
 
 .btn-fb-delete:hover {
   background: #ffebee;
+}
+
+/* Zoom Warning Tooltip Overlay */
+.map-zoom-tip {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(29, 40, 24, 0.85);
+  color: #ffffff;
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  pointer-events: none;
+  z-index: 100;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  animation: mapZoomTipFadeInOut 1.5s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+}
+
+@keyframes mapZoomTipFadeInOut {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -40%) scale(0.95);
+  }
+  15% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  85% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -60%) scale(0.95);
+  }
 }

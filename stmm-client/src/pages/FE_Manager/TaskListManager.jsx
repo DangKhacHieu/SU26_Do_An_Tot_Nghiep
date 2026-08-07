@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getAuthHeaders } from '../../utils/authHeaders';
+import readProblemDetail from '../../utils/readProblemDetail';
 import './TaskListManager.css';
 import CreateTaskModal from './CreateTaskModal';
 
@@ -43,6 +44,10 @@ export default function TaskListManager({ baseUrl, navigate, addToast }) {
       if (res.ok) {
         const data = await res.json();
         setTasks(Array.isArray(data) ? data : []);
+      } else {
+        // R-2: trước đây không có nhánh else, lỗi 403 bị nuốt và màn hình hiện bảng trống.
+        setTasks([]);
+        throw new Error(await readProblemDetail(res, t('tasklistmanager.network_error')));
       }
     } catch (err) {
       console.error('Error fetching tasks:', err);

@@ -14,7 +14,7 @@ namespace STMM.DataAccess.Repositories
         {
         }
 
-        public new async Task<IEnumerable<SystemConfig>> GetAllAsync(int? marketId = null, CancellationToken cancellationToken = default)
+        public async Task<IEnumerable<SystemConfig>> GetAllAsync(int? marketId = null, CancellationToken cancellationToken = default)
         {
             var query = _dbSet.AsQueryable();
             if (marketId.HasValue)

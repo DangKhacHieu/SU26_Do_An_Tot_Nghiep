@@ -122,5 +122,17 @@ namespace STMM.Business.Services
 
             return _mapper.Map<FeedbackDto>(review);
         }
+
+        public async Task<int> GetVendorIdByUserIdAsync(int userId)
+        {
+            var vendors = await _vendorRepository.FindAsync(v => v.UserId == userId);
+            var vendor = vendors.FirstOrDefault();
+            if (vendor == null)
+            {
+                throw new System.UnauthorizedAccessException("Không tìm thấy hồ sơ Vendor của người dùng này.");
+            }
+
+            return vendor.VendorId;
+        }
     }
 }

@@ -20,7 +20,7 @@ namespace STMM.Business.Interfaces
         
         // General query for Accountant role (all violations across the system)
         Task<IEnumerable<ViolationDto>> GetAllViolationsAsync(int? accountantUserId = null, CancellationToken ct = default);
-        Task<bool> CreateInvoiceForViolationAsync(int violationId, int accountantUserId, CancellationToken ct = default);
+        Task<bool> CreateInvoiceForViolationAsync(int violationId, int accountantUserId, CreateViolationInvoiceRequest? request = null, CancellationToken ct = default);
 
         // CRUD for Violation Types
         Task<IEnumerable<ViolationTypeDto>> GetAllViolationTypesWithInactiveAsync(int userId, CancellationToken ct = default);

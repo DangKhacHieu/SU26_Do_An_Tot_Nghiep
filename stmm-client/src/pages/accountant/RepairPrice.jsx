@@ -54,10 +54,10 @@ export default function RepairPrice() {
   };
 
   const loadData = () => {
-    setLoading(true); setIsMock(false);
+    setLoading(true); 
     Promise.all([
-      fetch('http://localhost:5056/api/accountant/repair-prices', { headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` } }).then(r => { if (!r.ok) throw new Error(); return r.json(); }),
-      fetch('http://localhost:5056/api/accountant/repair-prices/used-tools', { headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` } }).then(r => { if (!r.ok) throw new Error(); return r.json(); })
+      fetch('http://localhost:5056/api/accountant/repair-prices', { headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` } }).then(r => { if (r.status === 401) { localStorage.removeItem('accessToken'); window.location.href = '/login'; throw new Error('401'); } if (!r.ok) throw new Error(); return r.json(); }),
+      fetch('http://localhost:5056/api/accountant/repair-prices/used-tools', { headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` } }).then(r => { if (r.status === 401) { localStorage.removeItem('accessToken'); window.location.href = '/login'; throw new Error('401'); } if (!r.ok) throw new Error(); return r.json(); })
     ])
       .then(([prices, used]) => { setRepairItems(prices); setUsedTools(used); setLoading(false); })
       .catch(() => {
@@ -90,6 +90,12 @@ export default function RepairPrice() {
     // Validation for item name
     if (!formState.itemName || formState.itemName.trim() === '') {
       setModalError(t('repairprice.please_enter_item_name'));
+      return;
+    }
+    
+    // Validation for unit
+    if (!formState.unit || formState.unit.trim() === '') {
+      setModalError(t('repairprice.please_enter_unit') || 'Vui lòng nhập đơn vị tính.');
       return;
     }
     
@@ -394,10 +400,10 @@ export default function RepairPrice() {
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                   <div>
-                    <label className="acc-form-label">{t('repairprice.n_v_tnh')}</label>
-                    <select className="form-select" value={formState.unit} onChange={e => setFormState({ ...formState, unit: e.target.value })}>
-                      {[t('repairprice.female'), t('repairprice.time'), t('repairprice.meter'), 'Kg', t('repairprice.set'), t('repairprice.bin'), 'm²'].map(u => <option key={u} value={u}>{u}</option>)}
-                    </select>
+                    <label className="acc-form-label">{t('repairprice.n_v_tnh') || 'Đơn vị tính'}</label>
+                    <input type="text" className="acc-input" required maxLength={50}
+                      placeholder="VD: Cái, Lần, Mét..."
+                      value={formState.unit} onChange={e => setFormState({ ...formState, unit: e.target.value })} />
                   </div>
                   <div>
                     <label className="acc-form-label">{t('repairprice.unit_price_vnd')}</label>

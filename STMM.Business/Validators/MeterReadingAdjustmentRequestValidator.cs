@@ -14,7 +14,8 @@ namespace STMM.Business.Validators
                 .GreaterThanOrEqualTo(0).WithMessage("Chỉ số cũ không được âm.");
 
             RuleFor(x => x.NewValue)
-                .GreaterThanOrEqualTo(0).WithMessage("Chỉ số mới không được âm.")
+                .InclusiveBetween(0, 999999).WithMessage("Chỉ số mới phải nằm trong khoảng từ 0 đến 999,999.")
+                .Must(x => x % 1 == 0).WithMessage("Chỉ số mới phải là số nguyên.")
                 .GreaterThanOrEqualTo(x => x.OldValue).WithMessage("Chỉ số mới không được nhỏ hơn chỉ số cũ.");
                 
             RuleFor(x => x.MeterType)

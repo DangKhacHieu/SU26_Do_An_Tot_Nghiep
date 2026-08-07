@@ -103,6 +103,11 @@ namespace STMM.Business.Services
 
         public async Task<FeeTypeDto> UpdateFeeTypeAsync(int userId, int id, UpdateFeeTypeRequest request, CancellationToken ct = default)
         {
+            if (id <= 8)
+            {
+                throw new BadRequestException("Không thể sửa loại phí mặc định của hệ thống.");
+            }
+            
             var valResult = await _updateFeeTypeValidator.ValidateAsync(request, ct);
             if (!valResult.IsValid)
             {
@@ -116,7 +121,12 @@ namespace STMM.Business.Services
             }
             var user = await _userRepository.GetByIdAsync(userId, ct);
             if (user?.MarketId != null && item.MarketId != user.MarketId)
-                throw new ForbiddenException("Bạn không có quyền cập nhật loại phí của chợ khác.");
+            {
+                if (item.MarketId == null)
+                    throw new ForbiddenException("Bạn không có quyền cập nhật loại phí chung của hệ thống.");
+                else
+                    throw new ForbiddenException("Bạn không có quyền cập nhật loại phí của chợ khác.");
+            }
 
             // Kiểm tra trùng lặp tên loại phí (ngoại trừ chính nó)
             var isDuplicate = await _feeTypeRepository.IsNameExistsAsync(request.Name, id, item.MarketId, ct);
@@ -143,7 +153,7 @@ namespace STMM.Business.Services
 
         public async Task<bool> DeleteFeeTypeAsync(int userId, int id, CancellationToken ct = default)
         {
-            if (id <= 6)
+            if (id <= 8)
             {
                 throw new BadRequestException("Không thể xóa loại phí mặc định của hệ thống.");
             }
@@ -152,7 +162,12 @@ namespace STMM.Business.Services
             if (item == null) return false;
             var user = await _userRepository.GetByIdAsync(userId, ct);
             if (user?.MarketId != null && item.MarketId != user.MarketId)
-                throw new ForbiddenException("Bạn không có quyền xóa loại phí của chợ khác.");
+            {
+                if (item.MarketId == null)
+                    throw new ForbiddenException("Bạn không có quyền xóa loại phí chung của hệ thống.");
+                else
+                    throw new ForbiddenException("Bạn không có quyền xóa loại phí của chợ khác.");
+            }
 
             // Kiểm tra xem có dịch vụ nào đang hoạt động liên kết với loại phí này không
             var hasService = await _serviceRepository.IsFeeTypeInUseAsync(id, item.MarketId, ct);
@@ -317,7 +332,7 @@ namespace STMM.Business.Services
         {
             var user = await _userRepository.GetByIdAsync(userId, ct);
             var items = await _systemConfigRepository.GetAllAsync(user?.MarketId, ct);
-            
+
             // Lọc ra các cấu hình ưu tiên (nếu có riêng của Market thì bỏ qua cái Global)
             var itemsList = items.GroupBy(x => x.ConfigKey)
                                  .Select(g => g.OrderByDescending(x => x.MarketId).First())

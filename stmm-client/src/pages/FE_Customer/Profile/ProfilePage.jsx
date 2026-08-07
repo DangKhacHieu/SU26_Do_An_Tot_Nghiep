@@ -6,8 +6,6 @@ import notificationService from "../../../services/notificationService";
 import "./ProfilePage.css";
 
 function getInitials(name) {
-  const { t } = useTranslation();
-
   if (!name) return "U";
   return name
     .split(" ")

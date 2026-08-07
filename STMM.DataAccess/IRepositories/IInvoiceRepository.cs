@@ -15,6 +15,7 @@ namespace STMM.DataAccess.IRepositories
         Task<(List<Invoice> Items, int TotalCount)> GetInvoicesByVendorPagedAsync(int userId, int? stallId, int? month, int? year, int pageNumber, int pageSize, CancellationToken ct = default);
         Task<int> CountInvoicesAsync(int month, int year, string? status = null, int? marketId = null, CancellationToken ct = default);
         Task<decimal> GetTotalRepairCostAsync(int month, int year, int? marketId = null, CancellationToken ct = default);
+        Task<decimal> GetTotalViolationFinesAsync(DateTime startDate, DateTime endDate, int? marketId = null, CancellationToken ct = default);
         Task<List<Invoice>> GetInvoicesWithDetailsAsync(int? month, int? year, string? status, string? search, int? accountantMarketId = null, CancellationToken ct = default);
         Task<List<Invoice>> GetDraftInvoicesByIdsAsync(IEnumerable<int> invoiceIds, int? accountantMarketId = null, CancellationToken ct = default);
         Task<Invoice?> GetDraftOrUnpaidInvoiceForContractAsync(int contractId, int month, int year, CancellationToken ct = default);

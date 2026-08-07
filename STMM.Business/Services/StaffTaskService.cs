@@ -23,7 +23,6 @@ namespace STMM.Business.Services
         private readonly IUserRepository _userRepository;
         private readonly IIssueRepository _issueRepository;
         private readonly IRequestRepository _requestRepository;
-        private readonly IViolationRepository _violationRepository;
         private readonly IStallRepository _stallRepository;
         private readonly IAreaRepository _areaRepository;
         private readonly INotificationService _notificationService;
@@ -53,7 +52,6 @@ namespace STMM.Business.Services
             _userRepository = userRepository;
             _issueRepository = issueRepository;
             _requestRepository = requestRepository;
-            _violationRepository = violationRepository;
             _stallRepository = stallRepository;
             _areaRepository = areaRepository;
             _notificationService = notificationService;
@@ -70,28 +68,56 @@ namespace STMM.Business.Services
             int? managerUserId,
             CancellationToken ct = default)
         {
-            if (managerUserId.HasValue)
+            if (!managerUserId.HasValue)
             {
-                var manager = await _userRepository.GetUserByIdWithRoleAsync(managerUserId.Value, ct)
-                    ?? await _userRepository.GetByIdAsync(managerUserId.Value, ct);
-                if (manager != null && manager.MarketId == null)
-                {
-                    throw new ForbiddenException("The account is not assigned to a market.");
-                }
-                if (manager?.MarketId != null)
-                {
-                    var items = await _staffTaskRepository.GetTasksForMarketAsync(manager.MarketId.Value, ct);
-                    return _mapper.Map<List<TaskSummaryDto>>(items);
-                }
+                throw new ForbiddenException("The manager account is not assigned to a market.");
             }
-            return new List<TaskSummaryDto>();
+
+            var marketId = await GetManagerMarketIdAsync(managerUserId.Value, ct);
+            var items = await _staffTaskRepository.GetTasksForMarketAsync(marketId, ct);
+            return _mapper.Map<List<TaskSummaryDto>>(items);
         }
 
         /// <inheritdoc />
         public async Task<IReadOnlyList<TaskSummaryDto>> GetTasksForStaffAsync(int staffUserId, CancellationToken ct = default)
         {
             var items = await _staffTaskRepository.GetTasksForStaffAsync(staffUserId, ct);
-            return _mapper.Map<List<TaskSummaryDto>>(items);
+            var dtos = _mapper.Map<List<TaskSummaryDto>>(items);
+
+            var utilityTasks = dtos.Where(t => t.TaskType == "UtilityReading" && t.AreaId.HasValue).ToList();
+            var areaStallsDict = new Dictionary<int, List<int>>();
+
+            if (utilityTasks.Any())
+            {
+                var uniqueAreaIds = utilityTasks.Select(t => t.AreaId!.Value).Distinct();
+                var localToday = DateTime.UtcNow.AddHours(7);
+                var effectiveDate = DateOnly.FromDateTime(localToday);
+
+                foreach (var areaId in uniqueAreaIds)
+                {
+                    var stallsInArea = await _stallRepository.GetStallsChecklistByAreaAsync(
+                        areaId, effectiveDate, localToday.Year, localToday.Month, ct);
+
+                    areaStallsDict[areaId] = stallsInArea
+                        .Where(s => s.HasElectricityMeter || s.HasWaterMeter)
+                        .Select(s => s.StallId)
+                        .ToList();
+                }
+            }
+
+            foreach (var task in dtos)
+            {
+                if (task.TaskType == "UtilityReading" && task.AreaId.HasValue)
+                {
+                    task.RelatedStallIds = areaStallsDict.GetValueOrDefault(task.AreaId.Value, new List<int>());
+                }
+                else if (task.StallId.HasValue)
+                {
+                    task.RelatedStallIds = new List<int> { task.StallId.Value };
+                }
+            }
+
+            return dtos;
         }
 
         /// <inheritdoc />
@@ -209,11 +235,6 @@ namespace STMM.Business.Services
                 await EnsureAreaInMarketAsync(request.Stall.AreaId, marketId, "Request", ct);
                 if (await _staffTaskRepository.HasActiveTaskForRequestAsync(request.RequestId, ct))
                     throw new BadRequestException("An active task already exists for this request.");
-                if (request.RequestType == "ViolationAppeal" && request.ViolationId.HasValue)
-                {
-                    var violation = await _violationRepository.GetByIdAsync(request.ViolationId.Value, ct);
-                    imageBeforeUrl = violation?.ImageUrl;
-                }
             }
 
             var task = new StaffTask

@@ -18,8 +18,17 @@ export default function BusinessCategoryListManager({ navigate, addToast }) {
 
   const [categories, setCategories]   = useState([]);
   const [loading, setLoading]         = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery]   = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState(''); // 'true', 'false', or '' (All)
+
+  // Debounce search query input (300ms) to optimize network requests
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   // Form Modal States
   const [isFormOpen, setIsFormOpen]   = useState(false);
@@ -39,15 +48,15 @@ export default function BusinessCategoryListManager({ navigate, addToast }) {
   const [actionLoading, setActionLoading] = useState(false);
 
   useEffect(() => {
-    fetchCategories();
-  }, [searchQuery, statusFilter]);
+    fetchCategories(debouncedSearch, statusFilter);
+  }, [debouncedSearch, statusFilter]);
 
-  const fetchCategories = async () => {
+  const fetchCategories = async (search = debouncedSearch, status = statusFilter) => {
     setLoading(true);
     try {
       let url = `${API_BASE}?`;
-      if (searchQuery) url += `search=${encodeURIComponent(searchQuery)}&`;
-      if (statusFilter !== '') url += `isActive=${encodeURIComponent(statusFilter)}&`;
+      if (search) url += `search=${encodeURIComponent(search)}&`;
+      if (status !== '') url += `isActive=${encodeURIComponent(status)}&`;
 
       const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
       const res = await fetch(url, {

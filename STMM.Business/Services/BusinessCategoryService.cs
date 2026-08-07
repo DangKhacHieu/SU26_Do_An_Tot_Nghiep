@@ -29,73 +29,94 @@ namespace STMM.Business.Services
             _context = context;
         }
 
-        public async Task<IEnumerable<BusinessCategoryDto>> GetAllCategoriesAsync(string? searchTerm, bool? isActive, int? currentUserId = null, CancellationToken ct = default)
+        /// <summary>
+        /// Retrieves manager market information for context validation and filtering.
+        /// </summary>
+        private async Task<(int? marketId, bool isManagerWithoutMarket)> GetManagerMarketContextAsync(int? currentUserId, CancellationToken ct)
         {
-            int? managerMarketId = null;
-            bool isManagerWithoutMarket = false;
-            if (currentUserId.HasValue)
+            if (!currentUserId.HasValue) return (null, false);
+
+            var user = await _context.Users
+                .Include(u => u.Role)
+                .FirstOrDefaultAsync(u => u.UserId == currentUserId.Value, ct);
+
+            if (user != null && string.Equals(user.Role?.Name, "Manager", StringComparison.OrdinalIgnoreCase))
             {
-                var user = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.UserId == currentUserId.Value, ct);
-                if (user != null && string.Equals(user.Role?.Name, "Manager", StringComparison.OrdinalIgnoreCase))
+                if (!user.MarketId.HasValue)
                 {
-                    if (!user.MarketId.HasValue)
-                    {
-                        isManagerWithoutMarket = true;
-                    }
-                    else
-                    {
-                        managerMarketId = user.MarketId.Value;
-                    }
+                    return (null, true);
                 }
+                return (user.MarketId.Value, false);
             }
 
-            if (isManagerWithoutMarket)
-            {
-                return new List<BusinessCategoryDto>();
-            }
-
-            var categories = await _categoryRepository.GetAllCategoriesAsync(searchTerm, isActive, managerMarketId, ct);
-
-            var dtos = new List<BusinessCategoryDto>();
-            foreach (var cat in categories)
-            {
-                var dto = _mapper.Map<BusinessCategoryDto>(cat);
-                if (managerMarketId.HasValue)
-                {
-                    dto.StallsCount = await _context.Stalls.CountAsync(s => s.CategoryId == cat.CategoryId && s.Area.MarketId == managerMarketId.Value && s.IsDeleted != true, ct);
-                    dto.AreasCount = await _context.Areas.CountAsync(a => a.CategoryId == cat.CategoryId && a.MarketId == managerMarketId.Value && a.IsDeleted != true, ct);
-                }
-                else
-                {
-                    dto.StallsCount = await _context.Stalls.CountAsync(s => s.CategoryId == cat.CategoryId && s.IsDeleted != true, ct);
-                    dto.AreasCount = await _context.Areas.CountAsync(a => a.CategoryId == cat.CategoryId && a.IsDeleted != true, ct);
-                }
-                dtos.Add(dto);
-            }
-
-            return dtos;
+            return (null, false);
         }
 
-        public async Task<BusinessCategoryDto?> GetCategoryByIdAsync(int id, int? currentUserId = null, CancellationToken ct = default)
+        /// <summary>
+        /// Gets all business categories with optional filtering and aggregated counts for stalls and areas.
+        /// </summary>
+        public async Task<IEnumerable<BusinessCategoryDto>> GetAllCategoriesAsync(
+            string? searchTerm, 
+            bool? isActive, 
+            int? currentUserId = null, 
+            CancellationToken ct = default)
         {
-            int? managerMarketId = null;
-            bool isManagerWithoutMarket = false;
-            if (currentUserId.HasValue)
+            var (managerMarketId, isManagerWithoutMarket) = await GetManagerMarketContextAsync(currentUserId, ct);
+            if (isManagerWithoutMarket)
             {
-                var user = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.UserId == currentUserId.Value, ct);
-                if (user != null && string.Equals(user.Role?.Name, "Manager", StringComparison.OrdinalIgnoreCase))
-                {
-                    if (!user.MarketId.HasValue)
-                    {
-                        isManagerWithoutMarket = true;
-                    }
-                    else
-                    {
-                        managerMarketId = user.MarketId.Value;
-                    }
-                }
+                return Enumerable.Empty<BusinessCategoryDto>();
             }
 
+            var categories = (await _categoryRepository.GetAllCategoriesAsync(searchTerm, isActive, managerMarketId, ct)).ToList();
+            if (!categories.Any())
+            {
+                return Enumerable.Empty<BusinessCategoryDto>();
+            }
+
+            var categoryIds = categories.Select(c => c.CategoryId).ToList();
+
+            // Optimized batch count queries to avoid N+1 database roundtrips
+            var stallCountsQuery = _context.Stalls
+                .Where(s => categoryIds.Contains(s.CategoryId) && s.IsDeleted != true);
+            
+            if (managerMarketId.HasValue)
+            {
+                stallCountsQuery = stallCountsQuery.Where(s => s.Area.MarketId == managerMarketId.Value);
+            }
+
+            var stallCounts = await stallCountsQuery
+                .GroupBy(s => s.CategoryId)
+                .Select(g => new { CategoryId = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(x => x.CategoryId, x => x.Count, ct);
+
+            var areaCountsQuery = _context.Areas
+                .Where(a => a.CategoryId.HasValue && categoryIds.Contains(a.CategoryId.Value) && a.IsDeleted != true);
+            
+            if (managerMarketId.HasValue)
+            {
+                areaCountsQuery = areaCountsQuery.Where(a => a.MarketId == managerMarketId.Value);
+            }
+
+            var areaCounts = await areaCountsQuery
+                .GroupBy(a => a.CategoryId!.Value)
+                .Select(g => new { CategoryId = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(x => x.CategoryId, x => x.Count, ct);
+
+            return categories.Select(cat =>
+            {
+                var dto = _mapper.Map<BusinessCategoryDto>(cat);
+                dto.StallsCount = stallCounts.TryGetValue(cat.CategoryId, out var sCount) ? sCount : 0;
+                dto.AreasCount = areaCounts.TryGetValue(cat.CategoryId, out var aCount) ? aCount : 0;
+                return dto;
+            }).ToList();
+        }
+
+        /// <summary>
+        /// Retrieves detailed information for a specific business category by ID.
+        /// </summary>
+        public async Task<BusinessCategoryDto?> GetCategoryByIdAsync(int id, int? currentUserId = null, CancellationToken ct = default)
+        {
+            var (managerMarketId, isManagerWithoutMarket) = await GetManagerMarketContextAsync(currentUserId, ct);
             if (isManagerWithoutMarket)
             {
                 return null;
@@ -118,20 +139,15 @@ namespace STMM.Business.Services
             return dto;
         }
 
+        /// <summary>
+        /// Creates a new business category associated with the manager's market.
+        /// </summary>
         public async Task<BusinessCategoryDto> CreateCategoryAsync(CreateBusinessCategoryRequest request, int? currentUserId = null, CancellationToken ct = default)
         {
-            int? targetMarketId = null;
-            if (currentUserId.HasValue)
+            var (targetMarketId, isManagerWithoutMarket) = await GetManagerMarketContextAsync(currentUserId, ct);
+            if (isManagerWithoutMarket)
             {
-                var user = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.UserId == currentUserId.Value, ct);
-                if (user != null && string.Equals(user.Role?.Name, "Manager", StringComparison.OrdinalIgnoreCase))
-                {
-                    if (!user.MarketId.HasValue)
-                    {
-                        throw new InvalidOperationException("Tài khoản Quản lý chưa sở hữu chợ nào được phê duyệt. Bạn chỉ có thể tạo danh mục kinh doanh sau khi chợ được phê duyệt.");
-                    }
-                    targetMarketId = user.MarketId.Value;
-                }
+                throw new InvalidOperationException("Tài khoản Quản lý chưa sở hữu chợ nào được phê duyệt. Bạn chỉ có thể tạo danh mục kinh doanh sau khi chợ được phê duyệt.");
             }
 
             // Check code uniqueness per market (including system-wide/null market)
@@ -179,15 +195,15 @@ namespace STMM.Business.Services
             return _mapper.Map<BusinessCategoryDto>(category);
         }
 
+        /// <summary>
+        /// Updates an existing business category.
+        /// </summary>
         public async Task<BusinessCategoryDto> UpdateCategoryAsync(int id, UpdateBusinessCategoryRequest request, int? currentUserId = null, CancellationToken ct = default)
         {
-            if (currentUserId.HasValue)
+            var (_, isManagerWithoutMarket) = await GetManagerMarketContextAsync(currentUserId, ct);
+            if (isManagerWithoutMarket)
             {
-                var user = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.UserId == currentUserId.Value, ct);
-                if (user != null && string.Equals(user.Role?.Name, "Manager", StringComparison.OrdinalIgnoreCase) && !user.MarketId.HasValue)
-                {
-                    throw new InvalidOperationException("Tài khoản Quản lý chưa sở hữu chợ nào được phê duyệt.");
-                }
+                throw new InvalidOperationException("Tài khoản Quản lý chưa sở hữu chợ nào được phê duyệt.");
             }
 
             var category = await _categoryRepository.GetCategoryByIdAsync(id, ct);
@@ -218,15 +234,15 @@ namespace STMM.Business.Services
             return dto;
         }
 
+        /// <summary>
+        /// Deletes a business category if it is not referenced by active stalls or areas.
+        /// </summary>
         public async Task<bool> DeleteCategoryAsync(int id, int? currentUserId = null, CancellationToken ct = default)
         {
-            if (currentUserId.HasValue)
+            var (_, isManagerWithoutMarket) = await GetManagerMarketContextAsync(currentUserId, ct);
+            if (isManagerWithoutMarket)
             {
-                var user = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.UserId == currentUserId.Value, ct);
-                if (user != null && string.Equals(user.Role?.Name, "Manager", StringComparison.OrdinalIgnoreCase) && !user.MarketId.HasValue)
-                {
-                    throw new InvalidOperationException("Tài khoản Quản lý chưa sở hữu chợ nào được phê duyệt.");
-                }
+                throw new InvalidOperationException("Tài khoản Quản lý chưa sở hữu chợ nào được phê duyệt.");
             }
 
             var category = await _categoryRepository.GetCategoryByIdAsync(id, ct);

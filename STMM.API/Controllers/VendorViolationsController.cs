@@ -15,12 +15,10 @@ namespace STMM.API.Controllers
     public class VendorViolationsController : ControllerBase
     {
         private readonly IVendorViolationService _vendorViolationService;
-        private readonly IVendorRepository _vendorRepository;
 
-        public VendorViolationsController(IVendorViolationService vendorViolationService, IVendorRepository vendorRepository)
+        public VendorViolationsController(IVendorViolationService vendorViolationService)
         {
             _vendorViolationService = vendorViolationService;
-            _vendorRepository = vendorRepository;
         }
 
         private async Task<int> GetVendorIdAsync()
@@ -31,14 +29,7 @@ namespace STMM.API.Controllers
                 throw new System.UnauthorizedAccessException("User ID is not found in the token.");
             }
 
-            var vendors = await _vendorRepository.FindAsync(v => v.UserId == userId);
-            var vendor = vendors.FirstOrDefault();
-            if (vendor == null)
-            {
-                throw new System.UnauthorizedAccessException("Vendor profile not found for this user.");
-            }
-
-            return vendor.VendorId;
+            return await _vendorViolationService.GetVendorIdByUserIdAsync(userId);
         }
 
         [HttpGet]

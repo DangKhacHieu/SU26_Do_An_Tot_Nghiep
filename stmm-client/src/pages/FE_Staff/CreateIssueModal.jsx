@@ -5,7 +5,7 @@ import readProblemDetail from '../../utils/readProblemDetail';
 import { showToast } from '../../utils/alert';
 import './CreateIssueModal.css';
 
-export default function CreateIssueModal({ baseUrl, onClose, onSuccess, prefilledStallId }) {
+export default function CreateIssueModal({ baseUrl, onClose, onSuccess, prefilledStallId, prefilledStallCode }) {
   const { t } = useTranslation();
 
   const [stalls, setStalls] = useState([]);
@@ -13,7 +13,18 @@ export default function CreateIssueModal({ baseUrl, onClose, onSuccess, prefille
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [selectedImageFiles, setSelectedImageFiles] = useState([]);
+  const [previewUrls, setPreviewUrls] = useState([]);
   const [loadingStalls, setLoadingStalls] = useState(true);
+
+  useEffect(() => {
+    if (!selectedImageFiles || selectedImageFiles.length === 0) {
+      setPreviewUrls([]);
+      return;
+    }
+    const urls = selectedImageFiles.map((file) => URL.createObjectURL(file));
+    setPreviewUrls(urls);
+    return () => urls.forEach((url) => URL.revokeObjectURL(url));
+  }, [selectedImageFiles]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [dragActive, setDragActive] = useState(false);
@@ -104,6 +115,7 @@ export default function CreateIssueModal({ baseUrl, onClose, onSuccess, prefille
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    if (submitting) return;
     setError('');
 
     if (!validateForm()) {
@@ -160,12 +172,20 @@ export default function CreateIssueModal({ baseUrl, onClose, onSuccess, prefille
                 setStallId(event.target.value);
                 setFieldErrors((prev) => ({ ...prev, stallId: null }));
               }}
-              disabled={loadingStalls}
+              disabled={loadingStalls || Boolean(prefilledStallId)}
             >
               <option value="">{loadingStalls ? t('createissuemodal.loading_stalls') : t('createissuemodal.select_a_stall')}</option>
+              {prefilledStallId && !stalls.some((s) => String(s.stallId) === String(prefilledStallId)) && (
+                <option value={String(prefilledStallId)}>
+                  {prefilledStallCode ? prefilledStallCode : `Stall #${prefilledStallId}`}
+                </option>
+              )}
               {stalls.map((stall) => (
                 <option key={stall.stallId} value={stall.stallId}>
-                  {stall.stallCode} - {stall.areaName}{stall.vendorName ? ` (${stall.vendorName})` : ` (${t('createissuemodal.under_maintenance', 'Đang bảo trì')})`}
+                  {stall.stallCode} - {stall.areaName}
+                  {stall.stallStatus === 'Maintenance'
+                    ? ` (${t('createissuemodal.under_maintenance', 'Đang bảo trì')})`
+                    : stall.vendorName ? ` (${stall.vendorName})` : ''}
                 </option>
               ))}
             </select>
@@ -238,7 +258,9 @@ export default function CreateIssueModal({ baseUrl, onClose, onSuccess, prefille
               <div className="preview-images-grid">
                 {selectedImageFiles.map((file, index) => (
                   <div className="preview-image-card" key={`${file.name}-${index}`}>
-                    <img src={URL.createObjectURL(file)} alt={`Issue evidence ${index + 1}`} className="preview-image-thumb" />
+                    {previewUrls[index] ? (
+                      <img src={previewUrls[index]} alt={`Issue evidence ${index + 1}`} className="preview-image-thumb" />
+                    ) : null}
                     <button type="button" className="preview-image-remove" onClick={() => setSelectedImageFiles((current) => current.filter((_, itemIndex) => itemIndex !== index))}>&times;</button>
                   </div>
                 ))}

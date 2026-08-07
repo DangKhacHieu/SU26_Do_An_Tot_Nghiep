@@ -16,6 +16,7 @@ using STMM.Business.DTOs.Market;
 using STMM.Business.DTOs.Review;
 using STMM.Business.DTOs.AuditLog;
 using STMM.Business.DTOs.Feedback;
+using STMM.Business.DTOs.Issue;
 
 namespace STMM.Business.Mappers
 {
@@ -64,6 +65,13 @@ namespace STMM.Business.Mappers
                 .ForMember(dest => dest.ViolationType, opt => opt.Ignore())
                 .ForMember(dest => dest.Requests, opt => opt.Ignore())
                 .ForMember(dest => dest.Stall, opt => opt.Ignore());
+
+            // Infrastructure issue mappings
+            CreateMap<Issue, IssueDto>()
+                .ForMember(dest => dest.StallCode, opt => opt.MapFrom(src => src.Stall != null ? src.Stall.Code : string.Empty))
+                .ForMember(dest => dest.CreatedByName, opt => opt.MapFrom(src => src.CreatedByUser != null ? src.CreatedByUser.Name : string.Empty))
+                .ForMember(dest => dest.AssignedTaskId, opt => opt.MapFrom(src => src.StaffTasks.FirstOrDefault() != null ? src.StaffTasks.FirstOrDefault()!.TaskId : (int?)null))
+                .ForMember(dest => dest.AssignedTaskStatus, opt => opt.MapFrom(src => src.StaffTasks.FirstOrDefault() != null ? src.StaffTasks.FirstOrDefault()!.Status : null));
 
             CreateMap<ViolationType, ViolationTypeDto>();
             // Auth mappings
@@ -215,7 +223,21 @@ namespace STMM.Business.Mappers
             CreateMap<Request, RequestDto>()
                 .ForMember(dest => dest.VendorName, opt => opt.MapFrom(src => src.Vendor != null && src.Vendor.User != null ? src.Vendor.User.Name : string.Empty))
                 .ForMember(dest => dest.BusinessName, opt => opt.MapFrom(src => src.Vendor != null ? src.Vendor.BusinessName : string.Empty))
-                .ForMember(dest => dest.StallCode, opt => opt.MapFrom(src => src.Stall != null ? src.Stall.Code : string.Empty));
+                .ForMember(dest => dest.StallCode, opt => opt.MapFrom(src => src.Stall != null ? src.Stall.Code : string.Empty))
+                .ForMember(dest => dest.InvoiceName, opt => opt.MapFrom(src => src.Invoice != null ? 
+                    (src.Invoice.InvoiceDetails != null && src.Invoice.InvoiceDetails.Any(d => d.FeeType != null && (d.FeeType.Name.ToLower().Contains("phạt") || d.FeeType.Name.ToLower().Contains("penalty"))) ? "Hóa đơn tiền phạt" : 
+                    (src.Invoice.InvoiceDetails != null && src.Invoice.InvoiceDetails.Count == 1 && !new[] { "điện", "nước", "rác", "bảo vệ", "thuê", "electric", "water", "waste", "rent", "security" }.Any(k => src.Invoice.InvoiceDetails.First().FeeType != null && src.Invoice.InvoiceDetails.First().FeeType.Name.ToLower().Contains(k))) ? src.Invoice.InvoiceDetails.First().FeeType.Name : 
+                    $"Hóa đơn tháng {src.Invoice.Month}/{src.Invoice.Year}") : null))
+                .ForMember(dest => dest.InvoiceType, opt => opt.MapFrom(src => src.Invoice != null ? 
+                    (src.Invoice.InvoiceDetails != null && src.Invoice.InvoiceDetails.Any(d => d.FeeType != null && (d.FeeType.Name.ToLower().Contains("phạt") || d.FeeType.Name.ToLower().Contains("penalty"))) ? "Phạt vi phạm" : 
+                    (src.Invoice.InvoiceDetails != null && src.Invoice.InvoiceDetails.Count == 1 && !new[] { "điện", "nước", "rác", "bảo vệ", "thuê", "electric", "water", "waste", "rent", "security" }.Any(k => src.Invoice.InvoiceDetails.First().FeeType != null && src.Invoice.InvoiceDetails.First().FeeType.Name.ToLower().Contains(k))) ? "Phát sinh" : 
+                    "Định kỳ") : null))
+                .ForMember(dest => dest.InvoiceMonthYear, opt => opt.MapFrom(src => src.Invoice != null ? $"Tháng {src.Invoice.Month}/{src.Invoice.Year}" : null))
+                .ForMember(dest => dest.InvoiceTotalAmount, opt => opt.MapFrom(src => src.Invoice != null ? src.Invoice.TotalAmount : (decimal?)null))
+                .ForMember(dest => dest.InvoiceStatus, opt => opt.MapFrom(src => src.Invoice != null ? src.Invoice.Status : null))
+                .ForMember(dest => dest.ViolationTitle, opt => opt.MapFrom(src => src.Violation != null ? src.Violation.Title : null))
+                .ForMember(dest => dest.ViolationFineAmount, opt => opt.MapFrom(src => src.Violation != null ? src.Violation.FineAmount : (decimal?)null))
+                .ForMember(dest => dest.ViolationStatus, opt => opt.MapFrom(src => src.Violation != null ? src.Violation.Status : null));
 
             // Market mappings
             CreateMap<Market, MarketDto>()

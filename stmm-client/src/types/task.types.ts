@@ -14,6 +14,7 @@ export interface TaskSummaryDto {
   actualCost: number | null;
   createdAt: string;
   completedAt: string | null;
+  relatedStallIds?: number[];
 }
 
 export interface TaskMaterialDto {

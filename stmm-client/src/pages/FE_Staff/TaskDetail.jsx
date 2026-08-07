@@ -113,6 +113,7 @@ export default function TaskDetail({ taskId, baseUrl, onBack, onShowNotification
               taskId={task.taskId}
               baseUrl={baseUrl}
               taskStatus={task.status}
+              taskCreatedAt={task.createdAt}
               onShowNotification={onShowNotification}
               onProgressChange={handleUtilityProgress}
             />

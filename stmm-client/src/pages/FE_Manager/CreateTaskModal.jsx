@@ -90,9 +90,11 @@ export default function CreateTaskModal({
 
   const [staffs, setStaffs] = useState([]);
   const [areas, setAreas] = useState([]);
+  const [stalls, setStalls] = useState([]);
   const [utilityReadingTasks, setUtilityReadingTasks] = useState([]);
   const [loadingStaffs, setLoadingStaffs] = useState(false);
   const [loadingAreas, setLoadingAreas] = useState(false);
+  const [loadingStalls, setLoadingStalls] = useState(false);
   const [loadingUtilityTasks, setLoadingUtilityTasks] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [formErrors, setFormErrors] = useState({});
@@ -146,6 +148,21 @@ export default function CreateTaskModal({
       }
     };
 
+    const fetchStalls = async () => {
+      setLoadingStalls(true);
+      try {
+        const res = await fetch(`${baseUrl}/api/Stalls`, { headers: getAuthHeaders() });
+        if (res.ok) {
+          const data = await res.json();
+          setStalls(Array.isArray(data) ? data : []);
+        }
+      } catch (err) {
+        console.error('Error fetching stalls:', err);
+      } finally {
+        setLoadingStalls(false);
+      }
+    };
+
     const fetchUtilityReadingTasks = async () => {
       setLoadingUtilityTasks(true);
       try {
@@ -166,6 +183,7 @@ export default function CreateTaskModal({
 
     fetchStaffs();
     fetchAreas();
+    fetchStalls();
     fetchUtilityReadingTasks();
   }, [baseUrl, t]);
 
@@ -175,6 +193,18 @@ export default function CreateTaskModal({
     const year = now.getFullYear();
     return `${month}/${year}`;
   }, []);
+
+  const areasWithStallsSet = useMemo(() => {
+    const set = new Set();
+    stalls.forEach((stall) => {
+      const aId = stall.areaId || stall.AreaId;
+      const status = (stall.status || stall.Status || '').toLowerCase();
+      if (aId && status === 'rented') {
+        set.add(String(aId));
+      }
+    });
+    return set;
+  }, [stalls]);
 
   const assignedUtilityAreas = useMemo(() => {
     const now = new Date();
@@ -383,13 +413,15 @@ export default function CreateTaskModal({
       errors.assignedToUserId = t('createtaskmodal.staff_required');
     }
 
-    if (taskType === 'UtilityReading' && !areaId) {
-      errors.areaId = t('createtaskmodal.area_required');
-    }
-
-    if (taskType === 'UtilityReading' && areaId && assignedUtilityAreas.has(String(areaId))) {
-      const assignment = assignedUtilityAreas.get(String(areaId));
-      errors.areaId = t('createtaskmodal.area_already_assigned', { staffName: assignment.assignedToName });
+    if (taskType === 'UtilityReading') {
+      if (!areaId) {
+        errors.areaId = t('createtaskmodal.area_required', { defaultValue: 'Vui lòng chọn khu vực cần đo chỉ số.' });
+      } else if (!areasWithStallsSet.has(String(areaId)) && !loadingStalls) {
+        errors.areaId = t('createtaskmodal.no_active_stalls', { defaultValue: 'Chưa có sạp kinh doanh' });
+      } else if (assignedUtilityAreas.has(String(areaId))) {
+        const assignment = assignedUtilityAreas.get(String(areaId));
+        errors.areaId = t('createtaskmodal.area_already_assigned', { staffName: assignment.assignedToName });
+      }
     }
 
     if (taskType === 'Repair' && linkSource === 'none') {
@@ -410,7 +442,11 @@ export default function CreateTaskModal({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validate()) return;
+    if (!validate()) {
+      const modalBody = document.querySelector('.ctm-body');
+      if (modalBody) modalBody.scrollTop = 0;
+      return;
+    }
 
     setSubmitting(true);
 
@@ -474,6 +510,22 @@ export default function CreateTaskModal({
 
         <form onSubmit={handleSubmit}>
           <div className="ctm-body">
+            {Object.keys(formErrors).length > 0 && (
+              <div className="ctm-alert ctm-alert-top" style={{ marginBottom: '16px', borderRadius: '10px' }}>
+                <AlertCircle size={20} style={{ color: '#ef4444', flexShrink: 0, marginTop: '2px' }} />
+                <div>
+                  <strong style={{ color: '#991b1b', fontSize: '13.5px', display: 'block', marginBottom: '4px' }}>
+                    ⚠️ {t('createtaskmodal.review_fields', 'Vui lòng kiểm tra lại các trường dữ liệu bị lỗi bên dưới.')}
+                  </strong>
+                  <ul style={{ margin: 0, paddingLeft: '18px', color: '#b91c1c', fontSize: '12.5px', lineHeight: 1.5 }}>
+                    {Object.values(formErrors).map((errMessage, index) => (
+                      <li key={index}>{errMessage}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            )}
+
             <section className="ctm-section">
               <div className="ctm-section-head">
                 <div>
@@ -596,7 +648,7 @@ export default function CreateTaskModal({
                     className={`ctm-select ${formErrors.areaId ? 'is-error' : ''}`}
                     value={areaId}
                     onChange={(e) => setAreaId(e.target.value)}
-                    disabled={loadingAreas || loadingUtilityTasks || submitting}
+                    disabled={loadingAreas || loadingStalls || loadingUtilityTasks || submitting}
                   >
                     <option value="">{t('createtaskmodal.select_area')}</option>
                     {areas.map(a => {
@@ -604,13 +656,26 @@ export default function CreateTaskModal({
                       const name = a.name || a.Name;
                       const desc = a.description || a.Description || 'No description';
                       const assignment = assignedUtilityAreas.get(String(id));
+                      const hasStalls = areasWithStallsSet.has(String(id));
+
+                      let label = '';
+                      let isDisabled = false;
+
+                      if (!hasStalls && !loadingStalls) {
+                        isDisabled = true;
+                        label = `🔒 ${name} (${desc}) - ${t('createtaskmodal.no_active_stalls', { defaultValue: 'Chưa có sạp kinh doanh' })}`;
+                      } else if (assignment) {
+                        isDisabled = true;
+                        label = `🔒 ${name} (${desc}) - ${assignment.status === 'Completed'
+                            ? t('createtaskmodal.already_completed', { period: currentPeriodLabel, defaultValue: `Đã hoàn thành đo chỉ số tháng ${currentPeriodLabel}` })
+                            : t('createtaskmodal.already_assigned_to', { staffName: assignment.assignedToName, period: currentPeriodLabel, defaultValue: `Đã giao task tháng ${currentPeriodLabel} (${assignment.assignedToName})` })}`;
+                      } else {
+                        label = `🟢 ${name} (${desc}) - ${t('createtaskmodal.ready_to_assign', { defaultValue: 'Sẵn sàng giao task' })}`;
+                      }
+
                       return (
-                        <option key={id} value={id} disabled={Boolean(assignment)}>
-                          {assignment
-                            ? `🔒 ${name} (${desc}) - ${assignment.status === 'Completed'
-                                ? t('createtaskmodal.already_completed', { period: currentPeriodLabel, defaultValue: `Đã hoàn thành đo chỉ số tháng ${currentPeriodLabel}` })
-                                : t('createtaskmodal.already_assigned_to', { staffName: assignment.assignedToName, period: currentPeriodLabel, defaultValue: `Đã giao task tháng ${currentPeriodLabel} (${assignment.assignedToName})` })}`
-                            : `🟢 ${name} (${desc}) - ${t('createtaskmodal.ready_to_assign', { defaultValue: 'Sẵn sàng giao task' })}`}
+                        <option key={id} value={id} disabled={isDisabled}>
+                          {label}
                         </option>
                       );
                     })}

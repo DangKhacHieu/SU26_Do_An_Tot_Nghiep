@@ -10,10 +10,12 @@ export default function PeriodicInvoices() {
 
   const getStatusBadge = (status) => {
     const map = {
-      'Paid': { cls: 'badge badge-success', label: 'Paid' },
-      'Unpaid': { cls: 'badge badge-warning', label: 'Unpaid' },
-      'Draft': { cls: 'badge badge-info', label: 'Draft' },
-      'Overdue': { cls: 'badge badge-danger', label: 'Overdue' },
+      'Paid': { cls: 'badge badge-success', label: t('periodicinvoices.paid') },
+      'Unpaid': { cls: 'badge badge-warning', label: t('periodicinvoices.waiting_for_collection_unpaid') },
+      'Draft': { cls: 'badge badge-info', label: t('periodicinvoices.draft') },
+      'Overdue': { cls: 'badge badge-danger', label: t('periodicinvoices.overdue') },
+      'Disputed': { cls: 'badge badge-neutral', label: t('periodicinvoices.disputed') },
+      'Canceled': { cls: 'badge badge-neutral', label: t('periodicinvoices.canceled') }
     };
     return map[status] || { cls: 'badge badge-neutral', label: status };
   };
@@ -53,7 +55,7 @@ export default function PeriodicInvoices() {
     // Fetch auto-generate configuration
     const headers = { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` };
     fetch('http://localhost:5056/api/accountant/config/system-configs', { headers })
-      .then(r => r.json())
+      .then(r => { if (r.status === 401) { localStorage.removeItem('accessToken'); window.location.href = '/login'; throw new Error('401'); } if (!r.ok) throw new Error(r.statusText); return r.json(); })
       .then(configs => {
         const autoInvoiceDay = configs.find(c => c.configKey === 'auto_invoice_day')?.configValue || '5';
         const invoiceDueDays = configs.find(c => c.configKey === 'invoice_due_days')?.configValue || '15';
@@ -144,8 +146,9 @@ export default function PeriodicInvoices() {
         throw new Error(errData.detail || errData.title || t('periodicinvoices.create_invoice_failed'));
       }
       
-      const result = await response.json().catch(() => ({ generatedCount: 0 }));
-      showNotification('success', t('periodicinvoices.created_invoices_success', { count: result.generatedCount || 0 }));
+      const result = await response.json().catch(() => ({ count: 0 }));
+      const generatedCount = result.count ?? result.Count ?? result.generatedCount ?? 0;
+      showNotification('success', t('periodicinvoices.created_invoices_success', { count: generatedCount }));
       setAutoGenerateModal(null);
       fetchInvoices();
       
@@ -171,12 +174,12 @@ export default function PeriodicInvoices() {
         
         // Fetch stalls filtered by marketId
         const url = marketId ? `http://localhost:5056/api/stalls?marketId=${marketId}` : 'http://localhost:5056/api/stalls';
-        fetch(url, { headers }).then(r => r.json()).then(data => {
+        fetch(url, { headers }).then(r => { if (r.status === 401) { localStorage.removeItem('accessToken'); window.location.href = '/login'; throw new Error('401'); } if (!r.ok) throw new Error(r.statusText); return r.json(); }).then(data => {
             if (Array.isArray(data)) setAvailableStalls(data);
         }).catch(() => {});
       }
       if (availableFeeTypes.length === 0) {
-        fetch('http://localhost:5056/api/accountant/config/fee-types', { headers }).then(r => r.json()).then(data => {
+        fetch('http://localhost:5056/api/accountant/config/fee-types', { headers }).then(r => { if (r.status === 401) { localStorage.removeItem('accessToken'); window.location.href = '/login'; throw new Error('401'); } if (!r.ok) throw new Error(r.statusText); return r.json(); }).then(data => {
             if (Array.isArray(data)) setAvailableFeeTypes(data);
         }).catch(() => {});
       }
@@ -198,9 +201,12 @@ export default function PeriodicInvoices() {
         if (u && u.userId) userIdStr = u.userId;
       } catch (e) {}
     }
-    const q = new URLSearchParams({ month: month || '', year: year || '', status: status !== 'all' ? status : '', search: search || '', userId: userIdStr }).toString();
+    const queryObj = { status: status !== 'all' ? status : '', search: search || '', userId: userIdStr };
+    if (month && month !== 'all') queryObj.month = month;
+    if (year && year !== 'all') queryObj.year = year;
+    const q = new URLSearchParams(queryObj).toString();
     fetch(`http://localhost:5056/api/accountant/billing/invoices?${q}`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` } })
-      .then(res => { if (!res.ok) throw new Error(); return res.json(); })
+      .then(res => { if (res.status === 401) { localStorage.removeItem('accessToken'); window.location.href = '/login'; throw new Error('401'); } if (!res.ok) throw new Error(); return res.json(); })
       .then(data => { setInvoices(data); setIsMock(false); setLoading(false); })
       .catch(() => {
         setTimeout(() => { setInvoices(getMockInvoices()); setIsMock(true); setLoading(false); }, 600);
@@ -221,17 +227,23 @@ export default function PeriodicInvoices() {
   const handleSelectRow = (id) => setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   
   const isInvoicePeriodic = (i) => {
-    if (i.invoiceType) return i.invoiceType === 'Periodic';
+    if (i.invoiceType) return i.invoiceType === 'Periodic' || i.invoiceType === 'Adjustment';
     return !i.isAdhoc;
   };
 
   const getInvoiceTypeLabel = (i) => {
-    if (isInvoicePeriodic(i)) return 'Định kì';
-    if (i.invoiceType === 'Violation' && (!i.details || i.details.length === 0)) return 'Vi phạm';
+    if (isInvoicePeriodic(i)) return t('periodicinvoices.periodic');
+    if (i.invoiceType === 'Violation' && (!i.details || i.details.length === 0)) return t('periodicinvoices.violation');
     if (i.details && i.details.length > 0 && i.details[0].feeTypeName) {
-      return i.details[0].feeTypeName;
+      const name = i.details[0].feeTypeName;
+      const lower = name.toLowerCase();
+      if (lower.includes('phạt') || lower.includes('fine') || lower.includes('violation')) return t('periodicinvoices.fine');
+      if (lower.includes('sửa') || lower.includes('repair')) return t('periodicinvoices.repair');
+      if (lower.includes('dịch vụ') || lower.includes('service')) return t('periodicinvoices.service_fee');
+      if (lower.includes('thuê') || lower.includes('rent')) return t('periodicinvoices.rent_fee');
+      return name;
     }
-    return 'Đột xuất';
+    return t('periodicinvoices.adhoc');
   };
 
   const getInvoiceTypeBadge = (i) => {
@@ -240,9 +252,10 @@ export default function PeriodicInvoices() {
     return 'badge-warning';
   };
 
-  const displayedInvoices = activeTab === 'periodic' 
+  const displayedInvoices = (activeTab === 'periodic' 
     ? invoices.filter(i => isInvoicePeriodic(i)) 
-    : invoices.filter(i => !isInvoicePeriodic(i));
+    : invoices.filter(i => !isInvoicePeriodic(i)))
+    .filter(i => i.status !== 'Adjusted');
 
   const handleSelectAll = (e) => {
     if (e.target.checked) setSelectedIds(displayedInvoices.filter(i => i.status === 'Draft').map(i => i.invoiceId));
@@ -253,7 +266,7 @@ export default function PeriodicInvoices() {
   const openDetails = (invoice) => {
     if (isMock) { setSelectedInvoice(invoice); setActiveModal('details'); }
     else fetch(`http://localhost:5056/api/accountant/billing/invoices/${invoice.invoiceId}`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` } })
-      .then(r => r.json()).then(d => { setSelectedInvoice(d); setActiveModal('details'); })
+      .then(r => { if (r.status === 401) { localStorage.removeItem('accessToken'); window.location.href = '/login'; throw new Error('401'); } if (!r.ok) throw new Error(r.statusText); return r.json(); }).then(d => { setSelectedInvoice(d); setActiveModal('details'); })
       .catch(() => { setSelectedInvoice(invoice); setActiveModal('details'); });
   };
 
@@ -299,11 +312,13 @@ export default function PeriodicInvoices() {
     } else {
       fetch(`http://localhost:5056/api/accountant/billing/meter-readings/adjust?userId=1`, {
         method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` },
-        body: JSON.stringify({ stallId: adjustForm.stallId, meterType: adjustForm.meterType, month: selectedInvoice.month, year: selectedInvoice.year, oldValue: adjustForm.oldValue, newValue: adjustForm.newValue })
+        body: JSON.stringify({ stallId: selectedInvoice.stallId, meterType: adjustForm.meterType, month: selectedInvoice.month, year: selectedInvoice.year, oldValue: adjustForm.oldValue, newValue: adjustForm.newValue, reason: 'Điều chỉnh chỉ số', imageUrl: 'https://dummyimage.com/600x400/000/fff&text=Proof' })
       }).then(async r => { 
         if (!r.ok) {
           const errData = await r.json().catch(() => ({}));
-          throw new Error(errData.detail || errData.title || t('periodicinvoices.there_was_an_error'));
+          const detail = errData.detail || errData.Detail;
+          const title = errData.title || errData.Title || errData.errors?.[Object.keys(errData.errors)[0]]?.[0];
+          throw new Error(detail || title || t('periodicinvoices.there_was_an_error'));
         }
         showNotification('success', t('periodicinvoices.updated_successfully')); 
         setActiveModal(null); 
@@ -352,10 +367,11 @@ export default function PeriodicInvoices() {
   };
 
   const handleBulkApprove = () => {
+    const count = selectedIds.length;
     if (isMock) {
       setInvoices(invoices.map(inv => selectedIds.includes(inv.invoiceId) ? { ...inv, status: 'Unpaid' } : inv));
       setSelectedIds([]); setActiveModal(null);
-      showNotification('success', t('periodicinvoices.selectedidslength_invoice_issued_successfully'));
+      showNotification('success', t('periodicinvoices.selectedidslength_invoice_issued_successfully', { count }));
     } else {
       fetch('http://localhost:5056/api/accountant/billing/invoices/bulk-approve', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` }, body: JSON.stringify({ invoiceIds: selectedIds }) })
         .then(async r => { 
@@ -363,7 +379,7 @@ export default function PeriodicInvoices() {
             const errData = await r.json().catch(() => ({}));
             throw new Error(errData.detail || errData.title || t('periodicinvoices.error_when_mass_approving'));
           }
-          showNotification('success', t('periodicinvoices.approval_of_selectedidslength_invoice')); 
+          showNotification('success', t('periodicinvoices.approval_of_selectedidslength_invoice', { count }));
           setSelectedIds([]); 
           setActiveModal(null); 
           fetchInvoices(); 
@@ -416,13 +432,13 @@ export default function PeriodicInvoices() {
               {shouldShowAutoGenerate() && (
                 <button className="acc-btn-primary" style={{ backgroundColor: 'var(--success)', color: 'white' }} onClick={() => setAutoGenerateModal(true)}>
                   <RefreshCw size={15} />
-                  <span>Tạo hóa đơn {new Date().getMonth() + 1}/{new Date().getFullYear()}</span>
+                  <span>{t('periodicinvoices.generate_invoices_month_year', { month: new Date().getMonth() + 1, year: new Date().getFullYear() })}</span>
                 </button>
               )}
               {selectedIds.length > 0 && (
                 <button className="btn btn-success" onClick={() => setActiveModal('bulk')}>
                   <CheckCircle size={15} />
-                  <span>Phát hành hàng loạt ({selectedIds.length})</span>
+                  <span>{t('periodicinvoices.bulk_issue_count', { count: selectedIds.length })}</span>
                 </button>
               )}
             </>
@@ -430,7 +446,7 @@ export default function PeriodicInvoices() {
           {activeTab === 'irregular' && (
             <button className="acc-btn-primary" onClick={() => setActiveModal('adhoc')}>
               <Plus size={15} />
-              <span>Hóa đơn đột xuất</span>
+              <span>{t('periodicinvoices.unexpected_bills')}</span>
             </button>
           )}
         </div>
@@ -455,7 +471,10 @@ export default function PeriodicInvoices() {
 
       {/* Tabs */}
       <div className="acc-tabs-header">
-        {[{ id: 'periodic', label: 'Hóa đơn định kì', icon: FileText }, { id: 'irregular', label: 'Hóa đơn phát sinh', icon: AlertTriangle }].map(tab => {
+        {[
+          { id: 'periodic', label: t('periodicinvoices.periodic_tab'), icon: FileText },
+          { id: 'irregular', label: t('periodicinvoices.irregular_tab'), icon: AlertTriangle }
+        ].map(tab => {
           const Icon = tab.icon;
           return (
             <button key={tab.id} className={`acc-tab-btn ${activeTab === tab.id ? 'active' : ''}`} onClick={() => { setActiveTab(tab.id); setCurrentPage(1); setSelectedIds([]); }}>
@@ -475,10 +494,12 @@ export default function PeriodicInvoices() {
               placeholder={t('periodicinvoices.find_kiosk_tenant_name')}
               value={search} onChange={e => setSearch(e.target.value)} />
           </div>
-          <select className="filter-select" value={month} onChange={e => setMonth(parseInt(e.target.value))}>
+          <select className="filter-select" value={month} onChange={e => setMonth(e.target.value === 'all' ? 'all' : parseInt(e.target.value))}>
+            <option value="all">{t('periodicinvoices.all_months') || 'Tất cả các tháng'}</option>
             {Array.from({ length: 12 }, (_, i) => <option key={i + 1} value={i + 1}>{t('periodicinvoices.month')} {i + 1}</option>)}
           </select>
-          <select className="filter-select" value={year} onChange={e => setYear(parseInt(e.target.value))}>
+          <select className="filter-select" value={year} onChange={e => setYear(e.target.value === 'all' ? 'all' : parseInt(e.target.value))}>
+            <option value="all">{t('periodicinvoices.all_years') || 'Tất cả các năm'}</option>
             {[2025, 2026, 2027].map(yr => <option key={yr} value={yr}>{t('periodicinvoices.year')} {yr}</option>)}
           </select>
           <select className="filter-select" value={status} onChange={e => setStatus(e.target.value)}>
@@ -487,6 +508,8 @@ export default function PeriodicInvoices() {
             <option value="Unpaid">{t('periodicinvoices.waiting_for_collection_unpaid')}</option>
             <option value="Paid">{t('periodicinvoices.paid')}</option>
             <option value="Overdue">{t('periodicinvoices.qu_hn_overdue')}</option>
+            <option value="Disputed">{t('periodicinvoices.disputed') || 'Có tranh chấp'}</option>
+            <option value="Canceled">{t('periodicinvoices.canceled') || 'Đã hủy'}</option>
           </select>
           <button type="submit" className="acc-btn-primary btn-sm">{t('periodicinvoices.filter')}</button>
         </form>
@@ -499,22 +522,22 @@ export default function PeriodicInvoices() {
           <p className="loading-text">{t('periodicinvoices.loading_invoice_list')}</p>
         </div>
       ) : (
-        <div className="card" style={{ overflow: 'hidden' }}>
-          <table className="acc-table">
+        <div className="acc-card" style={{ overflowX: 'auto', padding: 0 }}>
+          <table className="acc-table" style={{ width: '100%', minWidth: '860px' }}>
             <thead>
               <tr>
-                <th style={{ width: 40, padding: '11px 16px' }}>
+                <th style={{ width: 36, padding: '10px 12px' }}>
                   <input type="checkbox" onChange={handleSelectAll}
                     checked={displayedInvoices.length > 0 && displayedInvoices.filter(i => i.status === 'Draft').every(i => selectedIds.includes(i.invoiceId))} />
                 </th>
-                <th>{t('periodicinvoices.hd_code')}</th>
-                <th>{t('periodicinvoices.invoice_type')}</th>
-                <th>{t('periodicinvoices.kiosk')}</th>
-                <th>{t('periodicinvoices.tenants')}</th>
-                <th>{t('periodicinvoices.ky_and_due_date')}</th>
-                <th className="text-right">{t('periodicinvoices.total_money')}</th>
-                <th>{t('periodicinvoices.status')}</th>
-                <th className="text-right">{t('periodicinvoices.operation')}</th>
+                <th style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>{t('periodicinvoices.hd_code')}</th>
+                <th style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>{t('periodicinvoices.invoice_type')}</th>
+                <th style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>{t('periodicinvoices.kiosk')}</th>
+                <th style={{ padding: '10px 12px' }}>{t('periodicinvoices.tenants')}</th>
+                <th style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>{t('periodicinvoices.ky_and_due_date')}</th>
+                <th className="text-right" style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>{t('periodicinvoices.total_money')}</th>
+                <th style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>{t('periodicinvoices.status')}</th>
+                <th className="text-right" style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>{t('periodicinvoices.operation')}</th>
               </tr>
             </thead>
             <tbody>
@@ -522,39 +545,48 @@ export default function PeriodicInvoices() {
                 const { cls, label } = getStatusBadge(inv.status);
                 return (
                   <tr key={inv.invoiceId}>
-                    <td style={{ padding: '13px 16px' }}>
+                    <td style={{ padding: '10px 12px' }}>
                       {inv.status === 'Draft' ? (
                         <input type="checkbox" checked={selectedIds.includes(inv.invoiceId)} onChange={() => handleSelectRow(inv.invoiceId)} />
                       ) : <input type="checkbox" disabled style={{ opacity: 0.3 }} />}
                     </td>
-                    <td><span style={{ fontWeight: 600, color: 'var(--text-title)', fontFamily: 'monospace', fontSize: 13 }}>INV-{inv.invoiceId}</span></td>
-                    <td>
-                        <span className={`badge ${getInvoiceTypeBadge(inv)}`} style={{ fontSize: 11 }}>
-                          {getInvoiceTypeLabel(inv)}
-                        </span>
-                      </td>
-                    <td><span style={{ fontWeight: 700 }}>{inv.stallCode}</span></td>
-                    <td>{inv.vendorName}</td>
-                    <td>
+                    <td style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>
+                      <span style={{ fontWeight: 600, color: 'var(--text-title)', fontFamily: 'monospace', fontSize: 13 }}>INV-{inv.invoiceId}</span>
+                    </td>
+                    <td style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>
+                      <span className={`badge ${getInvoiceTypeBadge(inv)}`} style={{ fontSize: 11 }}>
+                        {getInvoiceTypeLabel(inv)}
+                      </span>
+                    </td>
+                    <td style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>
+                      <span style={{ fontWeight: 700 }}>{inv.stallCode}</span>
+                    </td>
+                    <td style={{ padding: '10px 12px' }}>{inv.vendorName}</td>
+                    <td style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                        <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>{t('periodicinvoices.month_short')}{inv.month}/{inv.year}</span>
+                        <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>{t('periodicinvoices.month')} {inv.month}/{inv.year}</span>
                         <span style={{ color: 'var(--text-secondary)', fontSize: 12 }}>({inv.dueDate || '—'})</span>
                       </div>
                     </td>
-                    <td className="text-right"><span style={{ fontWeight: 700, color: 'var(--text-title)' }}>{inv.totalAmount.toLocaleString('vi-VN')} ₫</span></td>
-                    <td><span className={cls}>{label}</span></td>
-                    <td className="text-right">
-                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
-                        <button className="acc-btn-secondary btn-sm" onClick={() => openDetails(inv)}>
-                          <Eye size={13} /> {t('periodicinvoices.detail')}</button>
+                    <td className="text-right" style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>
+                      <span style={{ fontWeight: 700, color: 'var(--text-title)' }}>{inv.totalAmount.toLocaleString('vi-VN')} ₫</span>
+                    </td>
+                    <td style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>
+                      <span className={cls}>{label}</span>
+                    </td>
+                    <td className="text-right" style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 5, flexWrap: 'nowrap' }}>
+                        <button className="acc-btn-secondary btn-sm" style={{ padding: '4px 8px', fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 4 }} onClick={() => openDetails(inv)}>
+                          <Eye size={13} /> {t('periodicinvoices.detail')}
+                        </button>
                         {(inv.status === 'Draft' || inv.status === 'Unpaid') && (
                           <>
                             {activeTab === 'periodic' && (
-                              <button className="btn btn-sm" style={{ background: 'var(--primary-light)', color: 'var(--primary)', border: '1px solid var(--primary-border)' }} onClick={() => openAdjustModal(inv)}>
+                              <button className="btn btn-sm" style={{ background: 'var(--primary-light)', color: 'var(--primary)', border: '1px solid var(--primary-border)', padding: '4px 8px', fontSize: 12, whiteSpace: 'nowrap' }} onClick={() => openAdjustModal(inv)}>
                                 {t('periodicinvoices.record_data')}
                               </button>
                             )}
-                            <button className="btn btn-sm" style={{ background: 'var(--danger-light)', color: 'var(--danger)', border: '1px solid var(--danger)' }} onClick={() => openCancelModal(inv)}>
+                            <button className="btn btn-sm" style={{ background: 'var(--danger-light)', color: 'var(--danger)', border: '1px solid var(--danger)', padding: '4px 8px', fontSize: 12, whiteSpace: 'nowrap' }} onClick={() => openCancelModal(inv)}>
                               {t('periodicinvoices.cancel')}
                             </button>
                           </>
@@ -629,11 +661,44 @@ export default function PeriodicInvoices() {
                   <span>{modalError}</span>
                 </div>
               )}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, padding: '14px', background: 'var(--bg-base)', borderRadius: 'var(--radius-md)', fontSize: 13.5 }}>
-                <div><span style={{ color: 'var(--text-muted)' }}>{t('periodicinvoices.kiosk')}: </span><strong>{selectedInvoice.stallCode}</strong></div>
-                <div><span style={{ color: 'var(--text-muted)' }}>{t('periodicinvoices.small_business')}</span><strong>{selectedInvoice.vendorName}</strong></div>
-                <div><span style={{ color: 'var(--text-muted)' }}>{t('periodicinvoices.submission_deadline')}</span>{selectedInvoice.dueDate || t('periodicinvoices.not_regulated')}</div>
-                <div><span style={{ color: 'var(--text-muted)' }}>{t('periodicinvoices.status')}</span><span className={getStatusBadge(selectedInvoice.status).cls}>{getStatusBadge(selectedInvoice.status).label}</span></div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 24px', background: '#f8fafc', padding: '16px 20px', borderRadius: '8px', fontSize: 14, border: '1px solid var(--border-color)', marginBottom: 20 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <span style={{ color: 'var(--text-light)', fontSize: 13 }}>{t('periodicinvoices.kiosk')}</span>
+                  <strong style={{ fontSize: 15 }}>{selectedInvoice.stallCode}</strong>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <span style={{ color: 'var(--text-light)', fontSize: 13 }}>{t('periodicinvoices.invoice_period')}</span>
+                  <strong style={{ fontSize: 15 }}>{t('periodicinvoices.month_year', { month: selectedInvoice.month, year: selectedInvoice.year })}</strong>
+                </div>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <span style={{ color: 'var(--text-light)', fontSize: 13 }}>{t('periodicinvoices.small_business')}</span>
+                  <strong style={{ fontSize: 15 }}>{selectedInvoice.vendorName}</strong>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <span style={{ color: 'var(--text-light)', fontSize: 13 }}>{t('periodicinvoices.phone') || 'Số điện thoại'}</span>
+                  <strong style={{ fontSize: 15 }}>{selectedInvoice.vendorPhone || 'N/A'}</strong>
+                </div>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <span style={{ color: 'var(--text-light)', fontSize: 13 }}>{t('periodicinvoices.issue_date') || 'Ngày phát hành'}</span>
+                  <strong style={{ fontSize: 15 }}>{selectedInvoice.createdAt ? new Date(selectedInvoice.createdAt).toLocaleDateString('vi-VN') : '—'}</strong>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <span style={{ color: 'var(--text-light)', fontSize: 13 }}>{t('periodicinvoices.due_date') || 'Hạn chót'}</span>
+                  <strong style={{ fontSize: 15, color: 'var(--danger)' }}>{selectedInvoice.dueDate ? new Date(selectedInvoice.dueDate).toLocaleDateString('vi-VN') : '—'}</strong>
+                </div>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <span style={{ color: 'var(--text-light)', fontSize: 13 }}>{t('periodicinvoices.invoice_type_label') || 'Loại hóa đơn'}</span>
+                  <strong style={{ fontSize: 15 }}>{selectedInvoice.invoiceType === 'AdHoc' ? t('periodicinvoices.adhoc') : (selectedInvoice.invoiceType === 'Adjustment' ? 'Điều chỉnh' : t('periodicinvoices.periodic'))}</strong>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <span style={{ color: 'var(--text-light)', fontSize: 13 }}>{t('periodicinvoices.status')}</span>
+                  <div>
+                    <span className={getStatusBadge(selectedInvoice.status).cls}>{getStatusBadge(selectedInvoice.status).label}</span>
+                  </div>
+                </div>
               </div>
               <table className="acc-table">
                 <thead>
@@ -661,6 +726,33 @@ export default function PeriodicInvoices() {
                   </tr>
                 </tbody>
               </table>
+              {selectedInvoice.payments && selectedInvoice.payments.length > 0 && (
+                <div style={{ marginTop: 24 }}>
+                  <h4 style={{ fontSize: 15, marginBottom: 12, color: 'var(--text-main)', fontWeight: 600 }}>{t('periodicinvoices.payment_history') || 'Lịch sử thanh toán'}</h4>
+                  <table className="acc-table" style={{ fontSize: 13, border: '1px solid var(--border-color)', borderRadius: 8, overflow: 'hidden' }}>
+                    <thead>
+                      <tr style={{ backgroundColor: '#f1f5f9' }}>
+                        <th style={{ padding: '10px 16px' }}>{t('periodicinvoices.transaction_code') || 'Mã giao dịch'}</th>
+                        <th style={{ padding: '10px 16px' }}>{t('periodicinvoices.payment_date') || 'Ngày thanh toán'}</th>
+                        <th style={{ padding: '10px 16px' }}>{t('periodicinvoices.method') || 'Phương thức'}</th>
+                        <th className="text-right" style={{ padding: '10px 16px' }}>{t('periodicinvoices.amount') || 'Số tiền'}</th>
+                        <th style={{ padding: '10px 16px' }}>{t('periodicinvoices.status')}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedInvoice.payments.map((p, idx) => (
+                        <tr key={idx}>
+                          <td style={{ padding: '10px 16px' }}><strong>{p.transactionCode}</strong></td>
+                          <td style={{ padding: '10px 16px' }}>{new Date(p.paidAt).toLocaleDateString('vi-VN')}</td>
+                          <td style={{ padding: '10px 16px' }}>{p.method === 'Transfer' ? 'Chuyển khoản' : 'Tiền mặt'}</td>
+                          <td className="text-right" style={{ color: 'var(--success)', fontWeight: 'bold', padding: '10px 16px' }}>{p.amount.toLocaleString('vi-VN')} ₫</td>
+                          <td style={{ padding: '10px 16px' }}><span className={`badge ${p.status === 'Approved' ? 'badge-success' : p.status === 'Pending' ? 'badge-warning' : 'badge-danger'}`}>{p.status}</span></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
             <div className="acc-modal-footer">
               <button className="acc-btn-secondary" onClick={() => setActiveModal(null)}>{t('periodicinvoices.close')}</button>

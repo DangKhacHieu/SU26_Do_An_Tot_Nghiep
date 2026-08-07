@@ -20,6 +20,7 @@ export default function UtilityChecklist({
   taskId,
   baseUrl,
   taskStatus,
+  taskCreatedAt = null,
   onShowNotification,
   onProgressChange
 }) {
@@ -49,33 +50,46 @@ export default function UtilityChecklist({
       }
 
       const payload = await response.json();
-      const items = Array.isArray(payload) ? payload : [];
-      const completed = items.filter((stall) => stall.hasReadingThisMonth).length;
-      const nextStats = { completed, total: items.length };
-      setStalls(items);
+      const list = Array.isArray(payload) ? payload : [];
+      setStalls(list);
+
+      const completed = list.filter((item) => item.hasReadingThisMonth).length;
+      const total = list.length;
+      const nextStats = { completed, total };
       setStats(nextStats);
-      onProgressChange?.(completed, items.length);
-    } catch (fetchError) {
-      setError(fetchError.message);
+      onProgressChange?.(nextStats);
+    } catch (err) {
+      setError(err.message || t('utilitychecklist.failed_to_load_the'));
     } finally {
       if (!quiet) setLoading(false);
     }
-  }, [baseUrl, onProgressChange, taskId, t]);
+  }, [baseUrl, taskId, t, onProgressChange]);
 
   useEffect(() => {
     fetchStalls();
   }, [fetchStalls]);
 
-  const filteredStalls = useMemo(() => {
-    if (filter === 'recorded') return stalls.filter((stall) => stall.hasReadingThisMonth);
-    if (filter === 'pending') return stalls.filter((stall) => !stall.hasReadingThisMonth);
-    return stalls;
-  }, [filter, stalls]);
+  const pendingCount = useMemo(() => {
+    return stalls.filter((stall) => !stall.hasReadingThisMonth).length;
+  }, [stalls]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredStalls.length / PAGE_SIZE));
+  const filteredStalls = useMemo(() => {
+    if (filter === 'recorded') {
+      return stalls.filter((stall) => stall.hasReadingThisMonth);
+    }
+    if (filter === 'pending') {
+      return stalls.filter((stall) => !stall.hasReadingThisMonth);
+    }
+    return stalls;
+  }, [stalls, filter]);
+
+  const totalPages = Math.ceil(filteredStalls.length / PAGE_SIZE) || 1;
   const safePage = Math.min(page, totalPages);
-  const visibleStalls = filteredStalls.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
-  const pendingCount = stats.total - stats.completed;
+
+  const visibleStalls = useMemo(() => {
+    const start = (safePage - 1) * PAGE_SIZE;
+    return filteredStalls.slice(start, start + PAGE_SIZE);
+  }, [filteredStalls, safePage]);
 
   const changeFilter = (nextFilter) => {
     setFilter(nextFilter);
@@ -282,6 +296,9 @@ export default function UtilityChecklist({
         <RecordMeterReadingModal
           stallId={selectedStall.stallId}
           baseUrl={baseUrl}
+          taskCreatedAt={taskCreatedAt}
+          hasElectricityReadingThisMonth={selectedStall.hasElectricityReadingThisMonth}
+          hasWaterReadingThisMonth={selectedStall.hasWaterReadingThisMonth}
           onClose={() => setSelectedStall(null)}
           onSuccess={async () => {
             setSelectedStall(null);

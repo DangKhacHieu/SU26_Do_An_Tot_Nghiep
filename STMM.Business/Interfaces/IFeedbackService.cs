@@ -14,5 +14,7 @@ namespace STMM.Business.Interfaces
         /// Vendor trả lời lại một đánh giá (chỉ được trả lời 1 lần)
         /// </summary>
         Task<FeedbackDto> RespondToFeedbackAsync(int reviewId, RespondFeedbackDto responseDto, int vendorId);
+
+        Task<int> GetVendorIdByUserIdAsync(int userId);
     }
 }

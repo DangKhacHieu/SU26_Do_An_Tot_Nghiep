@@ -86,34 +86,34 @@ export default function Dashboard() {
           <tr><td colspan="5" style="border: none;"></td></tr>
           
           <tr>
-            <td colspan="2" class="header">{t('dashboard.financial_index')}</td>
-            <td colspan="3" class="header">{t('dashboard.value')}</td>
+            <td colspan="2" class="header">${t('dashboard.financial_index')}</td>
+            <td colspan="3" class="header">${t('dashboard.value')}</td>
           </tr>
           <tr>
-            <td colspan="2">{t('dashboard.revenue_this_month')}</td>
-            <td colspan="3" class="number">${data.revenueThisMonth.toLocaleString('vi-VN')} {t('dashboard.currency_unit')}</td>
+            <td colspan="2">${t('dashboard.revenue_this_month')}</td>
+            <td colspan="3" class="number">${data.revenueThisMonth.toLocaleString('vi-VN')} ${t('dashboard.currency_unit')}</td>
           </tr>
           <tr>
-            <td colspan="2">{t('dashboard.recurring_invoices')}</td>
+            <td colspan="2">${t('dashboard.recurring_invoices')}</td>
             <td colspan="3" class="number">${data.invoicesPaidCount} / ${data.invoicesTotalCount} (Đã thu / Tổng số)</td>
           </tr>
           <tr>
-            <td colspan="2">{t('dashboard.incident_repair_costs')}</td>
-            <td colspan="3" class="number">${data.repairCostThisMonth.toLocaleString('vi-VN')} {t('dashboard.currency_unit')}</td>
+            <td colspan="2">${t('dashboard.incident_repair_costs')}</td>
+            <td colspan="3" class="number">${data.repairCostThisMonth.toLocaleString('vi-VN')} ${t('dashboard.currency_unit')}</td>
           </tr>
           <tr>
-            <td colspan="2">{t('dashboard.violation_fines')}</td>
-            <td colspan="3" class="number">${data.violationFinesThisMonth.toLocaleString('vi-VN')} {t('dashboard.currency_unit')}</td>
+            <td colspan="2">${t('dashboard.violation_fines')}</td>
+            <td colspan="3" class="number">${data.violationFinesThisMonth.toLocaleString('vi-VN')} ${t('dashboard.currency_unit')}</td>
           </tr>
           <tr><td colspan="5" style="border: none;"></td></tr>
           
           <tr><td colspan="5" class="header">GIAO DỊCH GẦN ĐÂY</td></tr>
           <tr>
-            <td class="header">{t('dashboard.transaction_code')}</td>
-            <td class="header">{t('dashboard.booth')}</td>
-            <td class="header">{t('dashboard.fee_type')}</td>
-            <td class="header">{t('dashboard.amount_vnd')}</td>
-            <td class="header">{t('dashboard.status')}</td>
+            <td class="header">${t('dashboard.transaction_code')}</td>
+            <td class="header">${t('dashboard.booth')}</td>
+            <td class="header">${t('dashboard.fee_type')}</td>
+            <td class="header">${t('dashboard.amount_vnd')}</td>
+            <td class="header">${t('dashboard.status')}</td>
           </tr>
           ${data.recentTransactions.map(tx => `
             <tr>

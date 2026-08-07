@@ -128,6 +128,74 @@
   gap: 8px;
 }
 
+/* Status & Type Badges */
+.status-badge, .type-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  font-size: 11.5px;
+  font-weight: 700;
+  border-radius: 9999px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  line-height: 1;
+}
+
+/* Status variants */
+.status-badge.badge-pending {
+  background: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+.status-badge.badge-progress {
+  background: #dbeafe;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+
+.status-badge.badge-approval {
+  background: #fae8ff;
+  color: #86198f;
+  border: 1px solid #f5d0fe;
+}
+
+.status-badge.badge-completed {
+  background: #dcfce7;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+.status-badge.badge-cancelled {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+
+.status-badge.badge-default {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+/* Type variants */
+.type-badge.badge-repair {
+  background: #f3e8ff;
+  color: #6b21a8;
+  border: 1px solid #e9d5ff;
+}
+
+.type-badge.badge-utility {
+  background: #e0f2fe;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
+}
+
+.type-badge.badge-default {
+  background: #f1f5f9;
+  color: #475569;
+}
+
 /* Task Info Grid */
 .task-info-grid {
   display: grid;

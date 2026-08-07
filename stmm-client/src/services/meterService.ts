@@ -1,4 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
+import { installAuthRefreshInterceptor } from './authSession';
 import {
   MeterDto,
   CreateMeterRequest,
@@ -43,6 +44,7 @@ class MeterService {
       }
       return config;
     });
+    installAuthRefreshInterceptor(this.api);
   }
 
   /**

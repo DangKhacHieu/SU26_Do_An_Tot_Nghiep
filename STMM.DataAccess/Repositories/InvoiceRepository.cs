@@ -227,6 +227,20 @@ namespace STMM.DataAccess.Repositories
                 .SumAsync(d => (decimal?)d.Amount, ct) ?? 0;
         }
 
+        public async Task<decimal> GetTotalViolationFinesAsync(DateTime startDate, DateTime endDate, int? marketId = null, CancellationToken ct = default)
+        {
+            var query = _context.Invoices.Where(i => i.IsDeleted != true && i.Status == "Paid" && i.CreatedAt >= startDate && i.CreatedAt < endDate);
+            if (marketId.HasValue)
+            {
+                query = query.Where(i => i.Contract.Stall.Area.MarketId == marketId.Value);
+            }
+            return await query.SelectMany(i => i.InvoiceDetails)
+                .Where(d => d.FeeType.Name.ToLower().Contains("phạt") ||
+                            d.FeeType.Name.ToLower().Contains("vi phạm") ||
+                            d.Invoice.InvoiceType == "Violation")
+                .SumAsync(d => (decimal?)d.Amount, ct) ?? 0;
+        }
+
         public async Task<List<Invoice>> GetInvoicesWithDetailsAsync(int? month, int? year, string? status, string? search, int? accountantMarketId = null, CancellationToken ct = default)
         {
             var query = _context.Invoices

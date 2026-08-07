@@ -1,8 +1,13 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace STMM.Business.DTOs.Request
 {
-    public sealed class VendorQuotationDecisionRequest
+    public class VendorQuotationDecisionRequest
     {
-        public bool Approve { get; set; }
-        public string? RejectReason { get; set; }
+        [Required]
+        public bool IsApproved { get; set; }
+
+        public string? Reason { get; set; }
     }
 }
+

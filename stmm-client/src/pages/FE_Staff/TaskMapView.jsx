@@ -12,7 +12,6 @@ export default function TaskMapView({ baseUrl, onBack, onViewDetails }) {
   const MAP_SCALE = 0.65;
   const [marketMap, setMarketMap] = useState(null);
   const [tasks, setTasks] = useState([]);
-  const [utilityStallIdsByTask, setUtilityStallIdsByTask] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selectedStall, setSelectedStall] = useState(null);
@@ -123,24 +122,6 @@ export default function TaskMapView({ baseUrl, onBack, onViewDetails }) {
         const assignedTasks = Array.isArray(tasksData) ? tasksData : [];
         setTasks(assignedTasks);
 
-        const utilityTasks = assignedTasks.filter(
-          (task) =>
-            task.taskType === TASK_TYPE.UTILITY_READING &&
-            task.status !== TASK_STATUS.COMPLETED &&
-            task.status !== TASK_STATUS.CANCELLED,
-        );
-        const utilityEntries = await Promise.all(
-          utilityTasks.map(async (task) => {
-            const response = await fetch(`${baseUrl}/api/staff/tasks/${task.taskId}/stalls`, { headers });
-            if (!response.ok) {
-              throw new Error(await readProblemDetail(response, t('taskmapview.unable_to_load_utility')));
-            }
-            const stalls = await response.json();
-            return [task.taskId, Array.isArray(stalls) ? stalls.map((stall) => stall.stallId) : []];
-          }),
-        );
-        setUtilityStallIdsByTask(Object.fromEntries(utilityEntries));
-
       } catch (err) {
         console.error(t('taskmapview.unable_to_load_staff'), err);
         setError(err.message || t('taskmapview.unable_to_load_the'));
@@ -218,17 +199,17 @@ export default function TaskMapView({ baseUrl, onBack, onViewDetails }) {
         return;
       }
 
-      if (task.stallId) {
-        if (!result[task.stallId]) result[task.stallId] = [];
-        result[task.stallId].push(task);
-        return;
-      }
-
-      if (task.taskType === TASK_TYPE.UTILITY_READING) {
-        for (const stallId of utilityStallIdsByTask[task.taskId] || []) {
+      if (task.relatedStallIds && Array.isArray(task.relatedStallIds)) {
+        for (const stallId of task.relatedStallIds) {
           if (!result[stallId]) result[stallId] = [];
           result[stallId].push(task);
         }
+        return;
+      }
+
+      if (task.stallId) {
+        if (!result[task.stallId]) result[task.stallId] = [];
+        result[task.stallId].push(task);
         return;
       }
 
@@ -242,7 +223,7 @@ export default function TaskMapView({ baseUrl, onBack, onViewDetails }) {
     });
 
     return result;
-  }, [marketMap, tasks, utilityStallIdsByTask]);
+  }, [marketMap, tasks]);
 
   // Stall status label — dịch tại render
   const getStatusLabel = (status) => {

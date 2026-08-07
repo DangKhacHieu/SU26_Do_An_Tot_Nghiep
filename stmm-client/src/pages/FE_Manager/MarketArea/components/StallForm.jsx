@@ -357,14 +357,13 @@ const StallForm = ({ initialData, drawnData, areaId, areaWidth, areaHeight, area
 
                 <div style={{display: 'flex', gap: '12px', marginBottom: inline ? 0 : '16px', marginTop: inline ? 0 : '16px'}}>
                     <div className={styles.formGroup} style={{flex: 1, marginBottom: 0}}>
-                        <label htmlFor="electricityMeterId" style={inline ? { fontSize: '13px' } : {}}>{t('marketFloorPlan.stallForm.elec_meter')} {!initialData && <span style={{color: '#ff4d4f'}}>*</span>}</label>
+                        <label htmlFor="electricityMeterId" style={inline ? { fontSize: '13px' } : {}}>{t('marketFloorPlan.stallForm.elec_meter')}</label>
                         <select
                             className={styles.select}
                             id="electricityMeterId"
                             name="electricityMeterId"
                             value={formData.electricityMeterId || ''}
                             onChange={handleChange}
-                            required={!initialData}
                             style={inline ? { padding: '8px' } : {}}
                         >
                             <option value="">{t('marketFloorPlan.stallForm.select_elec')}</option>
@@ -379,14 +378,13 @@ const StallForm = ({ initialData, drawnData, areaId, areaWidth, areaHeight, area
                         </select>
                     </div>
                     <div className={styles.formGroup} style={{flex: 1, marginBottom: 0}}>
-                        <label htmlFor="waterMeterId" style={inline ? { fontSize: '13px' } : {}}>{t('marketFloorPlan.stallForm.water_meter')} {!initialData && <span style={{color: '#ff4d4f'}}>*</span>}</label>
+                        <label htmlFor="waterMeterId" style={inline ? { fontSize: '13px' } : {}}>{t('marketFloorPlan.stallForm.water_meter')}</label>
                         <select
                             className={styles.select}
                             id="waterMeterId"
                             name="waterMeterId"
                             value={formData.waterMeterId || ''}
                             onChange={handleChange}
-                            required={!initialData}
                             style={inline ? { padding: '8px' } : {}}
                         >
                             <option value="">{t('marketFloorPlan.stallForm.select_water')}</option>

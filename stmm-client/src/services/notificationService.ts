@@ -1,4 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
+import { installAuthRefreshInterceptor } from './authSession';
 
 const rawUrl = (import.meta.env.VITE_API_URL || 'http://localhost:5056/api').replace(/\/$/, '');
 const API_BASE_URL = rawUrl.endsWith('/api') ? rawUrl : `${rawUrl}/api`;
@@ -38,6 +39,7 @@ class NotificationService {
       if (token) config.headers.Authorization = `Bearer ${token}`;
       return config;
     });
+    installAuthRefreshInterceptor(this.api);
   }
 
   async getNotifications(): Promise<NotificationDto[]> {
