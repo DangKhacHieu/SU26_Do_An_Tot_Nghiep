@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace STMM.DataAccess.Entities;
@@ -42,6 +42,11 @@ public partial class Contract
     /// Tiền đặt cọc (VNĐ)
     /// </summary>
     public decimal Deposit { get; set; }
+
+    /// <summary>
+    /// Tiền cọc đã hoàn trả (VNĐ)
+    /// </summary>
+    public decimal DepositRefunded { get; set; }
 
     /// <summary>
     /// Trạng thái (Active, Expired, Terminated)

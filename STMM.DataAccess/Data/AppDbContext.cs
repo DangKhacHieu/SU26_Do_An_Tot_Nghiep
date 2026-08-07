@@ -229,6 +229,11 @@ public partial class AppDbContext : DbContext
                 .HasPrecision(18, 2)
                 .HasComment("Tiền đặt cọc (VNĐ)")
                 .HasColumnName("deposit");
+            entity.Property(e => e.DepositRefunded)
+                .HasPrecision(18, 2)
+                .HasDefaultValue(0m)
+                .HasComment("Tiền cọc đã hoàn trả (VNĐ)")
+                .HasColumnName("deposit_refunded");
             entity.Property(e => e.EndDate)
                 .HasComment("Ngày kết thúc hợp đồng")
                 .HasColumnName("end_date");
