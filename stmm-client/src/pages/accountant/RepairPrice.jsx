@@ -54,10 +54,10 @@ export default function RepairPrice() {
   };
 
   const loadData = () => {
-    setLoading(true); setIsMock(false);
+    setLoading(true); 
     Promise.all([
-      fetch('http://localhost:5056/api/accountant/repair-prices', { headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` } }).then(r => { if (!r.ok) throw new Error(); return r.json(); }),
-      fetch('http://localhost:5056/api/accountant/repair-prices/used-tools', { headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` } }).then(r => { if (!r.ok) throw new Error(); return r.json(); })
+      fetch('http://localhost:5056/api/accountant/repair-prices', { headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` } }).then(r => { if (r.status === 401) { localStorage.removeItem('accessToken'); window.location.href = '/login'; throw new Error('401'); } if (!r.ok) throw new Error(); return r.json(); }),
+      fetch('http://localhost:5056/api/accountant/repair-prices/used-tools', { headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` } }).then(r => { if (r.status === 401) { localStorage.removeItem('accessToken'); window.location.href = '/login'; throw new Error('401'); } if (!r.ok) throw new Error(); return r.json(); })
     ])
       .then(([prices, used]) => { setRepairItems(prices); setUsedTools(used); setLoading(false); })
       .catch(() => {

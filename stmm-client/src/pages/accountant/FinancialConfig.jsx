@@ -101,17 +101,27 @@ export default function FinancialConfig() {
   // Fetch all config data
   const loadAllConfigData = () => {
     setLoading(true);
-    setIsMock(false);
+    
 
     const token = localStorage.getItem('accessToken');
     const headers = { 'Authorization': `Bearer ${token}` };
+    const handleResponse = async (r) => {
+      if (r.status === 401) {
+        localStorage.removeItem('accessToken');
+        window.location.href = '/login';
+        throw new Error('Session expired');
+      }
+      if (!r.ok) throw new Error('Server error');
+      return r.json();
+    };
+
     Promise.all([
-      fetch('http://localhost:5056/api/accountant/config/fee-types', { headers }).then(r => r.json()),
-      fetch('http://localhost:5056/api/accountant/config/services', { headers }).then(r => r.json()),
-      fetch('http://localhost:5056/api/accountant/config/system-configs', { headers }).then(r => r.json()),
-      fetch('http://localhost:5056/api/accountant/config/tiers/electricity_tiers', { headers }).then(r => r.json()),
-      fetch('http://localhost:5056/api/accountant/config/tiers/water_tiers', { headers }).then(r => r.json()),
-      fetch('http://localhost:5056/api/accountant/billing/vendors', { headers }).then(r => r.json())
+      fetch('http://localhost:5056/api/accountant/config/fee-types', { headers }).then(handleResponse),
+      fetch('http://localhost:5056/api/accountant/config/services', { headers }).then(handleResponse),
+      fetch('http://localhost:5056/api/accountant/config/system-configs', { headers }).then(handleResponse),
+      fetch('http://localhost:5056/api/accountant/config/tiers/electricity_tiers', { headers }).then(handleResponse),
+      fetch('http://localhost:5056/api/accountant/config/tiers/water_tiers', { headers }).then(handleResponse),
+      fetch('http://localhost:5056/api/accountant/billing/vendors', { headers }).then(handleResponse)
     ])
     .then(([fees, srvs, sys, elec, water, vends]) => {
       setFeeTypes(fees);
@@ -212,7 +222,7 @@ export default function FinancialConfig() {
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
             body: JSON.stringify({ configKey: key, configValue: configForm[key].toString(), updatedByUserId: 1 })
           });
-          if (!res.ok) {
+          if (res.status === 401) { localStorage.removeItem('accessToken'); window.location.href = '/login'; throw new Error('401'); } if (!res.ok) {
             const errData = await res.json().catch(() => ({}));
             throw new Error(errData.detail || errData.title || t('financialconfig.error_updating_key'));
           }
@@ -258,7 +268,7 @@ export default function FinancialConfig() {
         body: JSON.stringify(payload)
       })
       .then(async res => {
-        if (!res.ok) {
+        if (res.status === 401) { localStorage.removeItem('accessToken'); window.location.href = '/login'; throw new Error('401'); } if (!res.ok) {
           const errData = await res.json().catch(() => ({}));
           throw new Error(errData.detail || errData.title || t('financialconfig.operation_failed'));
         }
@@ -279,7 +289,7 @@ export default function FinancialConfig() {
       const token = localStorage.getItem('accessToken');
       fetch(`http://localhost:5056/api/accountant/config/fee-types/${selectedItem.feeTypeId}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } })
         .then(async res => {
-          if (!res.ok) {
+          if (res.status === 401) { localStorage.removeItem('accessToken'); window.location.href = '/login'; throw new Error('401'); } if (!res.ok) {
             const errData = await res.json().catch(() => ({}));
             throw new Error(errData.detail || errData.title || t('financialconfig.this_type_of_charge'));
           }
@@ -346,7 +356,7 @@ export default function FinancialConfig() {
         body: JSON.stringify(payload)
       })
       .then(async res => {
-        if (!res.ok) {
+        if (res.status === 401) { localStorage.removeItem('accessToken'); window.location.href = '/login'; throw new Error('401'); } if (!res.ok) {
           const errData = await res.json().catch(() => ({}));
           throw new Error(errData.detail || errData.title || t('financialconfig.operation_failed'));
         }
@@ -367,7 +377,7 @@ export default function FinancialConfig() {
       const token = localStorage.getItem('accessToken');
       fetch(`http://localhost:5056/api/accountant/config/services/${selectedItem.serviceId}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } })
         .then(async res => {
-          if (!res.ok) {
+          if (res.status === 401) { localStorage.removeItem('accessToken'); window.location.href = '/login'; throw new Error('401'); } if (!res.ok) {
             const errData = await res.json().catch(() => ({}));
             throw new Error(errData.detail || errData.title || t('financialconfig.this_service_cannot_be'));
           }
@@ -404,7 +414,7 @@ export default function FinancialConfig() {
         })
       })
         .then(async res => {
-          if (!res.ok) {
+          if (res.status === 401) { localStorage.removeItem('accessToken'); window.location.href = '/login'; throw new Error('401'); } if (!res.ok) {
             const errData = await res.json().catch(() => ({}));
             throw new Error(errData.detail || errData.title || t('financialconfig.the_configuration_update_operation'));
           }
@@ -489,7 +499,7 @@ export default function FinancialConfig() {
         })
       })
         .then(async res => {
-          if (!res.ok) {
+          if (res.status === 401) { localStorage.removeItem('accessToken'); window.location.href = '/login'; throw new Error('401'); } if (!res.ok) {
             const errData = await res.json().catch(() => ({}));
             throw new Error(errData.detail || errData.title || t('financialconfig.unable_to_save_stairs'));
           }

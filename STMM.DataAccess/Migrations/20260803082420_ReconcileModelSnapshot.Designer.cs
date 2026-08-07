@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using STMM.DataAccess.Data;
@@ -11,9 +12,11 @@ using STMM.DataAccess.Data;
 namespace STMM.DataAccess.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260803082420_ReconcileModelSnapshot")]
+    partial class ReconcileModelSnapshot
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -238,14 +241,6 @@ namespace STMM.DataAccess.Migrations
                         .HasColumnType("numeric(18,2)")
                         .HasColumnName("deposit")
                         .HasComment("Tiền đặt cọc (VNĐ)");
-
-                    b.Property<decimal>("DepositRefunded")
-                        .ValueGeneratedOnAdd()
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)")
-                        .HasDefaultValue(0m)
-                        .HasColumnName("deposit_refunded")
-                        .HasComment("Tiền cọc đã hoàn trả (VNĐ)");
 
                     b.Property<DateOnly>("EndDate")
                         .HasColumnType("date")

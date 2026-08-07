@@ -26,10 +26,11 @@ namespace STMM.Business.Services
             {
                 if (remainingConsumption <= 0) break;
 
-                // For the last tier, To is usually null, or for an interval it's To - From
-                // Note: The previous logic assumed From was 0, 50, 100 and To was 50, 100, etc.
-                // The size of the tier is To - From.
-                double tierSize = tier.To.HasValue ? tier.To.Value - tier.From : double.MaxValue;
+                // For integer-inclusive boundaries (e.g., 51 to 100), the tier size is (100 - 51) + 1 = 50.
+                // If From is 0 (e.g., 0 to 50), the size is 50 - 0 = 50.
+                double tierSize = tier.To.HasValue 
+                    ? (tier.From > 0 ? (tier.To.Value - tier.From + 1) : (tier.To.Value - tier.From)) 
+                    : double.MaxValue;
                 if (tierSize <= 0) continue; // safety check
                 
                 double consumptionInTier = Math.Min(remainingConsumption, tierSize);

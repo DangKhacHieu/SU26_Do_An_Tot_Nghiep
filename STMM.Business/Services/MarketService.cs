@@ -68,25 +68,9 @@ namespace STMM.Business.Services
 
         public async Task<MarketMapDto?> GetMarketMapAsync(int marketId)
         {
-            var market = await _context.Markets
-                .AsNoTracking()
-                .FirstOrDefaultAsync(m => m.MarketId == marketId && m.IsDeleted != true);
+            var market = await _marketRepository.GetMarketMapAsync(marketId);
 
             if (market == null) return null;
-
-            var areas = await _context.Areas
-                .AsNoTracking()
-                .Include(a => a.Category)
-                .Include(a => a.Stalls.Where(s => s.IsDeleted != true))
-                    .ThenInclude(s => s.Category)
-                .Include(a => a.Stalls.Where(s => s.IsDeleted != true))
-                    .ThenInclude(s => s.Contracts.Where(c => c.Status == "Active" && c.IsDeleted != true))
-                        .ThenInclude(c => c.Vendor)
-                .Where(a => a.MarketId == marketId && a.IsDeleted != true)
-                .OrderBy(a => a.AreaId)
-                .ToListAsync();
-
-            market.Areas = areas;
 
             var marketMapDto = _mapper.Map<MarketMapDto>(market);
 
@@ -110,17 +94,14 @@ namespace STMM.Business.Services
 
         public async Task<MarketMapDto> GetMarketMapForStaffAsync(int staffUserId)
         {
-            var marketId = await _context.Users
-                .Where(user => user.UserId == staffUserId)
-                .Select(user => user.MarketId)
-                .FirstOrDefaultAsync();
+            var user = await _userRepository.GetByIdAsync(staffUserId);
 
-            if (!marketId.HasValue)
+            if (user == null || !user.MarketId.HasValue)
             {
                 throw new ForbiddenException("The staff account is not assigned to a market.");
             }
 
-            return await GetMarketMapAsync(marketId.Value)
+            return await GetMarketMapAsync(user.MarketId.Value)
                 ?? throw new NotFoundException("Market map not found.");
         }
 
