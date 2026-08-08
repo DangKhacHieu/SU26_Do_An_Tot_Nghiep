@@ -113,23 +113,28 @@ export default function CompleteTaskForm({ task, baseUrl, onRefreshTask, onShowN
   const isPending = task.status === TASK_STATUS.PENDING;
   const isInProgress = task.status === TASK_STATUS.IN_PROGRESS;
   const isUtilityReading = task.taskType === TASK_TYPE.UTILITY_READING;
+  const progressCompleted = typeof utilityProgress?.completed === 'object'
+    ? Number(utilityProgress.completed.completed) || 0
+    : Number(utilityProgress?.completed) || 0;
+  const progressTotal = typeof utilityProgress?.completed === 'object'
+    ? Number(utilityProgress.completed.total) || 0
+    : Number(utilityProgress?.total) || 0;
+
   const isChecklistComplete = Boolean(
     isUtilityReading
-    && utilityProgress
-    && utilityProgress.total > 0
-    && utilityProgress.completed === utilityProgress.total
+    && progressTotal > 0
+    && progressCompleted === progressTotal
   );
   const isChecklistIncomplete = Boolean(
     isUtilityReading
-    && utilityProgress
-    && utilityProgress.total > 0
-    && utilityProgress.completed < utilityProgress.total
+    && progressTotal > 0
+    && progressCompleted < progressTotal
   );
   const isExecutionReady = isUtilityReading
     ? (isInProgress || isChecklistComplete)
     : isInProgress;
 
-  const isLocked = isPending || !isExecutionReady;
+  const isLocked = !isExecutionReady;
 
   const setImageFile = (target, file) => {
     if (target === 'before') setImageBeforeFile(file);
@@ -267,14 +272,14 @@ export default function CompleteTaskForm({ task, baseUrl, onRefreshTask, onShowN
           </>
         ) : null}
 
-        {isUtilityReading && utilityProgress && utilityProgress.total > 0 ? (
+        {isUtilityReading && utilityProgress && progressTotal > 0 ? (
           <div className={`utility-completion-progress ${isChecklistIncomplete ? 'is-incomplete' : 'is-complete'}`}>
             <div className="progress-info">
               <span>{t('completetaskform.meter_reading_progress')}</span>
-              <strong>{utilityProgress.completed} / {utilityProgress.total} stalls</strong>
+              <strong>{progressCompleted} / {progressTotal} stalls</strong>
             </div>
             <div className="progress-bar-container">
-              <div className="progress-bar-fill" style={{ width: `${(utilityProgress.completed / utilityProgress.total) * 100}%` }} />
+              <div className="progress-bar-fill" style={{ width: `${(progressCompleted / progressTotal) * 100}%` }} />
             </div>
             {isChecklistIncomplete ? <p>{t('completetaskform.complete_every_stall_reading')}</p> : null}
           </div>

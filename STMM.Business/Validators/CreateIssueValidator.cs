@@ -10,23 +10,23 @@ namespace STMM.Business.Validators
         {
             RuleFor(x => x.StallId)
                 .GreaterThan(0)
-                .WithMessage("StallId phải lớn hơn 0.");
+                .WithMessage("StallId must be greater than 0.");
 
             RuleFor(x => x.Title)
                 .NotEmpty()
-                .WithMessage("Tiêu đề sự cố không được để trống.")
+                .WithMessage("Issue title is required.")
                 .MinimumLength(5)
-                .WithMessage("Tiêu đề sự cố phải từ 5 đến 100 ký tự.")
+                .WithMessage("Issue title must be between 5 and 100 characters.")
                 .MaximumLength(100)
-                .WithMessage("Tiêu đề sự cố không được vượt quá 100 ký tự.");
+                .WithMessage("Issue title must not exceed 100 characters.");
 
             RuleFor(x => x.Description)
                 .NotEmpty()
-                .WithMessage("Mô tả sự cố không được để trống.")
+                .WithMessage("Issue description is required.")
                 .MinimumLength(10)
-                .WithMessage("Mô tả sự cố phải từ 10 đến 500 ký tự.")
+                .WithMessage("Issue description must be between 10 and 500 characters.")
                 .MaximumLength(500)
-                .WithMessage("Mô tả sự cố không được vượt quá 500 ký tự.");
+                .WithMessage("Issue description must not exceed 500 characters.");
 
             RuleFor(x => x.Images)
                 .Must(images => images == null || images.Count <= 3)

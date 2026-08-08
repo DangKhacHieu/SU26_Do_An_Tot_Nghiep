@@ -264,18 +264,18 @@ namespace STMM.Business.Services
             var managerUser = await _userRepository.GetByIdAsync(managerUserId, ct);
             if (managerUser == null || !managerUser.MarketId.HasValue)
             {
-                throw new ForbiddenException("Bạn không có quyền thao tác trên chợ này.");
+                throw new ForbiddenException("You are not authorized to operate on this market.");
             }
 
             var violation = await _violationRepository.GetViolationDetailsForManagerAsync(violationId, managerUser.MarketId.Value, ct);
             if (violation == null)
             {
-                throw new NotFoundException($"Không tìm thấy biên bản vi phạm ID {violationId}.");
+                throw new NotFoundException($"Violation record with ID {violationId} not found.");
             }
 
             if (violation.Status != "Pending" && violation.Status != "Notified")
             {
-                throw new BadRequestException("Chỉ có thể chốt các vi phạm ở trạng thái Pending hoặc Notified mà chưa có kháng nghị.");
+                throw new BadRequestException("Only violations in Pending or Notified status without active appeals can be finalized.");
             }
 
             var violationToUpdate = await _violationRepository.GetByIdAsync(violationId, ct);
@@ -295,28 +295,28 @@ namespace STMM.Business.Services
             var accountantUser = await _userRepository.GetByIdAsync(accountantUserId, ct);
             if (accountantUser == null || !accountantUser.MarketId.HasValue)
             {
-                throw new ForbiddenException("Kế toán chưa được phân công quản lý chợ.");
+                throw new ForbiddenException("Accountant is not assigned to a market.");
             }
             var violation = await _violationRepository.GetViolationDetailsForManagerAsync(violationId, accountantUser.MarketId.Value, ct);
             if (violation == null)
             {
-                throw new NotFoundException($"Không tìm thấy biên bản vi phạm ID {violationId}.");
+                throw new NotFoundException($"Violation record with ID {violationId} not found.");
             }
 
             if (violation.Status != "FinalApproved")
             {
-                throw new BadRequestException("Chỉ có thể xuất hóa đơn cho các vi phạm đã có quyết định cuối cùng (FinalApproved).");
+                throw new BadRequestException("Invoices can only be issued for violations with a final approved decision.");
             }
 
             if (!violation.FineAmount.HasValue || violation.FineAmount.Value <= 0)
             {
-                throw new BadRequestException("Biên bản này chưa có số tiền phạt hợp lệ để tạo hóa đơn.");
+                throw new BadRequestException("This violation record does not have a valid fine amount for invoice generation.");
             }
 
             var contract = await _contractRepository.GetActiveContractByStallIdAsync(violation.StallId, ct);
             if (contract == null)
             {
-                throw new BadRequestException($"Sạp {violation.Stall.Code} hiện không có hợp đồng thuê nào đang hiệu lực để ghi nhận hóa đơn.");
+                throw new BadRequestException($"Stall {violation.Stall.Code} currently has no active lease contract for invoice recording.");
             }
 
             var feeType = await _feeTypeRepository.GetFeeTypeByNameContainsAsync("phạt", null, ct);
@@ -327,7 +327,7 @@ namespace STMM.Business.Services
 
             if (feeType == null)
             {
-                throw new BadRequestException("Không tìm thấy Loại phí cấu hình cho 'Tiền phạt' trong hệ thống. Vui lòng tạo Loại phí này trước.");
+                throw new BadRequestException("Fee type configured for 'Fine' was not found in the system. Please create this fee type first.");
             }
 
             var invoice = new Invoice
@@ -395,7 +395,7 @@ namespace STMM.Business.Services
             var duplicate = await _violationTypeRepository.IsNameExistsAsync(request.Name, null, user?.MarketId, ct);
             if (duplicate)
             {
-                throw new BadRequestException($"Tên loại vi phạm '{request.Name}' đã tồn tại.");
+                throw new BadRequestException($"Violation type name '{request.Name}' already exists.");
             }
 
             var vt = new ViolationType
@@ -418,13 +418,13 @@ namespace STMM.Business.Services
             var vt = await _violationTypeRepository.GetByIdAsync(id, ct);
             if (vt == null)
             {
-                throw new NotFoundException($"Không tìm thấy Loại vi phạm ID {id}.");
+                throw new NotFoundException($"Violation type with ID {id} not found.");
             }
 
             var duplicate = await _violationTypeRepository.IsNameExistsAsync(request.Name, id, vt.MarketId, ct);
             if (duplicate)
             {
-                throw new BadRequestException($"Tên loại vi phạm '{request.Name}' đã tồn tại ở loại vi phạm khác.");
+                throw new BadRequestException($"Violation type name '{request.Name}' already exists in another record.");
             }
 
             vt.Name = request.Name;
@@ -447,7 +447,7 @@ namespace STMM.Business.Services
 
             if (inUse)
             {
-                throw new BadRequestException($"Không thể xóa loại vi phạm '{vt.Name}' vì đang có biên bản vi phạm sử dụng nó.");
+                throw new BadRequestException($"Cannot delete violation type '{vt.Name}' because active violation records are using it.");
             }
 
             _violationTypeRepository.Delete(vt);

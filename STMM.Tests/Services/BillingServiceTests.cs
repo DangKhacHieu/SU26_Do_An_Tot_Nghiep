@@ -104,7 +104,8 @@ namespace STMM.Tests.Services
                 _auditLogRepoMock.Object,
                 NullLogger<BillingService>.Instance,
                 _validatorMock.Object,
-                _meterAdjustmentValidatorMock.Object);
+                _meterAdjustmentValidatorMock.Object,
+                new Mock<FluentValidation.IValidator<STMM.Business.DTOs.Billing.CreateAdHocInvoiceRequest>>().Object);
         }
 
         [Fact]

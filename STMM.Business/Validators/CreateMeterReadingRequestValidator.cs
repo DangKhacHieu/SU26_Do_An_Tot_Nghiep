@@ -15,9 +15,9 @@ namespace STMM.Business.Validators
 
             RuleFor(x => x.NewValue)
                 .InclusiveBetween(0, 999999)
-                .WithMessage("Chỉ số mới phải nằm trong khoảng từ 0 đến 999,999.")
+                .WithMessage("New value must be between 0 and 999,999.")
                 .Must(x => x % 1 == 0)
-                .WithMessage("Chỉ số mới phải là số nguyên.");
+                .WithMessage("New value must be an integer.");
 
             RuleFor(x => x.RecordedAt)
                 .Cascade(CascadeMode.Stop)

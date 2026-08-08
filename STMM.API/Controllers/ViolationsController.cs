@@ -64,7 +64,7 @@ namespace STMM.API.Controllers
             var result = await _violationService.CreateViolationAsync(userId, request, ct);
 
             var ipAddress = Request.HttpContext.Connection.RemoteIpAddress?.ToString();
-            await _auditLogService.LogAsync(userId, $"Lập biên bản vi phạm: {result.ViolationTypeName} - Sạp: {result.StallCode} - Số tiền phạt: {request.FineAmount:N0} VNĐ", ipAddress, ct);
+            await _auditLogService.LogAsync(userId, $"Created violation report: {result.ViolationTypeName} - Stall: {result.StallCode} - Fine: {request.FineAmount:N0} VND", ipAddress, ct);
 
             return CreatedAtAction(nameof(GetViolationById), new { id = result.ViolationId }, result);
         }
