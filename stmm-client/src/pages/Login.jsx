@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { translateError } from '../utils/translateError';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import LanguageSwitcher from '../components/layout/LanguageSwitcher';
@@ -161,7 +162,7 @@ export default function Login() {
               <Building2 size={22} />
             </div>
             <div>
-              <div style={{ fontSize: 17, fontWeight: 800, color: 'white', letterSpacing: '-0.03em' }}>STMM Portal</div>
+              <div style={{ fontSize: 17, fontWeight: 800, color: 'white', letterSpacing: '-0.03em' }}>MHMS Portal</div>
               <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', marginTop: 1 }}>{t('login.market_management_system')}</div>
             </div>
           </div>
@@ -264,7 +265,7 @@ export default function Login() {
               animation: 'slideIn 0.2s ease'
             }}>
               <AlertCircle size={16} style={{ flexShrink: 0, marginTop: 1 }} />
-              <span>{error}</span>
+              <span>{translateError(error, t)}</span>
             </div>
           )}
 
@@ -475,7 +476,7 @@ export default function Login() {
             textAlign: 'center', fontSize: 12, color: 'var(--text-muted)',
             marginTop: 32, lineHeight: 1.5
           }}>
-            © 2026 STMM Market Management System.<br />
+            © 2026 MHMS - Market Hall Management System.<br />
             {t('login.all_rights_reserved')}</p>
         </div>
       </div>

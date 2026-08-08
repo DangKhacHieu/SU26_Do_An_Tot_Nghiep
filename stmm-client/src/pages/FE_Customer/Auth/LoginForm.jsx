@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import authService from "../../../services/authService";
+import { translateError } from "../../../utils/translateError";
 import "./LoginForm.css";
 
 export default function LoginForm({ onBack, onGoToRegister, onGoToForgotPassword, onLoginSuccess }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -13,27 +14,33 @@ export default function LoginForm({ onBack, onGoToRegister, onGoToForgotPassword
 
   useEffect(() => {
     const initGoogle = () => {
+      const container = document.getElementById("google-login-btn");
+      if (container) container.innerHTML = "";
       window.google?.accounts.id.initialize({
         client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID || "733979401918-egmrcldjnt2o2o30t7u3v1rskep1lhre.apps.googleusercontent.com",
         callback: handleGoogleLogin,
       });
-      window.google?.accounts.id.renderButton(
-        document.getElementById("google-login-btn"),
-        { theme: "outline", size: "large", width: "100%" }
-      );
+      if (container) {
+        window.google?.accounts.id.renderButton(container, {
+          theme: "outline",
+          size: "large",
+          width: "100%",
+          locale: i18n.language || "en",
+        });
+      }
     };
 
     if (window.google) {
       initGoogle();
     } else {
       const script = document.createElement("script");
-      script.src = "https://accounts.google.com/gsi/client?hl=en";
+      script.src = "https://accounts.google.com/gsi/client";
       script.async = true;
       script.defer = true;
       script.onload = initGoogle;
       document.body.appendChild(script);
     }
-  }, []);
+  }, [i18n.language]);
 
   const handleGoogleLogin = async (response) => {
     setError("");
@@ -70,8 +77,8 @@ export default function LoginForm({ onBack, onGoToRegister, onGoToForgotPassword
       <section className="auth-modern-card">
         <div className="auth-modern-left">
           <button type="button" className="auth-logo" onClick={onBack}>
-            <span className="auth-logo-icon">S</span>
-            <span>STMM</span>
+            <span className="auth-logo-icon">M</span>
+            <span>MHMS</span>
           </button>
 
           <div className="auth-left-content">
@@ -165,7 +172,7 @@ export default function LoginForm({ onBack, onGoToRegister, onGoToForgotPassword
               <button type="button" onClick={onGoToForgotPassword}>{t('loginform.forgot_password')}</button>
             </div>
 
-            {error && <div className="modern-message error">{t(error)}</div>}
+            {error && <div className="modern-message error">{translateError(error, t)}</div>}
 
             <button
               type="submit"

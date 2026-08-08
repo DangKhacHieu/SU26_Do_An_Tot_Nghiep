@@ -1,9 +1,10 @@
 import { useTranslation } from 'react-i18next';
+import { translateError } from "../../../utils/translateError";
 import { useState, useEffect, useRef } from "react";
 import Header from "../Layout/Header";
 import Footer from "../Layout/Footer";
 import { getMarketMap, getAllMarkets } from "../../../services/marketApi";
-import { getStallReviews, getMarketReviews, submitMarketReview } from "../../../services/reviewApi";
+import { getStallReviews, getMarketReviews, submitMarketReview, updateMarketReview } from "../../../services/reviewApi";
 import "./MarketMapPage.css";
 
 export default function MarketMapPage({
@@ -117,6 +118,13 @@ export default function MarketMapPage({
   const [fbSubmitting, setFbSubmitting] = useState(false);
   const [fbError, setFbError] = useState("");
   const [fbSuccess, setFbSuccess] = useState("");
+
+  // Edit Market Feedback state
+  const [editingReviewId, setEditingReviewId] = useState(null);
+  const [editRating, setEditRating] = useState(5);
+  const [editComment, setEditComment] = useState("");
+  const [editSubmitting, setEditSubmitting] = useState(false);
+  const [editError, setEditError] = useState("");
 
   const searchRef = useRef(null);
 
@@ -233,6 +241,51 @@ export default function MarketMapPage({
       setFbError(errMsg);
     } finally {
       setFbSubmitting(false);
+    }
+  };
+
+  // Edit Market Feedback Handlers
+  const handleStartEdit = (fb) => {
+    const rId = fb.reviewId || fb.feedbackId;
+    setEditingReviewId(rId);
+    setEditRating(fb.rating || 5);
+    setEditComment(fb.comment || fb.content || "");
+    setEditError("");
+  };
+
+  const handleCancelEdit = () => {
+    setEditingReviewId(null);
+    setEditRating(5);
+    setEditComment("");
+    setEditError("");
+  };
+
+  const handleSaveEdit = async (reviewId) => {
+    if (!user) return;
+    const userId = user.userId || user.id || user.UserId;
+    if (!userId) return;
+
+    if (!editComment.trim()) {
+      setEditError(t("marketmappage.comment_required"));
+      return;
+    }
+
+    setEditSubmitting(true);
+    setEditError("");
+
+    try {
+      await updateMarketReview(reviewId, userId, editRating, editComment.trim());
+      setEditingReviewId(null);
+      setFbSuccess(t("marketmappage.review_updated_success"));
+      await loadMarketFeedbacks(marketId);
+    } catch (err) {
+      console.error("Error updating market review:", err);
+      const errMsg = typeof err.response?.data === 'string'
+        ? err.response.data
+        : err.response?.data?.message || err.message || t("marketmappage.unable_to_update");
+      setEditError(errMsg);
+    } finally {
+      setEditSubmitting(false);
     }
   };
 
@@ -872,7 +925,7 @@ export default function MarketMapPage({
               {/* Form submit feedback */}
               <div className="feedback-form-card">
                 <h3>✍️ {t("marketmappage.submit_review_title")}</h3>
-                {fbError && <div className="fb-alert error">{fbError}</div>}
+                {fbError && <div className="fb-alert error">{translateError(fbError, t)}</div>}
                 {fbSuccess && <div className="fb-alert success">{fbSuccess}</div>}
 
                 <form onSubmit={handleSubmitFeedback}>
@@ -929,32 +982,108 @@ export default function MarketMapPage({
                   </div>
                 ) : (
                   <div className="feedbacks-grid">
-                    {feedbacks.map((fb) => (
-                      <div key={fb.reviewId || fb.feedbackId} className="feedback-card">
-                        <div className="fb-card-top">
-                          <div className="fb-user-info">
-                            <div className="fb-avatar-box" style={{ width: 36, height: 36, borderRadius: "50%", background: "#e8f5e9", color: "#2e7d32", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "bold" }}>
-                              {(fb.userName || "C").charAt(0).toUpperCase()}
-                            </div>
-                            <div>
-                              <strong>{fb.userName || t("homepage_reviews.customer")}</strong>
-                              <span className="fb-date" style={{ display: "block", fontSize: 12, color: "#888" }}>
-                                {fb.createdAt
-                                  ? new Date(fb.createdAt).toLocaleDateString()
-                                  : ""}
-                              </span>
-                            </div>
-                          </div>
+                    {feedbacks.map((fb) => {
+                      const reviewId = fb.reviewId || fb.feedbackId;
+                      const currentUserId = user ? (user.userId || user.id || user.UserId) : null;
+                      const isMyReview = currentUserId && (fb.userId === currentUserId);
+                      const isEditing = editingReviewId === reviewId;
 
-                          <div className="fb-rating-stars" style={{ color: "#f57c00", fontSize: 16 }}>
-                            {"★".repeat(fb.rating)}
-                            {"☆".repeat(5 - fb.rating)}
-                          </div>
+                      return (
+                        <div key={reviewId} className="feedback-card">
+                          {isEditing ? (
+                            <div className="fb-edit-mode" style={{ width: "100%" }}>
+                              <h4 style={{ margin: "0 0 10px 0", color: "#2e7d32", fontSize: 15, fontWeight: "700" }}>✍️ {t("marketmappage.edit_review")}</h4>
+                              {editError && <div className="fb-alert error" style={{ marginBottom: 10 }}>{translateError(editError, t)}</div>}
+
+                              <div className="form-field" style={{ marginBottom: 10 }}>
+                                <label style={{ fontSize: 13, fontWeight: "600", display: "block", marginBottom: 4 }}>{t("marketmappage.overall_rating")}</label>
+                                <div className="star-picker">
+                                  {[1, 2, 3, 4, 5].map((star) => (
+                                    <span
+                                      key={star}
+                                      className={`star-icon ${star <= editRating ? "filled" : ""}`}
+                                      onClick={() => setEditRating(star)}
+                                      style={{ cursor: "pointer", fontSize: 18 }}
+                                    >
+                                      ★
+                                    </span>
+                                  ))}
+                                  <span className="star-text" style={{ marginLeft: 6, fontSize: 13 }}>({editRating} / 5)</span>
+                                </div>
+                              </div>
+
+                              <div className="form-field" style={{ marginBottom: 12 }}>
+                                <label style={{ fontSize: 13, fontWeight: "600", display: "block", marginBottom: 4 }}>{t("marketmappage.your_review")}</label>
+                                <textarea
+                                  rows={3}
+                                  value={editComment}
+                                  onChange={(e) => setEditComment(e.target.value)}
+                                  style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid #ccc", fontSize: 13.5, fontFamily: "inherit" }}
+                                ></textarea>
+                              </div>
+
+                              <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+                                <button
+                                  type="button"
+                                  className="btn-drawer-secondary"
+                                  onClick={handleCancelEdit}
+                                  disabled={editSubmitting}
+                                  style={{ padding: "6px 14px", fontSize: 12, borderRadius: 6, cursor: "pointer" }}
+                                >
+                                  {t("marketmappage.cancel_edit")}
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn-submit-fb"
+                                  onClick={() => handleSaveEdit(reviewId)}
+                                  disabled={editSubmitting}
+                                  style={{ padding: "6px 14px", fontSize: 12, borderRadius: 6, cursor: "pointer" }}
+                                >
+                                  {editSubmitting ? t("marketmappage.saving") : t("marketmappage.save_edit")}
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <>
+                              <div className="fb-card-top">
+                                <div className="fb-user-info">
+                                  <div className="fb-avatar-box" style={{ width: 36, height: 36, borderRadius: "50%", background: "#e8f5e9", color: "#2e7d32", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "bold" }}>
+                                    {(fb.userName || "C").charAt(0).toUpperCase()}
+                                  </div>
+                                  <div>
+                                    <strong>{fb.userName || t("homepage_reviews.customer")}</strong>
+                                    <span className="fb-date" style={{ display: "block", fontSize: 12, color: "#888" }}>
+                                      {fb.createdAt
+                                        ? new Date(fb.createdAt).toLocaleDateString()
+                                        : ""}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                <div className="fb-rating-stars" style={{ color: "#f57c00", fontSize: 16 }}>
+                                  {"★".repeat(fb.rating)}
+                                  {"☆".repeat(5 - fb.rating)}
+                                </div>
+                              </div>
+
+                              <p className="fb-card-content" style={{ marginTop: 10, color: "#333" }}>{fb.comment || fb.content}</p>
+
+                              {isMyReview && (
+                                <div className="fb-owner-actions" style={{ marginTop: 10 }}>
+                                  <button
+                                    type="button"
+                                    className="btn-fb-edit"
+                                    onClick={() => handleStartEdit(fb)}
+                                  >
+                                    ✏️ {t("marketmappage.edit_review")}
+                                  </button>
+                                </div>
+                              )}
+                            </>
+                          )}
                         </div>
-
-                        <p className="fb-card-content" style={{ marginTop: 10, color: "#333" }}>{fb.comment || fb.content}</p>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>

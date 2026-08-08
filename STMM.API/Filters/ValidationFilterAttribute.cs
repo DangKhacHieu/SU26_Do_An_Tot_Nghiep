@@ -19,10 +19,11 @@ namespace STMM.API.Filters
                     }))
                     .ToList();
 
+                var firstError = errors.FirstOrDefault()?.Error;
                 var response = new
                 {
                     Status = 400,
-                    Message = "Dữ liệu đầu vào không hợp lệ",
+                    Message = !string.IsNullOrEmpty(firstError) ? firstError : "Dữ liệu đầu vào không hợp lệ",
                     Errors = errors
                 };
 

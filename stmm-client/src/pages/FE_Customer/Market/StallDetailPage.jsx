@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { translateError } from "../../../utils/translateError";
 import { useState, useEffect } from "react";
 import Header from "../Layout/Header";
 import Footer from "../Layout/Footer";
@@ -494,7 +495,7 @@ export default function StallDetailPage({
                                 />
                               </div>
                               {editError && (
-                                <div className="edit-error-msg">⚠ {editError}</div>
+                                <div className="edit-error-msg">⚠ {translateError(editError, t)}</div>
                               )}
                               <div className="edit-form-actions">
                                 <button 

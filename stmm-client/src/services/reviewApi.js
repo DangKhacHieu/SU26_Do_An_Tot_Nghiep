@@ -124,3 +124,24 @@ export const submitMarketReview = async (marketId, userId, rating, comment) => {
     throw error;
   }
 };
+
+export const updateMarketReview = async (reviewId, userId, rating, comment) => {
+  if (!reviewId || !userId || !rating) {
+    throw new Error("reviewId, userId and rating are required");
+  }
+  try {
+    const response = await axios.put(
+      `${REVIEWS_URL}/${reviewId}`,
+      {
+        userId,
+        rating,
+        comment,
+      },
+      { headers: getAuthHeaders() }
+    );
+    return response.data;
+  } catch (error) {
+    console.error(`Error updating market review ${reviewId}:`, error);
+    throw error;
+  }
+};

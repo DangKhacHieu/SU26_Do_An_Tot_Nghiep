@@ -79,7 +79,7 @@ namespace STMM.Business.Services
 
             if (string.Equals(user.Status, "Inactive", StringComparison.OrdinalIgnoreCase))
             {
-                throw new BadRequestException("Tài khoản của bạn đang ngưng hoạt động (Inactive). Vui lòng liên hệ Ban Quản lý Chợ qua hotline 1900-8888 hoặc email support@stmm.com để được hỗ trợ.");
+                throw new BadRequestException("Tài khoản của bạn đang ngưng hoạt động (Inactive). Vui lòng liên hệ Ban Quản lý Market Hall qua hotline 1900-8888 hoặc email markethall.mhms@gmail.com để được hỗ trợ.");
             }
 
             if (string.Equals(user.Status, "Unverified", StringComparison.OrdinalIgnoreCase))
@@ -194,22 +194,22 @@ namespace STMM.Business.Services
             var emailBody = $@"
 <div style=""font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;"">
     <div style=""text-align: center; margin-bottom: 20px;"">
-        <h2 style=""color: #2e7d32; margin: 0;"">Smart Market (STMM)</h2>
-        <p style=""color: #666; font-size: 14px; margin: 5px 0 0 0;"">Hệ thống quản lý chợ thông minh</p>
+        <h2 style=""color: #2e7d32; margin: 0;"">Market Hall Management System (MHMS)</h2>
+        <p style=""color: #666; font-size: 14px; margin: 5px 0 0 0;"">Market Hall Management System (MHMS)</p>
     </div>
     <div style=""background-color: #f9f9f9; padding: 20px; border-radius: 6px; margin-bottom: 20px;"">
         <p style=""margin-top: 0;"">Xin chào <strong>{pendingUser.Name}</strong>,</p>
-        <p>Cảm ơn bạn đã đăng ký tài khoản tại <strong>Smart Market</strong>. Để hoàn tất quá trình đăng ký, vui lòng sử dụng mã xác thực OTP dưới đây:</p>
+        <p>Cảm ơn bạn đã đăng ký tài khoản tại <strong>Market Hall Management System (MHMS)</strong>. Để hoàn tất quá trình đăng ký, vui lòng sử dụng mã xác thực OTP dưới đây:</p>
         <div style=""text-align: center; margin: 30px 0;"">
             <span style=""font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #2e7d32; background-color: #e8f5e9; padding: 10px 20px; border-radius: 4px; border: 1px dashed #81c784;"">{otpCode}</span>
         </div>
         <p style=""color: #666; font-size: 12px; text-align: center;"">Mã này có hiệu lực trong vòng <strong>2 phút</strong>. Vui lòng không chia sẻ mã này với bất kỳ ai.</p>
     </div>
     <hr style=""border: none; border-top: 1px solid #eee; margin: 20px 0;"" />
-    <p style=""color: #999; font-size: 11px; text-align: center; margin: 0;"">Đây là email tự động từ hệ thống STMM, vui lòng không trả lời email này.</p>
+    <p style=""color: #999; font-size: 11px; text-align: center; margin: 0;"">Đây là email tự động từ hệ thống MHMS, vui lòng không trả lời email này.</p>
 </div>";
 
-            await _emailService.SendEmailAsync(pendingUser.Email, "Xác thực tài khoản Smart Market (STMM)", emailBody, ct);
+            await _emailService.SendEmailAsync(pendingUser.Email, "Xác thực tài khoản Market Hall Management System (MHMS)", emailBody, ct);
 
             return new RegisterResponse
             {
@@ -331,22 +331,22 @@ namespace STMM.Business.Services
             var emailBody = $@"
 <div style=""font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;"">
     <div style=""text-align: center; margin-bottom: 20px;"">
-        <h2 style=""color: #2e7d32; margin: 0;"">Smart Market (STMM)</h2>
-        <p style=""color: #666; font-size: 14px; margin: 5px 0 0 0;"">Hệ thống quản lý chợ thông minh</p>
+        <h2 style=""color: #2e7d32; margin: 0;"">Market Hall Management System (MHMS)</h2>
+        <p style=""color: #666; font-size: 14px; margin: 5px 0 0 0;"">Market Hall Management System (MHMS)</p>
     </div>
     <div style=""background-color: #f9f9f9; padding: 20px; border-radius: 6px; margin-bottom: 20px;"">
         <p style=""margin-top: 0;"">Xin chào <strong>{pendingUser.Name}</strong>,</p>
-        <p>Bạn đã yêu cầu gửi lại mã xác thực OTP cho tài khoản <strong>Smart Market</strong>. Mã xác thực mới của bạn là:</p>
+        <p>Bạn đã yêu cầu gửi lại mã xác thực OTP cho tài khoản <strong>Market Hall Management System (MHMS)</strong>. Mã xác thực mới của bạn là:</p>
         <div style=""text-align: center; margin: 30px 0;"">
             <span style=""font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #2e7d32; background-color: #e8f5e9; padding: 10px 20px; border-radius: 4px; border: 1px dashed #81c784;"">{otpCode}</span>
         </div>
         <p style=""color: #666; font-size: 12px; text-align: center;"">Mã này có hiệu lực trong vòng <strong>5 phút</strong>. Vui lòng không chia sẻ mã này với bất kỳ ai.</p>
     </div>
     <hr style=""border: none; border-top: 1px solid #eee; margin: 20px 0;"" />
-    <p style=""color: #999; font-size: 11px; text-align: center; margin: 0;"">Đây là email tự động từ hệ thống STMM, vui lòng không trả lời email này.</p>
+    <p style=""color: #999; font-size: 11px; text-align: center; margin: 0;"">Đây là email tự động từ hệ thống MHMS, vui lòng không trả lời email này.</p>
 </div>";
 
-            await _emailService.SendEmailAsync(pendingUser.Email, "Gửi lại mã xác thực tài khoản Smart Market (STMM)", emailBody, ct);
+            await _emailService.SendEmailAsync(pendingUser.Email, "Gửi lại mã xác thực tài khoản Market Hall Management System (MHMS)", emailBody, ct);
         }
 
         public async Task ForgotPasswordAsync(ForgotPasswordRequest request, CancellationToken ct = default)
@@ -374,22 +374,22 @@ namespace STMM.Business.Services
             var emailBody = $@"
 <div style=""font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;"">
     <div style=""text-align: center; margin-bottom: 20px;"">
-        <h2 style=""color: #2e7d32; margin: 0;"">Smart Market (STMM)</h2>
-        <p style=""color: #666; font-size: 14px; margin: 5px 0 0 0;"">Hệ thống quản lý chợ thông minh</p>
+        <h2 style=""color: #2e7d32; margin: 0;"">Market Hall Management System (MHMS)</h2>
+        <p style=""color: #666; font-size: 14px; margin: 5px 0 0 0;"">Market Hall Management System (MHMS)</p>
     </div>
     <div style=""background-color: #f9f9f9; padding: 20px; border-radius: 6px; margin-bottom: 20px;"">
         <p style=""margin-top: 0;"">Xin chào <strong>{user.Name}</strong>,</p>
-        <p>Bạn đã yêu cầu đặt lại mật khẩu cho tài khoản <strong>Smart Market</strong>. Mã xác thực OTP của bạn là:</p>
+        <p>Bạn đã yêu cầu đặt lại mật khẩu cho tài khoản <strong>Market Hall Management System (MHMS)</strong>. Mã xác thực OTP của bạn là:</p>
         <div style=""text-align: center; margin: 30px 0;"">
             <span style=""font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #2e7d32; background-color: #e8f5e9; padding: 10px 20px; border-radius: 4px; border: 1px dashed #81c784;"">{otpCode}</span>
         </div>
         <p style=""color: #666; font-size: 12px; text-align: center;"">Mã này có hiệu lực trong vòng <strong>2 phút</strong>. Vui lòng không chia sẻ mã này với bất kỳ ai.</p>
     </div>
     <hr style=""border: none; border-top: 1px solid #eee; margin: 20px 0;"" />
-    <p style=""color: #999; font-size: 11px; text-align: center; margin: 0;"">Đây là email tự động từ hệ thống STMM, vui lòng không trả lời email này.</p>
+    <p style=""color: #999; font-size: 11px; text-align: center; margin: 0;"">Đây là email tự động từ hệ thống MHMS, vui lòng không trả lời email này.</p>
 </div>";
 
-            await _emailService.SendEmailAsync(user.Email, "Yêu cầu khôi phục mật khẩu tài khoản Smart Market (STMM)", emailBody, ct);
+            await _emailService.SendEmailAsync(user.Email, "Yêu cầu khôi phục mật khẩu tài khoản Market Hall Management System (MHMS)", emailBody, ct);
         }
 
         public async Task VerifyResetOtpAsync(VerifyResetOtpRequest request, CancellationToken ct = default)
@@ -683,12 +683,12 @@ namespace STMM.Business.Services
             {
                 if (string.Equals(user.Status, "Inactive", StringComparison.OrdinalIgnoreCase))
                 {
-                    throw new BadRequestException("Tài khoản của bạn đang ngưng hoạt động (Inactive). Vui lòng liên hệ Ban Quản lý Chợ qua hotline 1900-8888 hoặc email support@stmm.com để được hỗ trợ.");
+                    throw new BadRequestException("Tài khoản của bạn đang ngưng hoạt động (Inactive). Vui lòng liên hệ Ban Quản lý Market Hall qua hotline 1900-8888 hoặc email markethall.mhms@gmail.com để được hỗ trợ.");
                 }
 
                 if (string.Equals(user.Status, "Suspended", StringComparison.OrdinalIgnoreCase) || string.Equals(user.Status, "Locked", StringComparison.OrdinalIgnoreCase))
                 {
-                    throw new BadRequestException("Tài khoản đã bị khóa hoặc tạm dừng. Vui lòng liên hệ Ban Quản lý Chợ để được hỗ trợ.");
+                    throw new BadRequestException("Tài khoản đã bị khóa hoặc tạm dừng. Vui lòng liên hệ Ban Quản lý Market Hall để được hỗ trợ.");
                 }
                 
                 customerRole = user.Role ?? await GetOrCreateCustomerRoleAsync(ct);

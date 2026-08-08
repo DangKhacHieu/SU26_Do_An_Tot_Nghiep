@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { translateError } from '../../utils/translateError';
 import React, { useState, useEffect } from 'react';
 import { 
   User as UserIcon, 
@@ -213,7 +214,7 @@ export default function ProfileManagement() {
         setActiveModal(null);
       })
       .catch(err => {
-        setModalError(err.message);
+        setModalError(translateError(err.message, t));
       });
     }
   };
