@@ -17,7 +17,8 @@
     "error": "Lỗi",
     "notification": "Thông báo",
     "no_data": "Không có dữ liệu",
-    "back": "Quay lại"
+    "back": "Quay lại",
+    "close": "Đóng"
   },
   "requests": {
     "placeholder": "Tìm theo tiêu đề, sạp, tiểu thương...",
@@ -770,13 +771,15 @@
   },
   "stalleditor": {
     "tools_to_createedit_stores": "Công cụ tạo/chỉnh sửa Sạp",
-    "save_stall_coordinates": "Lưu Toạ Độ Sạp"
+    "save_stall_coordinates": "Lưu Toạ Độ Sạp",
+    "drag_drop_rotate_and": "Kéo thả, xoay và thay đổi kích thước sạp trực quan."
   },
   "header": {
     "error_while_getting_notification": "Lỗi khi lấy thông báo:",
     "error_when_marking_read": "Lỗi khi đánh dấu đã đọc:",
     "overview": "Tổng quan",
     "market_map": "Sơ đồ chợ",
+    "news_faq": "Tin tức & FAQs",
     "no_markets_available": "Không có chợ nào khả dụng",
     "search_markets": "Tìm kiếm chợ...",
     "notifications": "Thông báo",
@@ -823,7 +826,9 @@
     "view_all": "Xem tất cả",
     "loading_notifications": "Đang tải thông báo...",
     "no_notifications": "Chưa có thông báo nào.",
-    "received_at": "Nhận lúc:"
+    "received_at": "Nhận lúc:",
+    "error_when_marking_read": "Lỗi khi đánh dấu thông báo đã đọc.",
+    "error_while_getting_notification": "Lỗi khi tải danh sách thông báo."
   },
   "stalldetailpage": {
     "loading_stall": "Đang tải thông tin chi tiết sạp...",
@@ -862,7 +867,10 @@
     "new_rating": "Số sao mới:",
     "saving": "Đang lưu...",
     "save_changes": "Lưu thay đổi",
-    "cancel": "Hủy"
+    "cancel": "Hủy",
+    "error_updating_review": "Lỗi khi cập nhật đánh giá.",
+    "error_when_loading_store": "Lỗi khi tải thông tin cửa hàng.",
+    "error_when_submitting_review": "Lỗi khi gửi đánh giá."
   },
   "marketmappage": {
     "directory_title": "Danh sách Chợ Smart Market",
@@ -909,7 +917,15 @@
     "session_invalid": "Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.",
     "review_submitted_success": "Đã gửi đánh giá chợ thành công! Cảm ơn bạn đã đóng góp.",
     "unable_to_submit": "Không thể gửi đánh giá. Vui lòng thử lại.",
-    "hold_ctrl_to_zoom": "Giữ Ctrl + cuộn chuột để thu phóng bản đồ"
+    "hold_ctrl_to_zoom": "Giữ Ctrl + cuộn chuột để thu phóng bản đồ",
+    "error_when_loading_market": "Lỗi khi tải thông tin chợ.",
+    "review_updated_success": "Đánh giá đã được cập nhật thành công.",
+    "unable_to_update": "Không thể cập nhật đánh giá.",
+    "error_loading_stall_reviews": "Lỗi khi tải các đánh giá sạp.",
+    "edit_review": "Chỉnh sửa đánh giá",
+    "cancel_edit": "Hủy bỏ",
+    "saving": "Đang lưu...",
+    "save_edit": "Lưu đánh giá"
   },
   "dashboardadminsystem": {
     "stmm_ecommerce_market_system": "Trung tâm quản trị hệ thống chợ thương mại điện tử STMM",
@@ -1433,7 +1449,14 @@
     "payment_status_other": "{{status}}",
     "print_statement": "In biên nhận",
     "reconciliation_period": "Kỳ đối chiếu: {{date}}",
-    "confirm": "Xác nhận"
+    "confirm": "Xác nhận",
+    "dispute_resolved_success": "Giải quyết khiếu nại hóa đơn thành công.",
+    "phone": "Số điện thoại",
+    "issue_date": "Ngày lập",
+    "invoice_type": "Loại hóa đơn",
+    "payment_history": "Lịch sử thanh toán",
+    "payment_date": "Ngày thanh toán",
+    "invoice_details": "Chi tiết hóa đơn"
   },
   "violationspenalties": {
     "violations_sanctions": "Vi Phạm & Xử Phạt",
@@ -1535,7 +1558,9 @@
     "show_paginated_violations": "Hiển thị {{start}} - {{end}} trong tổng số {{total}} biên bản",
     "show_paginated_types": "Hiển thị {{start}} - {{end}} trong tổng số {{total}} loại vi phạm",
     "report_detail_title": "Chi tiết Biên bản — VIO-{{id}}",
-    "view_detail": "Xem"
+    "view_detail": "Xem",
+    "amount": "Mức tiền phạt",
+    "due_date": "Hạn nộp phạt"
   },
   "dashboard": {
     "backend_connection_failed": "Kết nối backend thất bại!",
@@ -1645,8 +1670,8 @@
     "erase": "Xóa",
     "for_example_replacing_a": "Ví dụ: Thay thế bóng đèn LED 1.2m...",
     "notes_on_coverage_warranty": "Ghi chú về phạm vi bao gồm, điều kiện bảo hành...",
-    "please_enter_item_name": "Vui lòng nhập tên hạng mục",
-    "price_must_be_positive": "Đơn giá phải lớn hơn 0",
+    "please_enter_item_name": "Vui lòng nhập tên danh mục/vật tư.",
+    "price_must_be_positive": "Đơn giá phải lớn hơn 0.",
     "electricity": "Điện",
     "light_bulb": "bóng đèn",
     "socket": "ổ cắm",
@@ -1695,7 +1720,9 @@
     "show_paginated_prices": "Hiển thị {{start}} - {{end}} trong tổng số {{total}} hạng mục",
     "electricity_category": "Điện",
     "water_category": "Nước",
-    "construction_category": "Xây dựng / Khác"
+    "construction_category": "Xây dựng / Khác",
+    "please_enter_unit": "Vui lòng nhập đơn vị tính.",
+    "cannot_delete_item_used": "Không thể xóa danh mục này do đã được liên kết trong lịch sử nhiệm vụ sửa chữa."
   },
   "profilemanagement": {
     "records_management": "Quản Lý Hồ Sơ",
@@ -1747,7 +1774,9 @@
     "phone_format_invalid": "Số điện thoại không đúng định dạng Việt Nam",
     "password_confirm_mismatch": "Mật khẩu xác nhận không khớp",
     "new_password_same_as_current": "Mật khẩu mới phải khác mật khẩu hiện tại",
-    "password_minimum_length": "Mật khẩu phải có ít nhất 6 ký tự"
+    "password_minimum_length": "Mật khẩu phải có ít nhất 6 ký tự",
+    "department": "Phòng ban",
+    "office": "Văn phòng"
   },
   "financialconfig": {
     "financial_configuration": "Cấu Hình Tài Chính",
@@ -1914,7 +1943,11 @@
     "new_tier_price_label": "Đơn giá áp dụng cho {{tierLabel}} (đ/{{unit}})",
     "infinity": "Vô cùng",
     "new_tier_from": "Bậc {{step}} mới (từ {{from}} trở đi)",
-    "price_per_unit": "{{price}} đ"
+    "price_per_unit": "{{price}} đ",
+    "confirm_delete_tier": "Xác nhận xóa bậc giá",
+    "confirm_delete_fee_msg": "Bạn có chắc chắn muốn xóa phí này không?",
+    "confirm_delete_service_msg": "Bạn có chắc chắn muốn xóa phí dịch vụ này không?",
+    "day_of_month_each": "mỗi ngày hàng tháng"
   },
   "periodicinvoices": {
     "recurring_bills": "Hóa Đơn Định Kỳ",
@@ -2090,7 +2123,12 @@
     "phone": "Điện thoại",
     "issue_date": "Ngày xuất",
     "due_date": "Hạn thanh toán",
-    "invoice_type_label": "Loại hóa đơn"
+    "invoice_type_label": "Loại hóa đơn",
+    "payment_history": "Lịch sử thanh toán",
+    "transaction_code": "Mã giao dịch",
+    "payment_date": "Ngày thanh toán",
+    "method": "Phương thức",
+    "amount": "Số tiền"
   },
   "violationlistmanager": {
     "waiting_for_approval": "Chờ duyệt",
@@ -2146,6 +2184,7 @@
   },
   "contractdetailmanager": {
     "open_the_full_image": "Mở hình ảnh đầy đủ",
+    "update_info": "Cập nhật thông tin",
     "please_select_a_start": "Vui lòng chọn ngày bắt đầu.",
     "please_select_an_end": "Vui lòng chọn ngày kết thúc.",
     "the_end_date_must": "Ngày kết thúc phải sau ngày bắt đầu.",
@@ -2211,7 +2250,16 @@
     "loading": "Đang tải...",
     "upload_a_scan": "📁 Tải lên bản quét",
     "processing": "Đang xử lý...",
-    "confirm_extension": "Xác nhận gia hạn"
+    "confirm_extension": "Xác nhận gia hạn",
+    "unable_to_load_contract_details": "Không thể tải chi tiết hợp đồng.",
+    "terminate_contract_success": "Chấm dứt hợp đồng thành công.",
+    "server_connection_error": "Lỗi kết nối máy chủ. Vui lòng thử lại.",
+    "renew_contract_success": "Gia hạn hợp đồng thành công.",
+    "file_exceeds_size": "Dung lượng file vượt quá giới hạn (tối đa 5MB).",
+    "upload_scan_success": "Tải lên bản quét hợp đồng thành công.",
+    "update_party_b_success": "Cập nhật thông tin Bên B thành công.",
+    "unable_to_update_party_b": "Không thể cập nhật thông tin Bên B.",
+    "deposit_refunded": "Đã hoàn trả đặt cọc"
   },
   "issuedetailmanager": {
     "fix_issue": "Khắc phục sự cố",
@@ -2241,7 +2289,8 @@
     "httpsplaceholdco400x300textimagecannotload": "https://placehold.co/400x300?text=Hình+ảnh+không+tải+được",
     "fix_issuetitle": "Sửa chữa: ${issue.title}",
     "fix_infrastructure_problem_at": "Sửa chữa sự cố hạ tầng tại vị trí sạp ${issue.stallCode ||",
-    "nndetailed_issue_descriptionnissuedescription": "}.\\n\\nMô tả chi tiết sự cố:\\n${issue.description}"
+    "nndetailed_issue_descriptionnissuedescription": "}.\\n\\nMô tả chi tiết sự cố:\\n${issue.description}",
+    "unable_to_load_issue_details": "Không thể tải chi tiết sự cố."
   },
   "dashboardmanager": {
     "mhms_summary_report": "Báo Cáo Tổng Hợp MHMS",
@@ -2335,7 +2384,8 @@
     "issues_handling_summary": "{{done}} / {{total}} đã xử lý",
     "pay_fines_for_violations": "Đóng phạt vi phạm",
     "violations_fines_summary": "{{paid}} / {{total}} đã đóng",
-    "tng_s_vic": "Tổng số việc"
+    "tng_s_vic": "Tổng số việc",
+    "export_excel_success": "Xuất file Excel thành công."
   },
   "contractlistmanager": {
     "unable_to_load_contract": "Không thể tải danh sách hợp đồng.",
@@ -2379,7 +2429,11 @@
     "posted_at": "Được đăng lúc:",
     "this_article_has_no": "Bài viết này không có nội dung.",
     "to_individual_contenttargetusername_targetrolelabelscontenttargetrole": "Đến cá nhân: ${content.targetUserName} (${TARGET_ROLE_LABELS[content.targetRole] || content.targetRole})",
-    "every_object": "Mọi đối tượng"
+    "every_object": "Mọi đối tượng",
+    "post_id_not_found": "Không tìm thấy ID bài đăng.",
+    "unable_to_load_post_details": "Không thể tải chi tiết bài đăng.",
+    "to_individual_user_role": "Gửi đến vai trò người dùng cụ thể",
+    "to_role": "Gửi tới vai trò"
   },
   "contentformmanager": {
     "loading_information": "Đang tải thông tin...",
@@ -2477,7 +2531,9 @@
     "confirm_key": "Xác nhận khóa",
     "enter_targetusername": "Nhập: ${targetUser.name}",
     "deleting": "Đang xóa...",
-    "search_for_name_email": "Tìm kiếm tên, email, SĐT, CCCD..."
+    "search_for_name_email": "Tìm kiếm tên, email, SĐT, CCCD...",
+    "unable_to_load_accounts": "Không thể tải danh sách tài khoản.",
+    "action_account_success": "Thao tác tài khoản thành công."
   },
   "issuelistmanager": {
     "new_report": "Báo cáo mới",
@@ -2503,7 +2559,8 @@
     "no_infrastructure_problems_have": "Chưa có sự cố hạ tầng nào được báo cáo.",
     "next": "Sau",
     "view": "Xem",
-    "issues_count": "{{count}} sự cố"
+    "issues_count": "{{count}} sự cố",
+    "unable_to_load_issues": "Không thể tải danh sách sự cố."
   },
   "sidebarmanager": {
     "view_personal_profile": "Xem hồ sơ cá nhân",
@@ -2673,7 +2730,9 @@
     "no_matching_faq_questions": "Không tìm thấy câu hỏi FAQ nào phù hợp.",
     "there_are_no_faqs": "Chưa có câu hỏi FAQ nào được cấu hình.",
     "deleting": "Đang xóa...",
-    "confirm_deletion": "Xác nhận xóa"
+    "confirm_deletion": "Xác nhận xóa",
+    "delete_faq_success": "Xóa câu hỏi thành công.",
+    "server_error_delete_faq": "Lỗi máy chủ. Không thể xóa câu hỏi."
   },
   "taskdetailmanager": {
     "stmm_task_details_tasktaskid": "STMM - Chi tiết công việc #{{taskId}}",
@@ -2792,7 +2851,8 @@
     "write_down_electricity_and": "Ghi số điện nước",
     "collect_cash": "Thu tiền mặt",
     "contract": "Hợp đồng",
-    "for_selectednotitargetrole": ">Dành cho: {selectedNoti.targetRole ||"
+    "for_selectednotitargetrole": ">Dành cho: {selectedNoti.targetRole ||",
+    "delete_notification_success": "Xóa thông báo thành công."
   },
   "violationdetailsmanager": {
     "loading_details": "Đang tải thông tin chi tiết...",
@@ -2907,7 +2967,8 @@
     "cannot_sign_contract": "Không thể ký hợp đồng.",
     "server_connection_error": "Lỗi kết nối máy chủ.",
     "havent_created_a_business": "Chưa tạo cơ sở KD",
-    "sign_the_contract": "Ký hợp đồng"
+    "sign_the_contract": "Ký hợp đồng",
+    "sign_contract_success": "Ký kết hợp đồng thành công!"
   },
   "tasklistmanager": {
     "all_types": "Tất cả loại",
@@ -3335,7 +3396,13 @@
     "confirm_new_password": "Xác nhận mật khẩu mới",
     "current_session": "Phiên hiện tại",
     "it_is_recommended_to": "Nên thay đổi mật khẩu định kỳ để bảo vệ tài khoản quản trị viên của bạn.",
-    "unable_to_update_information": "Không thể cập nhật thông tin."
+    "unable_to_update_information": "Không thể cập nhật thông tin.",
+    "name_required": "Tên không được để trống.",
+    "phone_required": "Số điện thoại không được để trống.",
+    "phone_invalid": "Số điện thoại không hợp lệ.",
+    "profile_updated_success": "Cập nhật hồ sơ cá nhân thành công.",
+    "new_password_min_len": "Mật khẩu mới phải từ 6 ký tự trở lên.",
+    "change_password_success": "Đổi mật khẩu thành công."
   },
   "requestlistmanager": {
     "infrastructure_failure": "Sự cố hạ tầng",
@@ -3898,7 +3965,8 @@
     "khng_th_ti_danh": "Không thể tải danh sách biên bản vi phạm.",
     "gi_thng_bo": "Đã gửi thông báo",
     "khng_ngh_thnh_cng": "Kháng nghị thành công",
-    "khng_ngh_b_t": "Kháng nghị bị từ chối"
+    "khng_ngh_b_t": "Kháng nghị bị từ chối",
+    "after": "Sau"
   },
   "vendorviolationdetail": {
     "created_at": "Ngày lập",
@@ -4025,7 +4093,8 @@
     "c_li_xy_ra": "Có lỗi xảy ra khi gửi yêu cầu.",
     "tht_bi": "Thất bại",
     "ang_gi": "Đang gửi...",
-    "gi_yu_cu": "Gửi Yêu Cầu"
+    "gi_yu_cu": "Gửi Yêu Cầu",
+    "disputed": "Khiếu nại"
   },
   "vendorrequestlist": {
     "manage_support_and_repair": "Quản lý các yêu cầu hỗ trợ và sửa chữa",
@@ -4148,7 +4217,11 @@
     "t_chi": "Từ chối",
     "ang_hy": "Đang hủy...",
     "hy_yu_cu_ny": "Hủy Yêu Cầu Này",
-    "created_at_time": "Lập ngày {{date}} lúc {{time}}"
+    "created_at_time": "Lập ngày {{date}} lúc {{time}}",
+    "reason_for_refusal": "Lý do từ chối",
+    "enter_reason_placeholder": "Nhập lý do từ chối...",
+    "cancel": "Hủy bỏ",
+    "confirm_refusal": "Xác nhận từ chối"
   },
   "vendorbillslist": {
     "paid": "Đã thanh toán",
@@ -4235,7 +4308,8 @@
     "penalty": "Phạt vi phạm",
     "ad_hoc_invoice": "Hóa đơn phát sinh",
     "ad_hoc": "Phát sinh",
-    "next_page": "Sau"
+    "next_page": "Sau",
+    "disputed": "Đang khiếu nại"
   },
   "vendorservicelist": {
     "loading_service_list": "Đang tải danh sách dịch vụ...",
@@ -4475,7 +4549,12 @@
     "khch_hng_n_danh": "Khách hàng ẩn danh",
     "khch_hng_khng_li": "Khách hàng không để lại nội dung nhận xét.",
     "tnh_nng": "Tính năng",
-    "chc_nng_phn_hi": "Chức năng phản hồi đang được phát triển."
+    "chc_nng_phn_hi": "Chức năng phản hồi đang được phát triển.",
+    "error": "Lỗi",
+    "feedback_cannot_be_empty": "Phản hồi không được để trống.",
+    "success": "Thành công",
+    "feedback_sent_successfully": "Gửi phản hồi thành công.",
+    "cannot_send_feedback": "Không thể gửi phản hồi."
   },
   "vendornotificationlist": {
     "notification": "Thông báo",
@@ -4685,7 +4764,7 @@
     "an_evidence_photo_of": "Cần có ảnh chụp mặt đồng hồ làm bằng chứng.",
     "unable_to_save_meter": "Không thể lưu chỉ số đồng hồ.",
     "upload_error": "Lỗi tải ảnh",
-    "save_reading_success": "Lưu chỉ số đồng hồ thành công!",
+    "save_reading_success": "Ghi chỉ số công tơ thành công!",
     "please_check_and_fix": "Vui lòng kiểm tra và sửa các trường chưa hợp lệ bên dưới."
   },
   "stallinvoicedetail": {
@@ -4818,7 +4897,7 @@
     "select_a_stall": "Chọn sạp",
     "submitting": "Đang gửi...",
     "submit_report": "Gửi báo cáo",
-    "issue_created_success": "Gửi báo cáo sự cố thành công!",
+    "issue_created_success": "Báo cáo sự cố thành công!",
     "please_check_and_fix": "Vui lòng kiểm tra và sửa các trường chưa hợp lệ bên dưới.",
     "under_maintenance": "Đang bảo trì"
   },
@@ -5178,7 +5257,7 @@
     "active": "ĐANG HOẠT ĐỘNG",
     "inactive_replaced": "KHÔNG HOẠT ĐỘNG / THAY THẾ",
     "meter_details_label": "CHI TIẾT ĐỒNG HỒ",
-    "in_warehouse": "Chưa lắp đặt (trong kho)"
+    "in_warehouse": "Trong kho"
   },
   "stalllist": {
     "all": "Tất cả",
@@ -5644,7 +5723,11 @@
       "edit_plan": "Chỉnh sửa Sơ đồ",
       "show_stall": "Xem sạp",
       "detail": "Chi tiết",
-      "no_areas_found": "Không tìm thấy khu vực nào phù hợp."
+      "no_areas_found": "Không tìm thấy khu vực nào phù hợp.",
+      "zoom_out": "Thu nhỏ",
+      "zoom_in": "Phóng to",
+      "zoom_reset": "Đặt lại Zoom",
+      "draw_multiple_areas": "+ Vẽ nhanh nhiều khu vực"
     },
     "areaForm": {
       "empty_name": "Tên khu vực không được để trống.",
@@ -5768,7 +5851,8 @@
       "elec_meter": "Mã đồng hồ điện:",
       "water_meter": "Mã đồng hồ nước:",
       "not_installed": "Chưa lắp",
-      "select_tool": "Vui lòng chọn công cụ trên bản đồ."
+      "select_tool": "Vui lòng chọn công cụ trên bản đồ.",
+      "area": "Khu vực"
     },
     "wizard": {
       "err_grid": "Không thể tạo lưới.",
@@ -5865,7 +5949,9 @@
       "err_capacity_area": "Lỗi sức chứa: Quỹ đất còn trống của chợ chỉ còn {{remaining}}m².\\nBạn đang nhập {{target}}m² cho khu vực này, vượt quá mức cho phép! Vui lòng nhập số nhỏ hơn hoặc bằng {{remaining}}m².",
       "waiting_config": "Đang chờ cấu hình...",
       "generated": "Đã sinh",
-      "max_prefix": "Tối đa"
+      "max_prefix": "Tối đa",
+      "map_scale": "Tỉ lệ bản đồ",
+      "err_area_limit": "Giới hạn diện tích khu vực đã vượt quá mức cho phép."
     },
     "marketList": {
       "create_market_btn": "Tạo chợ mới",
@@ -5880,7 +5966,12 @@
       "pending": "Đợi duyệt",
       "active": "Hoạt động",
       "rejected": "Từ chối",
-      "no_address": "Chưa cập nhật địa chỉ"
+      "no_address": "Chưa cập nhật địa chỉ",
+      "table_name": "Tên chợ",
+      "table_address": "Địa chỉ",
+      "table_size": "Diện tích",
+      "table_status": "Trạng thái",
+      "table_actions": "Thao tác"
     }
   },
   "Tài khoản của bạn đã được đăng ký tạm thời. Vui lòng kiểm tra email để nhận mã OTP xác thực kích hoạt.": "Tài khoản của bạn đã được đăng ký tạm thời. Vui lòng kiểm tra email để nhận mã OTP xác thực kích hoạt.",
@@ -5893,5 +5984,23 @@
   "New OTP verification code has been sent!": "Mã xác thực OTP mới đã được gửi!",
   "Unable to resend verification code": "Không thể gửi lại mã xác thực",
   "Mã xác thực đã hết hạn hoặc thông tin đăng ký không còn hiệu lực. Vui lòng đăng ký lại.": "Mã xác thực đã hết hạn hoặc thông tin đăng ký không còn hiệu lực. Vui lòng đăng ký lại.",
-  "ERR_KHONG_THE_XOA_CHO_VI_CO_SAP_DANG_CO_HOP_DONG_H": "Không thể xóa chợ vì có sạp đang có hợp đồng hoạt động."
+  "ERR_KHONG_THE_XOA_CHO_VI_CO_SAP_DANG_CO_HOP_DONG_H": "Không thể xóa chợ vì có sạp đang có hợp đồng hoạt động.",
+  "newsfaq": {
+    "badge": "Bảng tin Chợ",
+    "title": "Tin tức & FAQs",
+    "subtitle": "Cập nhật các thông báo mới nhất và tìm câu trả lời cho các câu hỏi thường gặp.",
+    "tab_news": "Tin tức Chợ",
+    "tab_faq": "Câu hỏi thường gặp (FAQs)",
+    "search_placeholder": "Tìm kiếm nội dung...",
+    "loading_news": "Đang tải tin tức...",
+    "empty_news": "Không tìm thấy tin tức nào phù hợp với tìm kiếm của bạn.",
+    "featured_tag": "THÔNG BÁO NỔI BẬT",
+    "read_featured": "Đọc chi tiết thông báo →",
+    "more_news": "Tin tức & Bài viết khác",
+    "read_more": "Đọc chi tiết bài viết →",
+    "faq_category_all": "Tất cả chủ đề",
+    "loading_faqs": "Đang tải câu hỏi thường gặp...",
+    "empty_faq": "Không có câu hỏi nào.",
+    "close": "Đóng"
+  }
 }

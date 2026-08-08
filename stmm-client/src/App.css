@@ -305,3 +305,93 @@ body {
 .toast-text            { flex-grow: 1; line-height: 1.45; }
 .toast-close           { background: none; border: none; color: var(--text-light); cursor: pointer; font-size: 18px; padding: 0; margin-left: 4px; }
 .toast-close:hover     { color: var(--text-main); }
+
+/* =========================================
+   MANAGER & ADMIN SYSTEM RESPONSIVE STYLES
+   ========================================= */
+.app-header .hamburger-btn {
+  display: none;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 20px;
+  height: 14px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  margin-right: 12px;
+  align-self: center;
+}
+
+.app-header .hamburger-line {
+  width: 100%;
+  height: 2px;
+  background-color: var(--text-main);
+  border-radius: 1px;
+  transition: all 0.2s ease;
+}
+
+.sidebar-mobile-close-btn {
+  display: none;
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  font-size: 24px;
+  padding: 4px;
+  line-height: 1;
+  z-index: 100;
+}
+
+.sidebar-mobile-close-btn:hover {
+  color: #fff;
+}
+
+@media (max-width: 900px) {
+  .app-header .hamburger-btn {
+    display: flex;
+  }
+
+  .app-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    z-index: 999;
+    transform: translateX(-100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    width: var(--sidebar-width) !important;
+  }
+
+  .app-sidebar.mobile-open {
+    transform: translateX(0);
+  }
+
+  .sidebar-mobile-close-btn {
+    display: block;
+  }
+
+  .app-header {
+    padding: 12px 16px;
+  }
+
+  .header-title-section h1 {
+    font-size: 15px;
+  }
+
+  .header-title-section p {
+    display: none;
+  }
+
+  .dashboard-content {
+    padding: 16px 12px;
+  }
+
+  .app-main {
+    width: 100%;
+    min-width: 0;
+  }
+}

@@ -175,7 +175,7 @@ const getNavGroups = (t) => [
 
 
 // ─── Component ────────────────────────────────────────────────────────────────
-export default function SidebarManager({ currentPage, navigate, user, onLogout }) {
+export default function SidebarManager({ currentPage, navigate, user, onLogout, isMobileOpen, onClose }) {
   const { t } = useTranslation();
   const NAV_GROUPS = getNavGroups(t);
 
@@ -184,8 +184,18 @@ export default function SidebarManager({ currentPage, navigate, user, onLogout }
     (item.childKeys && item.childKeys.includes(currentPage));
 
   return (
-    <aside className="app-sidebar">
+    <aside className={`app-sidebar ${isMobileOpen ? 'mobile-open' : ''}`}>
       <div className="sidebar-sticky-content">
+        {/* Mobile Close Button */}
+        <button
+          type="button"
+          className="sidebar-mobile-close-btn"
+          onClick={onClose}
+          aria-label={t('sidebarmanager.close_menu', 'Đóng menu')}
+        >
+          &times;
+        </button>
+
         {/* Brand */}
         <div className="brand-section">
           <div className="brand-logo">MH</div>

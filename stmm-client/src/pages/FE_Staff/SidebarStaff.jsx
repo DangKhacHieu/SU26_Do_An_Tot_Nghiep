@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { Bell, ClipboardCheck, LayoutDashboard, LogOut, Radio, Store, TriangleAlert, UserRound } from 'lucide-react';
 import './SidebarStaff.css';
 
-export default function SidebarStaff({ currentView, setView, user, onLogout, unreadNotificationsCount = 0 }) {
+export default function SidebarStaff({ currentView, setView, user, onLogout, unreadNotificationsCount = 0, isMobileOpen, onClose }) {
   const { t } = useTranslation();
 
   const NAV_GROUPS = [
@@ -34,7 +34,29 @@ export default function SidebarStaff({ currentView, setView, user, onLogout, unr
   const isActive = (item) => item.key === currentView || item.childKeys?.includes(currentView);
 
   return (
-    <aside className="staff-sidebar">
+    <aside className={`staff-sidebar ${isMobileOpen ? 'mobile-open' : ''}`}>
+      {/* Mobile Close Button */}
+      <button
+        type="button"
+        className="staff-sidebar-mobile-close-btn"
+        onClick={onClose}
+        style={{
+          display: "none",
+          position: "absolute",
+          top: "16px",
+          right: "16px",
+          background: "transparent",
+          border: "none",
+          color: "rgba(255, 255, 255, 0.6)",
+          cursor: "pointer",
+          fontSize: "24px",
+          padding: "4px",
+          lineHeight: "1",
+          zIndex: 100,
+        }}
+      >
+        &times;
+      </button>
       <div className="staff-brand-section">
         <div className="staff-brand-logo">{t('sidebarstaff.st')}</div>
         <div className="staff-brand-name"><span className="staff-brand-title">{t('sidebarstaff.mhms')}</span><span className="staff-brand-subtitle">{t('sidebarstaff.staff_console')}</span></div>

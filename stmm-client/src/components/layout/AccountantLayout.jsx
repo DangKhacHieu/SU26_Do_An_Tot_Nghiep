@@ -74,6 +74,7 @@ export default function AccountantLayout() {
   const location = useLocation();
 
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isDark, setIsDark] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState([]);
@@ -219,8 +220,13 @@ export default function AccountantLayout() {
 
   return (
     <div className="acc-layout-wrapper">
+      {/* Backdrop for Mobile Sidebar */}
+      {isMobileSidebarOpen && (
+        <div className="acc-sidebar-backdrop" onClick={() => setIsMobileSidebarOpen(false)} />
+      )}
+
       {/* ===== SIDEBAR ===== */}
-      <aside className={`acc-sidebar ${isCollapsed ? 'collapsed' : ''}`}>
+      <aside className={`acc-sidebar ${isCollapsed ? 'collapsed' : ''} ${isMobileSidebarOpen ? 'mobile-open' : ''}`}>
 
         {/* Brand Header */}
         <div className="acc-brand-section">
@@ -240,6 +246,15 @@ export default function AccountantLayout() {
           </button>
         </div>
 
+        {/* Close Button for Mobile Drawer */}
+        <button
+          className="acc-mobile-close-btn"
+          onClick={() => setIsMobileSidebarOpen(false)}
+          title={t('accountantlayout.close_menu', 'Đóng menu')}
+        >
+          <X size={18} />
+        </button>
+
         {/* User Card (Removed here, moved to footer) */}
 
         {/* Navigation */}
@@ -258,6 +273,7 @@ export default function AccountantLayout() {
                     to={item.path}
                     className={({ isActive }) => `acc-menu-item ${isActive ? 'active' : ''}`}
                     title={isCollapsed ? item.label : undefined}
+                    onClick={() => setIsMobileSidebarOpen(false)}
                   >
                     <Icon size={18} className="acc-menu-icon" />
                     <span className="acc-menu-label">{item.label}</span>
@@ -286,6 +302,18 @@ export default function AccountantLayout() {
 
         {/* Top Header */}
         <header className="acc-header">
+          {/* Hamburger button on mobile */}
+          <button
+            type="button"
+            className="acc-hamburger-btn"
+            onClick={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
+            aria-label="Toggle sidebar"
+          >
+            <span className="acc-hamburger-line"></span>
+            <span className="acc-hamburger-line"></span>
+            <span className="acc-hamburger-line"></span>
+          </button>
+
           {/* Left: Breadcrumb/Title */}
           <div className="acc-header-title">
             <h1>{currentPageLabel}</h1>

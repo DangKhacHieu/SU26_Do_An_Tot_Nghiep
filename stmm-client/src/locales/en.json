@@ -17,7 +17,8 @@
     "error": "Error",
     "notification": "Notification",
     "no_data": "No data available",
-    "back": "Back"
+    "back": "Back",
+    "close": "Close"
   },
   "requests": {
     "placeholder": "Search by title, stall, vendor...",
@@ -770,13 +771,15 @@
   },
   "stalleditor": {
     "tools_to_createedit_stores": "Tools to create/edit Stores",
-    "save_stall_coordinates": "Save Stall Coordinates"
+    "save_stall_coordinates": "Save Stall Coordinates",
+    "drag_drop_rotate_and": "Drag, drop, rotate and resize stalls visually."
   },
   "header": {
     "error_while_getting_notification": "Error while getting notification:",
     "error_when_marking_read": "Error when marking read:",
     "overview": "Overview",
     "market_map": "Market Map",
+    "news_faq": "News & FAQs",
     "no_markets_available": "No markets available",
     "search_markets": "Search markets...",
     "notifications": "Notifications",
@@ -823,7 +826,9 @@
     "view_all": "View all",
     "loading_notifications": "Loading notifications...",
     "no_notifications": "No notifications available.",
-    "received_at": "Received at:"
+    "received_at": "Received at:",
+    "error_when_marking_read": "Error when marking notifications as read.",
+    "error_while_getting_notification": "Error while loading notifications."
   },
   "stalldetailpage": {
     "loading_stall": "Loading stall details...",
@@ -862,7 +867,10 @@
     "new_rating": "New rating:",
     "saving": "Saving...",
     "save_changes": "Save changes",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "error_updating_review": "Error updating review.",
+    "error_when_loading_store": "Error when loading store details.",
+    "error_when_submitting_review": "Error when submitting review."
   },
   "marketmappage": {
     "directory_title": "Smart Market Directory",
@@ -909,7 +917,15 @@
     "session_invalid": "Invalid user session. Please log in again.",
     "review_submitted_success": "Market review submitted successfully! Thank you for your feedback.",
     "unable_to_submit": "Unable to submit review. Please try again.",
-    "hold_ctrl_to_zoom": "Use Ctrl + Scroll to zoom the map"
+    "hold_ctrl_to_zoom": "Use Ctrl + Scroll to zoom the map",
+    "error_when_loading_market": "Error when loading market details.",
+    "review_updated_success": "Review updated successfully.",
+    "unable_to_update": "Unable to update review.",
+    "error_loading_stall_reviews": "Error loading stall reviews.",
+    "edit_review": "Edit Review",
+    "cancel_edit": "Cancel",
+    "saving": "Saving...",
+    "save_edit": "Save Review"
   },
   "dashboardadminsystem": {
     "stmm_ecommerce_market_system": "STMM e-commerce market system management center",
@@ -1436,10 +1452,11 @@
     "confirm": "Confirm",
     "payment_history": "Payment History",
     "payment_date": "Payment Date",
-    "phone": "Phone Number",
+    "phone": "Phone",
     "issue_date": "Issue Date",
     "invoice_type": "Invoice Type",
-    "invoice_details": "Invoice Details"
+    "invoice_details": "Invoice Details",
+    "dispute_resolved_success": "Dispute resolved successfully."
   },
   "violationspenalties": {
     "violations_sanctions": "Violations & Sanctions",
@@ -1541,7 +1558,9 @@
     "show_paginated_violations": "Showing {{start}} - {{end}} of {{total}} reports",
     "show_paginated_types": "Showing {{start}} - {{end}} of {{total}} violation types",
     "report_detail_title": "Report Details — VIO-{{id}}",
-    "view_detail": "View"
+    "view_detail": "View",
+    "amount": "Amount",
+    "due_date": "Due Date"
   },
   "dashboard": {
     "backend_connection_failed": "Backend connection failed!",
@@ -1699,7 +1718,11 @@
     "show_paginated_prices": "Showing {{start}} - {{end}} of {{total}} items",
     "electricity_category": "Electricity",
     "water_category": "Water",
-    "construction_category": "Construction / Other"
+    "construction_category": "Construction / Other",
+    "please_enter_item_name": "Please enter item name.",
+    "please_enter_unit": "Please enter unit.",
+    "price_must_be_positive": "Price must be positive.",
+    "cannot_delete_item_used": "Cannot delete item as it is already used in tasks."
   },
   "profilemanagement": {
     "records_management": "Records Management",
@@ -1751,7 +1774,9 @@
     "phone_format_invalid": "Phone format invalid",
     "password_confirm_mismatch": "Password confirmation mismatch",
     "new_password_same_as_current": "New password must be different from current password",
-    "password_minimum_length": "Password must be at least 6 characters"
+    "password_minimum_length": "Password must be at least 6 characters",
+    "department": "Department",
+    "office": "Office"
   },
   "financialconfig": {
     "financial_configuration": "Financial Configuration",
@@ -1918,7 +1943,11 @@
     "new_tier_price_label": "Unit price for {{tierLabel}} (₫/{{unit}})",
     "infinity": "Infinity",
     "new_tier_from": "New Tier {{step}} (from {{from}})",
-    "price_per_unit": "{{price}} ₫"
+    "price_per_unit": "{{price}} ₫",
+    "confirm_delete_tier": "Confirm Delete Tier",
+    "confirm_delete_fee_msg": "Are you sure you want to delete this fee item?",
+    "confirm_delete_service_msg": "Are you sure you want to delete this service fee?",
+    "day_of_month_each": "day of month each"
   },
   "periodicinvoices": {
     "recurring_bills": "Recurring Bills",
@@ -2099,7 +2128,8 @@
     "method": "Method",
     "amount": "Amount",
     "transaction_code": "Transaction Code",
-    "invoice_period": "Invoice Period"
+    "invoice_period": "Invoice Period",
+    "qu_hn_overdue": "Overdue"
   },
   "violationlistmanager": {
     "waiting_for_approval": "Waiting for approval",
@@ -2155,6 +2185,7 @@
   },
   "contractdetailmanager": {
     "open_the_full_image": "Open the full image",
+    "update_info": "Update Information",
     "please_select_a_start": "Please select a start date.",
     "please_select_an_end": "Please select an end date.",
     "the_end_date_must": "The end date must be after the start date.",
@@ -2220,7 +2251,16 @@
     "loading": "Loading...",
     "upload_a_scan": "📁 Upload a scan",
     "processing": "Processing...",
-    "confirm_extension": "Confirm extension"
+    "confirm_extension": "Confirm extension",
+    "unable_to_load_contract_details": "Unable to load contract details.",
+    "terminate_contract_success": "Contract terminated successfully.",
+    "server_connection_error": "Server connection error. Please try again.",
+    "renew_contract_success": "Contract renewed successfully.",
+    "file_exceeds_size": "File size exceeds the limit (max 5MB).",
+    "upload_scan_success": "Scan uploaded successfully.",
+    "update_party_b_success": "Party B information updated successfully.",
+    "unable_to_update_party_b": "Unable to update Party B information.",
+    "deposit_refunded": "Deposit Refunded"
   },
   "issuedetailmanager": {
     "fix_issue": "Fix issue",
@@ -2250,7 +2290,8 @@
     "httpsplaceholdco400x300textimagecannotload": "https://placehold.co/400x300?text=Image+cannot+load",
     "fix_issuetitle": "Fix: ${issue.title}",
     "fix_infrastructure_problem_at": "Fix infrastructure problem at stall location ${issue.stallCode ||",
-    "nndetailed_issue_descriptionnissuedescription": "}.\\n\\nDetailed issue description:\\n${issue.description}"
+    "nndetailed_issue_descriptionnissuedescription": "}.\\n\\nDetailed issue description:\\n${issue.description}",
+    "unable_to_load_issue_details": "Unable to load issue details."
   },
   "dashboardmanager": {
     "mhms_summary_report": "MHMS Summary Report",
@@ -2344,7 +2385,8 @@
     "issues_handling_summary": "{{done}} / {{total}} processed",
     "pay_fines_for_violations": "Pay fines for violations",
     "violations_fines_summary": "{{paid}} / {{total}} is closed",
-    "tng_s_vic": "Tổng số việc"
+    "tng_s_vic": "Tổng số việc",
+    "export_excel_success": "Exported to Excel successfully."
   },
   "contractlistmanager": {
     "unable_to_load_contract": "Unable to load contract list.",
@@ -2388,7 +2430,11 @@
     "posted_at": "Posted at:",
     "this_article_has_no": "This article has no content.",
     "to_individual_contenttargetusername_targetrolelabelscontenttargetrole": "To individual: ${content.targetUserName} (${TARGET_ROLE_LABELS[content.targetRole] || content.targetRole})",
-    "every_object": "Every object"
+    "every_object": "Every object",
+    "post_id_not_found": "Post ID not found.",
+    "unable_to_load_post_details": "Unable to load post details.",
+    "to_individual_user_role": "To individual user role",
+    "to_role": "To role"
   },
   "contentformmanager": {
     "loading_information": "Loading information...",
@@ -2486,7 +2532,9 @@
     "confirm_key": "Confirm key",
     "enter_targetusername": "Enter: ${targetUser.name}",
     "deleting": "Deleting...",
-    "search_for_name_email": "Search for name, email, phone number, CCCD..."
+    "search_for_name_email": "Search for name, email, phone number, CCCD...",
+    "unable_to_load_accounts": "Unable to load accounts list.",
+    "action_account_success": "Account action performed successfully."
   },
   "issuelistmanager": {
     "new_report": "New report",
@@ -2512,7 +2560,8 @@
     "no_infrastructure_problems_have": "No infrastructure problems have been reported.",
     "next": "Next",
     "view": "View",
-    "issues_count": "{{count}} issues"
+    "issues_count": "{{count}} issues",
+    "unable_to_load_issues": "Unable to load issues list."
   },
   "sidebarmanager": {
     "view_personal_profile": "View personal profile",
@@ -2682,7 +2731,9 @@
     "no_matching_faq_questions": "No matching FAQ questions were found.",
     "there_are_no_faqs": "There are no FAQs configured yet.",
     "deleting": "Deleting...",
-    "confirm_deletion": "Confirm deletion"
+    "confirm_deletion": "Confirm deletion",
+    "delete_faq_success": "FAQ deleted successfully.",
+    "server_error_delete_faq": "Server error. Cannot delete FAQ."
   },
   "taskdetailmanager": {
     "stmm_task_details_tasktaskid": "STMM - Task Details #{{taskId}}",
@@ -2801,7 +2852,8 @@
     "write_down_electricity_and": "Write down electricity and water numbers",
     "collect_cash": "Collect cash",
     "contract": "Contract",
-    "for_selectednotitargetrole": ">For: {selectedNoti.targetRole ||"
+    "for_selectednotitargetrole": ">For: {selectedNoti.targetRole ||",
+    "delete_notification_success": "Notification deleted successfully."
   },
   "violationdetailsmanager": {
     "loading_details": "Loading details...",
@@ -2916,7 +2968,8 @@
     "cannot_sign_contract": "Cannot sign contract.",
     "server_connection_error": "Server connection error.",
     "havent_created_a_business": "Haven't created a business establishment yet",
-    "sign_the_contract": "Sign the contract"
+    "sign_the_contract": "Sign the contract",
+    "sign_contract_success": "Contract signed successfully!"
   },
   "tasklistmanager": {
     "stmm_task_list_management": "STMM - Task List Management",
@@ -3344,7 +3397,13 @@
     "confirm_new_password": "Confirm new password",
     "current_session": "Current session",
     "it_is_recommended_to": "It is recommended to change your password periodically to protect your administrator account.",
-    "unable_to_update_information": "Unable to update information."
+    "unable_to_update_information": "Unable to update information.",
+    "name_required": "Name is required.",
+    "phone_required": "Phone number is required.",
+    "phone_invalid": "Phone number is invalid.",
+    "profile_updated_success": "Profile updated successfully.",
+    "new_password_min_len": "New password must be at least 6 characters.",
+    "change_password_success": "Password changed successfully."
   },
   "requestlistmanager": {
     "infrastructure_failure": "Infrastructure failure",
@@ -3907,7 +3966,8 @@
     "khng_th_ti_danh": "Không thể tải danh sách biên bản vi phạm.",
     "gi_thng_bo": "Đã gửi thông báo",
     "khng_ngh_thnh_cng": "Kháng nghị thành công",
-    "khng_ngh_b_t": "Kháng nghị bị từ chối"
+    "khng_ngh_b_t": "Kháng nghị bị từ chối",
+    "after": "After"
   },
   "vendorviolationdetail": {
     "created_at": "Created date",
@@ -4034,7 +4094,8 @@
     "c_li_xy_ra": "Có lỗi xảy ra khi gửi yêu cầu.",
     "tht_bi": "Thất bại",
     "ang_gi": "Đang gửi...",
-    "gi_yu_cu": "Gửi Yêu Cầu"
+    "gi_yu_cu": "Gửi Yêu Cầu",
+    "disputed": "Disputed"
   },
   "vendorrequestlist": {
     "manage_support_and_repair": "Manage support and repair requests",
@@ -4157,7 +4218,11 @@
     "t_chi": "Từ chối",
     "ang_hy": "Đang hủy...",
     "hy_yu_cu_ny": "Hủy Yêu Cầu Này",
-    "created_at_time": "Created on {{date}} at {{time}}"
+    "created_at_time": "Created on {{date}} at {{time}}",
+    "reason_for_refusal": "Reason for Refusal",
+    "enter_reason_placeholder": "Enter reason...",
+    "cancel": "Cancel",
+    "confirm_refusal": "Confirm Refusal"
   },
   "vendorbillslist": {
     "paid": "Paid",
@@ -4244,7 +4309,8 @@
     "penalty": "Violation",
     "ad_hoc_invoice": "Ad-hoc Invoice",
     "ad_hoc": "Ad-hoc",
-    "next_page": "Next"
+    "next_page": "Next",
+    "disputed": "Disputed"
   },
   "vendorservicelist": {
     "loading_service_list": "Loading service list...",
@@ -4484,7 +4550,12 @@
     "khch_hng_n_danh": "Khách hàng ẩn danh",
     "khch_hng_khng_li": "Khách hàng không để lại nội dung nhận xét.",
     "tnh_nng": "Tính năng",
-    "chc_nng_phn_hi": "Chức năng phản hồi đang được phát triển."
+    "chc_nng_phn_hi": "Chức năng phản hồi đang được phát triển.",
+    "error": "Error",
+    "feedback_cannot_be_empty": "Feedback cannot be empty.",
+    "success": "Success",
+    "feedback_sent_successfully": "Feedback sent successfully.",
+    "cannot_send_feedback": "Cannot send feedback."
   },
   "vendornotificationlist": {
     "notification": "Notification",
@@ -4694,7 +4765,7 @@
     "an_evidence_photo_of": "An evidence photo of the meter face is required.",
     "unable_to_save_meter": "Unable to save meter reading.",
     "upload_error": "Upload Error",
-    "save_reading_success": "Meter reading saved successfully!",
+    "save_reading_success": "Meter reading recorded successfully!",
     "please_check_and_fix": "Please check and fix the invalid fields below."
   },
   "stallinvoicedetail": {
@@ -5014,8 +5085,8 @@
     "cash_collection_stall": "Cash Collection - Stall {{stallCode}}",
     "invoice_month": "Invoice Month {{month}}/{{year}}",
     "due_date": "Due Date",
-    "confirm_cash_title": "Confirm Cash Collection",
-    "confirm_cash_text": "Are you sure you have collected this cash amount in full from the vendor?"
+    "confirm_cash_title": "Confirm Cash Payment",
+    "confirm_cash_text": "Are you sure you have received cash payment for this invoice?"
   },
   "quotationpanel": {
     "submit_for_approval": "Submit for Approval",
@@ -5182,7 +5253,7 @@
   },
   "staffnotifications": {
     "notifications": "Notifications",
-    "page_subtitle": "View and manage all task, issue, and violation notifications.",
+    "page_subtitle": "Internal notifications list for staff members.",
     "all": "All",
     "unread": "Unread",
     "unread_count": "{{count}} unread",
@@ -5210,8 +5281,8 @@
     "new": "New",
     "notification_button": "Open notifications",
     "notification_button_unread": "Open notifications, {{count}} unread",
-    "search_placeholder": "Search notifications...",
-    "no_search_results": "No matching notifications found"
+    "search_placeholder": "Search by title or content...",
+    "no_search_results": "No notifications found matching your search."
   },
   "meterdetail": {
     "loading_meter_details": "Loading meter details...",
@@ -5229,7 +5300,7 @@
     "active": "ACTIVE",
     "inactive_replaced": "INACTIVE / REPLACED",
     "meter_details_label": "METER DETAILS",
-    "in_warehouse": "Not installed (in warehouse)"
+    "in_warehouse": "In Warehouse"
   },
   "stalllist": {
     "all": "All",
@@ -5347,7 +5418,7 @@
     "showing": "Showing",
     "of": "of",
     "page": "Page",
-    "all": "All"
+    "all": "All Tasks"
   },
   "marketAreaList": {
     "market_floor_plan": "MARKET FLOOR PLAN",
@@ -5656,7 +5727,7 @@
       "zoom_out": "Zoom Out",
       "zoom_in": "Zoom In",
       "zoom_reset": "Reset Zoom",
-      "draw_multiple_areas": "+ Quick Draw Area"
+      "draw_multiple_areas": "+ Draw Multiple Areas"
     },
     "areaForm": {
       "empty_name": "Area name cannot be empty.",
@@ -5780,7 +5851,8 @@
       "elec_meter": "Electricity Meter:",
       "water_meter": "Water Meter:",
       "not_installed": "Not installed",
-      "select_tool": "Please select a tool on the map."
+      "select_tool": "Please select a tool on the map.",
+      "area": "Area"
     },
     "wizard": {
       "err_grid": "Cannot generate grid.",
@@ -5877,7 +5949,9 @@
       "err_capacity_area": "Capacity Error: Remaining free space is only {{remaining}}m².\\nYou are entering {{target}}m² for this area, exceeding the limit! Please enter a number less than or equal to {{remaining}}m².",
       "waiting_config": "Waiting for configuration...",
       "generated": "Generated",
-      "max_prefix": "Max"
+      "max_prefix": "Max",
+      "map_scale": "Map Scale",
+      "err_area_limit": "Area limit has been exceeded."
     },
     "marketList": {
       "create_market_btn": "Create new market",
@@ -5892,7 +5966,12 @@
       "pending": "Pending",
       "active": "Active",
       "rejected": "Rejected",
-      "no_address": "Address not updated"
+      "no_address": "Address not updated",
+      "table_name": "Market Name",
+      "table_address": "Address",
+      "table_size": "Size",
+      "table_status": "Status",
+      "table_actions": "Actions"
     }
   },
   "Tài khoản của bạn đã được đăng ký tạm thời. Vui lòng kiểm tra email để nhận mã OTP xác thực kích hoạt.": "Your account has been temporarily registered. Please check your email for the activation OTP code.",
@@ -5905,5 +5984,23 @@
   "New OTP verification code has been sent!": "New OTP verification code has been sent!",
   "Unable to resend verification code": "Unable to resend verification code",
   "Mã xác thực đã hết hạn hoặc thông tin đăng ký không còn hiệu lực. Vui lòng đăng ký lại.": "The verification code has expired or the registration info is no longer valid. Please register again.",
-  "ERR_KHONG_THE_XOA_CHO_VI_CO_SAP_DANG_CO_HOP_DONG_H": "Cannot delete market because a stall has an active contract."
+  "ERR_KHONG_THE_XOA_CHO_VI_CO_SAP_DANG_CO_HOP_DONG_H": "Cannot delete market because a stall has an active contract.",
+  "newsfaq": {
+    "badge": "Market Board",
+    "title": "News & FAQs",
+    "subtitle": "Stay updated with market announcements and find answers to frequently asked questions.",
+    "tab_news": "Market News",
+    "tab_faq": "FAQs",
+    "search_placeholder": "Search content...",
+    "loading_news": "Loading news articles...",
+    "empty_news": "No news articles match your search.",
+    "featured_tag": "FEATURED ANNOUNCEMENT",
+    "read_featured": "Read Full Announcement →",
+    "more_news": "More Updates & Stories",
+    "read_more": "Read Full Article →",
+    "faq_category_all": "All Topics",
+    "loading_faqs": "Loading FAQs...",
+    "empty_faq": "No questions found.",
+    "close": "Close"
+  }
 }
