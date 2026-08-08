@@ -2432,6 +2432,7 @@
     "post_articles": "Đăng bài viết"
   },
   "userlistmanager": {
+    "results_count": "{{count}} kết quả",
     "all_roles": "Tất cả vai trò",
     "all_status": "Tất cả trạng thái",
     "clear_filter": "Xóa bộ lọc",
@@ -3441,6 +3442,9 @@
     "create_an_account": "Tạo tài khoản"
   },
   "businesscategorylistmanager": {
+    "categories_count": "{{count}} danh mục",
+    "stalls_count": "{{count}} sạp",
+    "areas_count": "{{count}} khu",
     "distinguishing_between_market_area": "Phân biệt giữa Market Area (Khu vực chợ) & Business Category (Danh mục kinh doanh)",
     "market_area_physical_space": "Market Area (Không gian vật lý):",
     "answer_the_question": "Trả lời câu hỏi",

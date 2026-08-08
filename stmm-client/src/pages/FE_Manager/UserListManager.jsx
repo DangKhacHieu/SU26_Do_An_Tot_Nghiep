@@ -190,7 +190,7 @@ export default function UserListManager({ navigate, addToast }) {
         <div className="table-card-header">
           <span className="table-card-title">{t('userlistmanager.list_of_accounts')}</span>
           {!loading && (
-            <span className="table-count-badge">{users.length} kết quả</span>
+            <span className="table-count-badge">{t('userlistmanager.results_count', { count: users.length })}</span>
           )}
         </div>
 

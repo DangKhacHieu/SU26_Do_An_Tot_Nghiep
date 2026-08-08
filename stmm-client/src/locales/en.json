@@ -2441,6 +2441,7 @@
     "post_articles": "Post articles"
   },
   "userlistmanager": {
+    "results_count": "{{count}} results",
     "all_roles": "All roles",
     "all_status": "All status",
     "clear_filter": "Clear filter",
@@ -3450,6 +3451,9 @@
     "create_an_account": "Create an account"
   },
   "businesscategorylistmanager": {
+    "categories_count": "{{count}} categories",
+    "stalls_count": "{{count}} stalls",
+    "areas_count": "{{count}} areas",
     "distinguishing_between_market_area": "Distinguishing between Market Area & Business Category",
     "market_area_physical_space": "Market Area (Physical space):",
     "answer_the_question": "Answer the question",

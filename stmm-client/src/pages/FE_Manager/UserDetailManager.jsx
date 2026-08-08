@@ -25,25 +25,25 @@ const STATUS_CONFIG = {
 const validateField = (key, value, t) => {
   switch (key) {
     case 'name':
-      if (!value || !value.trim()) return { ok: false, msg: 'Họ và tên bị trống.' };
-      if (value.trim().length < 2)  return { ok: false, msg: 'Tên quá ngắn (tối thiểu 2 ký tự).' };
-      if (value.trim().length > 100) return { ok: false, msg: 'Tên quá dài (tối đa 100 ký tự).' };
-      return { ok: true, msg: 'Hợp lệ' };
+      if (!value || !value.trim()) return { ok: false, msg: t('userdetailmanager.full_name_is_blank') };
+      if (value.trim().length < 2)  return { ok: false, msg: t('userdetailmanager.name_is_too_short') };
+      if (value.trim().length > 100) return { ok: false, msg: t('userdetailmanager.name_is_too_long') };
+      return { ok: true, msg: t('userdetailmanager.valid') };
 
     case 'email':
-      if (!value || !value.trim()) return { ok: false, msg: 'Email bị trống.' };
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return { ok: false, msg: 'Định dạng email không hợp lệ.' };
-      return { ok: true, msg: 'Hợp lệ' };
+      if (!value || !value.trim()) return { ok: false, msg: t('userdetailmanager.email_is_blank') };
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return { ok: false, msg: t('userdetailmanager.invalid_email_format') };
+      return { ok: true, msg: t('userdetailmanager.valid') };
 
     case 'phone':
-      if (!value || !value.trim()) return { ok: false, msg: 'Số điện thoại bị trống.' };
-      if (!/^\d{10,11}$/.test(value)) return { ok: false, msg: 'SĐT phải có 10–11 chữ số.' };
-      return { ok: true, msg: 'Hợp lệ' };
+      if (!value || !value.trim()) return { ok: false, msg: t('userdetailmanager.phone_number_is_blank') };
+      if (!/^\d{10,11}$/.test(value)) return { ok: false, msg: t('userdetailmanager.phone_number_must_have') };
+      return { ok: true, msg: t('userdetailmanager.valid') };
 
     case 'cccd':
-      if (!value || !value.trim()) return { ok: false, msg: 'Số CCCD bị trống.' };
-      if (!/^\d{12}$/.test(value)) return { ok: false, msg: 'CCCD phải đúng 12 chữ số.' };
-      return { ok: true, msg: 'Hợp lệ' };
+      if (!value || !value.trim()) return { ok: false, msg: t('userdetailmanager.cccd_number_is_empty') };
+      if (!/^\d{12}$/.test(value)) return { ok: false, msg: t('userdetailmanager.cccd_must_be_exactly') };
+      return { ok: true, msg: t('userdetailmanager.valid') };
 
     default:
       return { ok: true, msg: '' };
@@ -180,7 +180,7 @@ export default function UserDetailManager({ userId, navigate, addToast }) {
         <div className="udetail-alert-banner">
           <IconWarn />
           <div>
-            <strong>{t('userdetailmanager.data_to_check')}</strong> Tài khoản này có {Object.values(validations).filter(v => !v.ok).length} trường không hợp lệ.
+            <strong>{t('userdetailmanager.data_to_check')}</strong> {t('userformmanager.there_are')} <strong>{Object.values(validations).filter(v => !v.ok).length}</strong> {t('userformmanager.invalid_fields_please_check')}
             <button className="udetail-alert-toggle" onClick={() => setShowValidation(v => !v)}>
               {showValidation ? t('userdetailmanager.hide_details') : t('userdetailmanager.see_details')}
             </button>

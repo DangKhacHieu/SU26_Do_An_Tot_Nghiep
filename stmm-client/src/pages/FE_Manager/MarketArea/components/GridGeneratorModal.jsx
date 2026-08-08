@@ -29,11 +29,11 @@ const GridGeneratorModal = ({ onGenerate, onCancel, marketWidth, marketHeight })
 
     const handleGenerate = () => {
         if (rows < 1 || cols < 1) {
-            alert("Số dòng và số cột phải lớn hơn 0");
+            alert(t('gridgeneratormodal.the_number_of_rows'));
             return;
         }
         if (gap < 0) {
-            alert("Khoảng cách không được âm");
+            alert(t('gridgeneratormodal.the_distance_cannot_be'));
             return;
         }
         onGenerate({ rows, cols, count, gap, prefix, categoryName, generateStalls });

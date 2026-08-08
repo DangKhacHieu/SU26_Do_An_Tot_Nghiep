@@ -286,7 +286,7 @@ export default function BusinessCategoryListManager({ navigate, addToast }) {
         <div className="table-card-header">
           <span className="table-card-title">{t('businesscategorylistmanager.list_of_business_categories')}</span>
           {!loading && (
-            <span className="table-count-badge">{categories.length} danh mục</span>
+            <span className="table-count-badge">{t('businesscategorylistmanager.categories_count', { count: categories.length })}</span>
           )}
         </div>
 
@@ -330,12 +330,12 @@ export default function BusinessCategoryListManager({ navigate, addToast }) {
                     <td className="desc-text" title={cat.description}>{cat.description || '—'}</td>
                     <td style={{ textAlign: 'center' }}>
                       <span className={`count-badge ${cat.stallsCount > 0 ? 'active' : ''}`}>
-                        {cat.stallsCount} sạp
+                        {t('businesscategorylistmanager.stalls_count', { count: cat.stallsCount })}
                       </span>
                     </td>
                     <td style={{ textAlign: 'center' }}>
                       <span className={`count-badge ${cat.areasCount > 0 ? 'active' : ''}`}>
-                        {cat.areasCount} khu
+                        {t('businesscategorylistmanager.areas_count', { count: cat.areasCount })}
                       </span>
                     </td>
                     <td style={{ textAlign: 'center' }}>

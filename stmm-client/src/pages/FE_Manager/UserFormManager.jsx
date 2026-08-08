@@ -39,64 +39,64 @@ const IconEyeOff = () => (
   </svg>
 );
 
-/* ── Validation rules ── */
-const RULES = {
-  name: (v) => {
-    if (!v || !v.trim())        return t('profilemanager.name_required');
-    if (v.trim().length < 2)    return 'Tên quá ngắn, tối thiểu 2 ký tự.';
-    if (v.trim().length > 100)  return 'Tên quá dài, tối đa 100 ký tự.';
-    if (/\d/.test(v))           return 'Tên không được chứa số.';
-    return '';
-  },
-  email: (v) => {
-    if (!v || !v.trim())                           return 'Email không được để trống.';
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v)) return 'Địa chỉ email không hợp lệ (vd: abc@gmail.com).';
-    return '';
-  },
-  phone: (v) => {
-    if (!v || !v.trim())       return t('profilemanager.phone_required');
-    if (/\D/.test(v))          return 'Số điện thoại chỉ được chứa chữ số.';
-    if (!/^\d{10,11}$/.test(v)) return 'Số điện thoại phải có 10 hoặc 11 chữ số.';
-    if (!/^(0[35789]\d{8}|0[1-9]\d{9})$/.test(v)) return 'Đầu số điện thoại không hợp lệ tại Việt Nam.';
-    return '';
-  },
-  cccd: (v) => {
-    if (!v || !v.trim())        return 'Số CCCD không được để trống.';
-    if (/\D/.test(v))           return 'CCCD chỉ được chứa chữ số.';
-    if (!/^\d{12}$/.test(v))    return 'CCCD phải có đúng 12 chữ số.';
-    return '';
-  },
-  roleId: (v) => {
-    if (!v) return 'Vui lòng chọn vai trò cho tài khoản.';
-    return '';
-  },
-  password: (v, isEdit) => {
-    if (!isEdit && (!v || !v.trim())) return 'Mật khẩu không được để trống.';
-    if (v && v.length < 6)            return 'Mật khẩu phải có ít nhất 6 ký tự.';
-    if (v && v.length > 64)           return 'Mật khẩu không được vượt quá 64 ký tự.';
-    if (v && !/[A-Za-z]/.test(v))    return 'Mật khẩu nên có ít nhất 1 chữ cái.';
-    return '';
-  },
-};
-
 /* ── Password strength scorer ── */
 const getStrength = (pw) => {
-  if (!pw) return { score: 0, label: '', color: '' };
+  if (!pw) return { score: 0, key: '', color: '' };
   let score = 0;
   if (pw.length >= 6)  score++;
   if (pw.length >= 10) score++;
   if (/[A-Z]/.test(pw)) score++;
   if (/\d/.test(pw))    score++;
   if (/[^A-Za-z\d]/.test(pw)) score++;
-  if (score <= 1) return { score, label: 'Quá yếu', color: '#ef4444' };
-  if (score === 2) return { score, label: 'Yếu',    color: '#f97316' };
-  if (score === 3) return { score, label: 'Trung bình', color: '#eab308' };
-  if (score === 4) return { score, label: 'Mạnh',   color: '#22c55e' };
-  return { score, label: 'Rất mạnh', color: '#16a34a' };
+  if (score <= 1) return { score, key: 'too_weak', color: '#ef4444' };
+  if (score === 2) return { score, key: 'weak',    color: '#f97316' };
+  if (score === 3) return { score, key: 'medium', color: '#eab308' };
+  if (score === 4) return { score, key: 'strong',   color: '#22c55e' };
+  return { score, key: 'very_strong', color: '#16a34a' };
 };
 
 export default function UserFormManager({ userId, navigate, addToast }) {
   const { t } = useTranslation();
+
+  /* ── Validation rules ── */
+  const RULES = {
+    name: (v) => {
+      if (!v || !v.trim())        return t('userformmanager.full_name_cannot_be');
+      if (v.trim().length < 2)    return t('userformmanager.name_is_too_short');
+      if (v.trim().length > 100)  return t('userformmanager.name_is_too_long');
+      if (/\d/.test(v))           return t('userformmanager.names_cannot_contain_numbers');
+      return '';
+    },
+    email: (v) => {
+      if (!v || !v.trim())                           return t('userformmanager.email_cannot_be_blank');
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v)) return t('userformmanager.invalid_email_address_eg');
+      return '';
+    },
+    phone: (v) => {
+      if (!v || !v.trim())       return t('userformmanager.phone_number_cannot_be');
+      if (/\D/.test(v))          return t('userformmanager.phone_numbers_must_contain');
+      if (!/^\d{10,11}$/.test(v)) return t('userformmanager.the_phone_number_must');
+      if (!/^(0[35789]\d{8}|0[1-9]\d{9})$/.test(v)) return t('userformmanager.the_phone_number_is');
+      return '';
+    },
+    cccd: (v) => {
+      if (!v || !v.trim())        return t('userformmanager.cccd_number_cannot_be');
+      if (/\D/.test(v))           return t('userformmanager.cccd_must_contain_only');
+      if (!/^\d{12}$/.test(v))    return t('userformmanager.cccd_must_have_exactly');
+      return '';
+    },
+    roleId: (v) => {
+      if (!v) return t('userformmanager.please_select_a_role');
+      return '';
+    },
+    password: (v, isEdit) => {
+      if (!isEdit && (!v || !v.trim())) return t('userformmanager.password_cannot_be_blank');
+      if (v && v.length < 6)            return t('userformmanager.password_must_have_at');
+      if (v && v.length > 64)           return t('userformmanager.password_must_not_exceed');
+      if (v && !/[A-Za-z]/.test(v))    return t('userformmanager.password_should_have_at');
+      return '';
+    },
+  };
 
   const isEdit  = !!userId;
   const [roles, setRoles]           = useState([]);
@@ -392,7 +392,7 @@ export default function UserFormManager({ userId, navigate, addToast }) {
                         ))}
                       </div>
                       <span className="pw-strength-label" style={{ color: strength.color }}>
-                        {strength.label}
+                        {strength.key ? t(`userformmanager.${strength.key}`) : ''}
                       </span>
                     </div>
                   )}
