@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { translateBackendError } from '../../utils/backendErrorTranslator';
 import React, { useState, useEffect } from 'react';
 import {
   Search, Plus, Send, Eye, CheckCircle, AlertCircle, XCircle,
@@ -6,7 +7,7 @@ import {
 } from 'lucide-react';
 
 export default function PeriodicInvoices() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const getStatusBadge = (status) => {
     const map = {
@@ -143,7 +144,7 @@ export default function PeriodicInvoices() {
       
       if (!response.ok) {
         const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.detail || errData.title || t('periodicinvoices.create_invoice_failed'));
+        throw new Error(errData.message || errData.detail || errData.title || t('periodicinvoices.create_invoice_failed'));
       }
       
       const result = await response.json().catch(() => ({ count: 0 }));
@@ -175,7 +176,11 @@ export default function PeriodicInvoices() {
         // Fetch stalls filtered by marketId
         const url = marketId ? `http://localhost:5056/api/stalls?marketId=${marketId}` : 'http://localhost:5056/api/stalls';
         fetch(url, { headers }).then(r => { if (r.status === 401) { localStorage.removeItem('accessToken'); window.location.href = '/login'; throw new Error('401'); } if (!r.ok) throw new Error(r.statusText); return r.json(); }).then(data => {
-            if (Array.isArray(data)) setAvailableStalls(data);
+            if (Array.isArray(data)) {
+              // Lọc chỉ lấy những sạp đang có người thuê (Rented) - tức là có hợp đồng
+              const occupiedStalls = data.filter(s => s.status === 'Rented');
+              setAvailableStalls(occupiedStalls);
+            }
         }).catch(() => {});
       }
       if (availableFeeTypes.length === 0) {
@@ -316,7 +321,7 @@ export default function PeriodicInvoices() {
       }).then(async r => { 
         if (!r.ok) {
           const errData = await r.json().catch(() => ({}));
-          const detail = errData.detail || errData.Detail;
+          const detail = errData.message || errData.detail || errData.Detail;
           const title = errData.title || errData.Title || errData.errors?.[Object.keys(errData.errors)[0]]?.[0];
           throw new Error(detail || title || t('periodicinvoices.there_was_an_error'));
         }
@@ -324,7 +329,7 @@ export default function PeriodicInvoices() {
         setActiveModal(null); 
         fetchInvoices(); 
       })
-      .catch(e => setModalError(e.message));
+      .catch(e => setModalError(translateBackendError(e.message, i18n.language)));
     }
   };
 
@@ -356,13 +361,13 @@ export default function PeriodicInvoices() {
         .then(async r => { 
           if (!r.ok) {
             const errData = await r.json().catch(() => ({}));
-            throw new Error(errData.detail || errData.title || t('periodicinvoices.error_when_creating_invoice'));
+            throw new Error(errData.message || errData.detail || errData.title || t('periodicinvoices.error_when_creating_invoice'));
           }
           showNotification('success', t('periodicinvoices.successfully_issued_unexpected_invoices')); 
           setActiveModal(null); 
           fetchInvoices(); 
         })
-        .catch(e => setModalError(e.message));
+        .catch(e => setModalError(translateBackendError(e.message, i18n.language)));
     }
   };
 
@@ -377,14 +382,14 @@ export default function PeriodicInvoices() {
         .then(async r => { 
           if (!r.ok) {
             const errData = await r.json().catch(() => ({}));
-            throw new Error(errData.detail || errData.title || t('periodicinvoices.error_when_mass_approving'));
+            throw new Error(errData.message || errData.detail || errData.title || t('periodicinvoices.error_when_mass_approving'));
           }
           showNotification('success', t('periodicinvoices.approval_of_selectedidslength_invoice', { count }));
           setSelectedIds([]); 
           setActiveModal(null); 
           fetchInvoices(); 
         })
-        .catch(e => setModalError(e.message));
+        .catch(e => setModalError(translateBackendError(e.message, i18n.language)));
     }
   };
 
@@ -409,12 +414,12 @@ export default function PeriodicInvoices() {
       })
       .then(async r => {
         const d = await r.json().catch(() => ({}));
-        if (!r.ok || !d.success) throw new Error(d.message || d.title || t('periodicinvoices.error_canceling_invoice'));
-        showNotification('success', d.message || t('periodicinvoices.invoice_canceled_successfully'));
+        if (!r.ok || !d.success) throw new Error(translateBackendError(d.message, i18n.language) || d.title || t('periodicinvoices.error_canceling_invoice'));
+        showNotification('success', translateBackendError(d.message, i18n.language) || t('periodicinvoices.invoice_canceled_successfully'));
         setActiveModal(null);
         fetchInvoices();
       })
-      .catch(err => setModalError(err.message));
+      .catch(err => setModalError(translateBackendError(translateBackendError(err.message, i18n.language), i18n.language)));
     }
   };
 
@@ -612,8 +617,8 @@ export default function PeriodicInvoices() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, padding: '16px' }}>
               <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
                 {t('periodicinvoices.showing_invoices', { 
-                  start: ((currentPage - 1) * itemsPerPage) + 1, 
-                  end: Math.min(currentPage * itemsPerPage, displayedInvoices.length), 
+                  from: ((currentPage - 1) * itemsPerPage) + 1, 
+                  to: Math.min(currentPage * itemsPerPage, displayedInvoices.length), 
                   total: displayedInvoices.length 
                 })}
               </span>

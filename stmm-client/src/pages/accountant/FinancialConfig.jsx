@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { translateBackendError } from '../../utils/backendErrorTranslator';
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -24,7 +25,7 @@ import {
 } from 'lucide-react';
 
 export default function FinancialConfig() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const [activeTab, setActiveTab] = useState('system'); // 'system' | 'fees' | 'services'
   
@@ -231,7 +232,7 @@ export default function FinancialConfig() {
       showToast('success', t('financialconfig.saved_system_configuration_successfully'));
       loadAllConfigData();
     } catch(err) {
-      showToast('error', err.message || t('financialconfig.error_saving_configuration'));
+      showToast('error', translateBackendError(err.message, i18n.language) || t('financialconfig.error_saving_configuration'));
       setLoading(false);
     }
   };
@@ -276,7 +277,7 @@ export default function FinancialConfig() {
         closeModal();
         loadAllConfigData();
       })
-      .catch(err => setModalError(err.message));
+      .catch(err => setModalError(translateBackendError(translateBackendError(err.message, i18n.language), i18n.language)));
     }
   });
 
@@ -297,7 +298,7 @@ export default function FinancialConfig() {
         closeModal();
         loadAllConfigData();
       })
-      .catch(err => setModalError(err.message));
+      .catch(err => setModalError(translateBackendError(translateBackendError(err.message, i18n.language), i18n.language)));
     }
   };
 
@@ -364,7 +365,7 @@ export default function FinancialConfig() {
         closeModal();
         loadAllConfigData();
       })
-      .catch(err => setModalError(err.message));
+      .catch(err => setModalError(translateBackendError(translateBackendError(err.message, i18n.language), i18n.language)));
     }
   };
 
@@ -385,7 +386,7 @@ export default function FinancialConfig() {
         closeModal();
         loadAllConfigData();
       })
-      .catch(err => setModalError(err.message));
+      .catch(err => setModalError(translateBackendError(translateBackendError(err.message, i18n.language), i18n.language)));
     }
   };
 
@@ -422,7 +423,7 @@ export default function FinancialConfig() {
         closeModal();
         loadAllConfigData();
       })
-      .catch(err => setModalError(err.message));
+      .catch(err => setModalError(translateBackendError(translateBackendError(err.message, i18n.language), i18n.language)));
     }
   };
 
@@ -509,9 +510,9 @@ export default function FinancialConfig() {
       })
       .catch(err => {
         if (activeModal) {
-          setModalError(err.message);
+          setModalError(translateBackendError(translateBackendError(err.message, i18n.language), i18n.language));
         } else {
-          showToast('error', err.message);
+          showToast('error', translateBackendError(err.message, i18n.language));
         }
       });
     }
