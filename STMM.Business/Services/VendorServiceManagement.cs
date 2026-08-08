@@ -47,7 +47,7 @@ public class VendorServiceManagement : IVendorServiceManagement
         {
             return vendor.VendorId;
         }
-        throw new UnauthorizedAccessException("Không xác định được danh tính người bán.");
+        throw new UnauthorizedAccessException("ERR_KHONG_XAC_DINH_DUOC_DANH_TINH_NGUOI_BAN");
     }
 
     public async Task<IEnumerable<ServiceDto>> GetAvailableServicesAsync(int vendorId, CancellationToken ct = default)
@@ -106,18 +106,18 @@ public class VendorServiceManagement : IVendorServiceManagement
     public async Task<ServiceRegistrationDto> GetServiceDetailAsync(int vendorId, int registrationId, CancellationToken ct = default)
     {
         if (registrationId <= 0)
-            throw new ArgumentException("ID đăng ký dịch vụ không hợp lệ.");
+            throw new ArgumentException("ERR_ID_DANG_KY_DICH_VU_KHONG_HOP_LE");
 
         var registration = await _serviceRegistrationRepository.GetRegistrationWithRelationsAsync(registrationId);
         
         if (registration == null)
-            throw new KeyNotFoundException("Không tìm thấy thông tin đăng ký dịch vụ.");
+            throw new KeyNotFoundException("ERR_KHONG_TIM_THAY_THONG_TIN_DANG_KY_DICH_VU");
             
         if (registration.VendorId != vendorId)
-            throw new UnauthorizedAccessException("Bạn không có quyền truy cập thông tin dịch vụ này.");
+            throw new UnauthorizedAccessException("ERR_BAN_KHONG_CO_QUYEN_TRUY_CAP_THONG_TIN_DICH_VU_NAY");
 
         if (registration.Service == null)
-            throw new InvalidOperationException("Không tìm thấy thông tin dịch vụ.");
+            throw new InvalidOperationException("ERR_KHONG_TIM_THAY_THONG_TIN_DICH_VU");
 
         return new ServiceRegistrationDto
         {
@@ -160,7 +160,7 @@ public class VendorServiceManagement : IVendorServiceManagement
     {
         if (request.StallId <= 0 || request.ServiceId <= 0)
         {
-            throw new ArgumentException("Thông tin ID Sạp hoặc ID Dịch vụ không hợp lệ.");
+            throw new ArgumentException("ERR_THONG_TIN_ID_SAP_HOAC_ID_DICH_VU_KHONG_HOP_LE");
         }
 
         // A.4.1 Debt Restriction
@@ -174,21 +174,21 @@ public class VendorServiceManagement : IVendorServiceManagement
 
         if (unpaidInvoices.Any())
         {
-            throw new BadRequestException("Bạn có hóa đơn quá hạn chưa thanh toán. Vui lòng hoàn tất công nợ trước khi đăng ký dịch vụ mới.");
+            throw new BadRequestException("ERR_BAN_CO_HOA_DON_QUA_HAN_CHUA_THANH_TOAN_VUI_LONG_HO");
         }
 
         // Verify stall belongs to vendor
         var stallIsRentedByVendor = vendorContracts.Any(c => c.StallId == request.StallId);
         if (!stallIsRentedByVendor)
         {
-            throw new BadRequestException("Bạn không có quyền đăng ký dịch vụ cho sạp này.");
+            throw new BadRequestException("ERR_BAN_KHONG_CO_QUYEN_DANG_KY_DICH_VU_CHO_SAP_NAY");
         }
 
         // Check if service exists
         var service = await _serviceRepository.GetByIdAsync(request.ServiceId, ct);
         if (service == null || service.IsActive != true)
         {
-            throw new BadRequestException("Dịch vụ này hiện không còn khả dụng. Vui lòng chọn dịch vụ khác.");
+            throw new BadRequestException("ERR_DICH_VU_NAY_HIEN_KHONG_CON_KHA_DUNG_VUI_LONG_CHON");
         }
 
         // Verify service belongs to the same market as the stall (or is global)
@@ -199,7 +199,7 @@ public class VendorServiceManagement : IVendorServiceManagement
                 .FirstOrDefaultAsync(s => s.StallId == request.StallId, ct);
             if (stall != null && stall.Area?.MarketId != service.MarketId.Value)
             {
-                throw new BadRequestException("Dịch vụ này không được cung cấp tại chợ của sạp bạn đang thuê.");
+                throw new BadRequestException("ERR_DICH_VU_NAY_KHONG_DUOC_CUNG_CAP_TAI_CHO_CUA_SAP_BA");
             }
         }
 
@@ -212,12 +212,12 @@ public class VendorServiceManagement : IVendorServiceManagement
         {
             if (service.BillingCycle == "One-time")
             {
-                throw new BadRequestException("Bạn đang có dịch vụ này đang hoạt động và chưa hoàn tất, không thể đăng ký thêm.");
+                throw new BadRequestException("ERR_BAN_DANG_CO_DICH_VU_NAY_DANG_HOAT_DONG_VA_CHUA_HOA");
             }
 
             if (existingRegistration.IsAutoRenew)
             {
-                throw new BadRequestException("Bạn đã đăng ký dịch vụ này rồi. Vui lòng kiểm tra lại trong phần Dịch vụ của tôi.");
+                throw new BadRequestException("ERR_BAN_DA_DANG_KY_DICH_VU_NAY_ROI_VUI_LONG_KIEM_TRA_L");
             }
             else
             {
@@ -226,7 +226,7 @@ public class VendorServiceManagement : IVendorServiceManagement
                 string endDateStr = existingRegistration.EndDate.HasValue 
                     ? existingRegistration.EndDate.Value.ToString("dd/MM/yyyy") 
                     : "cuối kỳ";
-                throw new BadRequestException($"PENDING_CANCELLATION_ERROR|{endDateStr}");
+                throw new BadRequestException($"ERR_PENDING_CANCELLATION_ERROR_ENDDATESTR|{endDateStr}");
             }
         }
 
@@ -268,25 +268,25 @@ public class VendorServiceManagement : IVendorServiceManagement
     {
         if (registrationId <= 0)
         {
-            throw new ArgumentException("ID đăng ký dịch vụ không hợp lệ.");
+            throw new ArgumentException("ERR_ID_DANG_KY_DICH_VU_KHONG_HOP_LE");
         }
 
         var registration = await _serviceRegistrationRepository.GetByIdAsync(registrationId, ct);
         
         if (registration == null || registration.VendorId != vendorId)
         {
-            throw new BadRequestException("Không tìm thấy thông tin đăng ký dịch vụ.");
+            throw new BadRequestException("ERR_KHONG_TIM_THAY_THONG_TIN_DANG_KY_DICH_VU");
         }
 
         if (registration.Status == "Cancelled")
         {
-            throw new BadRequestException("Dịch vụ này đã được hủy.");
+            throw new BadRequestException("ERR_DICH_VU_NAY_DA_DUOC_HUY");
         }
 
         var service = await _serviceRepository.GetByIdAsync(registration.ServiceId, ct);
         if (service != null && (service.Name.Contains("bắt buộc", StringComparison.OrdinalIgnoreCase) || service.Name.Contains("Vệ sinh chung", StringComparison.OrdinalIgnoreCase)))
         {
-            throw new BadRequestException("Đây là dịch vụ vận hành bắt buộc của chợ, không thể tự ý hủy. Vui lòng liên hệ Ban quản lý nếu có thắc mắc.");
+            throw new BadRequestException("ERR_DAY_LA_DICH_VU_VAN_HANH_BAT_BUOC_CUA_CHO_KHONG_THE");
         }
 
         if (registration.Status == "Pending")
@@ -312,7 +312,7 @@ public class VendorServiceManagement : IVendorServiceManagement
                 // Đổi trạng thái thành PendingCancellation để dễ nhận biết trên UI, user vẫn dùng được cho đến hết kỳ hiện tại.
                 if (registration.Status == "PendingCancellation" || !registration.IsAutoRenew)
                 {
-                    throw new BadRequestException("Dịch vụ này đã được yêu cầu hủy gia hạn từ trước.");
+                    throw new BadRequestException("ERR_DICH_VU_NAY_DA_DUOC_YEU_CAU_HUY_GIA_HAN_TU_TRUOC");
                 }
                 registration.Status = "PendingCancellation";
                 registration.IsAutoRenew = false;
@@ -327,19 +327,19 @@ public class VendorServiceManagement : IVendorServiceManagement
     {
         if (registrationId <= 0)
         {
-            throw new ArgumentException("ID đăng ký dịch vụ không hợp lệ.");
+            throw new ArgumentException("ERR_ID_DANG_KY_DICH_VU_KHONG_HOP_LE");
         }
 
         var registration = await _serviceRegistrationRepository.GetByIdAsync(registrationId, ct);
         
         if (registration == null || registration.VendorId != vendorId)
         {
-            throw new BadRequestException("Không tìm thấy thông tin đăng ký dịch vụ.");
+            throw new BadRequestException("ERR_KHONG_TIM_THAY_THONG_TIN_DANG_KY_DICH_VU");
         }
 
         if (registration.Status == "Active" && registration.IsAutoRenew)
         {
-            throw new BadRequestException("Dịch vụ này đang được tự động gia hạn.");
+            throw new BadRequestException("ERR_DICH_VU_NAY_DANG_DUOC_TU_DONG_GIA_HAN");
         }
 
         if (registration.Status == "PendingCancellation" || (registration.Status == "Active" && !registration.IsAutoRenew))
@@ -350,7 +350,7 @@ public class VendorServiceManagement : IVendorServiceManagement
         }
         else
         {
-            throw new BadRequestException("Chỉ có thể kích hoạt lại các dịch vụ đang chờ hủy gia hạn. Các dịch vụ đã hủy hoàn toàn vui lòng đăng ký mới.");
+            throw new BadRequestException("ERR_CHI_CO_THE_KICH_HOAT_LAI_CAC_DICH_VU_DANG_CHO_HUY");
         }
 
         _serviceRegistrationRepository.Update(registration);

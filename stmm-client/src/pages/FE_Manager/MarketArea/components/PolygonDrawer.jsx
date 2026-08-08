@@ -332,7 +332,7 @@ const PolygonDrawer = ({
                             </button>
                         )}
                         <button onClick={handleFinish} disabled={(points.length < 3 || !isClosed) && drawnPolygons.length === 0} style={{ padding: '8px 16px', border: 'none', background: ((points.length >= 3 && isClosed) || drawnPolygons.length > 0) ? '#10b981' : '#94a3b8', color: 'white', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>
-                            {drawnPolygons.length > 0 ? t('marketFloorPlan.polygonDrawer.save_all', `Lưu tất cả (${drawnPolygons.length + (isClosed ? 1 : 0)})`) : t('marketFloorPlan.polygonDrawer.save')}
+                            {drawnPolygons.length > 0 ? t('marketFloorPlan.polygonDrawer.save_all', { defaultValue: `Lưu tất cả (${drawnPolygons.length + (isClosed ? 1 : 0)})`, count: drawnPolygons.length + (isClosed ? 1 : 0) }) : t('marketFloorPlan.polygonDrawer.save')}
                         </button>
                         <button onClick={onCancel} style={{ padding: '8px 16px', border: 'none', background: '#ef4444', color: 'white', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>{t('marketFloorPlan.polygonDrawer.close')}</button>
                     </div>

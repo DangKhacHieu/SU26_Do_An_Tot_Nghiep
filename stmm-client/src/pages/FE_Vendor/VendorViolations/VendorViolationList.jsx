@@ -14,7 +14,7 @@ export default function VendorViolationList({ stallId }) {
     
     // Pagination state
     const [pageNumber, setPageNumber] = useState(1);
-    const [pageSize] = useState(5);
+    const [pageSize] = useState(4);
     const [totalCount, setTotalCount] = useState(0);
     
     // View state

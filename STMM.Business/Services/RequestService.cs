@@ -93,7 +93,7 @@ namespace STMM.Business.Services
                 var manager = await _userRepository.GetByIdAsync(managerUserId.Value, ct);
                 if (manager != null && manager.MarketId == null)
                 {
-                    throw new NotFoundException($"Yêu cầu với mã {id} không tìm thấy.");
+                    throw new NotFoundException($"ERR_YEU_CAU_VOI_MA_ID_KHONG_TIM_THAY|{id}");
                 }
             }
 
@@ -101,7 +101,7 @@ namespace STMM.Business.Services
 
             if (request == null)
             {
-                throw new NotFoundException($"Yêu cầu với mã {id} không tìm thấy.");
+                throw new NotFoundException($"ERR_YEU_CAU_VOI_MA_ID_KHONG_TIM_THAY|{id}");
             }
 
             return _mapper.Map<RequestDto>(request);
@@ -113,8 +113,7 @@ namespace STMM.Business.Services
             CancellationToken ct = default)
         {
             var request = await _requestRepository.ApproveOrRejectAppealAsync(requestId, approve, ct)
-                ?? throw new NotFoundException(
-                    $"Không tìm thấy kháng nghị vi phạm với mã {requestId}.");
+                ?? throw new NotFoundException($"ERR_KHONG_TIM_THAY_KHANG_NGHI_VI_PHAM_VOI_MA_REQUESTID|{requestId}");
 
             var requestWithRelations = await _requestRepository.GetRequestWithRelationsAsync(
                 request.RequestId, ct);
@@ -173,18 +172,16 @@ namespace STMM.Business.Services
                     requestId,
                     marketId,
                     ct)
-                ?? throw new NotFoundException($"Yêu cầu với mã {requestId} không tìm thấy.");
+                ?? throw new NotFoundException($"ERR_YEU_CAU_VOI_MA_REQUESTID_KHONG_TIM_THAY|{requestId}");
 
             if (request.RequestType != "FacilityIssue")
             {
-                throw new BadRequestException(
-                    "Chỉ yêu cầu sửa chữa FacilityIssue mới có quyết định báo giá.");
+                throw new BadRequestException("ERR_CHI_YEU_CAU_SUA_CHUA_FACILITYISSUE_MOI_CO_QUYET_DI");
             }
 
             if (request.Status != "PendingManagerReview")
             {
-                throw new BadRequestException(
-                    "Yêu cầu phải ở trạng thái PendingManagerReview trước khi Manager đưa ra quyết định.");
+                throw new BadRequestException("ERR_YEU_CAU_PHAI_O_TRANG_THAI_PENDINGMANAGERREVIEW_TRU");
             }
 
             return request;
@@ -200,15 +197,13 @@ namespace STMM.Business.Services
                     task.Status == "PendingApproval" &&
                     task.ActualCost is > 0))
             {
-                throw new BadRequestException(
-                    "The request does not have a valid repair quotation awaiting review.");
+                throw new BadRequestException("ERR_THE_REQUEST_DOES_NOT_HAVE_A_VALID_REPAIR_QUOTATION");
             }
 
             if (action == ManagerQuotationDecisionRequest.SendToVendor &&
                 (request.Vendor == null || request.Vendor.UserId <= 0))
             {
-                throw new BadRequestException(
-                    "The request does not have a vendor who can confirm the quotation.");
+                throw new BadRequestException("ERR_THE_REQUEST_DOES_NOT_HAVE_A_VENDOR_WHO_CAN_CONFIRM");
             }
         }
 
@@ -219,7 +214,7 @@ namespace STMM.Business.Services
             var manager = await _userRepository.GetUserByIdWithRoleAsync(managerUserId, ct);
             if (manager?.MarketId == null)
             {
-                throw new ForbiddenException("The Manager account is not assigned to a market.");
+                throw new ForbiddenException("ERR_THE_MANAGER_ACCOUNT_IS_NOT_ASSIGNED_TO_A_MARKET");
             }
 
             return manager.MarketId.Value;

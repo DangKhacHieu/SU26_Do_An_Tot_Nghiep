@@ -9,6 +9,7 @@ import { getAllMarkets, deactivateMarket } from '../../../../services/marketApi'
 import { Rnd } from 'react-rnd';
 import StallLayoutEditor from './StallLayoutEditor';
 import PolygonDrawer from './PolygonDrawer';
+import { translateError } from '../../../../utils/errorTranslator';
 
 const MarketAreaList = ({ user }) => {
   const { t } = useTranslation();
@@ -66,7 +67,7 @@ const MarketAreaList = ({ user }) => {
   const marketId = user?.marketId;
 
   const handleZoomIn = () => setZoom(prev => Math.min(prev + 0.1, 2));
-  const handleZoomOut = () => setZoom(prev => Math.max(prev - 0.1, 0.5));
+  const handleZoomOut = () => setZoom(prev => Math.max(prev - 0.1, 0.1));
   const handleResetZoom = () => setZoom(1);
 
   useEffect(() => {
@@ -651,7 +652,7 @@ const MarketAreaList = ({ user }) => {
             <div style={{background: 'var(--bg-panel)', padding: '32px', borderRadius: '16px', minWidth: '400px', maxWidth: '500px', boxShadow: '0 10px 30px rgba(0,0,0,0.2)', textAlign: 'center'}}>
               <div style={{fontSize: '48px', marginBottom: '16px'}}>⚠️</div>
               <h3 style={{marginTop: 0, color: 'var(--danger, #ff4d4f)', fontSize: '24px'}}>{t('marketFloorPlan.areaList.error')}</h3>
-              <p style={{color: 'var(--text-secondary)', fontSize: '15px', lineHeight: '1.5'}}>{errorMessage}</p>
+              <p style={{color: 'var(--text-secondary)', fontSize: '15px', lineHeight: '1.5'}}>{translateError(errorMessage)}</p>
               <div style={{marginTop: 32}}>
                 <button onClick={() => setErrorMessage(null)} style={{padding: '10px 32px', border: 'none', background: 'var(--color-primary)', color: 'white', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px', transition: 'all 0.2s'}}>{t('marketFloorPlan.areaList.close')}</button>
               </div>
@@ -721,14 +722,14 @@ const MarketAreaList = ({ user }) => {
           </div>
           <div className={styles.actionsRight} style={{display: 'flex', alignItems: 'center', gap: 12}}>
               <div style={{display: 'flex', alignItems: 'center', background: 'var(--bg-panel)', padding: '4px 8px', borderRadius: 8, border: '1px solid var(--border-color)', gap: 8}}>
-                 <button onClick={handleZoomOut} style={{background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 16, width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-primary)'}} title={'Thu nhỏ'}>-</button>
+                 <button onClick={handleZoomOut} style={{background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 16, width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-primary)'}} title={t('marketFloorPlan.areaList.zoom_out', 'Thu nhỏ')}>-</button>
                  <span style={{fontSize: 13, fontWeight: 'bold', minWidth: 45, textAlign: 'center', color: 'var(--text-primary)'}}>{Math.round(zoom * 100)}%</span>
-                 <button onClick={handleZoomIn} style={{background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 16, width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-primary)'}} title={'Phóng to'}>+</button>
-                 <button onClick={handleResetZoom} style={{background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 12, marginLeft: 4, color: 'var(--color-primary)'}} title={'Khôi phục'}>↺</button>
+                 <button onClick={handleZoomIn} style={{background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 16, width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-primary)'}} title={t('marketFloorPlan.areaList.zoom_in', 'Phóng to')}>+</button>
+                 <button onClick={handleResetZoom} style={{background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 12, marginLeft: 4, color: 'var(--color-primary)'}} title={t('marketFloorPlan.areaList.zoom_reset', 'Khôi phục')}>↺</button>
               </div>
               {isEditMode && (
                 <>
-                  <button onClick={() => setIsDrawingMultipleAreas(true)} style={{background: '#10b981', color: 'white', padding: '8px 20px', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', marginRight: '8px'}}>+ Vẽ nhanh khu vực</button>
+                  <button onClick={() => setIsDrawingMultipleAreas(true)} style={{background: '#10b981', color: 'white', padding: '8px 20px', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', marginRight: '8px'}}>{t('marketFloorPlan.areaList.draw_multiple_areas', '+ Vẽ nhanh khu vực')}</button>
                   <button onClick={handleAddNew} style={{background: '#517594', color: 'white', padding: '8px 20px', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold'}}>{t('marketFloorPlan.areaList.add_area')}</button>
                 </>
               )}
@@ -768,18 +769,6 @@ const MarketAreaList = ({ user }) => {
           </div>
         </div>
 
-        {/* Legend Overlay */}
-        <div style={{ position: 'absolute', right: 24, bottom: 24, background: 'rgba(255, 255, 255, 0.95)', padding: '16px', borderRadius: '12px', boxShadow: '0 4px 16px rgba(0,0,0,0.1)', zIndex: 900, minWidth: '220px', border: '1px solid #e2e8f0' }}>
-           <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#1e293b', borderBottom: '1px solid #cbd5e1', paddingBottom: '8px' }}>{t('marketFloorPlan.areaList.category_legend')}</h4>
-           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {Object.entries(categoryColors).map(([name, color]) => (
-                 <div key={name} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div style={{ width: '24px', height: '16px', background: color, borderRadius: '4px', border: '1px solid rgba(0,0,0,0.1)' }}></div>
-                    <span style={{ fontSize: '13px', color: '#475569', fontWeight: 'bold' }}>{name}</span>
-                 </div>
-              ))}
-           </div>
-        </div>
 
         {/* Canvas / List Area */}
         <div className={styles.canvasArea} style={{ position: 'relative' }}>
@@ -798,10 +787,15 @@ const MarketAreaList = ({ user }) => {
             onMouseUp={handlePanEnd}
             onMouseMove={handlePanMove}
           >
+            {/* Map Scale */}
+            <div style={{ position: 'absolute', bottom: 16, right: 16, zIndex: 100, background: 'rgba(255,255,255,0.9)', padding: '6px 12px', borderRadius: 4, border: '1px solid #ccc', fontSize: 13, fontWeight: 'bold', color: '#64748b', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', pointerEvents: 'none' }}>
+                {t('marketFloorPlan.wizard.map_scale', 'Tỉ lệ')} 1:{Math.round(100 / zoom)}
+            </div>
+
             {/* Rulers */}
             <div style={{ position: 'absolute', top: 0, left: 30, right: 0, height: 30, backgroundColor: '#f1f5f9', borderBottom: '1px solid #cbd5e1', zIndex: 90, display: 'flex', alignItems: 'center', overflow: 'hidden' }}>
               <div style={{ display: 'flex', transform: `translateX(${panOffset.x}px) scale(${zoom})`, transformOrigin: '0 0', height: '100%' }}>
-                {Array.from({ length: 50 }).map((_, i) => (
+                {Array.from({ length: Math.min(300, Math.max(50, Math.ceil(cWidth / 100))) }).map((_, i) => (
                   <div key={i} style={{ width: 100, flexShrink: 0, borderLeft: '1px solid #cbd5e1', paddingLeft: 4, fontSize: 12, fontWeight: 'bold', color: '#64748b' }}>
                     {i + 1}
                   </div>
@@ -810,9 +804,9 @@ const MarketAreaList = ({ user }) => {
             </div>
             <div style={{ position: 'absolute', top: 30, left: 0, bottom: 0, width: 30, backgroundColor: '#f1f5f9', borderRight: '1px solid #cbd5e1', zIndex: 90, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
               <div style={{ display: 'flex', flexDirection: 'column', transform: `translateY(${panOffset.y}px) scale(${zoom})`, transformOrigin: '0 0', width: '100%' }}>
-                {Array.from({ length: 50 }).map((_, i) => (
+                {Array.from({ length: Math.min(300, Math.max(50, Math.ceil(cHeight / 100))) }).map((_, i) => (
                   <div key={i} style={{ height: 100, flexShrink: 0, borderTop: '1px solid #cbd5e1', paddingTop: 4, textAlign: 'center', fontSize: 12, fontWeight: 'bold', color: '#64748b' }}>
-                    {String.fromCharCode(65 + i)}
+                    {String.fromCharCode(65 + (i % 26))}{i >= 26 ? Math.floor(i / 26) : ''}
                   </div>
                 ))}
               </div>
@@ -821,10 +815,10 @@ const MarketAreaList = ({ user }) => {
             <div 
               className={styles.gridBg} 
               style={{ 
-                minWidth: `${cWidth}px`, 
-                minHeight: `${cHeight}px`, 
-                width: `${cWidth}px`, 
-                height: `${cHeight}px`, 
+                minWidth: `${cWidth * zoom}px`, 
+                minHeight: `${cHeight * zoom}px`, 
+                width: `${cWidth * zoom}px`, 
+                height: `${cHeight * zoom}px`, 
                 position: 'absolute',
                 left: 30,
                 top: 30,
@@ -832,10 +826,10 @@ const MarketAreaList = ({ user }) => {
                 transition: isPanning ? 'none' : 'transform 0.1s',
                 backgroundColor: '#f8fafc',
                 backgroundImage: `linear-gradient(to right, #e2e8f0 1px, transparent 1px), linear-gradient(to bottom, #e2e8f0 1px, transparent 1px)`,
-                backgroundSize: '20px 20px'
+                backgroundSize: `${20 * zoom}px ${20 * zoom}px`
               }}
             >
-                      <div style={{ position: 'relative', width: '100%', height: '100%', transform: `scale(${zoom})`, transformOrigin: '0 0' }}>
+                      <div style={{ position: 'relative', width: `${cWidth}px`, height: `${cHeight}px`, transform: `scale(${zoom})`, transformOrigin: '0 0' }}>
                         
                         {/* 0. Market Boundary Outline */}
                         {marketSvgPath && (
@@ -925,8 +919,9 @@ const MarketAreaList = ({ user }) => {
                           <path 
                             d={area.svgPath} 
                             fill={getCategoryColor(area.categoryName)} 
-                            stroke="rgba(255,255,255,0.5)" 
-                            strokeWidth="2" 
+                            fillOpacity="0.15"
+                            stroke={getCategoryColor(area.categoryName)} 
+                            strokeWidth="3" 
                             strokeDasharray="none" 
                             vectorEffect="non-scaling-stroke" 
                             strokeLinejoin="round" 
@@ -948,21 +943,22 @@ const MarketAreaList = ({ user }) => {
                               left: '50%',
                               transform: 'translate(-50%, -50%)',
                               pointerEvents: 'none',
-                              color: 'white',
+                              color: area.svgPath ? getCategoryColor(area.categoryName) : 'white',
                               fontWeight: 'bold',
-                              fontSize: '18px',
-                              textShadow: '0px 1px 4px rgba(0,0,0,0.6)',
+                              fontSize: `${Math.max(Math.min(100, Math.max(14, Math.sqrt(width * height) / 25)), 11 / zoom)}px`,
+                              whiteSpace: 'nowrap',
+                              textShadow: area.svgPath ? '0px 1px 3px rgba(255,255,255,0.8)' : '0px 1px 4px rgba(0,0,0,0.6)',
                               textAlign: 'center',
                               zIndex: 10
                           }}>
                               <div>{area.name}</div>
                               {area.categoryName && (
-                                  <div style={{ fontSize: '13px', fontWeight: 'normal', opacity: 0.9, marginTop: '2px' }}>
+                                  <div style={{ fontSize: '0.7em', fontWeight: 'normal', opacity: 0.9, marginTop: '4px' }}>
                                       {area.categoryName} {area.size ? ` - ${area.size} m²` : ''}
                                   </div>
                               )}
                               {!area.categoryName && area.size && (
-                                  <div style={{ fontSize: '13px', fontWeight: 'normal', opacity: 0.9, marginTop: '2px' }}>
+                                  <div style={{ fontSize: '0.7em', fontWeight: 'normal', opacity: 0.9, marginTop: '2px' }}>
                                       {area.size} m²
                                   </div>
                               )}
@@ -975,7 +971,8 @@ const MarketAreaList = ({ user }) => {
                             top: expandedAreas.includes(area.areaId) ? -48 : '50%', 
                             left: expandedAreas.includes(area.areaId) ? 'auto' : '50%', 
                             right: expandedAreas.includes(area.areaId) ? 0 : 'auto', 
-                            transform: expandedAreas.includes(area.areaId) ? 'none' : 'translate(-50%, -50%)',
+                            transformOrigin: expandedAreas.includes(area.areaId) ? 'bottom right' : 'center',
+                            transform: (expandedAreas.includes(area.areaId) ? '' : 'translate(-50%, -50%) ') + `scale(${1/zoom})`,
                             display: 'flex', gap: '4px', background: 'rgba(255,255,255,0.95)', padding: '4px', borderRadius: '4px', boxShadow: '0 2px 8px rgba(0,0,0,0.15)', zIndex: 100,
                             pointerEvents: 'auto' 
                           }}>

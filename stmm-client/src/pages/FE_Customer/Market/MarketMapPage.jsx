@@ -371,6 +371,8 @@ export default function MarketMapPage({
 
   // Calculate dynamic viewBox from marketMap bounds
   let viewBox = `0 0 ${canvasWidth} ${canvasHeight}`;
+  let viewBoxWidth = canvasWidth;
+  let viewBoxHeight = canvasHeight;
   if (marketMap) {
     let finalMinX = marketMap.minX;
     let finalMinY = marketMap.minY;
@@ -409,9 +411,16 @@ export default function MarketMapPage({
       const height = finalMaxY - finalMinY;
       const paddingX = Math.max(20, width * 0.05);
       const paddingY = Math.max(20, height * 0.05);
-      viewBox = `${finalMinX - paddingX} ${finalMinY - paddingY} ${width + paddingX * 2} ${height + paddingY * 2}`;
+      viewBoxWidth = width + paddingX * 2;
+      viewBoxHeight = height + paddingY * 2;
+      viewBox = `${finalMinX - paddingX} ${finalMinY - paddingY} ${viewBoxWidth} ${viewBoxHeight}`;
     }
   }
+
+  // Estimate the total actual zoom scale on a typical 1200px wide screen
+  // actualScale = (1200 / viewBoxWidth) * zoomScale
+  // inverseScale = 1 / actualScale = viewBoxWidth / (1200 * zoomScale)
+  const inverseScale = viewBoxWidth / (1200 * zoomScale);
 
   return (
     <>
@@ -663,7 +672,7 @@ export default function MarketMapPage({
                               d={marketMap.svgPath}
                               fill="rgba(59,130,246,0.05)"
                               stroke="#3b82f6"
-                              strokeWidth="4"
+                              style={{ strokeWidth: Math.max(4, 3 * inverseScale) }}
                               opacity="0.8"
                           />
                       )}
@@ -700,7 +709,7 @@ export default function MarketMapPage({
                                   d={pathD}
                                   fill="rgba(232, 245, 233, 0.4)"
                                   stroke="#a5d6a7"
-                                  strokeWidth="2"
+                                  style={{ strokeWidth: Math.max(2, 2 * inverseScale) }}
                                   strokeDasharray="4 2"
                                 />
                               )}
@@ -712,6 +721,7 @@ export default function MarketMapPage({
                                 className="area-label"
                                 textAnchor="middle"
                                 dominantBaseline="middle"
+                                style={{ fontSize: Math.max(14, 11 * inverseScale) }}
                               >
                                 {area.name}
                               </text>
@@ -786,6 +796,7 @@ export default function MarketMapPage({
                                         textAnchor="middle"
                                         dominantBaseline="middle"
                                         className="stall-text-code"
+                                        style={{ fontSize: Math.max(12, 9 * inverseScale) }}
                                       >
                                         {stall.code}
                                       </text>

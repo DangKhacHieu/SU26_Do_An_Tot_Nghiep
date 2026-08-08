@@ -117,6 +117,8 @@ const MarketWizard = ({ onCancel, onComplete }) => {
     const [gridStats, setGridStats] = useState(null);
     const [gridError, setGridError] = useState(null);
 
+    const lastPreviewParams = useRef(null);
+
     // Real-time Preview Debounce Effect
     useEffect(() => {
         if (step !== 2 || !marketInfo.isClosed || marketInfo.points.length < 3) return;
@@ -134,6 +136,11 @@ const MarketWizard = ({ onCancel, onComplete }) => {
                     prefix: gridConfig.prefix,
                     polygonPoints: marketInfo.points
                 };
+
+                const payloadString = JSON.stringify(requestPayload);
+                if (lastPreviewParams.current === payloadString && areas.length > 0) {
+                    return; // Skip if params haven't changed and we already have areas (e.g. just navigating back)
+                }
 
                 const res = await getGridPreview(requestPayload);
                 if (res && res.isValid === false) {
@@ -162,6 +169,7 @@ const MarketWizard = ({ onCancel, onComplete }) => {
                         };
                     });
                     setAreas(newAreas);
+                    lastPreviewParams.current = payloadString;
                 }
             } catch (err) {
                 console.error("Preview error", err);
@@ -171,6 +179,26 @@ const MarketWizard = ({ onCancel, onComplete }) => {
 
         return () => clearTimeout(timer);
     }, [step, gridConfig, marketInfo.points, marketInfo.isClosed]);
+
+    // Auto-scroll to center of shape when switching steps
+    useEffect(() => {
+        if (containerRef.current && marketInfo.points.length > 0) {
+            const bbox = getBoundingBox(marketInfo.points);
+            const cx = (bbox.minX + bbox.maxX) / 2;
+            const cy = (bbox.minY + bbox.maxY) / 2;
+            
+            setTimeout(() => {
+                if (!containerRef.current) return;
+                const screenCx = cx * zoom;
+                const screenCy = cy * zoom;
+                const containerWidth = containerRef.current.clientWidth;
+                const containerHeight = containerRef.current.clientHeight;
+                
+                containerRef.current.scrollLeft = Math.max(0, screenCx - containerWidth / 2);
+                containerRef.current.scrollTop = Math.max(0, screenCy - containerHeight / 2);
+            }, 50);
+        }
+    }, [step]); // re-center when going to step 2 (or back to step 1)
 
     // Step 3: Stalls
     const [selectedAreaIndex, setSelectedAreaIndex] = useState(null);
@@ -182,9 +210,17 @@ const MarketWizard = ({ onCancel, onComplete }) => {
     const [editingAreaData, setEditingAreaData] = useState({ name: '', size: '', categoryName: '' });
 
     const svgRef = useRef(null);
+    const containerRef = useRef(null);
+    const [isPanning, setIsPanning] = useState(false);
+    const [panStart, setPanStart] = useState({ x: 0, y: 0, scrollLeft: 0, scrollTop: 0 });
+    const [hasPanned, setHasPanned] = useState(false);
 
     // Common SVG click handler
     const handleSvgClick = (e) => {
+        if (hasPanned) {
+            setHasPanned(false);
+            return;
+        }
         if (!svgRef.current || isDrawingStall) return;
         const rect = svgRef.current.getBoundingClientRect();
         const x = Math.round((e.clientX - rect.left) / zoom);
@@ -193,6 +229,20 @@ const MarketWizard = ({ onCancel, onComplete }) => {
         if (step === 1 && !marketInfo.isClosed) {
             setMarketInfo(prev => ({ ...prev, points: [...prev.points, [x, y]] }));
         }
+    };
+
+    const handleSvgMouseDown = (e) => {
+        if (e.button !== 0 && e.button !== 1) return;
+        if (isDrawingStall) return;
+        
+        setIsPanning(true);
+        setHasPanned(false);
+        setPanStart({
+            x: e.clientX,
+            y: e.clientY,
+            scrollLeft: containerRef.current ? containerRef.current.scrollLeft : 0,
+            scrollTop: containerRef.current ? containerRef.current.scrollTop : 0
+        });
     };
 
     // Drag Handlers
@@ -219,6 +269,16 @@ const MarketWizard = ({ onCancel, onComplete }) => {
     };
 
     const handleGlobalMouseMove = (e) => {
+        if (isPanning && containerRef.current) {
+            const dx = e.clientX - panStart.x;
+            const dy = e.clientY - panStart.y;
+            if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+                setHasPanned(true);
+            }
+            containerRef.current.scrollLeft = panStart.scrollLeft - dx;
+            containerRef.current.scrollTop = panStart.scrollTop - dy;
+            return;
+        }
         if (!dragState) return;
 
         const dx = (e.clientX - dragState.startX) / zoom;
@@ -270,10 +330,11 @@ const MarketWizard = ({ onCancel, onComplete }) => {
     };
 
     const handleGlobalMouseUp = () => {
-        if (!dragState) return;
-        
+        if (isPanning) {
+            setIsPanning(false);
+        }
         // Cập nhật lại bounding box & svgPath sau khi kéo xong
-        if (dragState.type === 'area' || dragState.type === 'area-vertex') {
+        if (dragState && (dragState.type === 'area' || dragState.type === 'area-vertex')) {
             const indexToUpdate = dragState.type === 'area' ? dragState.index : dragState.index.areaIndex;
             setAreas(prev => {
                 const updated = [...prev];
@@ -437,8 +498,13 @@ const MarketWizard = ({ onCancel, onComplete }) => {
             alert(t("marketFloorPlan.wizard.err_address"));
             return;
         }
-        if (!marketInfo.size || parseFloat(marketInfo.size) <= 0) {
+        const size = parseFloat(marketInfo.size);
+        if (!size || size <= 0) {
             alert(t("marketFloorPlan.wizard.err_area"));
+            return;
+        }
+        if (size <= 0 || size > 150000) {
+            alert(t("marketFloorPlan.wizard.err_area_limit", { defaultValue: "Diện tích không hợp lệ. Vui lòng nhập lớn hơn 0 và tối đa 150,000 m²." }));
             return;
         }
         if (!marketInfo.isClosed) {
@@ -629,7 +695,7 @@ const MarketWizard = ({ onCancel, onComplete }) => {
                                 </div>
                                 <div className={styles.formGroup}>
                                     <label htmlFor="market-size">{t('marketFloorPlan.wizard.total_area')}</label>
-                                    <input id="market-size" className={styles.formInput} type="number" min="0"
+                                    <input id="market-size" className={styles.formInput} type="number" min="1" max="150000"
                                         value={marketInfo.size}
                                         onChange={e => handleMarketSizeChange(e.target.value)}
                                         placeholder="Vd: 10000" />
@@ -1026,7 +1092,7 @@ const MarketWizard = ({ onCancel, onComplete }) => {
                         )}
                         {step === 2 && (
                             <>
-                                <button className={styles.secondaryBtn} style={{flex:1}} onClick={() => setStep(1)}>{'← ' + t('marketFloorPlan.wizard.back')}</button>
+                                <button className={styles.secondaryBtn} style={{flex:1}} onClick={() => { setAreas([]); setStep(1); }}>{'← ' + t('marketFloorPlan.wizard.back')}</button>
                                 <button className={styles.successBtn} style={{flex:2}} onClick={handleSave} disabled={loading || areas.length === 0}>
                                     {loading ? '⏳ ' + t('marketFloorPlan.wizard.saving') : '✅ ' + t('marketFloorPlan.wizard.finish_save')}
                                 </button>
@@ -1067,42 +1133,47 @@ const MarketWizard = ({ onCancel, onComplete }) => {
                         */}
                     </div>
 
-                    <div style={{ flex: 1, overflow: 'auto', position: 'relative', backgroundColor: '#f1f5f9' }}>
+                    <div ref={containerRef} style={{ flex: 1, overflow: 'auto', position: 'relative', backgroundColor: '#f1f5f9', cursor: isPanning ? 'grabbing' : 'grab' }}>
                         {/* Zoom Controls */}
                         <div style={{ position: 'sticky', top: 16, left: 16, zIndex: 10, display: 'flex', gap: 8, background: 'white', padding: 8, borderRadius: 8, boxShadow: '0 2px 10px rgba(0,0,0,0.1)', width: 'fit-content' }}>
-                            <button onClick={() => setZoom(z => Math.max(0.2, z - 0.2))} style={{ width: 32, height: 32, borderRadius: 4, border: '1px solid #ccc', background: '#fff', cursor: 'pointer', fontWeight: 'bold' }}>-</button>
+                            <button onClick={() => setZoom(z => z <= 0.25 ? Math.max(0.05, z - 0.05) : z - 0.2)} style={{ width: 32, height: 32, borderRadius: 4, border: '1px solid #ccc', background: '#fff', cursor: 'pointer', fontWeight: 'bold' }}>-</button>
                             <span style={{ display: 'flex', alignItems: 'center', minWidth: 48, justifyContent: 'center', fontSize: 14, fontWeight: 'bold' }}>{Math.round(zoom * 100)}%</span>
-                            <button onClick={() => setZoom(z => Math.min(3, z + 0.2))} style={{ width: 32, height: 32, borderRadius: 4, border: '1px solid #ccc', background: '#fff', cursor: 'pointer', fontWeight: 'bold' }}>+</button>
+                            <button onClick={() => setZoom(z => Math.min(3, z < 0.2 ? z + 0.05 : z + 0.2))} style={{ width: 32, height: 32, borderRadius: 4, border: '1px solid #ccc', background: '#fff', cursor: 'pointer', fontWeight: 'bold' }}>+</button>
                             <button onClick={() => setZoom(1)} style={{ padding: '0 8px', borderRadius: 4, border: '1px solid #ccc', background: '#fff', cursor: 'pointer', fontSize: 12 }}>Reset</button>
                         </div>
+                        {/* Map Scale */}
+                        <div style={{ position: 'sticky', bottom: 16, right: 16, zIndex: 10, display: 'flex', float: 'right', background: 'rgba(255,255,255,0.9)', padding: '6px 12px', borderRadius: 8, boxShadow: '0 2px 10px rgba(0,0,0,0.1)', fontWeight: 'bold', fontSize: 13, border: '1px solid #cbd5e1' }}>
+                            {t('marketFloorPlan.wizard.map_scale', { defaultValue: 'Tỉ lệ bản đồ' })}: 1:{Math.round(126 / zoom)}
+                        </div>
                         <svg ref={svgRef} className={styles.svgArea} onClick={handleSvgClick}
+                            onMouseDown={handleSvgMouseDown}
                             onMouseMove={handleGlobalMouseMove}
                             onMouseUp={handleGlobalMouseUp}
                             onMouseLeave={handleGlobalMouseUp}
                             style={{ 
-                                width: 4000 * zoom, 
-                                height: 4000 * zoom,
-                                minWidth: 4000 * zoom, 
-                                minHeight: 4000 * zoom, 
+                                width: 20000 * zoom, 
+                                height: 20000 * zoom,
+                                minWidth: 20000 * zoom, 
+                                minHeight: 20000 * zoom, 
                                 backgroundColor: '#f1f5f9', 
                                 backgroundImage: 'radial-gradient(circle, #cbd5e1 1px, transparent 1px)', 
                                 backgroundSize: `${24 * zoom}px ${24 * zoom}px`,
                                 display: 'block'
                             }}
-                            viewBox="0 0 4000 4000"
+                            viewBox="0 0 20000 20000"
                             role="img" aria-label={t('marketFloorPlan.wizard.canvas_region')}>
 
                         {/* Market outline */}
                         {marketInfo.points.length > 0 && (
                             <path d={pointsToSvgPath(marketInfo.points, marketInfo.isClosed)}
                                 fill={marketInfo.isClosed ? 'rgba(59,130,246,.07)' : 'none'}
-                                stroke="#3b82f6" strokeWidth="2.5" strokeLinejoin="round" 
+                                stroke="#3b82f6" strokeWidth={Math.max(2.5, 2.5 / zoom)} strokeLinejoin="round" 
                                 onMouseDown={marketInfo.isClosed ? (e) => handleMouseDown('market', null, e, marketInfo.points) : undefined}
                                 style={{ cursor: marketInfo.isClosed && step === 1 ? 'move' : 'default', pointerEvents: 'auto' }}
                             />
                         )}
                         {step === 1 && !marketInfo.isClosed && marketInfo.points.map((p, i) => (
-                            <circle key={`m-pt-${i}`} cx={p[0]} cy={p[1]} r="5" fill="#3b82f6" stroke="#fff" strokeWidth="2" />
+                            <circle key={`m-pt-${i}`} cx={p[0]} cy={p[1]} r={Math.max(5, 5 / zoom)} fill="#3b82f6" stroke="#fff" strokeWidth={Math.max(2, 2 / zoom)} />
                         ))}
 
                         {/* Saved areas (memoized for performance) */}
@@ -1111,14 +1182,14 @@ const MarketWizard = ({ onCancel, onComplete }) => {
                                 <path d={pointsToSvgPath(a.points, true)}
                                     fill={selectedAreaIndex === i ? 'rgba(139,92,246,.18)' : 'rgba(5,150,105,.12)'}
                                     stroke={selectedAreaIndex === i ? '#8b5cf6' : '#059669'}
-                                    strokeWidth="2" strokeLinejoin="round" 
+                                    strokeWidth={Math.max(2, 2 / zoom)} strokeLinejoin="round" 
                                     onMouseDown={(e) => handleMouseDown('area', i, e, a.points)}
                                     style={{ cursor: step === 2 ? 'move' : 'default', pointerEvents: 'auto' }}
                                 />
                                 <text x={(a.minX + a.maxX) / 2} y={(a.minY + a.maxY) / 2}
                                     textAnchor="middle" dominantBaseline="middle"
                                     fill={selectedAreaIndex === i ? '#8b5cf6' : '#047857'}
-                                    fontSize="11" fontWeight="700"
+                                    fontSize={Math.max(14, 11 / zoom)} fontWeight="700"
                                     fontFamily="Inter, system-ui, sans-serif"
                                     style={{pointerEvents:'none'}}>
                                     {a.name}
@@ -1146,7 +1217,7 @@ const MarketWizard = ({ onCancel, onComplete }) => {
                                         {/* Skip text rendering if stall is too small to improve perf */}
                                         {(s.width > 15 && s.height > 15) && (
                                             <text x={a.minX + s.mapX + s.width / 2} y={a.minY + s.mapY + s.height / 2}
-                                                fontSize={Math.min(s.width, s.height) * 0.4} fill="#1e40af" textAnchor="middle"
+                                                fontSize={Math.max(Math.min(s.width, s.height) * 0.4, 10 / zoom)} fill="#1e40af" textAnchor="middle"
                                                 dominantBaseline="middle" fontWeight="600"
                                                 fontFamily="Inter, system-ui, sans-serif"
                                                 style={{pointerEvents:'none'}}>
@@ -1156,14 +1227,14 @@ const MarketWizard = ({ onCancel, onComplete }) => {
                                     </g>
                                 ))}
                                 {selectedAreaIndex === i && step === 2 && a.points.map((pt, vIndex) => (
-                                    <circle key={`v-${i}-${vIndex}`} cx={pt[0]} cy={pt[1]} r="7" 
-                                        fill="#fff" stroke="#8b5cf6" strokeWidth="2.5"
+                                    <circle key={`v-${i}-${vIndex}`} cx={pt[0]} cy={pt[1]} r={Math.max(7, 5 / zoom)} 
+                                        fill="#fff" stroke="#8b5cf6" strokeWidth={Math.max(2.5, 2 / zoom)}
                                         onMouseDown={(e) => handleMouseDown('area-vertex', { areaIndex: i, vertexIndex: vIndex }, e, { startX: pt[0], startY: pt[1] })}
                                         style={{ cursor: 'crosshair', pointerEvents: 'auto' }}
                                     />
                                 ))}
                             </g>
-                        )), [areas, selectedAreaIndex, step])}
+                        )), [areas, selectedAreaIndex, step, zoom])}
 
                         {/* Delete drawingArea completely */}
                     </svg>

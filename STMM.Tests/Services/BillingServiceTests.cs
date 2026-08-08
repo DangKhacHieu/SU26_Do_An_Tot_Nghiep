@@ -35,14 +35,15 @@ namespace STMM.Tests.Services
         private readonly Mock<IViolationRepository> _violationRepoMock;
         private readonly Mock<IRequestRepository> _requestRepoMock;
         private readonly Mock<INotificationService> _notificationServiceMock;
-        private readonly Mock<IValidator<ReceiveCashPaymentRequest>> _validatorMock;
         private readonly Mock<IEmailService> _emailServiceMock;
         private readonly Mock<IUserRepository> _userRepoMock;
         private readonly Mock<ISystemConfigRepository> _systemConfigRepoMock;
         private readonly Mock<IServiceRegistrationRepository> _serviceRegistrationRepoMock;
         private readonly Mock<IStallRepository> _stallRepoMock;
         private readonly Mock<IAuditLogRepository> _auditLogRepoMock;
+        private readonly Mock<IValidator<ReceiveCashPaymentRequest>> _validatorMock;
         private readonly Mock<IValidator<MeterReadingAdjustmentRequest>> _meterAdjustmentValidatorMock;
+        private readonly Mock<IValidator<CreateAdHocInvoiceRequest>> _createAdHocInvoiceValidatorMock;
         private readonly IMapper _mapper;
         private readonly BillingService _service;
 
@@ -57,14 +58,15 @@ namespace STMM.Tests.Services
             _violationRepoMock = new Mock<IViolationRepository>();
             _requestRepoMock = new Mock<IRequestRepository>();
             _notificationServiceMock = new Mock<INotificationService>();
-            _validatorMock = new Mock<IValidator<ReceiveCashPaymentRequest>>();
             _emailServiceMock = new Mock<IEmailService>();
             _userRepoMock = new Mock<IUserRepository>();
             _systemConfigRepoMock = new Mock<ISystemConfigRepository>();
             _serviceRegistrationRepoMock = new Mock<IServiceRegistrationRepository>();
             _stallRepoMock = new Mock<IStallRepository>();
             _auditLogRepoMock = new Mock<IAuditLogRepository>();
+            _validatorMock = new Mock<IValidator<ReceiveCashPaymentRequest>>();
             _meterAdjustmentValidatorMock = new Mock<IValidator<MeterReadingAdjustmentRequest>>();
+            _createAdHocInvoiceValidatorMock = new Mock<IValidator<CreateAdHocInvoiceRequest>>();
             _userRepoMock.Setup(repository => repository.GetUserByIdWithRoleAsync(
                     It.IsAny<int>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new User { UserId = 1, MarketId = 10 });
@@ -105,7 +107,7 @@ namespace STMM.Tests.Services
                 NullLogger<BillingService>.Instance,
                 _validatorMock.Object,
                 _meterAdjustmentValidatorMock.Object,
-                new Mock<FluentValidation.IValidator<STMM.Business.DTOs.Billing.CreateAdHocInvoiceRequest>>().Object);
+                _createAdHocInvoiceValidatorMock.Object);
         }
 
         [Fact]

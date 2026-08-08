@@ -10,6 +10,7 @@ import {
     createStall
 } from '../api/stallApi';
 import { getAreaById } from '../api/marketAreaApi';
+import { translateError } from '../../../../utils/errorTranslator';
 import StallForm from './StallForm';
 import PolygonDrawer from './PolygonDrawer';
 import styles from './StallLayoutEditor.module.css';
@@ -151,7 +152,7 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
             
             // Check if error is due to size validation limit
             if (error.response?.data?.message) {
-                setErrorMessage(t('marketFloorPlan.stallEditor.resize_error_msg', { msg: error.response.data.message }));
+                setErrorMessage(t('marketFloorPlan.stallEditor.resize_error_msg', { msg: translateError(error.response.data.message) }));
             } else {
                 setErrorMessage(t('marketFloorPlan.stallEditor.resize_error'));
             }
@@ -416,7 +417,13 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
                                         {getStatusText(stall.status)}
                                     </span>
                                 )}
-                                <div className={stall.svgPath ? styles.stallActionsPolygon : styles.stallActions}>
+                                <div 
+                                    className={stall.svgPath ? styles.stallActionsPolygon : styles.stallActions}
+                                    style={{ 
+                                        transform: (stall.svgPath ? 'translateX(-50%) ' : '') + `scale(${1/zoom})`, 
+                                        transformOrigin: stall.svgPath ? 'bottom center' : 'bottom right'
+                                    }}
+                                >
                                     {isEditMode ? (
                                         <>
                                             <button 
@@ -597,7 +604,7 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
                                     } else if (error.response?.data?.message) {
                                         errorMsg = error.response.data.message;
                                     }
-                                    setErrorMessage(t('marketFloorPlan.stallEditor.error') + ': ' + errorMsg);
+                                    setErrorMessage(t('marketFloorPlan.stallEditor.error') + ': ' + translateError(errorMsg));
                                 } finally {
                                     setLoading(false);
                                 }
@@ -618,7 +625,15 @@ const StallLayoutEditor = ({ areaId, areaName, isEditMode, zoom = 1, areaWidth, 
     const inlineContent = (
         <div style={{ position: 'relative', width: '100%', height: '100%' }}>
             {(isHovered || isSplitViewActive) && (
-                <div style={{ position: 'absolute', top: '12px', left: '12px', background: 'rgba(255, 255, 255, 0.95)', padding: '6px 12px', borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.2)', display: 'flex', gap: 16, alignItems: 'center', fontSize: 13, zIndex: 200, border: '1px solid var(--border-color)', width: 'max-content', backdropFilter: 'blur(4px)' }}>
+                <div style={{ 
+                    position: 'absolute', top: '12px', left: '12px', 
+                    background: 'rgba(255, 255, 255, 0.95)', padding: '6px 12px', borderRadius: 8, 
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.2)', display: 'flex', gap: 16, alignItems: 'center', 
+                    fontSize: 13, zIndex: 200, border: '1px solid var(--border-color)', width: 'max-content', 
+                    backdropFilter: 'blur(4px)',
+                    transform: `scale(${1/zoom})`,
+                    transformOrigin: 'top left'
+                }}>
                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--color-primary)' }}></div>
                       <span style={{ color: 'var(--text-secondary)' }}>{t('marketFloorPlan.stallEditor.area_label')}</span>

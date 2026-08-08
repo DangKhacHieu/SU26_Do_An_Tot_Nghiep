@@ -12,6 +12,6 @@ namespace STMM.Business.Interfaces
         Task<MarketDto> CreateMarketBulkAsync(CreateMarketBulkRequest request, int currentUserId);
         Task<bool> DeleteMarketAsync(int marketId);
         Task<bool> ChangeMarketStatusAsync(int marketId, string status);
-        Task<bool> DeactivateMarketAsync(int marketId, int managerId);
+        Task<DeactivateMarketResult> DeactivateMarketAsync(int marketId, int requestingUserId, System.Threading.CancellationToken ct = default);
     }
 }

@@ -47,7 +47,7 @@ namespace STMM.Business.Services
             var vendor = vendors.FirstOrDefault();
             if (vendor == null)
             {
-                throw new UnauthorizedAccessException("Vendor profile not found for this user.");
+                throw new UnauthorizedAccessException("ERR_VENDOR_PROFILE_NOT_FOUND_FOR_THIS_USER");
             }
             return vendor.VendorId;
         }
@@ -55,23 +55,23 @@ namespace STMM.Business.Services
         public async Task<PagedResult<RequestDto>> GetMyRequestsAsync(int vendorId, RequestQueryParams queryParams)
         {
             if (queryParams.PageNumber < 1)
-                throw new BadRequestException("Số trang không hợp lệ.");
+                throw new BadRequestException("ERR_SO_TRANG_KHONG_HOP_LE");
             
             if (queryParams.PageSize <= 0 || queryParams.PageSize > 100)
-                throw new BadRequestException("Kích thước trang phải từ 1 đến 100.");
+                throw new BadRequestException("ERR_KICH_THUOC_TRANG_PHAI_TU_1_DEN_100");
 
             if (!string.IsNullOrWhiteSpace(queryParams.RequestType))
             {
                 var validTypes = new[] { "FacilityIssue", "ViolationAppeal", "InvoiceDispute" };
                 if (!validTypes.Contains(queryParams.RequestType.Trim()))
-                    throw new BadRequestException("Loại yêu cầu không hợp lệ.");
+                    throw new BadRequestException("ERR_LOAI_YEU_CAU_KHONG_HOP_LE");
             }
 
             if (!string.IsNullOrWhiteSpace(queryParams.Status))
             {
                 var validStatuses = new[] { "Pending", "Approved", "Rejected", "Cancelled", "In_Progress", "Quoted" };
                 if (!validStatuses.Contains(queryParams.Status.Trim()))
-                    throw new BadRequestException("Trạng thái yêu cầu không hợp lệ.");
+                    throw new BadRequestException("ERR_TRANG_THAI_YEU_CAU_KHONG_HOP_LE");
             }
 
             var (items, totalCount) = await _requestRepository.GetRequestsPagedAsync(
@@ -98,12 +98,12 @@ namespace STMM.Business.Services
         public async Task<RequestDto> GetRequestDetailAsync(int vendorId, int requestId)
         {
             if (requestId <= 0)
-                throw new BadRequestException("ID yêu cầu không hợp lệ.");
+                throw new BadRequestException("ERR_ID_YEU_CAU_KHONG_HOP_LE");
 
             var request = await _requestRepository.GetRequestWithRelationsAsync(requestId);
             if (request == null || request.VendorId != vendorId)
             {
-                throw new NotFoundException("Không tìm thấy yêu cầu hoặc bạn không có quyền xem.");
+                throw new NotFoundException("ERR_KHONG_TIM_THAY_YEU_CAU_HOAC_BAN_KHONG_CO_QUYEN_XEM");
             }
 
             return _mapper.Map<RequestDto>(request);
@@ -112,48 +112,48 @@ namespace STMM.Business.Services
         public async Task<RequestDto> CreateRequestAsync(int vendorId, CreateRequestDto dto)
         {
             if (dto.StallId <= 0)
-                throw new BadRequestException("Vui lòng chọn sạp (StallId) hợp lệ.");
+                throw new BadRequestException("ERR_VUI_LONG_CHON_SAP_STALLID_HOP_LE");
 
             if (string.IsNullOrWhiteSpace(dto.Title))
-                throw new BadRequestException("Tiêu đề không được để trống.");
+                throw new BadRequestException("ERR_TIEU_DE_KHONG_DUOC_DE_TRONG");
 
             if (string.IsNullOrWhiteSpace(dto.Description))
-                throw new BadRequestException("Mô tả không được để trống.");
+                throw new BadRequestException("ERR_MO_TA_KHONG_DUOC_DE_TRONG");
 
             var validTypes = new[] { "FacilityIssue", "ViolationAppeal", "InvoiceDispute" };
             if (!validTypes.Contains(dto.RequestType))
-                throw new BadRequestException("Loại yêu cầu không hợp lệ.");
+                throw new BadRequestException("ERR_LOAI_YEU_CAU_KHONG_HOP_LE");
 
             if (dto.RequestType == "ViolationAppeal")
             {
                 if (!dto.ViolationId.HasValue)
-                    throw new BadRequestException("Vui lòng cung cấp ID biên bản vi phạm cần kháng nghị.");
+                    throw new BadRequestException("ERR_VUI_LONG_CUNG_CAP_ID_BIEN_BAN_VI_PHAM_CAN_KHANG_NG");
             }
             else
             {
                 if (dto.ViolationId.HasValue)
-                    throw new BadRequestException("Loại yêu cầu này không được phép đính kèm biên bản vi phạm.");
+                    throw new BadRequestException("ERR_LOAI_YEU_CAU_NAY_KHONG_DUOC_PHEP_DINH_KEM_BIEN_BAN");
             }
 
             if (dto.RequestType == "InvoiceDispute")
             {
                 if (!dto.InvoiceId.HasValue)
-                    throw new BadRequestException("Vui lòng cung cấp ID hóa đơn cần khiếu nại.");
+                    throw new BadRequestException("ERR_VUI_LONG_CUNG_CAP_ID_HOA_DON_CAN_KHIEU_NAI");
                 
                 var invoice = await _invoiceRepository.GetInvoiceDetailsWithRelationsAsync(dto.InvoiceId.Value);
                 if (invoice == null || invoice.Contract?.VendorId != vendorId)
-                    throw new BadRequestException("Không tìm thấy hóa đơn cần khiếu nại hoặc hóa đơn không thuộc về sạp của bạn.");
+                    throw new BadRequestException("ERR_KHONG_TIM_THAY_HOA_DON_CAN_KHIEU_NAI_HOAC_HOA_DON");
 
                 if (invoice.Status == "Adjusted")
                 {
-                    throw new BadRequestException("Hóa đơn này đã được điều chỉnh, không thể khiếu nại lại.");
+                    throw new BadRequestException("ERR_HOA_DON_NAY_DA_DUOC_DIEU_CHINH_KHONG_THE_KHIEU_NAI");
                 }
 
                 // Check if there is already an active dispute for this invoice
                 var existingDispute = await _requestRepository.FindAsync(r => r.InvoiceId == dto.InvoiceId.Value && (r.Status == "Pending" || r.Status == "Reviewing"));
                 if (existingDispute.Any())
                 {
-                    throw new BadRequestException("Hóa đơn này đang được khiếu nại, không thể khiếu nại lại.");
+                    throw new BadRequestException("ERR_HOA_DON_NAY_DANG_DUOC_KHIEU_NAI_KHONG_THE_KHIEU_NA");
                 }
 
                 // KHÔNG đổi trạng thái invoice thành Disputed nữa theo requirement mới
@@ -161,14 +161,14 @@ namespace STMM.Business.Services
             else
             {
                 if (dto.InvoiceId.HasValue)
-                    throw new BadRequestException("Loại yêu cầu này không được phép đính kèm hóa đơn.");
+                    throw new BadRequestException("ERR_LOAI_YEU_CAU_NAY_KHONG_DUOC_PHEP_DINH_KEM_HOA_DON");
             }
 
             // Verify if vendor has a contract for this stall
             var contracts = await _contractRepository.FindAsync(c => c.VendorId == vendorId && c.StallId == dto.StallId && c.IsDeleted != true && c.Status != "Terminated" && c.Status != "TerminatedEarly" && c.Status != "Expired");
             if (!contracts.Any())
             {
-                throw new BadRequestException("Bạn không có quyền tạo yêu cầu cho sạp này vì không có hợp đồng hợp lệ.");
+                throw new BadRequestException("ERR_BAN_KHONG_CO_QUYEN_TAO_YEU_CAU_CHO_SAP_NAY_VI_KHON");
             }
 
             if (dto.RequestType == "ViolationAppeal" && dto.ViolationId.HasValue)
@@ -177,7 +177,7 @@ namespace STMM.Business.Services
 
                 if (vendorViolation == null)
                 {
-                    throw new BadRequestException("Không tìm thấy biên bản vi phạm hoặc bạn không có quyền kháng nghị biên bản này.");
+                    throw new BadRequestException("ERR_KHONG_TIM_THAY_BIEN_BAN_VI_PHAM_HOAC_BAN_KHONG_CO");
                 }
 
                 if (vendorViolation.Status == "Appealed" || 
@@ -185,7 +185,7 @@ namespace STMM.Business.Services
                     vendorViolation.Status == "Rejected" || 
                     vendorViolation.Status == "Finalized")
                 {
-                    throw new BadRequestException("Biên bản này đang trong quá trình xử lý kháng nghị hoặc đã có kết quả, không thể kháng nghị lại.");
+                    throw new BadRequestException("ERR_BIEN_BAN_NAY_DANG_TRONG_QUA_TRINH_XU_LY_KHANG_NGHI");
                 }
 
                 vendorViolation.Status = "Appealed";
@@ -218,17 +218,17 @@ namespace STMM.Business.Services
         public async Task<bool> CancelRequestAsync(int vendorId, int requestId)
         {
             if (requestId <= 0)
-                throw new BadRequestException("ID yêu cầu không hợp lệ.");
+                throw new BadRequestException("ERR_ID_YEU_CAU_KHONG_HOP_LE");
 
             var request = await _requestRepository.GetRequestWithRelationsAsync(requestId);
             if (request == null || request.VendorId != vendorId)
             {
-                throw new NotFoundException("Không tìm thấy yêu cầu hoặc bạn không có quyền hủy.");
+                throw new NotFoundException("ERR_KHONG_TIM_THAY_YEU_CAU_HOAC_BAN_KHONG_CO_QUYEN_HUY");
             }
 
             if (request.Status != "Pending")
             {
-                throw new BadRequestException("Chỉ có thể hủy những yêu cầu đang ở trạng thái Chờ Xử Lý (Pending).");
+                throw new BadRequestException("ERR_CHI_CO_THE_HUY_NHUNG_YEU_CAU_DANG_O_TRANG_THAI_CHO");
             }
 
             request.Status = "Cancelled";
@@ -266,27 +266,27 @@ namespace STMM.Business.Services
             var request = await _requestRepository.GetByIdAsync(requestId, ct);
             if (request == null || request.VendorId != vendorId)
             {
-                throw new NotFoundException($"Không tìm thấy yêu cầu sửa chữa ID {requestId}.");
+                throw new NotFoundException($"ERR_KHONG_TIM_THAY_YEU_CAU_SUA_CHUA_ID_REQUESTID|{requestId}");
             }
 
             if (request.RequestType != "FacilityIssue")
             {
-                throw new BadRequestException("Chỉ có thể phê duyệt báo giá cho các yêu cầu sửa chữa cơ sở vật chất.");
+                throw new BadRequestException("ERR_CHI_CO_THE_PHE_DUYET_BAO_GIA_CHO_CAC_YEU_CAU_SUA_C");
             }
 
             if (request.Status != "Quoted")
             {
-                throw new BadRequestException("Yêu cầu này không ở trạng thái chờ duyệt báo giá.");
+                throw new BadRequestException("ERR_YEU_CAU_NAY_KHONG_O_TRANG_THAI_CHO_DUYET_BAO_GIA");
             }
 
             if (request.PaidBy != "Vendor")
             {
-                throw new BadRequestException("Yêu cầu này không do tiểu thương chi trả nên không thể phê duyệt.");
+                throw new BadRequestException("ERR_YEU_CAU_NAY_KHONG_DO_TIEU_THUONG_CHI_TRA_NEN_KHONG");
             }
 
             if (request.IsQuoteApproved != null)
             {
-                throw new BadRequestException("Báo giá này đã được xử lý trước đó.");
+                throw new BadRequestException("ERR_BAO_GIA_NAY_DA_DUOC_XU_LY_TRUOC_DO");
             }
 
             request.IsQuoteApproved = decision.IsApproved;
