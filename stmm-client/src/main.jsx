@@ -5,9 +5,34 @@ import './i18n.js'
 import App from './App.jsx'
 import { refreshAccessToken } from './services/authSession'
 
-// Intercept native fetch to automatically append Authorization header if token exists
+import axios from 'axios'
+
+// Helper function to rewrite local URLs to production API URLs
+const rewriteUrlStr = (urlStr) => {
+  if (urlStr.startsWith(`${(import.meta.env.VITE_API_URL || 'http://localhost:5056/api').replace(/\/api$/, '')}`)) {
+    const envApiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5056/api';
+    const base = envApiUrl.replace(/\/$/, '');
+    if (urlStr.startsWith(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}`)) {
+      return urlStr.replace(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}`, base);
+    } else {
+      const hostBase = base.replace(/\/api$/, '');
+      return urlStr.replace(`${(import.meta.env.VITE_API_URL || 'http://localhost:5056/api').replace(/\/api$/, '')}`, hostBase);
+    }
+  }
+  return urlStr;
+};
+
+// 1. Intercept native fetch to automatically rewrite URLs and append Authorization
 const originalFetch = window.fetch;
-window.fetch = async (url, options = {}) => {
+window.fetch = async (input, options = {}) => {
+  let url = input;
+  if (typeof input === 'string') {
+    url = rewriteUrlStr(input);
+  } else if (input instanceof Request) {
+    const newUrl = rewriteUrlStr(input.url);
+    url = new Request(newUrl, input);
+  }
+
   const requestWithCurrentToken = () => {
     const headers = new Headers(options.headers || (url instanceof Request ? url.headers : undefined));
     const token = localStorage.getItem('accessToken');
@@ -28,6 +53,20 @@ window.fetch = async (url, options = {}) => {
     return response;
   }
 };
+
+// 2. Intercept Axios requests to automatically rewrite URLs and append Authorization
+axios.interceptors.request.use((config) => {
+  if (config.url && config.url.startsWith(`${(import.meta.env.VITE_API_URL || 'http://localhost:5056/api').replace(/\/api$/, '')}`)) {
+    config.url = rewriteUrlStr(config.url);
+  }
+  const token = localStorage.getItem('accessToken');
+  if (token && !config.headers.Authorization) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+}, (error) => {
+  return Promise.reject(error);
+});
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

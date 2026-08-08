@@ -82,8 +82,8 @@ export default function ViolationsPenalties() {
     const token = localStorage.getItem('accessToken');
     const headers = { 'Authorization': `Bearer ${token}` };
     Promise.all([
-      fetch(`http://localhost:5056/api/violations/all?userId=${userIdStr}`, { headers }).then(r => { if (r.status === 401) { localStorage.removeItem('accessToken'); window.location.href = '/login'; throw new Error('401'); } if (!r.ok) throw new Error(); return r.json(); }),
-      fetch('http://localhost:5056/api/violations/types/all', { headers }).then(r => { if (r.status === 401) { localStorage.removeItem('accessToken'); window.location.href = '/login'; throw new Error('401'); } if (!r.ok) throw new Error(); return r.json(); })
+      fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/violations/all?userId=${userIdStr}`, { headers }).then(r => { if (r.status === 401) { localStorage.removeItem('accessToken'); window.location.href = '/login'; throw new Error('401'); } if (!r.ok) throw new Error(); return r.json(); }),
+      fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/violations/types/all`, { headers }).then(r => { if (r.status === 401) { localStorage.removeItem('accessToken'); window.location.href = '/login'; throw new Error('401'); } if (!r.ok) throw new Error(); return r.json(); })
     ])
       .then(([viols, types]) => { setViolations(viols); setViolationTypes(types); setLoading(false); })
       .catch(() => {
@@ -137,7 +137,7 @@ export default function ViolationsPenalties() {
     }
     
     const isEdit = !!selectedItem;
-    const url = isEdit ? `http://localhost:5056/api/violations/types/${selectedItem.violationTypeId}` : 'http://localhost:5056/api/violations/types';
+    const url = isEdit ? `${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/violations/types/${selectedItem.violationTypeId}` : `${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/violations/types`;
     if (isMock) {
       if (isEdit) setViolationTypes(violationTypes.map(typeItem => typeItem.violationTypeId === selectedItem.violationTypeId ? { ...typeItem, ...typeForm } : typeItem));
       else setViolationTypes([...violationTypes, { violationTypeId: Math.floor(Math.random() * 100) + 10, ...typeForm }]);
@@ -168,7 +168,7 @@ export default function ViolationsPenalties() {
     } else {
       setModalError(null);
       const token = localStorage.getItem('accessToken');
-      fetch(`http://localhost:5056/api/violations/types/${selectedItem.violationTypeId}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } })
+      fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/violations/types/${selectedItem.violationTypeId}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } })
         .then(async r => { 
           if (!r.ok) {
             const errData = await r.json().catch(() => ({}));
@@ -203,7 +203,7 @@ export default function ViolationsPenalties() {
     } else {
       setModalError(null);
       const token = localStorage.getItem('accessToken');
-      fetch(`http://localhost:5056/api/violations/${violationId}/invoice`, {
+      fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/violations/${violationId}/invoice`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -37,7 +37,7 @@ export default function VendorProfile() {
         const fetchProfile = async () => {
             try {
                 const token = localStorage.getItem('accessToken');
-                const res = await axios.get('http://localhost:5056/api/users/profile/me', {
+                const res = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/users/profile/me`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 
@@ -68,7 +68,7 @@ export default function VendorProfile() {
         setSaving(true);
         try {
             const token = localStorage.getItem('accessToken');
-            await axios.put('http://localhost:5056/api/users/profile/me', {
+            await axios.put(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/users/profile/me`, {
                 name: fullName,
                 phone: phone,
                 businessName: businessName
@@ -101,7 +101,7 @@ export default function VendorProfile() {
 
         try {
             const token = localStorage.getItem('accessToken');
-            const res = await axios.post('http://localhost:5056/api/users/change-password', {
+            const res = await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/users/change-password`, {
                 currentPassword: currentPassword,
                 newPassword: newPassword,
                 confirmPassword: confirmPassword

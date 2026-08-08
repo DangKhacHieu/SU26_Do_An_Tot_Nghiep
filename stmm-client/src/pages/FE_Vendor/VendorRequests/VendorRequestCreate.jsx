@@ -56,14 +56,14 @@ export default function VendorRequestCreate({ onBack, onSuccess, prefillViolatio
                 const config = { headers: { Authorization: `Bearer ${token}` } };
                 
                 // Fetch stalls
-                const stallsRes = await axios.get('http://localhost:5056/api/vendor/services/my-stalls', config);
+                const stallsRes = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/vendor/services/my-stalls`, config);
                 setStalls(stallsRes.data || []);
                 if (stallsRes.data && stallsRes.data.length > 0 && !prefillStallId) {
                     setStallId(stallsRes.data[0].stallId);
                 }
 
                 // Fetch violations
-                const violationsRes = await axios.get('http://localhost:5056/api/vendor/violations?pageSize=100', config);
+                const violationsRes = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/vendor/violations?pageSize=100`, config);
                 if (violationsRes.data?.items) {
                     setViolations(violationsRes.data.items);
                     if (!prefillViolationId && violationsRes.data.items.length > 0) {
@@ -72,7 +72,7 @@ export default function VendorRequestCreate({ onBack, onSuccess, prefillViolatio
                 }
 
                 // Fetch invoices
-                const invoicesRes = await axios.get('http://localhost:5056/api/vendor/invoices?pageSize=100', config);
+                const invoicesRes = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/vendor/invoices?pageSize=100`, config);
                 const invoicesData = invoicesRes.data?.items || (Array.isArray(invoicesRes.data) ? invoicesRes.data : []);
                 setInvoices(invoicesData);
                 if (invoicesData.length > 0 && !prefillInvoiceId) {
@@ -108,7 +108,7 @@ export default function VendorRequestCreate({ onBack, onSuccess, prefillViolatio
                 invoiceId: (requestType === 'InvoiceDispute' && invoiceId) ? parseInt(invoiceId) : null
             };
 
-            await axios.post('http://localhost:5056/api/vendor/requests', payload, {
+            await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/vendor/requests`, payload, {
                 headers: { Authorization: `Bearer ${token}` }
             });
 

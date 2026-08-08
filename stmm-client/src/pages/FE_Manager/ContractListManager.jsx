@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from "react";
 import "./ContractListManager.css";
 
-const API_BASE = "http://localhost:5056/api/manager/contracts";
+const API_BASE = `${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/manager/contracts`;
 
 const getAuthHeaders = () => ({
   "Authorization": `Bearer ${localStorage.getItem('accessToken') || localStorage.getItem('token')}`

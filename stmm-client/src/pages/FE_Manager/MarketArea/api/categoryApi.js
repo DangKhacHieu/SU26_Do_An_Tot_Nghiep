@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:5056/api/manager/business-categories';
+const API_BASE_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/manager/business-categories`;
 
 export const getAllCategories = async () => {
     const token = localStorage.getItem('accessToken') || localStorage.getItem('token');

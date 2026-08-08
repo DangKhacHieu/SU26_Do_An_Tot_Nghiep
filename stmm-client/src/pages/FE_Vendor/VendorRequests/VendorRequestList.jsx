@@ -28,7 +28,7 @@ export default function VendorRequestList({ vendorId, searchTerm, setSearchTerm,
         try {
             setLoading(true);
             const token = localStorage.getItem('accessToken');
-            const response = await axios.get('http://localhost:5056/api/vendor/requests', {
+            const response = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/vendor/requests`, {
                 headers: { Authorization: `Bearer ${token}` },
                 params: {
                     searchTerm: _searchTerm,

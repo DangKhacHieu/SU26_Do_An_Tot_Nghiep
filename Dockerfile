@@ -8,8 +8,9 @@ COPY STMM.API/STMM.API.csproj STMM.API/
 COPY STMM.Business/STMM.Business.csproj STMM.Business/
 COPY STMM.DataAccess/STMM.DataAccess.csproj STMM.DataAccess/
 
-# Restore NuGet packages
-RUN dotnet restore STMM.sln
+# Restore NuGet packages for the API and its dependencies
+RUN dotnet restore STMM.API/STMM.API.csproj
+
 
 # Copy the rest of the source code
 COPY STMM.API/ STMM.API/
@@ -27,5 +28,7 @@ COPY --from=build-env /app/out .
 # Expose port 8080 (ASP.NET Core default port in Docker containers)
 EXPOSE 8080
 ENV ASPNETCORE_URLS=http://+:8080
+ENV DOTNET_HOSTBUILDER__RELOADCONFIGONCHANGE=false
+ENV DOTNET_USE_POLLING_FILE_WATCHER=true
 
 ENTRYPOINT ["dotnet", "STMM.API.dll"]

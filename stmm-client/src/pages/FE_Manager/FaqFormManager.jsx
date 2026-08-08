@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import './FaqFormManager.css';
 
-const API_BASE = "http://localhost:5056/api/manager/faqs";
+const API_BASE = `${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/manager/faqs`;
 
 export default function FaqFormManager({ faqId, navigate, addToast }) {
   const { t } = useTranslation();

@@ -2,8 +2,8 @@ import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useRef } from 'react';
 import './DashboardAdminSystem.css';
 
-const API_BASE       = "http://localhost:5056/api/admin/users";
-const AUDIT_LOGS_API = "http://localhost:5056/api/admin/audit-logs";
+const API_BASE       = `${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/admin/users`;
+const AUDIT_LOGS_API = `${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/admin/audit-logs`;
 
 /* ── SVG icon helpers ── */
 const IcoUsers = () => (
