@@ -169,7 +169,7 @@ export default function Header({
             onClick={handleLogoClick}
             style={{ cursor: "pointer" }}
           >
-            Smart Market
+            MHMS
           </div>
 
           <nav className="header-nav">

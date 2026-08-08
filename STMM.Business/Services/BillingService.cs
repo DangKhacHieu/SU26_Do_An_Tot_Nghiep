@@ -1052,8 +1052,8 @@ namespace STMM.Business.Services
                 var emailBody = $@"
 <div style=""font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;"">
     <div style=""text-align: center; margin-bottom: 20px;"">
-        <h2 style=""color: #d32f2f; margin: 0;"">Smart Market (STMM)</h2>
-        <p style=""color: #666; font-size: 14px; margin: 5px 0 0 0;"">Hệ thống quản lý chợ thông minh</p>
+        <h2 style=""color: #d32f2f; margin: 0;"">Market Hall Management System (MHMS)</h2>
+        <p style=""color: #666; font-size: 14px; margin: 5px 0 0 0;"">Market Hall Management System (MHMS)</p>
     </div>
     <div style=""background-color: #fff9c4; padding: 20px; border-radius: 6px; border-left: 4px solid #fbc02d; margin-bottom: 20px;"">
         <p style=""margin-top: 0; font-size: 16px;"">Kính gửi Ông/Bà: <strong>{stall.Name}</strong> (Tiểu thương sạp <strong>{stall.Code}</strong>),</p>

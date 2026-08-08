@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import authService from "../../../services/authService";
+import { translateError } from "../../../utils/translateError";
 import "./ForgotPasswordForm.css";
 
 export default function ForgotPasswordForm({ onBack, onGoToLogin }) {
@@ -113,8 +114,8 @@ export default function ForgotPasswordForm({ onBack, onGoToLogin }) {
       <section className="forgot-modern-card">
         <div className="forgot-modern-left">
           <button type="button" className="forgot-logo" onClick={onBack}>
-            <span className="forgot-logo-icon">S</span>
-            <span>STMM</span>
+            <span className="forgot-logo-icon">M</span>
+            <span>MHMS</span>
           </button>
 
           <div className="forgot-left-content">
@@ -192,7 +193,7 @@ export default function ForgotPasswordForm({ onBack, onGoToLogin }) {
                 </div>
               </div>
 
-              {error && <div className="forgot-message error">{t(error)}</div>}
+              {error && <div className="forgot-message error">{translateError(error, t)}</div>}
               {success && (
                 <div className="forgot-message success">{t(success)}</div>
               )}
@@ -278,7 +279,7 @@ export default function ForgotPasswordForm({ onBack, onGoToLogin }) {
                 </div>
               </div>
 
-              {error && <div className="forgot-message error">{t(error)}</div>}
+              {error && <div className="forgot-message error">{translateError(error, t)}</div>}
               {success && (
                 <div className="forgot-message success">{t(success)}</div>
               )}

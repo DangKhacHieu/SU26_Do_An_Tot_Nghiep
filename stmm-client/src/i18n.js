@@ -16,12 +16,15 @@ const resources = {
   }
 };
 
+const savedLang = localStorage.getItem('i18nextLng') || 'en';
+
 i18n
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
     resources,
-    fallbackLng: 'vi',
+    lng: savedLang,
+    fallbackLng: 'en',
     debug: false,
     interpolation: {
       escapeValue: false, // react already escapes values
@@ -34,7 +37,7 @@ i18n
 
 // Đồng bộ ngôn ngữ mặc định của Axios với ngôn ngữ của i18next
 axios.interceptors.request.use((config) => {
-  const lang = localStorage.getItem('i18nextLng') || 'vi';
+  const lang = localStorage.getItem('i18nextLng') || 'en';
   config.headers['Accept-Language'] = lang;
   return config;
 });
