@@ -98,8 +98,8 @@ export default function ContentDetailManager({ contentId, navigate, addToast }) 
             </span>
             <span className="badge-role-target" style={{ borderColor: roleColor, color: roleColor, backgroundColor: `${roleColor}0a` }}>
               {content.targetUserName 
-                ? t('contentdetailmanager.to_individual_contenttargetusername_targetrolelabelscontenttargetrole')
-                : `Đến: ${TARGET_ROLE_LABELS[content.targetRole] || content.targetRole || t('contentdetailmanager.every_object')}`}
+                ? t('contentdetailmanager.to_individual_user_role', { userName: content.targetUserName, roleName: TARGET_ROLE_LABELS[content.targetRole] || content.targetRole })
+                : t('contentdetailmanager.to_role', { roleName: TARGET_ROLE_LABELS[content.targetRole] || content.targetRole || t('contentdetailmanager.every_object') })}
             </span>
           </div>
           <h1>{content.title}</h1>

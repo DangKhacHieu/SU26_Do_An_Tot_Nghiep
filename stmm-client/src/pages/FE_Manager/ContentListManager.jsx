@@ -76,12 +76,12 @@ export default function ContentListManager({ navigate, addToast }) {
         headers: getAuthHeaders(),
       });
       if (res.ok) {
-        addToast(t('contentlistmanager.delete_post_success'), 'success');
+        addToast(t('contentlistmanager.postnotification_deleted_successfully'), 'success');
         setDeleteModalOpen(false);
         setTargetContent(null);
         fetchContents();
       } else {
-        addToast(t('contentlistmanager.server_error_delete_post'), 'error');
+        addToast(t('contentlistmanager.server_error_while_deleting'), 'error');
       }
     } catch {
       addToast(t('businesscategorylistmanager.connection_error_please_try'), 'error');

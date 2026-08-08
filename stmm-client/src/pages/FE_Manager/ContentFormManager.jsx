@@ -252,23 +252,25 @@ export default function ContentFormManager({ contentId, navigate, addToast }) {
             <div className="form-group">
               <label className="form-label required">{t('contentformmanager.content_type')}</label>
               <div className="radio-group">
-                <label className={`radio-label ${notiType === 'Article' ? 'checked' : ''}`}>
+                <label className={`radio-label ${notiType === 'Article' ? 'checked' : ''} ${isEdit ? 'disabled' : ''}`}>
                   <input
                     type="radio"
                     name="notiType"
                     value="Article"
                     checked={notiType === 'Article'}
                     onChange={() => handleNotiTypeChange('Article')}
+                    disabled={isEdit}
                   />
                   <span>{t('contentformmanager.articles_home_page')}</span>
                 </label>
-                <label className={`radio-label ${notiType === 'Announcement' ? 'checked' : ''}`}>
+                <label className={`radio-label ${notiType === 'Announcement' ? 'checked' : ''} ${isEdit ? 'disabled' : ''}`}>
                   <input
                     type="radio"
                     name="notiType"
                     value="Announcement"
                     checked={notiType === 'Announcement'}
                     onChange={() => handleNotiTypeChange('Announcement')}
+                    disabled={isEdit}
                   />
                   <span>{t('contentformmanager.notification_by_role')}</span>
                 </label>
@@ -288,6 +290,7 @@ export default function ContentFormManager({ contentId, navigate, addToast }) {
                   value={targetRole}
                   onChange={(e) => handleTargetRoleChange(e.target.value)}
                   required
+                  disabled={isEdit}
                 >
                   <option value="Staff">{t('contentformmanager.staff_stall_manager')}</option>
                   <option value="Accountant">{t('contentformmanager.accountant_accountant')}</option>
@@ -302,23 +305,25 @@ export default function ContentFormManager({ contentId, navigate, addToast }) {
               <div className="user-selection-section form-group full-width">
                 <label className="form-label required">{t('contentformmanager.form_of_notification')}</label>
                 <div className="send-type-options">
-                  <label className={`radio-label ${sendType === 'all' ? 'checked' : ''}`}>
+                  <label className={`radio-label ${sendType === 'all' ? 'checked' : ''} ${isEdit ? 'disabled' : ''}`}>
                     <input
                       type="radio"
                       name="sendType"
                       value="all"
                       checked={sendType === 'all'}
                       onChange={() => handleSendTypeChange('all')}
+                      disabled={isEdit}
                     />
                     <span>Gửi cho toàn bộ vai trò {targetRole}</span>
                   </label>
-                  <label className={`radio-label ${sendType === 'specific' ? 'checked' : ''}`}>
+                  <label className={`radio-label ${sendType === 'specific' ? 'checked' : ''} ${isEdit ? 'disabled' : ''}`}>
                     <input
                       type="radio"
                       name="sendType"
                       value="specific"
                       checked={sendType === 'specific'}
                       onChange={() => handleSendTypeChange('specific')}
+                      disabled={isEdit}
                     />
                     <span>{t('contentformmanager.select_specific_recipients')}</span>
                   </label>
@@ -342,6 +347,7 @@ export default function ContentFormManager({ contentId, navigate, addToast }) {
                           value={selectedUserId || ''}
                           onChange={(e) => setSelectedUserId(Number(e.target.value))}
                           required
+                          disabled={isEdit}
                         >
                           <option value="">{t('contentformmanager.select_a_recipient')}</option>
                           {users.map(u => (
