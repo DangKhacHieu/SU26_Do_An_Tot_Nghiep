@@ -90,7 +90,8 @@ namespace STMM.DataAccess.Repositories
                         t.TaskType == "UtilityReading" &&
                         t.Status != "Completed" &&
                         t.Status != "Cancelled" &&
-                        t.AreaId == m.Stall.AreaId))
+                        t.AreaId == m.Stall.AreaId &&
+                        (t.CreatedAt.HasValue && t.CreatedAt.Value.Year == effectiveDate.Year && t.CreatedAt.Value.Month == effectiveDate.Month)))
                 .AsNoTracking()
                 .FirstOrDefaultAsync(ct);
         }

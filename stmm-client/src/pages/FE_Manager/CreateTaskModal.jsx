@@ -250,18 +250,24 @@ export default function CreateTaskModal({
         createdDate.getMonth() === currentMonth && createdDate.getFullYear() === currentYear;
       const isCompletedInPeriod = completedDate && !Number.isNaN(completedDate.getTime()) &&
         completedDate.getMonth() === currentMonth && completedDate.getFullYear() === currentYear;
+      const isUncompleted = status !== 'Completed';
 
-      if (isCreatedInPeriod || isCompletedInPeriod) {
+      if (isUncompleted || isCreatedInPeriod || isCompletedInPeriod) {
+        const periodStr = createdDate && !Number.isNaN(createdDate.getTime())
+          ? `${String(createdDate.getMonth() + 1).padStart(2, '0')}/${createdDate.getFullYear()}`
+          : currentPeriodLabel;
+
         map.set(String(taskAreaId), {
           taskId: task.taskId || task.TaskId,
           assignedToName: task.assignedToName || task.AssignedToName || 'another staff member',
           status,
+          period: periodStr,
         });
       }
     });
 
     return map;
-  }, [utilityReadingTasks]);
+  }, [utilityReadingTasks, currentPeriodLabel]);
 
   useEffect(() => {
     if (linkSource !== 'request' || requestsLoadedRef.current) return;
@@ -689,9 +695,10 @@ export default function CreateTaskModal({
                         label = `🔒 ${name} (${desc}) - ${t('createtaskmodal.no_active_stalls', { defaultValue: 'Chưa có sạp kinh doanh' })}`;
                       } else if (assignment) {
                         isDisabled = true;
+                        const periodLabel = assignment.period || currentPeriodLabel;
                         label = `🔒 ${name} (${desc}) - ${assignment.status === 'Completed'
-                            ? t('createtaskmodal.already_completed', { period: currentPeriodLabel, defaultValue: `Đã hoàn thành đo chỉ số tháng ${currentPeriodLabel}` })
-                            : t('createtaskmodal.already_assigned_to', { staffName: assignment.assignedToName, period: currentPeriodLabel, defaultValue: `Đã giao task tháng ${currentPeriodLabel} (${assignment.assignedToName})` })}`;
+                            ? t('createtaskmodal.already_completed', { period: periodLabel, defaultValue: `Đã hoàn thành đo chỉ số tháng ${periodLabel}` })
+                            : t('createtaskmodal.already_assigned_to', { staffName: assignment.assignedToName, period: periodLabel, defaultValue: `Đã giao task tháng ${periodLabel} (${assignment.assignedToName})` })}`;
                       } else {
                         label = `🟢 ${name} (${desc}) - ${t('createtaskmodal.ready_to_assign', { defaultValue: 'Sẵn sàng giao task' })}`;
                       }
