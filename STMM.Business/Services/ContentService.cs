@@ -79,9 +79,30 @@ namespace STMM.Business.Services
                         ? new DateTime(n.CreatedAt.Value.Year, n.CreatedAt.Value.Month, n.CreatedAt.Value.Day, n.CreatedAt.Value.Hour, n.CreatedAt.Value.Minute, 0)
                         : DateTime.MinValue
                 })
-                .Select(g => {
-                    var first = g.First();
-                    if (g.Count() > 1)
+                .ToList();
+
+            var dtos = new List<ContentDto>();
+            foreach (var g in groupedResults)
+            {
+                var first = g.First();
+                var dto = _mapper.Map<ContentDto>(first);
+
+                if (dto.NotiType == "Article")
+                {
+                    dto.TargetRole = "Public";
+                    dto.TargetUserId = null;
+                    dto.TargetUserName = null;
+                }
+                else
+                {
+                    var broadcastRole = g.FirstOrDefault(x => !string.IsNullOrEmpty(x.TargetRole))?.TargetRole;
+                    if (!string.IsNullOrEmpty(broadcastRole))
+                    {
+                        dto.TargetRole = broadcastRole;
+                        dto.TargetUserId = null;
+                        dto.TargetUserName = null;
+                    }
+                    else
                     {
                         var roles = g.Where(x => x.TargetUser != null && x.TargetUser.Role != null)
                                      .Select(x => x.TargetUser.Role.Name)
@@ -89,15 +110,19 @@ namespace STMM.Business.Services
                                      .ToList();
                         if (roles.Count == 1)
                         {
-                            first.TargetRole = roles[0];
-                            first.TargetUserId = null;
+                            dto.TargetRole = roles[0];
+                            if (g.Count() > 1)
+                            {
+                                dto.TargetUserId = null;
+                                dto.TargetUserName = null;
+                            }
                         }
                     }
-                    return first;
-                })
-                .ToList();
+                }
+                dtos.Add(dto);
+            }
 
-            return _mapper.Map<IEnumerable<ContentDto>>(groupedResults);
+            return dtos;
         }
 
         public async Task<ContentDto> GetContentByIdAsync(int id, int? currentUserId = null, CancellationToken ct = default)
@@ -132,17 +157,37 @@ namespace STMM.Business.Services
                 Math.Abs((n.CreatedAt.Value - content.CreatedAt.Value).TotalSeconds) <= 10,
                 ct);
 
-            if (groupNotifications.Count() > 1)
+            if (dto.NotiType == "Article")
             {
-                var roles = groupNotifications
-                    .Where(x => x.TargetUser != null && x.TargetUser.Role != null)
-                    .Select(x => x.TargetUser.Role.Name)
-                    .Distinct()
-                    .ToList();
-                if (roles.Count == 1)
+                dto.TargetRole = "Public";
+                dto.TargetUserId = null;
+                dto.TargetUserName = null;
+            }
+            else
+            {
+                var broadcastRole = groupNotifications.FirstOrDefault(x => !string.IsNullOrEmpty(x.TargetRole))?.TargetRole;
+                if (!string.IsNullOrEmpty(broadcastRole))
                 {
-                    dto.TargetRole = roles[0];
+                    dto.TargetRole = broadcastRole;
                     dto.TargetUserId = null;
+                    dto.TargetUserName = null;
+                }
+                else
+                {
+                    var roles = groupNotifications
+                        .Where(x => x.TargetUser != null && x.TargetUser.Role != null)
+                        .Select(x => x.TargetUser.Role.Name)
+                        .Distinct()
+                        .ToList();
+                    if (roles.Count == 1)
+                    {
+                        dto.TargetRole = roles[0];
+                        if (groupNotifications.Count() > 1)
+                        {
+                            dto.TargetUserId = null;
+                            dto.TargetUserName = null;
+                        }
+                    }
                 }
             }
 
@@ -179,6 +224,8 @@ namespace STMM.Business.Services
                 targetUserIds.Add(request.TargetUserId.Value);
             }
 
+            bool isBroadcast = (request.TargetUserIds == null || request.TargetUserIds.Count == 0) && !(request.TargetUserId is > 0);
+
             if (targetUserIds.Count == 0 && !string.IsNullOrWhiteSpace(request.TargetRole))
             {
                 var recipients = await _userRepository.GetActiveUsersByRoleAsync(request.TargetRole, ct);
@@ -204,7 +251,7 @@ namespace STMM.Business.Services
                     Title = request.Title,
                     Content = request.Content,
                     NotiType = request.NotiType ?? "Announcement",
-                    TargetRole = null,
+                    TargetRole = isBroadcast ? request.TargetRole : null,
                     TargetUserId = userId,
                     CreatedByUserId = creatorId,
                     IsRead = false,

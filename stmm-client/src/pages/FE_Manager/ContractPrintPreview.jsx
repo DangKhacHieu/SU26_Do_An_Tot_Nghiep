@@ -60,7 +60,7 @@ export default function ContractPrintPreview({ contract, onClose, onSaveSuccess,
       if (res.ok) {
         const updatedContract = await res.json();
         if (addToast) {
-          addToast("Lưu thông tin Bên B thành công!", "success");
+          addToast(t('contractprintpreview.saved_party_bs_information'), "success");
         }
         if (onSaveSuccess) {
           onSaveSuccess(updatedContract);
@@ -73,7 +73,7 @@ export default function ContractPrintPreview({ contract, onClose, onSaveSuccess,
       }
     } catch (err) {
       if (addToast) {
-        addToast("Lỗi kết nối máy chủ.", "error");
+        addToast(t('contractdetailmanager.server_connection_error'), "error");
       }
     } finally {
       setSaving(false);

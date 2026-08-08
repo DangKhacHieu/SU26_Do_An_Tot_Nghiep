@@ -43,6 +43,7 @@ const IconFilter = () => (
   </svg>
 );
 
+
 export default function IssueListManager({ userId, baseUrl, navigate, addToast }) {
   const { t, i18n } = useTranslation();
 
@@ -81,7 +82,7 @@ export default function IssueListManager({ userId, baseUrl, navigate, addToast }
       setIssues(items);
       setTotalCount(data.totalCount || 0);
     } catch {
-      addToast('Không thể tải danh sách sự cố hạ tầng.', 'error');
+      addToast(t('issuelistmanager.unable_to_load_issues'), 'error');
     } finally {
       setLoading(false);
     }
@@ -155,54 +156,56 @@ export default function IssueListManager({ userId, baseUrl, navigate, addToast }
       ) : (
         <>
           <div className="il-table-wrap">
-            <table className="il-table">
-              <thead>
-                <tr>
-                  <th>{t('issuelistmanager.trouble_code')}</th>
-                  <th>{t('issuelistmanager.stall')}</th>
-                  <th>{t('issuelistmanager.incident_title')}</th>
-                  <th>{t('issuelistmanager.annunciator')}</th>
-                  <th>{t('issuelistmanager.report_date')}</th>
-                  <th>{t('issuelistmanager.status')}</th>
-                  <th style={{textAlign:'center'}}>{t('issuelistmanager.view')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {issues.map(item => {
-                  const sm = STATUS_META[item.status] || { labelKey: '', labelFallback: item.status, cls: 'status-pending' };
-                  return (
-                    <tr key={item.issueId} className="il-row" onClick={() => navigate('issue-details', item.issueId)}>
-                      <td>
-                        <span className="il-id-badge">#ISSUE-{item.issueId}</span>
-                      </td>
-                      <td>
-                        <span className="il-stall-badge">{item.stallCode || t('issuelistmanager.stall_id_itemstallid')}</span>
-                      </td>
-                      <td>
-                        <div className="il-title-cell">
-                          <span className="il-title-text">{item.title}</span>
-                          <span className="il-desc-snip">{item.description}</span>
-                        </div>
-                      </td>
-                      <td>
-                        <span className="il-reporter">{item.createdByName || `Staff #${item.createdByUserId}`}</span>
-                      </td>
-                      <td>
-                        <span className="il-date">{formatDate(item.createdAt)}</span>
-                      </td>
-                      <td>
-                        <span className={`il-status-badge ${sm.cls}`}>{sm.labelKey ? t('issuelistmanager.' + sm.labelKey) : sm.labelFallback}</span>
-                      </td>
-                      <td style={{textAlign:'center'}} onClick={e => e.stopPropagation()}>
-                        <button className="il-view-btn" onClick={() => navigate('issue-details', item.issueId)} title={t('issuelistmanager.view_incident_details')}>
-                          <IconEye />
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+            <div className="table-responsive">
+              <table className="il-table">
+                <thead>
+                  <tr>
+                    <th>{t('issuelistmanager.trouble_code')}</th>
+                    <th>{t('issuelistmanager.stall')}</th>
+                    <th>{t('issuelistmanager.incident_title')}</th>
+                    <th>{t('issuelistmanager.annunciator')}</th>
+                    <th>{t('issuelistmanager.report_date')}</th>
+                    <th>{t('issuelistmanager.status')}</th>
+                    <th className="actions-header">{t('issuelistmanager.view')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {issues.map(item => {
+                    const sm = STATUS_META[item.status] || { labelKey: '', labelFallback: item.status, cls: 'status-pending' };
+                    return (
+                      <tr key={item.issueId} className="il-row" onClick={() => navigate('issue-details', item.issueId)}>
+                        <td>
+                          <span className="il-id-badge">#ISSUE-{item.issueId}</span>
+                        </td>
+                        <td>
+                          <span className="il-stall-badge">{item.stallCode || t('issuelistmanager.stall_id_itemstallid')}</span>
+                        </td>
+                        <td>
+                          <div className="il-title-cell">
+                            <span className="il-title-text">{item.title}</span>
+                            <span className="il-desc-snip">{item.description}</span>
+                          </div>
+                        </td>
+                        <td>
+                          <span className="il-reporter">{item.createdByName || `Staff #${item.createdByUserId}`}</span>
+                        </td>
+                        <td>
+                          <span className="il-date">{formatDate(item.createdAt)}</span>
+                        </td>
+                        <td>
+                          <span className={`il-status-badge ${sm.cls}`}>{sm.labelKey ? t('issuelistmanager.' + sm.labelKey) : sm.labelFallback}</span>
+                        </td>
+                        <td className="actions-cell" onClick={e => e.stopPropagation()}>
+                          <button className="btn-view-detail" onClick={() => navigate('issue-details', item.issueId)}>
+                            {t('issuelistmanager.view_incident_details')}<IconEye />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
 
           {/* ── Pagination ── */}

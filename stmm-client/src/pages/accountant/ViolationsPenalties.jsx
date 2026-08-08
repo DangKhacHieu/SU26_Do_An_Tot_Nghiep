@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { translateBackendError } from '../../utils/backendErrorTranslator';
 import React, { useState, useEffect } from 'react';
 import {
   Plus, Edit3, Trash2, ShieldAlert, Search, DollarSign,
@@ -36,7 +37,7 @@ const formatDate = (d) => {
 };
 
 export default function ViolationsPenalties() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const [activeTab, setActiveTab] = useState('violations');
   const [violations, setViolations] = useState([]);
@@ -149,13 +150,13 @@ export default function ViolationsPenalties() {
         .then(async r => { 
           if (!r.ok) {
             const errData = await r.json().catch(() => ({}));
-            throw new Error(errData.detail || errData.title || t('violationspenalties.unable_to_update_violation'));
+            throw new Error(errData.message || errData.detail || errData.title || t('violationspenalties.unable_to_update_violation'));
           } 
           showNotification('success', t('violationspenalties.updated_successfully')); 
           setActiveModal(null); 
           loadAllData(); 
         })
-        .catch(e => setModalError(e.message));
+        .catch(e => setModalError(translateBackendError(e.message, i18n.language)));
     }
   };
 
@@ -171,13 +172,13 @@ export default function ViolationsPenalties() {
         .then(async r => { 
           if (!r.ok) {
             const errData = await r.json().catch(() => ({}));
-            throw new Error(errData.detail || errData.title || t('violationspenalties.the_deletion_operation_failed'));
+            throw new Error(errData.message || errData.detail || errData.title || t('violationspenalties.the_deletion_operation_failed'));
           } 
           showNotification('success', t('violationspenalties.deleted_successfully')); 
           setActiveModal(null); 
           loadAllData(); 
         })
-        .catch(e => setModalError(e.message));
+        .catch(e => setModalError(translateBackendError(e.message, i18n.language)));
     }
   };
 
@@ -357,7 +358,7 @@ export default function ViolationsPenalties() {
                   {filteredViolations.length > itemsPerPage && (
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, padding: '16px' }}>
                       <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-                        Hiển thị {((violationsPage - 1) * itemsPerPage) + 1} - {Math.min(violationsPage * itemsPerPage, filteredViolations.length)} trong tổng số {t('violationspenalties.reports_count', { count: filteredViolations.length })}
+                        {t('violationspenalties.show_paginated_violations', { start: ((violationsPage - 1) * itemsPerPage) + 1, end: Math.min(violationsPage * itemsPerPage, filteredViolations.length), total: filteredViolations.length })}
                       </span>
                       <div style={{ display: 'flex', gap: 6 }}>
                         <button 

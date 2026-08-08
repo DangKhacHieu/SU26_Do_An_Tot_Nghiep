@@ -43,10 +43,10 @@ export default function ContentFormManager({ contentId, navigate, addToast }) {
         const data = await res.json();
         setUsers(data);
       } else {
-        addToast('Không thể tải danh sách người dùng cho vai trò này.', 'error');
+        addToast(t('contentformmanager.unable_to_load_user'), 'error');
       }
     } catch {
-      addToast('Lỗi kết nối khi tải danh sách người dùng.', 'error');
+      addToast(t('contentformmanager.connection_error_when_loading'), 'error');
     } finally {
       setLoadingUsers(false);
     }
@@ -124,11 +124,11 @@ export default function ContentFormManager({ contentId, navigate, addToast }) {
           setSendType('all');
         }
       } else {
-        addToast('Không thể tải thông tin bài viết.', 'error');
+        addToast(t('contentformmanager.unable_to_load_article'), 'error');
         navigate('content');
       }
     } catch {
-      addToast('Lỗi kết nối khi tải bài viết.', 'error');
+      addToast(t('contentformmanager.connection_error_when_downloading'), 'error');
       navigate('content');
     } finally {
       setLoading(false);
@@ -139,23 +139,23 @@ export default function ContentFormManager({ contentId, navigate, addToast }) {
     e.preventDefault();
 
     if (!title.trim()) {
-      addToast('Tiêu đề không được để trống.', 'error');
+      addToast(t('contentformmanager.the_title_cannot_be'), 'error');
       return;
     }
     if (!content.trim()) {
-      addToast('Nội dung không được để trống.', 'error');
+      addToast(t('contentformmanager.content_cannot_be_empty'), 'error');
       return;
     }
 
     if (notiType === 'Announcement' && sendType === 'specific') {
       if (isEdit) {
         if (!selectedUserId) {
-          addToast('Vui lòng chọn một người nhận.', 'error');
+          addToast(t('contentformmanager.please_select_a_recipient'), 'error');
           return;
         }
       } else {
         if (selectedUserIds.length === 0) {
-          addToast('Vui lòng chọn ít nhất một người nhận.', 'error');
+          addToast(t('contentformmanager.please_select_at_least'), 'error');
           return;
         }
       }
@@ -207,7 +207,7 @@ export default function ContentFormManager({ contentId, navigate, addToast }) {
         addToast(err.detail || t('contentformmanager.error_sending_data_to'), 'error');
       }
     } catch {
-      addToast('Lỗi kết nối. Vui lòng kiểm tra lại mạng.', 'error');
+      addToast(t('contentformmanager.connection_error_please_check'), 'error');
     } finally {
       setSubmitting(false);
     }
@@ -252,23 +252,25 @@ export default function ContentFormManager({ contentId, navigate, addToast }) {
             <div className="form-group">
               <label className="form-label required">{t('contentformmanager.content_type')}</label>
               <div className="radio-group">
-                <label className={`radio-label ${notiType === 'Article' ? 'checked' : ''}`}>
+                <label className={`radio-label ${notiType === 'Article' ? 'checked' : ''} ${isEdit ? 'disabled' : ''}`}>
                   <input
                     type="radio"
                     name="notiType"
                     value="Article"
                     checked={notiType === 'Article'}
                     onChange={() => handleNotiTypeChange('Article')}
+                    disabled={isEdit}
                   />
                   <span>{t('contentformmanager.articles_home_page')}</span>
                 </label>
-                <label className={`radio-label ${notiType === 'Announcement' ? 'checked' : ''}`}>
+                <label className={`radio-label ${notiType === 'Announcement' ? 'checked' : ''} ${isEdit ? 'disabled' : ''}`}>
                   <input
                     type="radio"
                     name="notiType"
                     value="Announcement"
                     checked={notiType === 'Announcement'}
                     onChange={() => handleNotiTypeChange('Announcement')}
+                    disabled={isEdit}
                   />
                   <span>{t('contentformmanager.notification_by_role')}</span>
                 </label>
@@ -288,6 +290,7 @@ export default function ContentFormManager({ contentId, navigate, addToast }) {
                   value={targetRole}
                   onChange={(e) => handleTargetRoleChange(e.target.value)}
                   required
+                  disabled={isEdit}
                 >
                   <option value="Staff">{t('contentformmanager.staff_stall_manager')}</option>
                   <option value="Accountant">{t('contentformmanager.accountant_accountant')}</option>
@@ -302,23 +305,25 @@ export default function ContentFormManager({ contentId, navigate, addToast }) {
               <div className="user-selection-section form-group full-width">
                 <label className="form-label required">{t('contentformmanager.form_of_notification')}</label>
                 <div className="send-type-options">
-                  <label className={`radio-label ${sendType === 'all' ? 'checked' : ''}`}>
+                  <label className={`radio-label ${sendType === 'all' ? 'checked' : ''} ${isEdit ? 'disabled' : ''}`}>
                     <input
                       type="radio"
                       name="sendType"
                       value="all"
                       checked={sendType === 'all'}
                       onChange={() => handleSendTypeChange('all')}
+                      disabled={isEdit}
                     />
                     <span>Gửi cho toàn bộ vai trò {targetRole}</span>
                   </label>
-                  <label className={`radio-label ${sendType === 'specific' ? 'checked' : ''}`}>
+                  <label className={`radio-label ${sendType === 'specific' ? 'checked' : ''} ${isEdit ? 'disabled' : ''}`}>
                     <input
                       type="radio"
                       name="sendType"
                       value="specific"
                       checked={sendType === 'specific'}
                       onChange={() => handleSendTypeChange('specific')}
+                      disabled={isEdit}
                     />
                     <span>{t('contentformmanager.select_specific_recipients')}</span>
                   </label>
@@ -342,6 +347,7 @@ export default function ContentFormManager({ contentId, navigate, addToast }) {
                           value={selectedUserId || ''}
                           onChange={(e) => setSelectedUserId(Number(e.target.value))}
                           required
+                          disabled={isEdit}
                         >
                           <option value="">{t('contentformmanager.select_a_recipient')}</option>
                           {users.map(u => (

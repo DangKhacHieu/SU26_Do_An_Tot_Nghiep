@@ -64,7 +64,7 @@ export default function UserListManager({ navigate, addToast }) {
         if (statusFilter) data = data.filter(u => u.status === statusFilter);
         setUsers(data);
       } else throw new Error();
-    } catch { addToast('Không thể tải danh sách tài khoản.', 'error'); }
+    } catch { addToast(t('userlistmanager.unable_to_load_accounts'), 'error'); }
     finally { setLoading(false); }
   };
 
@@ -74,7 +74,7 @@ export default function UserListManager({ navigate, addToast }) {
 
     // Business rule: cannot lock a Manager account
     if (targetUser.roleName?.toLowerCase() === 'manager' && targetUser.status !== 'Locked') {
-      addToast('Không thể khóa tài khoản Manager.', 'error');
+      addToast(t('userlistmanager.unable_to_lock_manager'), 'error');
       return;
     }
 
@@ -87,14 +87,14 @@ export default function UserListManager({ navigate, addToast }) {
         body: JSON.stringify({ status: newStatus }),
       });
       if (res.ok) {
-        addToast(`${newStatus === 'Active' ? t('userlistmanager.unlock') : t('userlistmanager.lock')} tài khoản thành công!`, 'success');
+        addToast(t('userlistmanager.action_account_success', { action: newStatus === 'Active' ? t('userlistmanager.unlock') : t('userlistmanager.lock') }), 'success');
         closeModal();
         fetchUsers();
       } else {
         const err = await res.json().catch(() => ({}));
         addToast(err.detail || t('userlistmanager.error_updating_status'), 'error');
       }
-    } catch { addToast('Lỗi kết nối. Vui lòng thử lại.', 'error'); }
+    } catch { addToast(t('businesscategorylistmanager.connection_error_please_try'), 'error'); }
     finally { setActionLoading(false); }
   };
 
@@ -104,7 +104,7 @@ export default function UserListManager({ navigate, addToast }) {
 
     // Business rule: cannot delete an Admin account
     if (targetUser.roleName?.toLowerCase() === 'admin') {
-      addToast('Không thể xóa tài khoản Admin hệ thống.', 'error');
+      addToast(t('userlistmanager.cannot_delete_the_system'), 'error');
       return;
     }
 
@@ -112,14 +112,14 @@ export default function UserListManager({ navigate, addToast }) {
     try {
       const res = await fetch(`${API_BASE}/${targetUser.userId}`, { method: 'DELETE' });
       if (res.ok) {
-        addToast('Xóa tài khoản thành công!', 'success');
+        addToast(t('userlistmanager.account_deleted_successfully'), 'success');
         closeModal();
         fetchUsers();
       } else {
         const err = await res.json().catch(() => ({}));
         addToast(err.detail || t('userlistmanager.server_error_when_deleting'), 'error');
       }
-    } catch { addToast('Lỗi kết nối. Vui lòng thử lại.', 'error'); }
+    } catch { addToast(t('businesscategorylistmanager.connection_error_please_try'), 'error'); }
     finally { setActionLoading(false); }
   };
 

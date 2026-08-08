@@ -23,6 +23,7 @@ const IconReset = () => (
     <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
   </svg>
 );
+const IconEye = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>;
 
 export default function ViolationListManager({ baseUrl, navigate, addToast }) {
   const { t } = useTranslation();
@@ -59,7 +60,7 @@ export default function ViolationListManager({ baseUrl, navigate, addToast }) {
       setViolations(data.items || []);
       setTotalCount(data.totalCount || 0);
     } catch {
-      addToast('Không thể tải danh sách vi phạm.', 'error');
+      addToast(t('violationlistmanager.unable_to_load_violation'), 'error');
     } finally {
       setLoading(false);
     }
@@ -181,10 +182,11 @@ export default function ViolationListManager({ baseUrl, navigate, addToast }) {
                       </td>
                       <td style={{ textAlign: 'right' }}>
                         <button
-                          className="vl-action-btn"
+                          className="btn-view-detail"
                           onClick={() => navigate('violation-details', v.violationId)}
                         >
-                          {t('violationlistmanager.detail')}</button>
+                          {t('violationlistmanager.detail')}<IconEye />
+                        </button>
                       </td>
                     </tr>
                   );

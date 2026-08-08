@@ -31,7 +31,7 @@ export default function ContentDetailManager({ contentId, navigate, addToast }) 
     if (contentId) {
       loadContent();
     } else {
-      addToast('Không tìm thấy mã bài viết.', 'error');
+      addToast(t('contentdetailmanager.post_id_not_found'), 'error');
       navigate('content');
     }
   }, [contentId]);
@@ -42,11 +42,11 @@ export default function ContentDetailManager({ contentId, navigate, addToast }) 
       if (res.ok) {
         setContent(await res.json());
       } else {
-        addToast('Không thể tải chi tiết bài viết.', 'error');
+        addToast(t('contentdetailmanager.unable_to_load_post_details'), 'error');
         navigate('content');
       }
     } catch {
-      addToast('Lỗi kết nối khi tải bài viết.', 'error');
+      addToast(t('contentformmanager.connection_error_when_downloading'), 'error');
       navigate('content');
     } finally {
       setLoading(false);
@@ -98,8 +98,8 @@ export default function ContentDetailManager({ contentId, navigate, addToast }) 
             </span>
             <span className="badge-role-target" style={{ borderColor: roleColor, color: roleColor, backgroundColor: `${roleColor}0a` }}>
               {content.targetUserName 
-                ? t('contentdetailmanager.to_individual_contenttargetusername_targetrolelabelscontenttargetrole')
-                : `Đến: ${TARGET_ROLE_LABELS[content.targetRole] || content.targetRole || t('contentdetailmanager.every_object')}`}
+                ? t('contentdetailmanager.to_individual_user_role', { userName: content.targetUserName, roleName: TARGET_ROLE_LABELS[content.targetRole] || content.targetRole })
+                : t('contentdetailmanager.to_role', { roleName: TARGET_ROLE_LABELS[content.targetRole] || content.targetRole || t('contentdetailmanager.every_object') })}
             </span>
           </div>
           <h1>{content.title}</h1>
