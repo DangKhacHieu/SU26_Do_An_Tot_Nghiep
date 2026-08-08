@@ -187,7 +187,14 @@ namespace STMM.Business.Services
             {
                 if (ex.InnerException?.Message.Contains("business_categories_code_key") == true || ex.InnerException?.Message.Contains("duplicate key") == true)
                 {
-                    throw new InvalidOperationException($"Mã code '{codeUpper}' đã tồn tại trong hệ thống. Vui lòng chọn mã code khác.");
+                    if (targetMarketId.HasValue)
+                    {
+                        throw new InvalidOperationException($"Mã code '{codeUpper}' đã tồn tại trong chợ này. Vui lòng chọn mã code khác.");
+                    }
+                    else
+                    {
+                        throw new InvalidOperationException($"Mã code '{codeUpper}' đã tồn tại trong danh mục mặc định của hệ thống. Vui lòng chọn mã code khác.");
+                    }
                 }
                 throw new InvalidOperationException($"Lỗi khi lưu danh mục ngành hàng: {ex.InnerException?.Message ?? ex.Message}");
             }
