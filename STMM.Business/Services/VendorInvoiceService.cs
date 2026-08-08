@@ -23,13 +23,13 @@ namespace STMM.Business.Services
         {
             // Business Validations
             if (stallId.HasValue && stallId.Value <= 0)
-                throw new BadRequestException("ID sạp không hợp lệ.");
+                throw new BadRequestException("ERR_ID_SAP_KHONG_HOP_LE");
 
             if (month.HasValue && (month.Value < 1 || month.Value > 12))
-                throw new BadRequestException("Tháng phải nằm trong khoảng từ 1 đến 12.");
+                throw new BadRequestException("ERR_THANG_PHAI_NAM_TRONG_KHOANG_TU_1_DEN_12");
 
             if (year.HasValue && (year.Value < 2000 || year.Value > System.DateTime.Now.Year + 1))
-                throw new BadRequestException($"Năm không hợp lệ. Vui lòng nhập từ năm 2000 đến {System.DateTime.Now.Year + 1}.");
+                throw new BadRequestException($"ERR_NAM_KHONG_HOP_LE_VUI_LONG_NHAP_TU_NAM_2000_DEN_SYS|{System.DateTime.Now.Year + 1}");
 
             if (pageNumber <= 0) pageNumber = 1;
             if (pageSize <= 0 || pageSize > 100) pageSize = 10;

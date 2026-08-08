@@ -71,11 +71,11 @@ namespace STMM.Business.Services
         public async Task<IEnumerable<StallDto>> GetAllStallsByAreaIdAsync(int areaId, int? currentUserId = null)
         {
             if (areaId <= 0)
-                throw new BadRequestException("ID Khu vực không hợp lệ.");
+                throw new BadRequestException("ERR_ID_KHU_VUC_KHONG_HOP_LE");
 
             var area = await _areaRepository.GetByIdAsync(areaId);
             if (area == null)
-                throw new NotFoundException("Khu vực không tồn tại hoặc đã bị xóa.");
+                throw new NotFoundException("ERR_KHU_VUC_KHONG_TON_TAI_HOAC_DA_BI_XOA");
 
             if (currentUserId.HasValue)
             {
@@ -135,7 +135,7 @@ namespace STMM.Business.Services
         public async Task<StallDto?> GetStallByIdAsync(int id)
         {
             if (id <= 0)
-                throw new BadRequestException("ID Sạp không hợp lệ.");
+                throw new BadRequestException("ERR_ID_SAP_KHONG_HOP_LE");
 
             var stall = await _stallRepository.Query()
                 .Include(s => s.Area)
@@ -148,7 +148,7 @@ namespace STMM.Business.Services
 
             if (stall == null)
             {
-                throw new NotFoundException("Sạp không tồn tại hoặc đã bị xóa.");
+                throw new NotFoundException("ERR_SAP_KHONG_TON_TAI_HOAC_DA_BI_XOA");
             }
 
             var dto = _mapper.Map<StallDto>(stall);
@@ -215,7 +215,7 @@ namespace STMM.Business.Services
             if (stall.Size.HasValue)
             {
                 if (stall.Size.Value <= 0)
-                    throw new BadRequestException("Diện tích sạp phải lớn hơn 0 m².");
+                    throw new BadRequestException("ERR_DIEN_TICH_SAP_PHAI_LON_HON_0_M");
 
                 var area = await _areaRepository.GetByIdAsync(stall.AreaId);
                 if (area?.Size.HasValue == true)
@@ -226,7 +226,7 @@ namespace STMM.Business.Services
 
                     if (existingSize + stall.Size.Value > area.Size.Value)
                     {
-                        throw new BadRequestException($"Tổng diện tích các sạp ({(existingSize + stall.Size.Value):F2} m²) vượt quá diện tích Khu vực ({area.Size.Value:F2} m²).");
+                        throw new BadRequestException($"ERR_TONG_DIEN_TICH_CAC_SAP_EXISTINGSIZE_STALL_SIZE_VAL|{(existingSize + stall.Size.Value):F2}|{area.Size.Value:F2}");
                     }
                 }
             }
@@ -245,35 +245,33 @@ namespace STMM.Business.Services
         public async Task<StallDto> CreateStallAsync(CreateStallDto createStallDto)
         {
             if (createStallDto.AreaId <= 0)
-                throw new BadRequestException("ID Khu vực không hợp lệ.");
+                throw new BadRequestException("ERR_ID_KHU_VUC_KHONG_HOP_LE");
 
             var area = await _areaRepository.Query().Include(a => a.Market).FirstOrDefaultAsync(a => a.AreaId == createStallDto.AreaId && a.IsDeleted != true);
             if (area == null)
-                throw new NotFoundException("Khu vực không tồn tại hoặc đã bị xóa.");
+                throw new NotFoundException("ERR_KHU_VUC_KHONG_TON_TAI_HOAC_DA_BI_XOA");
+
+            if (area.Market == null || area.Market.IsDeleted == true)
+                throw new NotFoundException("ERR_CHO_CUA_KHU_VUC_NAY_KHONG_TON_TAI");
+
+            if (area.Market.Status != "Active")
+                throw new BadRequestException($"ERR_KHONG_THE_THEM_SAP_VAO_KHU_VUC_THUOC_CHO_DANG_O_TR|{area.Market.Status}");
 
             if (!string.IsNullOrWhiteSpace(createStallDto.Code))
             {
-                var isDuplicateCode = await _stallRepository.Query().AnyAsync(s => s.Code == createStallDto.Code && s.IsDeleted != true);
+                var isDuplicateCode = await _stallRepository.Query().AnyAsync(s => s.Code == createStallDto.Code && s.Area.MarketId == area.MarketId && s.IsDeleted != true);
                 if (isDuplicateCode)
-                    throw new BadRequestException("Mã sạp này đã tồn tại trong hệ thống. Vui lòng chọn mã khác.");
+                    throw new BadRequestException("ERR_MA_SAP_NAY_DA_TON_TAI_TRONG_CHO_VUI_LONG_CHON_MA_K");
             }
 
             var stall = _mapper.Map<Stall>(createStallDto);
             
             // If the Area has a category, the Stall MUST inherit it.
-            if (area.CategoryId.HasValue)
+            if (!area.CategoryId.HasValue || area.CategoryId.Value <= 0)
             {
-                stall.CategoryId = area.CategoryId.Value;
+                throw new BadRequestException("ERR_VUI_LONG_CHON_NGANH_HANG_CHO_KHU_VUC_TRUOC_KHI_THE");
             }
-            else
-            {
-                // Resolve Category Name to ID if Area doesn't have a category
-                var resolvedCategoryId = await ResolveCategoryAsync(createStallDto.CategoryId, createStallDto.CategoryName, area.MarketId);
-                if (resolvedCategoryId.HasValue)
-                {
-                    stall.CategoryId = resolvedCategoryId.Value;
-                }
-            }
+            stall.CategoryId = area.CategoryId.Value;
 
             await ValidateStallSizeAsync(stall);
 
@@ -337,32 +335,45 @@ namespace STMM.Business.Services
         public async Task<StallDto> UpdateStallAsync(int id, UpdateStallDto updateStallDto)
         {
             if (id <= 0)
-                throw new BadRequestException("ID Sạp không hợp lệ.");
+                throw new BadRequestException("ERR_ID_SAP_KHONG_HOP_LE");
 
             if (string.IsNullOrWhiteSpace(updateStallDto.Code))
-                throw new BadRequestException("Mã sạp không được để trống.");
+                throw new BadRequestException("ERR_MA_SAP_KHONG_DUOC_DE_TRONG");
 
-            var stall = await _stallRepository.Query().FirstOrDefaultAsync(s => s.StallId == id && s.IsDeleted != true);
+            var stall = await _stallRepository.Query()
+                .Include(s => s.Area)
+                    .ThenInclude(a => a.Market)
+                .FirstOrDefaultAsync(s => s.StallId == id && s.IsDeleted != true);
+
             if (stall == null)
             {
-                throw new NotFoundException("Sạp không tồn tại hoặc đã bị xóa.");
+                throw new NotFoundException("ERR_SAP_KHONG_TON_TAI_HOAC_DA_BI_XOA");
+            }
+
+            if (stall.Area?.Market == null || stall.Area.Market.IsDeleted == true)
+            {
+                throw new NotFoundException("ERR_CHO_CUA_SAP_NAY_KHONG_TON_TAI");
+            }
+
+            if (stall.Area.Market.Status != "Active")
+            {
+                throw new BadRequestException($"ERR_KHONG_THE_CHINH_SUA_SAP_THUOC_CHO_DANG_O_TRANG_THA|{stall.Area.Market.Status}");
             }
 
             if (!updateStallDto.Code.Equals(stall.Code, StringComparison.OrdinalIgnoreCase))
             {
-                var isDuplicateCode = await _stallRepository.Query().AnyAsync(s => s.Code == updateStallDto.Code && s.IsDeleted != true && s.StallId != id);
+                var isDuplicateCode = await _stallRepository.Query().AnyAsync(s => s.Code == updateStallDto.Code && s.Area.MarketId == stall.Area.MarketId && s.IsDeleted != true && s.StallId != id);
                 if (isDuplicateCode)
-                    throw new BadRequestException("Mã sạp này đã tồn tại trong hệ thống. Vui lòng chọn mã khác.");
+                    throw new BadRequestException("ERR_MA_SAP_NAY_DA_TON_TAI_TRONG_CHO_VUI_LONG_CHON_MA_K");
             }
 
             _mapper.Map(updateStallDto, stall);
             
-            // Resolve Category Name to ID
-            var resolvedCategoryId = await ResolveCategoryAsync(updateStallDto.CategoryId, updateStallDto.CategoryName);
-            if (resolvedCategoryId.HasValue)
+            if (!stall.Area.CategoryId.HasValue || stall.Area.CategoryId.Value <= 0)
             {
-                stall.CategoryId = resolvedCategoryId.Value;
+                throw new BadRequestException("ERR_KHU_VUC_CUA_SAP_NAY_CHUA_DUOC_CAU_HINH_NGANH_HANG");
             }
+            stall.CategoryId = stall.Area.CategoryId.Value;
 
             await ValidateStallSizeAsync(stall);
 
@@ -425,10 +436,24 @@ namespace STMM.Business.Services
 
         public async Task<StallDto> UpdateStallLocationAsync(int id, UpdateStallLocationDto locationDto)
         {
-            var stall = await _stallRepository.Query().FirstOrDefaultAsync(s => s.StallId == id && s.IsDeleted != true);
+            var stall = await _stallRepository.Query()
+                .Include(s => s.Area)
+                    .ThenInclude(a => a.Market)
+                .FirstOrDefaultAsync(s => s.StallId == id && s.IsDeleted != true);
+
             if (stall == null)
             {
-                throw new KeyNotFoundException($"Stall with id {id} not found.");
+                throw new KeyNotFoundException($"ERR_STALL_WITH_ID_ID_NOT_FOUND|{id}");
+            }
+
+            if (stall.Area?.Market == null || stall.Area.Market.IsDeleted == true)
+            {
+                throw new NotFoundException("ERR_CHO_CUA_SAP_NAY_KHONG_TON_TAI");
+            }
+
+            if (stall.Area.Market.Status != "Active")
+            {
+                throw new BadRequestException($"ERR_KHONG_THE_THAY_DOI_VI_TRI_SAP_THUOC_CHO_DANG_O_TRA|{stall.Area.Market.Status}");
             }
 
             if (locationDto.MapX.HasValue) stall.MapX = locationDto.MapX;
@@ -453,10 +478,10 @@ namespace STMM.Business.Services
         public async Task<StallDto> UpdateStallStatusAsync(int id, string status)
         {
             if (id <= 0)
-                throw new BadRequestException("ID Sạp không hợp lệ.");
+                throw new BadRequestException("ERR_ID_SAP_KHONG_HOP_LE");
 
             if (string.IsNullOrWhiteSpace(status))
-                throw new BadRequestException("Trạng thái không được để trống.");
+                throw new BadRequestException("ERR_TRANG_THAI_KHONG_DUOC_DE_TRONG");
 
             var validStatuses = new[] { "Available", "Rented", "Maintenance", "Reserved" };
             if (!validStatuses.Contains(status))
@@ -464,10 +489,23 @@ namespace STMM.Business.Services
                 throw new BadRequestException($"Trạng thái không hợp lệ. Trạng thái phải là một trong: {string.Join(", ", validStatuses)}.");
             }
 
-            var stall = await _stallRepository.Query().FirstOrDefaultAsync(s => s.StallId == id && s.IsDeleted != true);
+            var stall = await _stallRepository.Query()
+                .Include(s => s.Area)
+                    .ThenInclude(a => a.Market)
+                .FirstOrDefaultAsync(s => s.StallId == id && s.IsDeleted != true);
             if (stall == null)
             {
-                throw new NotFoundException("Sạp không tồn tại hoặc đã bị xóa.");
+                throw new NotFoundException("ERR_SAP_KHONG_TON_TAI_HOAC_DA_BI_XOA");
+            }
+
+            if (stall.Area?.Market == null || stall.Area.Market.IsDeleted == true)
+            {
+                throw new NotFoundException("ERR_CHO_CUA_SAP_NAY_KHONG_TON_TAI");
+            }
+
+            if (stall.Area.Market.Status != "Active")
+            {
+                throw new BadRequestException($"ERR_KHONG_THE_THAY_DOI_TRANG_THAI_SAP_THUOC_CHO_DANG_O|{stall.Area.Market.Status}");
             }
 
             // If there is an active contract, status MUST be Rented
@@ -476,7 +514,7 @@ namespace STMM.Business.Services
                 var hasActiveContract = await _contractRepository.Query().AnyAsync(c => c.StallId == id && c.Status == "Active");
                 if (hasActiveContract)
                 {
-                    throw new BadRequestException("Sạp đang có hợp đồng cho thuê hiệu lực, trạng thái bắt buộc phải là 'Rented'.");
+                    throw new BadRequestException("ERR_SAP_DANG_CO_HOP_DONG_CHO_THUE_HIEU_LUC_TRANG_THAI");
                 }
             }
 
@@ -490,20 +528,32 @@ namespace STMM.Business.Services
         public async Task<bool> DeactivateStallAsync(int id)
         {
             if (id <= 0)
-                throw new BadRequestException("ID Sạp không hợp lệ.");
+                throw new BadRequestException("ERR_ID_SAP_KHONG_HOP_LE");
 
             var stall = await _stallRepository.Query()
                 .Include(s => s.Contracts)
+                .Include(s => s.Area)
+                    .ThenInclude(a => a.Market)
                 .FirstOrDefaultAsync(s => s.StallId == id && s.IsDeleted != true);
             
             if (stall == null)
             {
-                throw new NotFoundException("Sạp không tồn tại hoặc đã bị xóa.");
+                throw new NotFoundException("ERR_SAP_KHONG_TON_TAI_HOAC_DA_BI_XOA");
+            }
+
+            if (stall.Area?.Market == null || stall.Area.Market.IsDeleted == true)
+            {
+                throw new NotFoundException("ERR_CHO_CUA_SAP_NAY_KHONG_TON_TAI");
+            }
+
+            if (stall.Area.Market.Status != "Active")
+            {
+                throw new BadRequestException($"ERR_KHONG_THE_XOA_SAP_THUOC_CHO_DANG_O_TRANG_THAI_STAL|{stall.Area.Market.Status}");
             }
 
             if (stall.Contracts.Any(c => c.Status == "Active"))
             {
-                throw new BadRequestException("Không thể xóa sạp vì sạp đang có hợp đồng hiệu lực (có người thuê).");
+                throw new BadRequestException("ERR_KHONG_THE_XOA_SAP_VI_SAP_DANG_CO_HOP_DONG_HIEU_LUC");
             }
 
             stall.IsDeleted = true;

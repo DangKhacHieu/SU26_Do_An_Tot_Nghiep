@@ -46,12 +46,7 @@ const MarketAreaForm = ({
 
   useEffect(() => {
     if (initialData) {
-      setFormData({
-        name: initialData.name || '',
-        description: initialData.description || '',
-        categoryName: initialData.categoryName || '',
-        size: initialData.size || '',
-        width: (() => {
+        const calcW = (() => {
           const valMaxX = initialData.maxX ?? initialData.MaxX;
           const valMinX = initialData.minX ?? initialData.MinX;
           if (valMaxX != null && valMinX != null) return valMaxX - valMinX;
@@ -63,8 +58,9 @@ const MarketAreaForm = ({
               }
           }
           return 200;
-        })(),
-        height: (() => {
+        })();
+
+        const calcH = (() => {
           const valMaxY = initialData.maxY ?? initialData.MaxY;
           const valMinY = initialData.minY ?? initialData.MinY;
           if (valMaxY != null && valMinY != null) return valMaxY - valMinY;
@@ -76,7 +72,15 @@ const MarketAreaForm = ({
               }
           }
           return 150;
-        })(),
+        })();
+
+      setFormData({
+        name: initialData.name || '',
+        description: initialData.description || '',
+        categoryName: initialData.categoryName || '',
+        size: initialData.size || Math.round((calcW * calcH) / 900 * 100) / 100,
+        width: calcW,
+        height: calcH,
         svgPath: initialData.svgPath || '',
         minX: initialData.minX ?? initialData.MinX,
         minY: initialData.minY ?? initialData.MinY
@@ -86,7 +90,7 @@ const MarketAreaForm = ({
         name: '',
         description: '',
         categoryName: '',
-        size: '',
+        size: Math.round((200 * 150) / 900 * 100) / 100, // Default 33.33 m2
         width: 200,
         height: 150,
         svgPath: '',
@@ -176,14 +180,19 @@ const MarketAreaForm = ({
   };
 
   const handleDrawComplete = (result) => {
+      if (!result || result.length === 0) {
+          setIsDrawing(false);
+          return;
+      }
+      const poly = result[0]; // PolygonDrawer returns an array of polygons
       setFormData(prev => ({
           ...prev,
-          svgPath: result.svgPath,
-          minX: result.minX,
-          minY: result.minY,
-          width: result.width,
-          height: result.height,
-          size: Math.round(result.areaM2 * 100) / 100
+          svgPath: poly.svgPath,
+          minX: poly.minX,
+          minY: poly.minY,
+          width: poly.width,
+          height: poly.height,
+          size: Math.round(poly.areaM2 * 100) / 100
       }));
       setIsDrawing(false);
   };

@@ -61,7 +61,7 @@ namespace STMM.Business.Services
         {
             if (request == null)
             {
-                throw new BadRequestException("Yêu cầu đăng nhập không được để trống");
+                throw new BadRequestException("ERR_YEU_CAU_DANG_NHAP_KHONG_DUOC_DE_TRONG");
             }
 
             var validationResult = await _loginValidator.ValidateAsync(request, ct);
@@ -74,22 +74,22 @@ namespace STMM.Business.Services
             var user = await _userRepository.GetUserByEmailAsync(request.Email, ct);
             if (user == null || user.IsDeleted == true)
             {
-                throw new BadRequestException("Email hoặc mật khẩu không chính xác");
+                throw new BadRequestException("ERR_EMAIL_HOAC_MAT_KHAU_KHONG_CHINH_XAC");
             }
 
             if (string.Equals(user.Status, "Inactive", StringComparison.OrdinalIgnoreCase))
             {
-                throw new BadRequestException("Tài khoản của bạn đang ngưng hoạt động (Inactive). Vui lòng liên hệ Ban Quản lý Chợ qua hotline 1900-8888 hoặc email support@stmm.com để được hỗ trợ.");
+                throw new BadRequestException("ERR_TAI_KHOAN_CUA_BAN_DANG_NGUNG_HOAT_DONG_INACTIVE_VU");
             }
 
             if (string.Equals(user.Status, "Unverified", StringComparison.OrdinalIgnoreCase))
             {
-                throw new BadRequestException("Tài khoản chưa được xác thực email. Vui lòng xác thực trước khi đăng nhập.");
+                throw new BadRequestException("ERR_TAI_KHOAN_CHUA_DUOC_XAC_THUC_EMAIL_VUI_LONG_XAC_TH");
             }
 
             if (string.Equals(user.Status, "Suspended", StringComparison.OrdinalIgnoreCase) || string.Equals(user.Status, "Locked", StringComparison.OrdinalIgnoreCase))
             {
-                throw new BadRequestException("Tài khoản đã bị khóa hoặc tạm dừng. Vui lòng liên hệ Ban Quản lý Chợ để được hỗ trợ.");
+                throw new BadRequestException("ERR_TAI_KHOAN_DA_BI_KHOA_HOAC_TAM_DUNG_VUI_LONG_LIEN_H");
             }
 
             // Verify password using BCrypt with plain-text fallback for local/seeded accounts
@@ -112,7 +112,7 @@ namespace STMM.Business.Services
 
             if (!isPasswordCorrect)
             {
-                throw new BadRequestException("Email hoặc mật khẩu không chính xác");
+                throw new BadRequestException("ERR_EMAIL_HOAC_MAT_KHAU_KHONG_CHINH_XAC");
             }
 
             var accessToken = GenerateAccessToken(user);
@@ -158,19 +158,19 @@ namespace STMM.Business.Services
             var existingUser = await _userRepository.GetUserByEmailAsync(request.Email, ct);
             if (existingUser != null)
             {
-                throw new BadRequestException("Email đã được sử dụng");
+                throw new BadRequestException("ERR_EMAIL_DA_DUOC_SU_DUNG");
             }
 
             var existingPhone = (await _userRepository.FindAsync(u => u.Phone == request.Phone, ct)).FirstOrDefault();
             if (existingPhone != null)
             {
-                throw new BadRequestException("Số điện thoại đã được sử dụng");
+                throw new BadRequestException("ERR_SO_DIEN_THOAI_DA_DUOC_SU_DUNG");
             }
 
             var existingCccd = (await _userRepository.FindAsync(u => u.Cccd == request.Cccd, ct)).FirstOrDefault();
             if (existingCccd != null)
             {
-                throw new BadRequestException("CCCD đã được sử dụng");
+                throw new BadRequestException("ERR_CCCD_DA_DUOC_SU_DUNG");
             }
 
             var otpCode = Random.Shared.Next(100000, 999999).ToString();
@@ -227,18 +227,18 @@ namespace STMM.Business.Services
             var cacheKey = $"pending-user:{email}";
             if (!_cache.TryGetValue(cacheKey, out PendingUserDto? pendingUser) || pendingUser == null)
             {
-                throw new BadRequestException("Mã xác thực đã hết hạn hoặc thông tin đăng ký không còn hiệu lực. Vui lòng đăng ký lại.");
+                throw new BadRequestException("ERR_MA_XAC_THUC_DA_HET_HAN_HOAC_THONG_TIN_DANG_KY_KHON");
             }
 
             if (pendingUser.OtpCode != code)
             {
-                throw new BadRequestException("Mã xác thực không chính xác");
+                throw new BadRequestException("ERR_MA_XAC_THUC_KHONG_CHINH_XAC");
             }
 
             if (pendingUser.OtpExpiredAt < DateTime.UtcNow)
             {
                 _cache.Remove(cacheKey);
-                throw new BadRequestException("Mã xác thực đã hết hạn. Vui lòng gửi lại mã mới.");
+                throw new BadRequestException("ERR_MA_XAC_THUC_DA_HET_HAN_VUI_LONG_GUI_LAI_MA_MOI");
             }
 
             // Check database again to prevent race condition/duplicate inserts
@@ -246,19 +246,19 @@ namespace STMM.Business.Services
             if (existingUser != null)
             {
                 _cache.Remove(cacheKey);
-                throw new BadRequestException("Email đã được đăng ký và xác thực bởi tài khoản khác.");
+                throw new BadRequestException("ERR_EMAIL_DA_DUOC_DANG_KY_VA_XAC_THUC_BOI_TAI_KHOAN_KH");
             }
 
             var existingPhone = (await _userRepository.FindAsync(u => u.Phone == pendingUser.Phone, ct)).FirstOrDefault();
             if (existingPhone != null)
             {
-                throw new BadRequestException("Số điện thoại đã được đăng ký bởi tài khoản khác.");
+                throw new BadRequestException("ERR_SO_DIEN_THOAI_DA_DUOC_DANG_KY_BOI_TAI_KHOAN_KHAC");
             }
 
             var existingCccd = (await _userRepository.FindAsync(u => u.Cccd == pendingUser.Cccd, ct)).FirstOrDefault();
             if (existingCccd != null)
             {
-                throw new BadRequestException("CCCD đã được đăng ký bởi tài khoản khác.");
+                throw new BadRequestException("ERR_CCCD_DA_DUOC_DANG_KY_BOI_TAI_KHOAN_KHAC");
             }
 
             var customerRole = await GetOrCreateCustomerRoleAsync(ct);
@@ -318,7 +318,7 @@ namespace STMM.Business.Services
             var cacheKey = $"pending-user:{email}";
             if (!_cache.TryGetValue(cacheKey, out PendingUserDto? pendingUser) || pendingUser == null)
             {
-                throw new BadRequestException("Phiên đăng ký không tồn tại hoặc đã hết hạn. Vui lòng thực hiện đăng ký lại.");
+                throw new BadRequestException("ERR_PHIEN_DANG_KY_KHONG_TON_TAI_HOAC_DA_HET_HAN_VUI_LO");
             }
 
             var otpCode = Random.Shared.Next(100000, 999999).ToString();
@@ -355,12 +355,12 @@ namespace STMM.Business.Services
             var user = await _userRepository.GetUserByEmailAsync(email, ct);
             if (user == null)
             {
-                throw new BadRequestException("Email không tồn tại trong hệ thống");
+                throw new BadRequestException("ERR_EMAIL_KHONG_TON_TAI_TRONG_HE_THONG");
             }
 
             if (user.Status == "Suspended" || user.Status == "Locked")
             {
-                throw new BadRequestException("Tài khoản đã bị khóa hoặc tạm dừng");
+                throw new BadRequestException("ERR_TAI_KHOAN_DA_BI_KHOA_HOAC_TAM_DUNG");
             }
 
             var otpCode = Random.Shared.Next(100000, 999999).ToString();
@@ -400,22 +400,22 @@ namespace STMM.Business.Services
             var user = await _userRepository.GetUserByEmailAsync(email, ct);
             if (user == null)
             {
-                throw new BadRequestException("Tài khoản không tồn tại");
+                throw new BadRequestException("ERR_TAI_KHOAN_KHONG_TON_TAI");
             }
 
             if (user.Status == "Suspended" || user.Status == "Locked")
             {
-                throw new BadRequestException("Tài khoản đã bị khóa hoặc tạm dừng");
+                throw new BadRequestException("ERR_TAI_KHOAN_DA_BI_KHOA_HOAC_TAM_DUNG");
             }
 
             if (user.OtpCode != code)
             {
-                throw new BadRequestException("Mã xác thực không chính xác");
+                throw new BadRequestException("ERR_MA_XAC_THUC_KHONG_CHINH_XAC");
             }
 
             if (user.OtpExpiredAt < DateTime.UtcNow)
             {
-                throw new BadRequestException("Mã xác thực đã hết hạn. Vui lòng yêu cầu mã mới.");
+                throw new BadRequestException("ERR_MA_XAC_THUC_DA_HET_HAN_VUI_LONG_YEU_CAU_MA_MOI");
             }
         }
 
@@ -427,22 +427,22 @@ namespace STMM.Business.Services
             var user = await _userRepository.GetUserByEmailAsync(email, ct);
             if (user == null)
             {
-                throw new BadRequestException("Tài khoản không tồn tại");
+                throw new BadRequestException("ERR_TAI_KHOAN_KHONG_TON_TAI");
             }
 
             if (user.Status == "Suspended" || user.Status == "Locked")
             {
-                throw new BadRequestException("Tài khoản đã bị khóa hoặc tạm dừng");
+                throw new BadRequestException("ERR_TAI_KHOAN_DA_BI_KHOA_HOAC_TAM_DUNG");
             }
 
             if (user.OtpCode != code)
             {
-                throw new BadRequestException("Mã xác thực không chính xác");
+                throw new BadRequestException("ERR_MA_XAC_THUC_KHONG_CHINH_XAC");
             }
 
             if (user.OtpExpiredAt < DateTime.UtcNow)
             {
-                throw new BadRequestException("Mã xác thực đã hết hạn. Vui lòng yêu cầu mã mới.");
+                throw new BadRequestException("ERR_MA_XAC_THUC_DA_HET_HAN_VUI_LONG_YEU_CAU_MA_MOI");
             }
 
             // Reset password
@@ -464,13 +464,13 @@ namespace STMM.Business.Services
 
                 if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
                 {
-                    throw new BadRequestException("Token không hợp lệ");
+                    throw new BadRequestException("ERR_TOKEN_KHONG_HOP_LE");
                 }
 
                 var user = await _userRepository.GetUserByIdWithRoleAsync(userId, ct);
                 if (user == null || user.Status == "Suspended" || user.Status == "Locked")
                 {
-                    throw new BadRequestException("Tài khoản không hợp lệ");
+                    throw new BadRequestException("ERR_TAI_KHOAN_KHONG_HOP_LE");
                 }
 
                 var newAccessToken = GenerateAccessToken(user);
@@ -500,7 +500,7 @@ namespace STMM.Business.Services
             }
             catch (Exception)
             {
-                throw new BadRequestException("Refresh token không hợp lệ");
+                throw new BadRequestException("ERR_REFRESH_TOKEN_KHONG_HOP_LE");
             }
         }
 
@@ -625,7 +625,7 @@ namespace STMM.Business.Services
         {
             if (string.IsNullOrWhiteSpace(request.IdToken))
             {
-                throw new BadRequestException("Token Google không hợp lệ");
+                throw new BadRequestException("ERR_TOKEN_GOOGLE_KHONG_HOP_LE");
             }
 
             GoogleTokenInfo? googleUser = null;
@@ -636,20 +636,20 @@ namespace STMM.Business.Services
                     var response = await httpClient.GetAsync($"https://oauth2.googleapis.com/tokeninfo?id_token={request.IdToken}", ct);
                     if (!response.IsSuccessStatusCode)
                     {
-                        throw new BadRequestException("Xác thực Token Google thất bại");
+                        throw new BadRequestException("ERR_XAC_THUC_TOKEN_GOOGLE_THAT_BAI");
                     }
 
                     googleUser = await response.Content.ReadFromJsonAsync<GoogleTokenInfo>(cancellationToken: ct);
                 }
                 catch (Exception ex) when (!(ex is BadRequestException))
                 {
-                    throw new BadRequestException("Không thể kết nối tới Google Auth API");
+                    throw new BadRequestException("ERR_KHONG_THE_KET_NOI_TOI_GOOGLE_AUTH_API");
                 }
             }
 
             if (googleUser == null || string.IsNullOrWhiteSpace(googleUser.Email))
             {
-                throw new BadRequestException("Xác thực Token Google thất bại hoặc email không hợp lệ");
+                throw new BadRequestException("ERR_XAC_THUC_TOKEN_GOOGLE_THAT_BAI_HOAC_EMAIL_KHONG_HO");
             }
 
             var email = googleUser.Email.Trim().ToLowerInvariant();
@@ -683,12 +683,12 @@ namespace STMM.Business.Services
             {
                 if (string.Equals(user.Status, "Inactive", StringComparison.OrdinalIgnoreCase))
                 {
-                    throw new BadRequestException("Tài khoản của bạn đang ngưng hoạt động (Inactive). Vui lòng liên hệ Ban Quản lý Chợ qua hotline 1900-8888 hoặc email support@stmm.com để được hỗ trợ.");
+                    throw new BadRequestException("ERR_TAI_KHOAN_CUA_BAN_DANG_NGUNG_HOAT_DONG_INACTIVE_VU");
                 }
 
                 if (string.Equals(user.Status, "Suspended", StringComparison.OrdinalIgnoreCase) || string.Equals(user.Status, "Locked", StringComparison.OrdinalIgnoreCase))
                 {
-                    throw new BadRequestException("Tài khoản đã bị khóa hoặc tạm dừng. Vui lòng liên hệ Ban Quản lý Chợ để được hỗ trợ.");
+                    throw new BadRequestException("ERR_TAI_KHOAN_DA_BI_KHOA_HOAC_TAM_DUNG_VUI_LONG_LIEN_H");
                 }
                 
                 customerRole = user.Role ?? await GetOrCreateCustomerRoleAsync(ct);
@@ -731,12 +731,12 @@ namespace STMM.Business.Services
             var user = await _userRepository.GetByIdAsync(userId, ct);
             if (user == null)
             {
-                throw new NotFoundException("Tài khoản không tồn tại");
+                throw new NotFoundException("ERR_TAI_KHOAN_KHONG_TON_TAI");
             }
 
             if (!BCrypt.Net.BCrypt.Verify(request.CurrentPassword, user.Password))
             {
-                throw new BadRequestException("Mật khẩu cũ không chính xác");
+                throw new BadRequestException("ERR_MAT_KHAU_CU_KHONG_CHINH_XAC");
             }
 
             user.Password = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);

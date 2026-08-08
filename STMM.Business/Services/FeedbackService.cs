@@ -66,12 +66,12 @@ namespace STMM.Business.Services
             // (Bước 4 trong SD) - id và response không được rỗng
             if (reviewId <= 0)
             {
-                throw new BadRequestException("ID đánh giá không hợp lệ.");
+                throw new BadRequestException("ERR_ID_DANH_GIA_KHONG_HOP_LE");
             }
 
             if (responseDto == null || string.IsNullOrWhiteSpace(responseDto.Response))
             {
-                throw new BadRequestException("Nội dung phản hồi không được để trống.");
+                throw new BadRequestException("ERR_NOI_DUNG_PHAN_HOI_KHONG_DUOC_DE_TRONG");
             }
 
             // ─── VALIDATION 2: Kiểm tra đánh giá có tồn tại không ───────────────────
@@ -83,14 +83,14 @@ namespace STMM.Business.Services
 
             if (review == null)
             {
-                throw new NotFoundException("Không tìm thấy đánh giá.");
+                throw new NotFoundException("ERR_KHONG_TIM_THAY_DANH_GIA");
             }
 
             // ─── VALIDATION 3: Kiểm tra Vendor có quyền sở hữu Stall bị đánh giá ───
             // (Bước 20 trong SD) - CheckVendorOwnsStall: SELECT EXISTS contract WHERE stallId AND vendorId
             if (review.StallId == null)
             {
-                throw new BadRequestException("Đánh giá này không thuộc về sạp nào.");
+                throw new BadRequestException("ERR_DANH_GIA_NAY_KHONG_THUOC_VE_SAP_NAO");
             }
 
             var ownsStall = await _contractRepository.Query()
@@ -101,14 +101,14 @@ namespace STMM.Business.Services
 
             if (!ownsStall)
             {
-                throw new ForbiddenException("Bạn không có quyền trả lời đánh giá này vì sạp không thuộc quyền quản lý của bạn.");
+                throw new ForbiddenException("ERR_BAN_KHONG_CO_QUYEN_TRA_LOI_DANH_GIA_NAY_VI_SAP_KHO");
             }
 
             // ─── VALIDATION 4: Kiểm tra đã trả lời chưa (Chỉ được trả lời 1 lần) ───
             // (Bước 24 trong SD) - Verify feedback status
             if (review.Status == "Responded" || !string.IsNullOrEmpty(review.Response))
             {
-                throw new BadRequestException("Bạn đã trả lời đánh giá này rồi. Mỗi đánh giá chỉ được phép trả lời một lần.");
+                throw new BadRequestException("ERR_BAN_DA_TRA_LOI_DANH_GIA_NAY_ROI_MOI_DANH_GIA_CHI_D");
             }
 
             // ─── XỬ LÝ THÀNH CÔNG: Cập nhật phản hồi ────────────────────────────────

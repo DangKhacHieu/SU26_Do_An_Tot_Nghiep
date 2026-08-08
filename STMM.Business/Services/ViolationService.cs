@@ -72,7 +72,7 @@ namespace STMM.Business.Services
 
             if (violation == null)
             {
-                throw new NotFoundException($"Violation with ID {id} not found.");
+                throw new NotFoundException($"ERR_VIOLATION_WITH_ID_ID_NOT_FOUND|{id}");
             }
 
             return _mapper.Map<ViolationDto>(violation);
@@ -85,7 +85,7 @@ namespace STMM.Business.Services
             var marketId = await GetMarketIdAsync(userId, "staff", ct);
             var effectiveDate = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
             var stall = await _stallRepository.GetEligibleRentedStallForMarketAsync(request.StallId, marketId, effectiveDate, ct)
-                ?? throw new NotFoundException($"Stall with ID {request.StallId} not found.");
+                ?? throw new NotFoundException($"ERR_STALL_WITH_ID_REQUEST_STALLID_NOT_FOUND|{request.StallId}");
 
             var types = await _violationTypeRepository.FindAsync(
                 vt => vt.ViolationTypeId == request.ViolationTypeId &&
@@ -96,7 +96,7 @@ namespace STMM.Business.Services
 
             if (violationType == null)
             {
-                throw new NotFoundException($"Violation type with ID {request.ViolationTypeId} was not found or is inactive.");
+                throw new NotFoundException($"ERR_VIOLATION_TYPE_WITH_ID_REQUEST_VIOLATIONTYPEID_WAS|{request.ViolationTypeId}");
             }
 
             var managers = await _userRepository.GetActiveManagersByMarketAsync(
@@ -206,7 +206,7 @@ namespace STMM.Business.Services
                 var manager = await _userRepository.GetByIdAsync(managerUserId.Value, ct);
                 if (manager != null && manager.MarketId == null)
                 {
-                    throw new NotFoundException($"Violation with ID {id} not found.");
+                    throw new NotFoundException($"ERR_VIOLATION_WITH_ID_ID_NOT_FOUND|{id}");
                 }
                 marketId = manager?.MarketId;
             }
@@ -215,7 +215,7 @@ namespace STMM.Business.Services
 
             if (violation == null)
             {
-                throw new NotFoundException($"Violation with ID {id} not found.");
+                throw new NotFoundException($"ERR_VIOLATION_WITH_ID_ID_NOT_FOUND|{id}");
             }
 
             return _mapper.Map<ViolationDto>(violation);
@@ -226,7 +226,7 @@ namespace STMM.Business.Services
             var user = await _userRepository.GetUserByIdWithRoleAsync(userId, ct);
             if (user?.MarketId == null)
             {
-                throw new ForbiddenException($"The {accountType} account is not assigned to a market.");
+                throw new ForbiddenException($"ERR_THE_ACCOUNTTYPE_ACCOUNT_IS_NOT_ASSIGNED_TO_A_MARKE|{accountType}");
             }
 
             return user.MarketId.Value;
@@ -264,18 +264,18 @@ namespace STMM.Business.Services
             var managerUser = await _userRepository.GetByIdAsync(managerUserId, ct);
             if (managerUser == null || !managerUser.MarketId.HasValue)
             {
-                throw new ForbiddenException("Bạn không có quyền thao tác trên chợ này.");
+                throw new ForbiddenException("ERR_BAN_KHONG_CO_QUYEN_THAO_TAC_TREN_CHO_NAY");
             }
 
             var violation = await _violationRepository.GetViolationDetailsForManagerAsync(violationId, managerUser.MarketId.Value, ct);
             if (violation == null)
             {
-                throw new NotFoundException($"Không tìm thấy biên bản vi phạm ID {violationId}.");
+                throw new NotFoundException($"ERR_KHONG_TIM_THAY_BIEN_BAN_VI_PHAM_ID_VIOLATIONID|{violationId}");
             }
 
             if (violation.Status != "Pending" && violation.Status != "Notified")
             {
-                throw new BadRequestException("Chỉ có thể chốt các vi phạm ở trạng thái Pending hoặc Notified mà chưa có kháng nghị.");
+                throw new BadRequestException("ERR_CHI_CO_THE_CHOT_CAC_VI_PHAM_O_TRANG_THAI_PENDING_H");
             }
 
             var violationToUpdate = await _violationRepository.GetByIdAsync(violationId, ct);
@@ -295,28 +295,28 @@ namespace STMM.Business.Services
             var accountantUser = await _userRepository.GetByIdAsync(accountantUserId, ct);
             if (accountantUser == null || !accountantUser.MarketId.HasValue)
             {
-                throw new ForbiddenException("Kế toán chưa được phân công quản lý chợ.");
+                throw new ForbiddenException("ERR_KE_TOAN_CHUA_DUOC_PHAN_CONG_QUAN_LY_CHO");
             }
             var violation = await _violationRepository.GetViolationDetailsForManagerAsync(violationId, accountantUser.MarketId.Value, ct);
             if (violation == null)
             {
-                throw new NotFoundException($"Không tìm thấy biên bản vi phạm ID {violationId}.");
+                throw new NotFoundException($"ERR_KHONG_TIM_THAY_BIEN_BAN_VI_PHAM_ID_VIOLATIONID|{violationId}");
             }
 
             if (violation.Status != "FinalApproved")
             {
-                throw new BadRequestException("Chỉ có thể xuất hóa đơn cho các vi phạm đã có quyết định cuối cùng (FinalApproved).");
+                throw new BadRequestException("ERR_CHI_CO_THE_XUAT_HOA_DON_CHO_CAC_VI_PHAM_DA_CO_QUYE");
             }
 
             if (!violation.FineAmount.HasValue || violation.FineAmount.Value <= 0)
             {
-                throw new BadRequestException("Biên bản này chưa có số tiền phạt hợp lệ để tạo hóa đơn.");
+                throw new BadRequestException("ERR_BIEN_BAN_NAY_CHUA_CO_SO_TIEN_PHAT_HOP_LE_DE_TAO_HO");
             }
 
             var contract = await _contractRepository.GetActiveContractByStallIdAsync(violation.StallId, ct);
             if (contract == null)
             {
-                throw new BadRequestException($"Sạp {violation.Stall.Code} hiện không có hợp đồng thuê nào đang hiệu lực để ghi nhận hóa đơn.");
+                throw new BadRequestException($"ERR_SAP_VIOLATION_STALL_CODE_HIEN_KHONG_CO_HOP_DONG_TH|{violation.Stall.Code}");
             }
 
             var feeType = await _feeTypeRepository.GetFeeTypeByNameContainsAsync("phạt", null, ct);
@@ -327,7 +327,7 @@ namespace STMM.Business.Services
 
             if (feeType == null)
             {
-                throw new BadRequestException("Không tìm thấy Loại phí cấu hình cho 'Tiền phạt' trong hệ thống. Vui lòng tạo Loại phí này trước.");
+                throw new BadRequestException("ERR_KHONG_TIM_THAY_LOAI_PHI_CAU_HINH_CHO_TIEN_PHAT_TRO");
             }
 
             var invoice = new Invoice
@@ -395,7 +395,7 @@ namespace STMM.Business.Services
             var duplicate = await _violationTypeRepository.IsNameExistsAsync(request.Name, null, user?.MarketId, ct);
             if (duplicate)
             {
-                throw new BadRequestException($"Tên loại vi phạm '{request.Name}' đã tồn tại.");
+                throw new BadRequestException($"ERR_TEN_LOAI_VI_PHAM_REQUEST_NAME_DA_TON_TAI|{request.Name}");
             }
 
             var vt = new ViolationType
@@ -418,13 +418,13 @@ namespace STMM.Business.Services
             var vt = await _violationTypeRepository.GetByIdAsync(id, ct);
             if (vt == null)
             {
-                throw new NotFoundException($"Không tìm thấy Loại vi phạm ID {id}.");
+                throw new NotFoundException($"ERR_KHONG_TIM_THAY_LOAI_VI_PHAM_ID_ID|{id}");
             }
 
             var duplicate = await _violationTypeRepository.IsNameExistsAsync(request.Name, id, vt.MarketId, ct);
             if (duplicate)
             {
-                throw new BadRequestException($"Tên loại vi phạm '{request.Name}' đã tồn tại ở loại vi phạm khác.");
+                throw new BadRequestException($"ERR_TEN_LOAI_VI_PHAM_REQUEST_NAME_DA_TON_TAI_O_LOAI_VI|{request.Name}");
             }
 
             vt.Name = request.Name;
@@ -447,7 +447,7 @@ namespace STMM.Business.Services
 
             if (inUse)
             {
-                throw new BadRequestException($"Không thể xóa loại vi phạm '{vt.Name}' vì đang có biên bản vi phạm sử dụng nó.");
+                throw new BadRequestException($"ERR_KHONG_THE_XOA_LOAI_VI_PHAM_VT_NAME_VI_DANG_CO_BIEN|{vt.Name}");
             }
 
             _violationTypeRepository.Delete(vt);

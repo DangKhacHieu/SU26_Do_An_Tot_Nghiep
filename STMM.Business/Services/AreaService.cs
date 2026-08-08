@@ -17,6 +17,7 @@ namespace STMM.Business.Services
         private readonly IBusinessCategoryRepository _categoryRepository;
         private readonly IStallRepository _stallRepository;
         private readonly IUserRepository _userRepository;
+        private readonly IMarketRepository _marketRepository;
         private readonly IMapper _mapper;
 
         public AreaService(
@@ -24,19 +25,21 @@ namespace STMM.Business.Services
             IBusinessCategoryRepository categoryRepository,
             IStallRepository stallRepository,
             IUserRepository userRepository,
+            IMarketRepository marketRepository,
             IMapper mapper)
         {
             _areaRepository = areaRepository;
             _categoryRepository = categoryRepository;
             _stallRepository = stallRepository;
             _userRepository = userRepository;
+            _marketRepository = marketRepository;
             _mapper = mapper;
         }
 
         public async Task<IEnumerable<AreaDto>> GetAllAreasAsync(int? marketId = null, int? currentUserId = null)
         {
             if (marketId.HasValue && marketId.Value <= 0)
-                throw new BadRequestException("ID Chợ không hợp lệ.");
+                throw new BadRequestException("ERR_ID_CHO_KHONG_HOP_LE");
 
             if (currentUserId.HasValue)
             {
@@ -90,16 +93,45 @@ namespace STMM.Business.Services
             return categoryId;
         }
 
+        private async Task ValidateAreaSizeAsync(Area area)
+        {
+            if (area.Size.HasValue)
+            {
+                if (area.Size.Value <= 0)
+                    throw new BadRequestException("ERR_DIEN_TICH_KHU_VUC_PHAI_LON_HON_0");
+
+                var market = await _marketRepository.GetByIdAsync(area.MarketId);
+                if (market?.Size.HasValue == true)
+                {
+                    var existingSize = await _areaRepository.Query()
+                        .Where(a => a.MarketId == area.MarketId && a.AreaId != area.AreaId && a.IsDeleted != true)
+                        .SumAsync(a => a.Size ?? 0);
+
+                    if (existingSize + area.Size.Value > market.Size.Value)
+                    {
+                        throw new BadRequestException($"ERR_TONG_DIEN_TICH_CAC_KHU_VUC_EXISTINGSIZE_AREA_SIZE|{(existingSize + area.Size.Value):F2}|{market.Size.Value:F2}");
+                    }
+                }
+            }
+        }
+
         public async Task<AreaDto> CreateAreaAsync(CreateAreaRequest request)
         {
             if (request.MarketId <= 0)
-                throw new BadRequestException("ID Chợ không hợp lệ.");
+                throw new BadRequestException("ERR_ID_CHO_KHONG_HOP_LE");
+
+            var market = await _marketRepository.GetByIdAsync(request.MarketId);
+            if (market == null || market.IsDeleted == true)
+                throw new NotFoundException("ERR_CHO_KHONG_TON_TAI_HOAC_DA_BI_XOA");
+
+            if (market.Status != "Active")
+                throw new BadRequestException($"ERR_KHONG_THE_THEM_KHU_VUC_VAO_CHO_DANG_O_TRANG_THAI_M|{market.Status}");
 
             if (string.IsNullOrWhiteSpace(request.Name))
-                throw new BadRequestException("Tên khu vực không được để trống.");
+                throw new BadRequestException("ERR_TEN_KHU_VUC_KHONG_DUOC_DE_TRONG");
 
             if (request.Size.HasValue && request.Size.Value <= 0)
-                throw new BadRequestException("Diện tích khu vực phải lớn hơn 0.");
+                throw new BadRequestException("ERR_DIEN_TICH_KHU_VUC_PHAI_LON_HON_0");
 
             // Check duplicate name in the same market
             var nameLower = request.Name.Trim().ToLower();
@@ -107,7 +139,7 @@ namespace STMM.Business.Services
                 .AnyAsync(a => a.MarketId == request.MarketId && a.Name.ToLower() == nameLower && a.IsDeleted != true);
             
             if (isDuplicateName)
-                throw new BadRequestException("Tên khu vực này đã tồn tại trong chợ. Vui lòng chọn tên khác.");
+                throw new BadRequestException("ERR_TEN_KHU_VUC_NAY_DA_TON_TAI_TRONG_CHO_VUI_LONG_CHON");
 
             var area = _mapper.Map<Area>(request);
             
@@ -119,6 +151,8 @@ namespace STMM.Business.Services
             
             area.CreatedAt = DateTime.UtcNow;
             area.IsDeleted = false;
+            
+            await ValidateAreaSizeAsync(area);
 
             await _areaRepository.AddAsync(area);
             await _areaRepository.SaveChangesAsync();
@@ -130,22 +164,33 @@ namespace STMM.Business.Services
         public async Task<AreaDto> UpdateAreaAsync(int id, UpdateAreaRequest request)
         {
             if (id <= 0)
-                throw new BadRequestException("ID Khu vực không hợp lệ.");
+                throw new BadRequestException("ERR_ID_KHU_VUC_KHONG_HOP_LE");
 
             var existingArea = await _areaRepository.GetAreaByIdAsync(id);
             if (existingArea == null)
             {
-                throw new NotFoundException("Khu vực không tồn tại.");
+                throw new NotFoundException("ERR_KHU_VUC_KHONG_TON_TAI");
+            }
+
+            var market = await _marketRepository.GetByIdAsync(existingArea.MarketId);
+            if (market == null || market.IsDeleted == true)
+            {
+                throw new NotFoundException("ERR_CHO_CUA_KHU_VUC_NAY_KHONG_TON_TAI");
+            }
+
+            if (market.Status != "Active")
+            {
+                throw new BadRequestException($"ERR_KHONG_THE_CHINH_SUA_KHU_VUC_THUOC_CHO_DANG_O_TRANG|{market.Status}");
             }
 
             if (request.Name != null && string.IsNullOrWhiteSpace(request.Name))
             {
-                throw new BadRequestException("Tên khu vực không được để trống.");
+                throw new BadRequestException("ERR_TEN_KHU_VUC_KHONG_DUOC_DE_TRONG");
             }
 
             if (request.Size.HasValue && request.Size.Value <= 0)
             {
-                throw new BadRequestException("Diện tích khu vực phải lớn hơn 0.");
+                throw new BadRequestException("ERR_DIEN_TICH_KHU_VUC_PHAI_LON_HON_0");
             }
 
             // Check duplicate name if name is provided and different from current
@@ -157,7 +202,7 @@ namespace STMM.Business.Services
                     .AnyAsync(a => a.MarketId == existingArea.MarketId && a.Name.ToLower() == nameLower && a.IsDeleted != true && a.AreaId != id);
                 
                 if (isDuplicateName)
-                    throw new BadRequestException("Tên khu vực này đã tồn tại trong chợ. Vui lòng chọn tên khác.");
+                    throw new BadRequestException("ERR_TEN_KHU_VUC_NAY_DA_TON_TAI_TRONG_CHO_VUI_LONG_CHON");
             }
 
             var hasStalls = await _stallRepository.Query().AnyAsync(s => s.AreaId == id && s.IsDeleted != true);
@@ -167,13 +212,13 @@ namespace STMM.Business.Services
             {
                 if (resolvedCategoryId.HasValue && resolvedCategoryId.Value != existingArea.CategoryId)
                 {
-                    throw new BadRequestException("Không thể thay đổi ngành hàng của khu vực khi đã có sạp bên trong.");
+                    throw new BadRequestException("ERR_KHONG_THE_THAY_DOI_NGANH_HANG_CUA_KHU_VUC_KHI_DA_C");
                 }
 
                 if ((!string.IsNullOrWhiteSpace(request.SvgPath) && request.SvgPath != existingArea.SvgPath) || 
                     (request.Size.HasValue && Math.Abs(request.Size.Value - (existingArea.Size ?? 0)) > 0.01))
                 {
-                    throw new BadRequestException("Không thể thay đổi hình dạng/diện tích khu vực khi đã có sạp bên trong.");
+                    throw new BadRequestException("ERR_KHONG_THE_THAY_DOI_HINH_DANG_DIEN_TICH_KHU_VUC_KHI");
                 }
             }
 
@@ -193,9 +238,11 @@ namespace STMM.Business.Services
 
                 if (request.Size.Value < totalStallsSize)
                 {
-                    throw new BadRequestException($"Diện tích Khu vực ({request.Size.Value:F2} m²) không được nhỏ hơn tổng diện tích các sạp hiện có ({(totalStallsSize):F2} m²).");
+                    throw new BadRequestException($"ERR_DIEN_TICH_KHU_VUC_REQUEST_SIZE_VALUE_F2_M_KHONG_DU|{request.Size.Value:F2}|{(totalStallsSize):F2}");
                 }
             }
+            
+            await ValidateAreaSizeAsync(existingArea);
             
             _areaRepository.Update(existingArea);
             await _areaRepository.SaveChangesAsync();
@@ -207,12 +254,23 @@ namespace STMM.Business.Services
         public async Task<bool> DeleteAreaAsync(int id)
         {
             if (id <= 0)
-                throw new BadRequestException("ID Khu vực không hợp lệ.");
+                throw new BadRequestException("ERR_ID_KHU_VUC_KHONG_HOP_LE");
 
             var existingArea = await _areaRepository.GetAreaByIdAsync(id);
             if (existingArea == null)
             {
-                throw new NotFoundException("Khu vực không tồn tại.");
+                throw new NotFoundException("ERR_KHU_VUC_KHONG_TON_TAI");
+            }
+
+            var market = await _marketRepository.GetByIdAsync(existingArea.MarketId);
+            if (market == null || market.IsDeleted == true)
+            {
+                throw new NotFoundException("ERR_CHO_CUA_KHU_VUC_NAY_KHONG_TON_TAI");
+            }
+
+            if (market.Status != "Active")
+            {
+                throw new BadRequestException($"ERR_KHONG_THE_XOA_KHU_VUC_THUOC_CHO_DANG_O_TRANG_THAI|{market.Status}");
             }
 
             // Check if any stall in this area has an active contract
@@ -222,7 +280,7 @@ namespace STMM.Business.Services
 
             if (hasActiveContracts)
             {
-                throw new BadRequestException("Không thể xóa khu vực vì có sạp đang có hợp đồng hiệu lực (có người thuê).");
+                throw new BadRequestException("ERR_KHONG_THE_XOA_KHU_VUC_VI_CO_SAP_DANG_CO_HOP_DONG_H");
             }
 
             existingArea.IsDeleted = true;

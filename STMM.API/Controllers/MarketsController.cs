@@ -160,8 +160,8 @@ namespace STMM.API.Controllers
         }
 
         [HttpPut("{marketId}/deactivate")]
-        // [Authorize(Roles = "Manager")]
-        public async Task<ActionResult> DeactivateMarket(int marketId)
+        [Authorize(Roles = "Manager,Admin")]
+        public async Task<ActionResult> DeactivateMarket(int marketId, CancellationToken ct)
         {
             try
             {
@@ -171,13 +171,13 @@ namespace STMM.API.Controllers
                     return Unauthorized(new { message = "User ID not found in token." });
                 }
 
-                var result = await _marketService.DeactivateMarketAsync(marketId, managerId);
+                var result = await _marketService.DeactivateMarketAsync(marketId, managerId, ct);
 
                 // Ghi nhật ký hoạt động
                 var ipAddress = Request.HttpContext.Connection.RemoteIpAddress?.ToString();
-                await _auditLogService.LogAsync(managerId, $"Hủy kích hoạt Chợ (ID: {marketId})", ipAddress);
+                await _auditLogService.LogAsync(managerId, $"Ngưng hoạt động Chợ '{result.MarketName}' (ID: {marketId}). Gỡ liên kết {result.AffectedUserCount} tài khoản.", ipAddress);
 
-                return Ok(new { message = "Market deactivated successfully. You can now create a new layout." });
+                return Ok(new { message = result.Message, data = result });
             }
             catch (System.Exception ex)
             {
