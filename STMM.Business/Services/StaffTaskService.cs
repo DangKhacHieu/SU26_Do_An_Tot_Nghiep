@@ -416,13 +416,13 @@ namespace STMM.Business.Services
                     throw new BadRequestException("Utility reading task has no Area associated.");
                 }
 
-                var localToday = DateTime.UtcNow.AddHours(7);
-                var effectiveDate = DateOnly.FromDateTime(localToday);
+                var taskDateLocal = (task.CreatedAt ?? DateTime.UtcNow).AddHours(7);
+                var effectiveDate = DateOnly.FromDateTime(taskDateLocal);
                 var stallsInArea = await _stallRepository.GetStallsChecklistByAreaAsync(
                     task.AreaId.Value,
                     effectiveDate,
-                    localToday.Year,
-                    localToday.Month,
+                    taskDateLocal.Year,
+                    taskDateLocal.Month,
                     ct);
 
                 if (stallsInArea.Count == 0)
@@ -541,13 +541,13 @@ namespace STMM.Business.Services
                 throw new BadRequestException("This task is not a utility reading task or has no Area associated.");
             }
 
-            var localToday = DateTime.UtcNow.AddHours(7);
-            var effectiveDate = DateOnly.FromDateTime(localToday);
+            var taskDateLocal = (taskDto.CreatedAt ?? DateTime.UtcNow).AddHours(7);
+            var effectiveDate = DateOnly.FromDateTime(taskDateLocal);
             var results = await _stallRepository.GetStallsChecklistByAreaAsync(
                 taskDto.AreaId.Value,
                 effectiveDate,
-                localToday.Year,
-                localToday.Month,
+                taskDateLocal.Year,
+                taskDateLocal.Month,
                 ct);
 
             return results.Select(r => new UtilityStallChecklistDto
@@ -577,13 +577,13 @@ namespace STMM.Business.Services
                 throw new BadRequestException("This task is not a utility reading task or has no Area associated.");
             }
 
-            var localToday = DateTime.UtcNow.AddHours(7);
-            var effectiveDate = DateOnly.FromDateTime(localToday);
+            var taskDateLocal = (task.CreatedAt ?? DateTime.UtcNow).AddHours(7);
+            var effectiveDate = DateOnly.FromDateTime(taskDateLocal);
             var results = await _stallRepository.GetStallsChecklistByAreaAsync(
                 task.AreaId.Value,
                 effectiveDate,
-                localToday.Year,
-                localToday.Month,
+                taskDateLocal.Year,
+                taskDateLocal.Month,
                 ct);
 
             return results.Select(r => new UtilityStallChecklistDto
