@@ -2001,8 +2001,8 @@
     "terminate_contract_title": "Chấm dứt hợp đồng",
     "termination_date_label": "Ngày chấm dứt",
     "confirm_termination": "Xác nhận chấm dứt",
-    "early_termination_warning": "Chấm dứt trước thời hạn: Tiền đặt cọc sẽ KHÔNG được hoàn trả (tiền cọc vẫn giữ nguyên trong hợp đồng).",
-    "normal_termination_info": "Chấm dứt đúng hạn / quá hạn: Tiền đặt cọc sẽ ĐƯỢC hoàn trả (tiền cọc sẽ cập nhật trở về 0).",
+    "early_termination_warning": "Chấm dứt trước thời hạn: Tiền đặt cọc sẽ KHÔNG được hoàn trả.",
+    "normal_termination_info": "Chấm dứt đúng hạn / quá hạn: Tiền đặt cọc sẽ ĐƯỢC hoàn trả.",
     "renewal_start_date_must_be_after_current_end": "Ngày bắt đầu hợp đồng mới phải sau ngày kết thúc của hợp đồng hiện tại.",
     "loading_contract_details": "Đang tải thông tin chi tiết hợp đồng...",
     "no_contract_found": "Không tìm thấy hợp đồng",
@@ -2053,7 +2053,15 @@
     "loading": "Đang tải...",
     "upload_a_scan": "📁 Tải lên bản quét",
     "processing": "Đang xử lý...",
-    "confirm_extension": "Xác nhận gia hạn"
+    "confirm_extension": "Xác nhận gia hạn",
+    "unable_to_load_contract_details": "Không thể tải thông tin chi tiết hợp đồng.",
+    "terminate_contract_success": "Hợp đồng đã chấm dứt thành công và giải phóng mặt bằng.",
+    "server_connection_error": "Lỗi kết nối máy chủ.",
+    "renew_contract_success": "Gia hạn hợp đồng thành công! Hợp đồng mới đã được khởi tạo.",
+    "file_exceeds_size": "File \"{{name}}\" vượt quá dung lượng tối đa 5MB.",
+    "upload_scan_success": "Tải bản quét đã ký lên thành công!",
+    "update_party_b_success": "Cập nhật thông tin Bên B thành công!",
+    "unable_to_update_party_b": "Không thể cập nhật thông tin Bên B."
   },
   "issuedetailmanager": {
     "fix_issue": "Khắc phục sự cố",
@@ -2083,7 +2091,8 @@
     "httpsplaceholdco400x300textimagecannotload": "https://placehold.co/400x300?text=Hình+ảnh+không+tải+được",
     "fix_issuetitle": "Sửa chữa: ${issue.title}",
     "fix_infrastructure_problem_at": "Sửa chữa sự cố hạ tầng tại vị trí sạp ${issue.stallCode ||",
-    "nndetailed_issue_descriptionnissuedescription": "}.\\n\\nMô tả chi tiết sự cố:\\n${issue.description}"
+    "nndetailed_issue_descriptionnissuedescription": "}.\\n\\nMô tả chi tiết sự cố:\\n${issue.description}",
+    "unable_to_load_issue_details": "Không thể tải chi tiết sự cố hạ tầng."
   },
   "dashboardmanager": {
     "mhms_summary_report": "Báo Cáo Tổng Hợp MHMS",
@@ -2177,7 +2186,8 @@
     "issues_handling_summary": "{{done}} / {{total}} đã xử lý",
     "pay_fines_for_violations": "Đóng phạt vi phạm",
     "violations_fines_summary": "{{paid}} / {{total}} đã đóng",
-    "tng_s_vic": "Tổng số việc"
+    "tng_s_vic": "Tổng số việc",
+    "export_excel_success": "Xuất báo cáo Excel thành công!"
   },
   "contractlistmanager": {
     "unable_to_load_contract": "Không thể tải danh sách hợp đồng.",
@@ -2221,7 +2231,10 @@
     "posted_at": "Được đăng lúc:",
     "this_article_has_no": "Bài viết này không có nội dung.",
     "to_individual_contenttargetusername_targetrolelabelscontenttargetrole": "Đến cá nhân: ${content.targetUserName} (${TARGET_ROLE_LABELS[content.targetRole] || content.targetRole})",
-    "every_object": "Mọi đối tượng"
+    "every_object": "Mọi đối tượng",
+    "post_id_not_found": "Không tìm thấy mã bài viết.",
+    "unable_to_load_post_details": "Không thể tải chi tiết bài viết.",
+    "connection_error_post": "Lỗi kết nối khi tải bài viết."
   },
   "contentformmanager": {
     "loading_information": "Đang tải thông tin...",
@@ -2318,7 +2331,9 @@
     "confirm_key": "Xác nhận khóa",
     "enter_targetusername": "Nhập: ${targetUser.name}",
     "deleting": "Đang xóa...",
-    "search_for_name_email": "Tìm kiếm tên, email, SĐT, CCCD..."
+    "search_for_name_email": "Tìm kiếm tên, email, SĐT, CCCD...",
+    "unable_to_load_accounts": "Không thể tải danh sách tài khoản.",
+    "action_account_success": "{{action}} tài khoản thành công!"
   },
   "issuelistmanager": {
     "new_report": "Báo cáo mới",
@@ -2344,7 +2359,8 @@
     "no_infrastructure_problems_have": "Chưa có sự cố hạ tầng nào được báo cáo.",
     "next": "Sau",
     "view": "Xem",
-    "issues_count": "{{count}} sự cố"
+    "issues_count": "{{count}} sự cố",
+    "unable_to_load_issues": "Không thể tải danh sách sự cố hạ tầng."
   },
   "sidebarmanager": {
     "view_personal_profile": "Xem hồ sơ cá nhân",
@@ -2514,7 +2530,9 @@
     "no_matching_faq_questions": "Không tìm thấy câu hỏi FAQ nào phù hợp.",
     "there_are_no_faqs": "Chưa có câu hỏi FAQ nào được cấu hình.",
     "deleting": "Đang xóa...",
-    "confirm_deletion": "Xác nhận xóa"
+    "confirm_deletion": "Xác nhận xóa",
+    "delete_faq_success": "Xóa câu hỏi thường gặp thành công!",
+    "server_error_delete_faq": "Lỗi máy chủ khi xóa FAQ."
   },
   "taskdetailmanager": {
     "stmm_task_details_tasktaskid": "STMM - Chi tiết công việc #{{taskId}}",
@@ -2623,7 +2641,7 @@
     "stmm_system_notifications": "STMM - Thông báo hệ thống",
     "notification_mailbox_of_mhms": "Hộp thư thông báo của ban quản lý hệ thống MHMS.",
     "unable_to_load_notification": "Không thể tải danh sách thông báo.",
-    "marked_unreadcount_notifications_as": "Đã đánh dấu {{}} thông báo là đã đọc.",
+    "marked_unreadcount_notifications_as": "Đã đánh dấu {{count}} thông báo là đã đọc.",
     "failed_to_mark_all": "Thất bại khi đánh dấu tất cả đã đọc.",
     "successfully_deleted_notification": "Xóa thông báo thành công.",
     "delete_failure_message": "Xóa thông báo thất bại.",
@@ -2633,7 +2651,8 @@
     "write_down_electricity_and": "Ghi số điện nước",
     "collect_cash": "Thu tiền mặt",
     "contract": "Hợp đồng",
-    "for_selectednotitargetrole": ">Dành cho: {selectedNoti.targetRole ||"
+    "for_selectednotitargetrole": ">Dành cho: {selectedNoti.targetRole ||",
+    "delete_notification_success": "Xóa thông báo thành công."
   },
   "violationdetailsmanager": {
     "loading_details": "Đang tải thông tin chi tiết...",
@@ -2709,7 +2728,9 @@
     "no_posts_or_announcements": "Chưa có bài viết hay thông báo nào được tạo.",
     "every_object": "Mọi đối tượng",
     "deleting": "Đang xóa...",
-    "confirm_deletion": "Xác nhận xóa"
+    "confirm_deletion": "Xác nhận xóa",
+    "delete_post_success": "Xóa bài viết/thông báo thành công!",
+    "server_error_delete_post": "Lỗi máy chủ khi xóa bài viết."
   },
   "contractformmanager": {
     "sign_kiosk_rental_contract": "Ký Hợp Đồng Thuê Ki-ốt",
@@ -2748,7 +2769,8 @@
     "cannot_sign_contract": "Không thể ký hợp đồng.",
     "server_connection_error": "Lỗi kết nối máy chủ.",
     "havent_created_a_business": "Chưa tạo cơ sở KD",
-    "sign_the_contract": "Ký hợp đồng"
+    "sign_the_contract": "Ký hợp đồng",
+    "sign_contract_success": "Ký hợp đồng thuê ki-ốt thành công!"
   },
   "tasklistmanager": {
     "all_types": "Tất cả loại",
@@ -3176,7 +3198,13 @@
     "confirm_new_password": "Xác nhận mật khẩu mới",
     "current_session": "Phiên hiện tại",
     "it_is_recommended_to": "Nên thay đổi mật khẩu định kỳ để bảo vệ tài khoản quản trị viên của bạn.",
-    "unable_to_update_information": "Không thể cập nhật thông tin."
+    "unable_to_update_information": "Không thể cập nhật thông tin.",
+    "name_required": "Họ và tên không được để trống.",
+    "phone_required": "Số điện thoại không được để trống.",
+    "phone_invalid": "Số điện thoại phải chứa từ 9 đến 11 chữ số.",
+    "profile_updated_success": "Cập nhật thông tin cá nhân thành công!",
+    "new_password_min_len": "Mật khẩu mới phải có ít nhất 6 ký tự.",
+    "change_password_success": "Đổi mật khẩu thành công!"
   },
   "requestlistmanager": {
     "infrastructure_failure": "Sự cố hạ tầng",
@@ -5693,73 +5721,6 @@
       "rejected": "Từ chối",
       "no_address": "Chưa cập nhật địa chỉ"
     }
-  },
-  "metermanagement": {
-    "available_meter_sources_for": "Nguồn công tơ khả dụng để nhóm khởi tạo sạp lựa chọn.",
-    "serial_number": "SỐ SERI",
-    "type": "LOẠI",
-    "stall_assignment_status": "TRẠNG THÁI GÁN SẠP",
-    "last_index": "CHỈ SỐ CUỐI",
-    "installation_date": "NGÀY LẮP ĐẶT",
-    "work": "Hoạt động",
-    "stop_working": "Ngưng hoạt động",
-    "act": "THAO TÁC",
-    "electricity": "Điện",
-    "water": "Nước",
-    "in_warehouse": "Trong kho",
-    "stall_prefix": "Sạp",
-    "meter_unit": "công tơ",
-    "search_by_serial_number": "Tìm theo số Seri...",
-    "all_types_of_meters": "Tất cả loại công tơ",
-    "all_meters_are_in": "Tất cả công tơ trong chợ",
-    "in_stock_available": "Trong kho (Chưa gán)",
-    "assigned_to_the_stall": "Đã gán cho sạp",
-    "all_active_status": "Tất cả trạng thái",
-    "active": "Đang hoạt động",
-    "inactive": "Ngưng hoạt động",
-    "clear_filter": "Xóa bộ lọc",
-    "add_meter_to_inventory": "Thêm công tơ vào kho",
-    "available_meter_inventory": "Kho Công tơ Khả dụng",
-    "the_meter_has_been": "Công tơ Đã gán Sạp",
-    "next_page": "Trang sau",
-    "previous_page": "Trang trước",
-    "deactivate_meter": "Ngưng hoạt động công tơ",
-    "reactivate_meter": "Kích hoạt lại công tơ",
-    "action_deactivate": "ngưng hoạt động",
-    "action_reactivate": "kích hoạt lại",
-    "confirm_status_change": "Bạn có chắc chắn muốn {{action}} công tơ {{serialNumber}}?",
-    "inactive_meter_warning": "Công tơ ngưng hoạt động sẽ không thể ghi chỉ số mới cho đến khi được kích hoạt lại.",
-    "deactivate": "Ngưng hoạt động",
-    "reactivate": "Kích hoạt lại",
-    "saving": "Đang lưu...",
-    "cancel": "Hủy",
-    "edit_meters": "Chỉnh sửa công tơ",
-    "deactivate_error_unassign_first": "Cần gỡ sạp hoặc thay thế công tơ này trước khi ngưng hoạt động.",
-    "edit_meter_information": "Chỉnh sửa thông tin công tơ",
-    "meter_type": "Loại công tơ",
-    "it_is_not_possible": "Không thể thay đổi loại của công tơ đã được gán vào sạp.",
-    "save_changes": "Lưu thay đổi",
-    "add_meters_to_availability": "Thêm công tơ vào kho",
-    "create_meters": "Tạo công tơ",
-    "creating": "Đang tạo...",
-    "for_example_elec99882_wat33291": "Ví dụ: ELEC-001, WAT-001",
-    "serial_code_must_be": "Mã Seri phải là duy nhất trong chợ này.",
-    "unable_to_load_meter": "Không thể tải danh sách công tơ.",
-    "the_serial_number_cannot": "Số Seri không được để trống.",
-    "the_serial_number_must": "Số Seri phải từ 3 ký tự trở lên.",
-    "added_meter_to_availability": "Đã thêm công tơ vào kho thành công.",
-    "error_creating_meter": "Lỗi khi tạo mới công tơ.",
-    "updated_meter_selectedmetermeterid_successfully": "Đã cập nhật công tơ thành công.",
-    "error_updating_meter": "Lỗi khi cập nhật công tơ.",
-    "reactivated": "kích hoạt lại",
-    "deactivated": "ngưng hoạt động",
-    "meter_status_changed": "Đã thay đổi trạng thái công tơ thành công.",
-    "unable_to_change_meter_status": "Không thể thay đổi trạng thái công tơ.",
-    "erase": "Xóa tìm kiếm",
-    "loading_meter_warehouse_with": "Đang tải danh sách công tơ...",
-    "no_matching_meters_were": "Không tìm thấy công tơ phù hợp với bộ lọc.",
-    "there_are_no_available": "Chưa có công tơ nào trong kho.",
-    "about_available_inventory": "Xóa bộ lọc"
   },
   "Tài khoản của bạn đã được đăng ký tạm thời. Vui lòng kiểm tra email để nhận mã OTP xác thực kích hoạt.": "Tài khoản của bạn đã được đăng ký tạm thời. Vui lòng kiểm tra email để nhận mã OTP xác thực kích hoạt.",
   "Google login successful.": "Đăng nhập Google thành công.",

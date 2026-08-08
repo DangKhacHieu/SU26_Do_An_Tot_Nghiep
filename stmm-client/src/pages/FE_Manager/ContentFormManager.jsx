@@ -43,10 +43,10 @@ export default function ContentFormManager({ contentId, navigate, addToast }) {
         const data = await res.json();
         setUsers(data);
       } else {
-        addToast('Không thể tải danh sách người dùng cho vai trò này.', 'error');
+        addToast(t('contentformmanager.unable_to_load_user'), 'error');
       }
     } catch {
-      addToast('Lỗi kết nối khi tải danh sách người dùng.', 'error');
+      addToast(t('contentformmanager.connection_error_when_loading'), 'error');
     } finally {
       setLoadingUsers(false);
     }
@@ -124,11 +124,11 @@ export default function ContentFormManager({ contentId, navigate, addToast }) {
           setSendType('all');
         }
       } else {
-        addToast('Không thể tải thông tin bài viết.', 'error');
+        addToast(t('contentformmanager.unable_to_load_article'), 'error');
         navigate('content');
       }
     } catch {
-      addToast('Lỗi kết nối khi tải bài viết.', 'error');
+      addToast(t('contentformmanager.connection_error_when_downloading'), 'error');
       navigate('content');
     } finally {
       setLoading(false);
@@ -139,23 +139,23 @@ export default function ContentFormManager({ contentId, navigate, addToast }) {
     e.preventDefault();
 
     if (!title.trim()) {
-      addToast('Tiêu đề không được để trống.', 'error');
+      addToast(t('contentformmanager.the_title_cannot_be'), 'error');
       return;
     }
     if (!content.trim()) {
-      addToast('Nội dung không được để trống.', 'error');
+      addToast(t('contentformmanager.content_cannot_be_empty'), 'error');
       return;
     }
 
     if (notiType === 'Announcement' && sendType === 'specific') {
       if (isEdit) {
         if (!selectedUserId) {
-          addToast('Vui lòng chọn một người nhận.', 'error');
+          addToast(t('contentformmanager.please_select_a_recipient'), 'error');
           return;
         }
       } else {
         if (selectedUserIds.length === 0) {
-          addToast('Vui lòng chọn ít nhất một người nhận.', 'error');
+          addToast(t('contentformmanager.please_select_at_least'), 'error');
           return;
         }
       }
@@ -207,7 +207,7 @@ export default function ContentFormManager({ contentId, navigate, addToast }) {
         addToast(err.detail || t('contentformmanager.error_sending_data_to'), 'error');
       }
     } catch {
-      addToast('Lỗi kết nối. Vui lòng kiểm tra lại mạng.', 'error');
+      addToast(t('contentformmanager.connection_error_please_check'), 'error');
     } finally {
       setSubmitting(false);
     }

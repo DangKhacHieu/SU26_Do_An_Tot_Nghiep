@@ -110,9 +110,9 @@ export default function ProfileManager({ addToast, navigate }) {
 
   const handleSaveChanges = async (e) => {
     e.preventDefault();
-    if (!name.trim()) { addToast('Họ và tên không được để trống.', 'error'); return; }
-    if (!phone.trim()) { addToast('Số điện thoại không được để trống.', 'error'); return; }
-    if (!/^\d{9,11}$/.test(phone)) { addToast('Số điện thoại phải chứa từ 9 đến 11 chữ số.', 'error'); return; }
+    if (!name.trim()) { addToast(t('profilemanager.name_required'), 'error'); return; }
+    if (!phone.trim()) { addToast(t('profilemanager.phone_required'), 'error'); return; }
+    if (!/^\d{9,11}$/.test(phone)) { addToast(t('profilemanager.phone_invalid'), 'error'); return; }
 
     setSaving(true);
     try {
@@ -127,7 +127,7 @@ export default function ProfileManager({ addToast, navigate }) {
         window.dispatchEvent(new Event('storage'));
       }
       setProfile(res.data);
-      addToast('Cập nhật thông tin cá nhân thành công!', 'success');
+      addToast(t('profilemanager.profile_updated_success'), 'success');
     } catch (err) {
       addToast(err.response?.data?.message || t('profilemanager.unable_to_update_information'), 'error');
     } finally {
@@ -137,10 +137,10 @@ export default function ProfileManager({ addToast, navigate }) {
 
   const handleChangePassword = async (e) => {
     e.preventDefault();
-    if (!currentPassword) { addToast('Vui lòng nhập mật khẩu hiện tại.', 'error'); return; }
-    if (newPassword.length < 6) { addToast('Mật khẩu mới phải có ít nhất 6 ký tự.', 'error'); return; }
-    if (newPassword === currentPassword) { addToast('Mật khẩu mới không được trùng với mật khẩu hiện tại.', 'error'); return; }
-    if (newPassword !== confirmPassword) { addToast('Mật khẩu xác nhận không trùng khớp.', 'error'); return; }
+    if (!currentPassword) { addToast(t('profilemanager.please_enter_your_current'), 'error'); return; }
+    if (newPassword.length < 6) { addToast(t('profilemanager.new_password_min_len'), 'error'); return; }
+    if (newPassword === currentPassword) { addToast(t('profilemanager.the_new_password_must'), 'error'); return; }
+    if (newPassword !== confirmPassword) { addToast(t('profilemanager.confirmation_password_does_not'), 'error'); return; }
 
     setPasswordSaving(true);
     try {
@@ -148,7 +148,7 @@ export default function ProfileManager({ addToast, navigate }) {
       await axios.post(`${API_BASE_URL}/users/change-password`, { currentPassword, newPassword, confirmPassword }, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      addToast('Đổi mật khẩu thành công!', 'success');
+      addToast(t('profilemanager.change_password_success'), 'success');
       setCurrentPassword(''); setNewPassword(''); setConfirmPassword('');
     } catch (err) {
       addToast(err.response?.data?.message || t('profilemanager.password_change_failed'), 'error');

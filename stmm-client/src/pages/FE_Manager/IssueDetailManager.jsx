@@ -56,7 +56,7 @@ export default function IssueDetailManager({ issueId, userId, baseUrl, navigate,
       if (!res.ok) throw new Error();
       setIssue(await res.json());
     } catch {
-      addToast('Không thể tải chi tiết sự cố hạ tầng.', 'error');
+      addToast(t('issuedetailmanager.unable_to_load_issue_details'), 'error');
     } finally {
       setLoading(false);
     }

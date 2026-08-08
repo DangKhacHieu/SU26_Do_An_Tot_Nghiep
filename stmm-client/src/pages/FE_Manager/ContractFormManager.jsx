@@ -53,7 +53,7 @@ export default function ContractFormManager({ navigate, addToast }) {
         throw new Error();
       }
     } catch {
-      addToast("Không thể tải thông tin danh sách sạp hàng hoặc tiểu thương.", "error");
+      addToast(t('contractformmanager.unable_to_download_information'), "error");
     } finally {
       setLoadingDropdowns(false);
     }
@@ -150,14 +150,14 @@ export default function ContractFormManager({ navigate, addToast }) {
       const data = await res.json();
 
       if (res.ok) {
-        addToast("Ký hợp đồng thuê ki-ốt thành công!", "success");
+        addToast(t('contractformmanager.sign_contract_success'), "success");
         // Navigate to the details page of the newly created contract
         navigate("contract-detail", data.contractId);
       } else {
         addToast(data.message || t('contractformmanager.cannot_sign_contract'), "error");
       }
     } catch {
-      addToast("Lỗi kết nối máy chủ.", "error");
+      addToast(t('contractdetailmanager.server_connection_error'), "error");
     } finally {
       setSubmitLoading(false);
     }

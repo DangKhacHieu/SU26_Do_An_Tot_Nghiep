@@ -2010,8 +2010,8 @@
     "terminate_contract_title": "Terminate Contract",
     "termination_date_label": "Termination Date",
     "confirm_termination": "Confirm Termination",
-    "early_termination_warning": "Early Termination: The deposit will NOT be refunded (deposit remains intact in the contract).",
-    "normal_termination_info": "Normal / Late Termination: The deposit will be refunded (deposit returns to 0).",
+    "early_termination_warning": "Early Termination: The deposit will NOT be refunded.",
+    "normal_termination_info": "Normal / Late Termination: The deposit will be refunded.",
     "renewal_start_date_must_be_after_current_end": "The new contract start date must be after the current contract's end date.",
     "loading_contract_details": "Loading contract details...",
     "no_contract_found": "No contract found",
@@ -2062,7 +2062,15 @@
     "loading": "Loading...",
     "upload_a_scan": "📁 Upload a scan",
     "processing": "Processing...",
-    "confirm_extension": "Confirm extension"
+    "confirm_extension": "Confirm extension",
+    "unable_to_load_contract_details": "Unable to load contract details.",
+    "terminate_contract_success": "Contract terminated successfully and premises cleared.",
+    "server_connection_error": "Server connection error.",
+    "renew_contract_success": "Contract renewed successfully! A new contract has been initialized.",
+    "file_exceeds_size": "File \"{{name}}\" exceeds the maximum size of 5MB.",
+    "upload_scan_success": "Signed scan uploaded successfully!",
+    "update_party_b_success": "Party B information updated successfully!",
+    "unable_to_update_party_b": "Unable to update Party B information."
   },
   "issuedetailmanager": {
     "fix_issue": "Fix issue",
@@ -2092,7 +2100,8 @@
     "httpsplaceholdco400x300textimagecannotload": "https://placehold.co/400x300?text=Image+cannot+load",
     "fix_issuetitle": "Fix: ${issue.title}",
     "fix_infrastructure_problem_at": "Fix infrastructure problem at stall location ${issue.stallCode ||",
-    "nndetailed_issue_descriptionnissuedescription": "}.\\n\\nDetailed issue description:\\n${issue.description}"
+    "nndetailed_issue_descriptionnissuedescription": "}.\\n\\nDetailed issue description:\\n${issue.description}",
+    "unable_to_load_issue_details": "Unable to load infrastructure issue details."
   },
   "dashboardmanager": {
     "mhms_summary_report": "MHMS Summary Report",
@@ -2186,7 +2195,8 @@
     "issues_handling_summary": "{{done}} / {{total}} processed",
     "pay_fines_for_violations": "Pay fines for violations",
     "violations_fines_summary": "{{paid}} / {{total}} is closed",
-    "tng_s_vic": "Tổng số việc"
+    "tng_s_vic": "Tổng số việc",
+    "export_excel_success": "Excel report exported successfully!"
   },
   "contractlistmanager": {
     "unable_to_load_contract": "Unable to load contract list.",
@@ -2230,7 +2240,10 @@
     "posted_at": "Posted at:",
     "this_article_has_no": "This article has no content.",
     "to_individual_contenttargetusername_targetrolelabelscontenttargetrole": "To individual: ${content.targetUserName} (${TARGET_ROLE_LABELS[content.targetRole] || content.targetRole})",
-    "every_object": "Every object"
+    "every_object": "Every object",
+    "post_id_not_found": "Post ID not found.",
+    "unable_to_load_post_details": "Unable to load post details.",
+    "connection_error_post": "Connection error while loading post."
   },
   "contentformmanager": {
     "loading_information": "Loading information...",
@@ -2327,7 +2340,9 @@
     "confirm_key": "Confirm key",
     "enter_targetusername": "Enter: ${targetUser.name}",
     "deleting": "Deleting...",
-    "search_for_name_email": "Search for name, email, phone number, CCCD..."
+    "search_for_name_email": "Search for name, email, phone number, CCCD...",
+    "unable_to_load_accounts": "Unable to load accounts list.",
+    "action_account_success": "Account {{action}}ed successfully!"
   },
   "issuelistmanager": {
     "new_report": "New report",
@@ -2353,7 +2368,8 @@
     "no_infrastructure_problems_have": "No infrastructure problems have been reported.",
     "next": "Next",
     "view": "View",
-    "issues_count": "{{count}} issues"
+    "issues_count": "{{count}} issues",
+    "unable_to_load_issues": "Unable to load infrastructure issues list."
   },
   "sidebarmanager": {
     "view_personal_profile": "View personal profile",
@@ -2523,7 +2539,9 @@
     "no_matching_faq_questions": "No matching FAQ questions were found.",
     "there_are_no_faqs": "There are no FAQs configured yet.",
     "deleting": "Deleting...",
-    "confirm_deletion": "Confirm deletion"
+    "confirm_deletion": "Confirm deletion",
+    "delete_faq_success": "FAQ deleted successfully!",
+    "server_error_delete_faq": "Server error while deleting FAQ."
   },
   "taskdetailmanager": {
     "stmm_task_details_tasktaskid": "STMM - Task Details #{{taskId}}",
@@ -2632,7 +2650,7 @@
     "stmm_system_notifications": "STMM - System notifications",
     "notification_mailbox_of_mhms": "Notification mailbox of MHMS system management board.",
     "unable_to_load_notification": "Unable to load notification list.",
-    "marked_unreadcount_notifications_as": "Marked {{}} notifications as read.",
+    "marked_unreadcount_notifications_as": "Marked {{count}} notifications as read.",
     "failed_to_mark_all": "Failed to mark all as read.",
     "successfully_deleted_notification": "Successfully deleted notification.",
     "delete_failure_message": "Delete failure message.",
@@ -2642,7 +2660,8 @@
     "write_down_electricity_and": "Write down electricity and water numbers",
     "collect_cash": "Collect cash",
     "contract": "Contract",
-    "for_selectednotitargetrole": ">For: {selectedNoti.targetRole ||"
+    "for_selectednotitargetrole": ">For: {selectedNoti.targetRole ||",
+    "delete_notification_success": "Notification deleted successfully."
   },
   "violationdetailsmanager": {
     "loading_details": "Loading details...",
@@ -2718,7 +2737,9 @@
     "no_posts_or_announcements": "No posts or announcements have been created yet.",
     "every_object": "Every object",
     "deleting": "Deleting...",
-    "confirm_deletion": "Confirm deletion"
+    "confirm_deletion": "Confirm deletion",
+    "delete_post_success": "Post/announcement deleted successfully!",
+    "server_error_delete_post": "Server error while deleting post."
   },
   "contractformmanager": {
     "sign_kiosk_rental_contract": "Sign Kiosk Rental Contract",
@@ -2757,7 +2778,8 @@
     "cannot_sign_contract": "Cannot sign contract.",
     "server_connection_error": "Server connection error.",
     "havent_created_a_business": "Haven't created a business establishment yet",
-    "sign_the_contract": "Sign the contract"
+    "sign_the_contract": "Sign the contract",
+    "sign_contract_success": "Kiosk lease contract signed successfully!"
   },
   "tasklistmanager": {
     "stmm_task_list_management": "STMM - Task List Management",
@@ -3185,7 +3207,13 @@
     "confirm_new_password": "Confirm new password",
     "current_session": "Current session",
     "it_is_recommended_to": "It is recommended to change your password periodically to protect your administrator account.",
-    "unable_to_update_information": "Unable to update information."
+    "unable_to_update_information": "Unable to update information.",
+    "name_required": "Full name cannot be empty.",
+    "phone_required": "Phone number cannot be empty.",
+    "phone_invalid": "Phone number must contain between 9 and 11 digits.",
+    "profile_updated_success": "Personal information updated successfully!",
+    "new_password_min_len": "New password must be at least 6 characters long.",
+    "change_password_success": "Password changed successfully!"
   },
   "requestlistmanager": {
     "infrastructure_failure": "Infrastructure failure",
@@ -5704,73 +5732,6 @@
       "rejected": "Rejected",
       "no_address": "Address not updated"
     }
-  },
-  "metermanagement": {
-    "available_meter_sources_for": "Available meter sources for the stall creation team to choose from dropdown.",
-    "serial_number": "SERIAL NUMBER",
-    "type": "TYPE",
-    "stall_assignment_status": "STALL ASSIGNMENT STATUS",
-    "last_index": "LAST INDEX",
-    "installation_date": "INSTALLATION DATE",
-    "work": "Active",
-    "stop_working": "Inactive",
-    "act": "ACT",
-    "electricity": "Electricity",
-    "water": "Water",
-    "in_warehouse": "In inventory",
-    "stall_prefix": "Stall",
-    "meter_unit": "meters",
-    "search_by_serial_number": "Search by Serial Number...",
-    "all_types_of_meters": "All types of meters",
-    "all_meters_are_in": "All meters in same market",
-    "in_stock_available": "In inventory (Unassigned)",
-    "assigned_to_the_stall": "Assigned to stall",
-    "all_active_status": "All active status",
-    "active": "Active",
-    "inactive": "Inactive",
-    "clear_filter": "Clear filter",
-    "add_meter_to_inventory": "Add meter to inventory",
-    "available_meter_inventory": "Available Meter Inventory",
-    "the_meter_has_been": "Assigned Meters",
-    "next_page": "Next Page",
-    "previous_page": "Previous Page",
-    "deactivate_meter": "Deactivate Meter",
-    "reactivate_meter": "Reactivate Meter",
-    "action_deactivate": "deactivate",
-    "action_reactivate": "reactivate",
-    "confirm_status_change": "Are you sure you want to {{action}} meter {{serialNumber}}?",
-    "inactive_meter_warning": "An inactive meter cannot receive new readings until it is reactivated.",
-    "deactivate": "Deactivate",
-    "reactivate": "Reactivate",
-    "saving": "Saving...",
-    "cancel": "Cancel",
-    "edit_meters": "Edit Meter",
-    "deactivate_error_unassign_first": "Replace or unassign this meter from the stall before deactivating it.",
-    "edit_meter_information": "Edit Meter Information",
-    "meter_type": "Meter Type",
-    "it_is_not_possible": "Cannot change type of a meter assigned to a stall.",
-    "save_changes": "Save Changes",
-    "add_meters_to_availability": "Add Meter to Inventory",
-    "create_meters": "Create Meter",
-    "creating": "Creating...",
-    "for_example_elec99882_wat33291": "For example: ELEC-001, WAT-001",
-    "serial_code_must_be": "Serial code must be unique in this market.",
-    "unable_to_load_meter": "Unable to load meter list.",
-    "the_serial_number_cannot": "Serial number cannot be empty.",
-    "the_serial_number_must": "Serial number must be at least 3 characters.",
-    "added_meter_to_availability": "Successfully added meter to inventory.",
-    "error_creating_meter": "Error creating meter.",
-    "updated_meter_selectedmetermeterid_successfully": "Meter updated successfully.",
-    "error_updating_meter": "Error updating meter.",
-    "reactivated": "reactivated",
-    "deactivated": "deactivated",
-    "meter_status_changed": "Meter status updated successfully.",
-    "unable_to_change_meter_status": "Unable to change meter status.",
-    "erase": "Clear search",
-    "loading_meter_warehouse_with": "Loading meter inventory...",
-    "no_matching_meters_were": "No meters match the selected filters.",
-    "there_are_no_available": "No meters available in inventory.",
-    "about_available_inventory": "Clear filters"
   },
   "Tài khoản của bạn đã được đăng ký tạm thời. Vui lòng kiểm tra email để nhận mã OTP xác thực kích hoạt.": "Your account has been temporarily registered. Please check your email for the activation OTP code.",
   "Google login successful.": "Google login successful.",
