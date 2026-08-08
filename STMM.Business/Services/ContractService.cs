@@ -74,6 +74,7 @@ namespace STMM.Business.Services
 
         public async Task<IEnumerable<ContractDto>> GetContractsAsync(string? search, string? status, int? currentUserId = null, CancellationToken ct = default)
         {
+            await CheckAndUpdateExpiredContractsAsync(ct);
             var (caller, callerMarketId, isManager) = await GetCallerInfoAsync(currentUserId, ct);
             if (isManager && !callerMarketId.HasValue)
             {
@@ -86,6 +87,7 @@ namespace STMM.Business.Services
 
         public async Task<ContractDto?> GetContractByIdAsync(int contractId, int? currentUserId = null, CancellationToken ct = default)
         {
+            await CheckAndUpdateExpiredContractsAsync(ct);
             var (caller, callerMarketId, isManager) = await GetCallerInfoAsync(currentUserId, ct);
             if (isManager && !callerMarketId.HasValue)
             {
@@ -212,6 +214,7 @@ namespace STMM.Business.Services
                 EndDate = request.EndDate,
                 RentFee = request.RentFee,
                 Deposit = request.Deposit,
+                DepositRefunded = 0,
                 Status = "Active",
                 CreatedAt = DateTime.UtcNow,
                 IsDeleted = false
@@ -247,9 +250,13 @@ namespace STMM.Business.Services
                 throw new BadRequestException("Ngày bắt đầu hợp đồng mới phải sau ngày kết thúc của hợp đồng hiện tại.");
             }
 
-            // Mark old contract as Expired
-            oldContract.Status = "Expired";
-            _contractRepository.Update(oldContract);
+            // Only mark the old contract as Expired if its EndDate has actually passed.
+            // If it is in the future, we keep it Active, and ContractStatusWorker will handle transitioning it to Expired when the day arrives.
+            if (DateOnly.FromDateTime(DateTime.Today) > oldContract.EndDate)
+            {
+                oldContract.Status = "Expired";
+                _contractRepository.Update(oldContract);
+            }
 
             // Create new Contract record
             var newContract = new Contract
@@ -260,6 +267,7 @@ namespace STMM.Business.Services
                 EndDate = request.EndDate,
                 RentFee = request.RentFee,
                 Deposit = request.Deposit,
+                DepositRefunded = 0,
                 Status = "Active",
                 CreatedAt = DateTime.UtcNow,
                 IsDeleted = false
@@ -294,12 +302,12 @@ namespace STMM.Business.Services
             if (isEarly)
             {
                 contract.Status = "TerminatedEarly";
-                // Tiền cọc vẫn giữ nguyên
+                contract.DepositRefunded = 0; // Tiền cọc tịch thu do vi phạm/chấm dứt trước hạn
             }
             else
             {
                 contract.Status = "Terminated";
-                contract.Deposit = 0; // Tiền cọc trở về 0
+                contract.DepositRefunded = contract.Deposit; // Hoàn trả lại toàn bộ tiền cọc cho tiểu thương
             }
 
             _contractRepository.Update(contract);
@@ -381,11 +389,14 @@ namespace STMM.Business.Services
 
         public async Task<IEnumerable<StallDto>> GetAvailableStallsAsync(int? currentUserId = null, CancellationToken ct = default)
         {
+            await CheckAndUpdateExpiredContractsAsync(ct);
             var (caller, callerMarketId, isManager) = await GetCallerInfoAsync(currentUserId, ct);
             if (isManager && !callerMarketId.HasValue)
             {
                 return new List<StallDto>();
             }
+
+            var today = DateOnly.FromDateTime(DateTime.Today);
 
             var query = _stallRepository.Query()
                 .Include(s => s.Area)
@@ -394,7 +405,8 @@ namespace STMM.Business.Services
                 .Where(s => s.Status == "Available" 
                             && s.IsDeleted != true
                             && s.Area.IsDeleted != true
-                            && s.Area.Market.IsDeleted != true);
+                            && s.Area.Market.IsDeleted != true
+                            && !s.Contracts.Any(c => c.Status == "Active" && c.EndDate >= today && c.IsDeleted != true));
 
             if (callerMarketId.HasValue)
             {
@@ -486,6 +498,48 @@ namespace STMM.Business.Services
 
             var updatedContract = await _contractRepository.GetContractByIdWithDetailsAsync(contractId, ct);
             return _mapper.Map<ContractDto>(updatedContract ?? contract);
+        }
+
+        private async Task CheckAndUpdateExpiredContractsAsync(CancellationToken ct)
+        {
+            var today = DateOnly.FromDateTime(DateTime.Today);
+            
+            // Query active contracts that have expired (EndDate < Today)
+            var expiredContracts = await _contractRepository.Query()
+                .Include(c => c.Stall)
+                .Where(c => c.Status == "Active" && c.EndDate < today && c.IsDeleted != true)
+                .ToListAsync(ct);
+
+            if (expiredContracts.Any())
+            {
+                foreach (var contract in expiredContracts)
+                {
+                    contract.Status = "Expired";
+                    _contractRepository.Update(contract);
+
+                    // Release stall unless there is another active contract on it
+                    var stallId = contract.StallId;
+                    var hasOtherActive = await _contractRepository.Query().AnyAsync(
+                        c => c.StallId == stallId
+                             && c.Status == "Active"
+                             && c.ContractId != contract.ContractId
+                             && c.IsDeleted != true
+                             && c.StartDate <= today,
+                        ct
+                    );
+
+                    if (!hasOtherActive)
+                    {
+                        var stall = await _stallRepository.GetByIdAsync(stallId, ct);
+                        if (stall != null && stall.Status == "Rented")
+                        {
+                            stall.Status = "Available";
+                            _stallRepository.Update(stall);
+                        }
+                    }
+                }
+                await _contractRepository.SaveChangesAsync(ct);
+            }
         }
     }
 }

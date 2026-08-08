@@ -35,6 +35,16 @@ export default function ContractDetailManager({ contractId, navigate, addToast }
   const [uploadingFile, setUploadingFile] = useState(false);
   const fileInputRef = useRef(null);
 
+  // Edit Vendor Info states
+  const [showEditVendorModal, setShowEditVendorModal] = useState(false);
+  const [editVendorData, setEditVendorData] = useState({
+    businessName: "",
+    taxCode: "",
+    bankAccount: "",
+    bankName: "",
+    address: "",
+  });
+
   useEffect(() => {
     if (contractId) {
       fetchContractDetails();
@@ -67,6 +77,13 @@ export default function ContractDetailManager({ contractId, navigate, addToast }
             deposit: data.deposit,
           });
         }
+        setEditVendorData({
+          businessName: data.vendorBusinessName || "",
+          taxCode: data.vendorTaxCode || "",
+          bankAccount: data.vendorBankAccount || "",
+          bankName: data.vendorBankName || "",
+          address: data.vendorAddress || "",
+        });
       } else {
         throw new Error();
       }
@@ -179,17 +196,25 @@ export default function ContractDetailManager({ contractId, navigate, addToast }
   };
 
   const handleFileChange = async (e) => {
-    if (!e.target.files || !e.target.files[0]) return;
-    const file = e.target.files[0];
+    if (!e.target.files || e.target.files.length === 0) return;
     
-    if (file.size > 5 * 1024 * 1024) {
-      addToast("Dung lượng file tối đa là 5MB.", "error");
-      return;
+    const selectedFiles = Array.from(e.target.files);
+    
+    // Check file sizes
+    for (const file of selectedFiles) {
+      if (file.size > 5 * 1024 * 1024) {
+        addToast(`File "${file.name}" vượt quá dung lượng tối đa 5MB.`, "error");
+        return;
+      }
     }
 
     setUploadingFile(true);
     const formData = new FormData();
-    formData.append("files", file);
+    
+    // Append all selected files to the Form Data under the key "files"
+    selectedFiles.forEach(file => {
+      formData.append("files", file);
+    });
 
     try {
       const saveRes = await fetch(`${API_BASE}/${contractId}/files`, {
@@ -209,6 +234,40 @@ export default function ContractDetailManager({ contractId, navigate, addToast }
     } finally {
       setUploadingFile(false);
       if (e.target) e.target.value = '';
+    }
+  };
+
+  const handleEditVendorSubmit = async (e) => {
+    e.preventDefault();
+    setActionLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/${contractId}/vendor-info`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          ...getAuthHeaders()
+        },
+        body: JSON.stringify({
+          businessName: editVendorData.businessName.trim() || null,
+          taxCode: editVendorData.taxCode.trim() || null,
+          bankAccount: editVendorData.bankAccount.trim() || null,
+          bankName: editVendorData.bankName.trim() || null,
+          address: editVendorData.address.trim() || null,
+        })
+      });
+
+      if (res.ok) {
+        addToast("Cập nhật thông tin Bên B thành công!", "success");
+        setShowEditVendorModal(false);
+        fetchContractDetails();
+      } else {
+        const error = await res.json();
+        addToast(error.message || "Không thể cập nhật thông tin Bên B.", "error");
+      }
+    } catch {
+      addToast("Lỗi kết nối máy chủ.", "error");
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -308,6 +367,12 @@ export default function ContractDetailManager({ contractId, navigate, addToast }
                 <span className="detail-value">{formatCurrency(contract.deposit)}</span>
               </div>
               <div className="detail-row">
+                <span className="detail-label">{t('contractdetailmanager.deposit_refunded') || "Đã hoàn cọc / Khấu trừ"}</span>
+                <span className="detail-value" style={{ color: contract.depositRefunded > 0 ? "#10b981" : "inherit", fontWeight: contract.depositRefunded > 0 ? "bold" : "normal" }}>
+                  {formatCurrency(contract.depositRefunded)}
+                </span>
+              </div>
+              <div className="detail-row">
                 <span className="detail-label">{t('contractdetailmanager.initialization_date')}</span>
                 <span className="detail-value">
                   {contract.createdAt ? new Date(contract.createdAt).toLocaleString("vi-VN") : "N/A"}
@@ -343,8 +408,34 @@ export default function ContractDetailManager({ contractId, navigate, addToast }
 
           {/* Card 3: Lessee Info */}
           <div className="detail-card">
-            <div className="card-header">
+            <div className="card-header flex-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <h3>{t('contractdetailmanager.tenant_information_party_b')}</h3>
+              <button 
+                className="btn-edit-vendor" 
+                onClick={() => {
+                  setEditVendorData({
+                    businessName: contract.vendorBusinessName || "",
+                    taxCode: contract.vendorTaxCode || "",
+                    bankAccount: contract.vendorBankAccount || "",
+                    bankName: contract.vendorBankName || "",
+                    address: contract.vendorAddress || "",
+                  });
+                  setShowEditVendorModal(true);
+                }}
+                style={{
+                  padding: "0.25rem 0.75rem",
+                  fontSize: "0.8rem",
+                  background: "rgba(37, 99, 235, 0.1)",
+                  color: "#2563eb",
+                  border: "1px solid rgba(37, 99, 235, 0.2)",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                  fontWeight: "600",
+                  transition: "all 0.2s"
+                }}
+              >
+                ✏️ {t('contractdetailmanager.update_info') || "Cập nhật"}
+              </button>
             </div>
             <div className="card-content">
               <div className="detail-row">
@@ -397,6 +488,7 @@ export default function ContractDetailManager({ contractId, navigate, addToast }
                 ref={fileInputRef}
                 type="file"
                 accept="image/*"
+                multiple
                 onChange={handleFileChange}
                 style={{ display: "none" }}
               />
@@ -564,6 +656,91 @@ export default function ContractDetailManager({ contractId, navigate, addToast }
                   style={{ backgroundColor: "#dc2626" }}
                 >
                   {actionLoading ? t('contractdetailmanager.processing') : t('contractdetailmanager.confirm_termination')}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* EDIT VENDOR MODAL */}
+      {showEditVendorModal && (
+        <div className="modal-overlay-custom no-print">
+          <div className="modal-container-custom">
+            <div className="modal-header-custom">
+              <h3>Cập nhật thông tin Bên B</h3>
+              <button className="btn-close-modal" onClick={() => setShowEditVendorModal(false)}>✕</button>
+            </div>
+            
+            <form onSubmit={handleEditVendorSubmit} className="modal-form-custom">
+              <div className="modal-form-grid">
+                
+                <div className="form-group-custom" style={{ gridColumn: "span 2" }}>
+                  <label>{t('contractdetailmanager.name_of_business_establishment')}</label>
+                  <input
+                    type="text"
+                    value={editVendorData.businessName}
+                    onChange={(e) => setEditVendorData({ ...editVendorData, businessName: e.target.value })}
+                    placeholder="Nhập tên cơ sở kinh doanh..."
+                  />
+                </div>
+
+                <div className="form-group-custom">
+                  <label>{t('contractdetailmanager.tax_code')}</label>
+                  <input
+                    type="text"
+                    value={editVendorData.taxCode}
+                    onChange={(e) => setEditVendorData({ ...editVendorData, taxCode: e.target.value })}
+                    placeholder="Nhập mã số thuế..."
+                  />
+                </div>
+
+                <div className="form-group-custom">
+                  <label>{t('contractdetailmanager.business_registration_address')}</label>
+                  <input
+                    type="text"
+                    value={editVendorData.address}
+                    onChange={(e) => setEditVendorData({ ...editVendorData, address: e.target.value })}
+                    placeholder="Nhập địa chỉ..."
+                  />
+                </div>
+
+                <div className="form-group-custom">
+                  <label>{t('contractdetailmanager.bank_account_number')}</label>
+                  <input
+                    type="text"
+                    value={editVendorData.bankAccount}
+                    onChange={(e) => setEditVendorData({ ...editVendorData, bankAccount: e.target.value })}
+                    placeholder="Nhập số tài khoản..."
+                  />
+                </div>
+
+                <div className="form-group-custom">
+                  <label>{t('contractdetailmanager.at_the_bank')}</label>
+                  <input
+                    type="text"
+                    value={editVendorData.bankName}
+                    onChange={(e) => setEditVendorData({ ...editVendorData, bankName: e.target.value })}
+                    placeholder="Nhập tên ngân hàng..."
+                  />
+                </div>
+
+              </div>
+
+              <div className="modal-actions-custom">
+                <button 
+                  type="button" 
+                  className="btn-cancel" 
+                  onClick={() => setShowEditVendorModal(false)}
+                  disabled={actionLoading}
+                >
+                  {t('contractdetailmanager.cancel')}</button>
+                <button 
+                  type="submit" 
+                  className="btn-submit"
+                  disabled={actionLoading}
+                >
+                  {actionLoading ? t('contractdetailmanager.processing') : "Lưu thay đổi"}
                 </button>
               </div>
             </form>

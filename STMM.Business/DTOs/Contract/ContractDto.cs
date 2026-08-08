@@ -27,6 +27,7 @@ namespace STMM.Business.DTOs.Contract
         public DateOnly EndDate { get; set; }
         public decimal RentFee { get; set; }
         public decimal Deposit { get; set; }
+        public decimal DepositRefunded { get; set; }
         public string? Status { get; set; }
         public DateTime? CreatedAt { get; set; }
         
