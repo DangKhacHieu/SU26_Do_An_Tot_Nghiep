@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import './UserDetailAdminSystem.css';
 
-const API_BASE = "http://localhost:5056/api/admin/users";
+const API_BASE = `${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/admin/users`;
 
 /* ── Role config ── */
 const ROLE_CONFIG = {

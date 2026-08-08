@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { getAuthHeaders } from '../../utils/authHeaders';
 import './ContentFormManager.css';
 
-const API_BASE = "http://localhost:5056/api/manager/contents";
+const API_BASE = `${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/manager/contents`;
 
 export default function ContentFormManager({ contentId, navigate, addToast }) {
   const { t } = useTranslation();
@@ -38,7 +38,7 @@ export default function ContentFormManager({ contentId, navigate, addToast }) {
   const fetchUsersByRole = async (role) => {
     setLoadingUsers(true);
     try {
-      const res = await fetch(`http://localhost:5056/api/manager/users?roleName=${role}`, { headers: getAuthHeaders() });
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/manager/users?roleName=${role}`, { headers: getAuthHeaders() });
       if (res.ok) {
         const data = await res.json();
         setUsers(data);

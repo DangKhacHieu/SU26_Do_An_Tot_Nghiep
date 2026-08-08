@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:5056/api/stalls';
+const API_BASE_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/stalls`;
 
 export const getAllStalls = async () => {
     const response = await axios.get(API_BASE_URL);
@@ -47,7 +47,7 @@ export const deactivateStall = async (id) => {
 };
 
 export const getUnassignedMeters = async (type) => {
-    const url = type ? `http://localhost:5056/api/meters/unassigned?type=${type}` : `http://localhost:5056/api/meters/unassigned`;
+    const url = type ? `${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/meters/unassigned?type=${type}` : `${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/meters/unassigned`;
     const response = await axios.get(url);
     return response.data;
 };

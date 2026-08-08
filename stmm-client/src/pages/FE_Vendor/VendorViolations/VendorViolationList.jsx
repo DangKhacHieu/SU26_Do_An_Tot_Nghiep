@@ -25,7 +25,7 @@ export default function VendorViolationList({ stallId }) {
         try {
             setLoading(true);
             const token = localStorage.getItem('accessToken');
-            const response = await axios.get('http://localhost:5056/api/vendor/violations', {
+            const response = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/vendor/violations`, {
                 headers: { Authorization: `Bearer ${token}` },
                 params: {
                     searchTerm: searchTerm,

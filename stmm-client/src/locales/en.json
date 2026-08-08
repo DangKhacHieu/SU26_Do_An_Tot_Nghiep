@@ -4693,7 +4693,9 @@
     "recorded_date_must_be": "Recorded Date must be in YYYY-MM-DD format.",
     "an_evidence_photo_of": "An evidence photo of the meter face is required.",
     "unable_to_save_meter": "Unable to save meter reading.",
-    "upload_error": "Upload Error"
+    "upload_error": "Upload Error",
+    "save_reading_success": "Meter reading saved successfully!",
+    "please_check_and_fix": "Please check and fix the invalid fields below."
   },
   "stallinvoicedetail": {
     "fees": "Fees:",
@@ -4751,7 +4753,8 @@
     "evidence_must_be_an": "Evidence must be an image file under 5MB.",
     "uploading_image": "Uploading image...",
     "unable_to_upload_image": "Unable to upload image.",
-    "complete_all_required_fields": "Complete all required fields and attach an evidence image."
+    "complete_all_required_fields": "Complete all required fields and attach an evidence image.",
+    "please_check_and_fix": "Please check and fix the invalid fields below."
   },
   "violationdetails": {
     "loading_violation_details": "Loading violation details...",
@@ -4823,7 +4826,10 @@
     "loading_stalls": "Loading stalls...",
     "select_a_stall": "Select a stall",
     "submitting": "Submitting...",
-    "submit_report": "Submit Report"
+    "submit_report": "Submit Report",
+    "issue_created_success": "Issue report submitted successfully!",
+    "please_check_and_fix": "Please check and fix the invalid fields below.",
+    "under_maintenance": "Under Maintenance"
   },
   "meterreadinghistory": {
     "all_utilities": "All Utilities",
@@ -5007,7 +5013,9 @@
     "confirm_collection": "Confirm Collection",
     "cash_collection_stall": "Cash Collection - Stall {{stallCode}}",
     "invoice_month": "Invoice Month {{month}}/{{year}}",
-    "due_date": "Due Date"
+    "due_date": "Due Date",
+    "confirm_cash_title": "Confirm Cash Collection",
+    "confirm_cash_text": "Are you sure you have collected this cash amount in full from the vendor?"
   },
   "quotationpanel": {
     "submit_for_approval": "Submit for Approval",
@@ -5026,25 +5034,28 @@
     "confirm": "CONFIRM",
     "enter_price": "Enter price...",
     "delete_line_item": "Delete line item",
-    "unable_to_load_quotation": "Unable to load quotation details.",
-    "error_loading_material_catalog": "Error loading material catalog:",
-    "please_select_a_material": "Please select a material above to add.",
-    "quantity_must_be_greater": "Quantity must be greater than 0.",
-    "please_enter_a_valid": "Please enter a valid unit price for the custom item.",
-    "unable_to_add_material": "Unable to add material.",
-    "material_added_successfully": "Material added successfully.",
-    "unable_to_remove_material": "Unable to remove material.",
-    "material_removed_successfully": "Material removed successfully.",
+    "unable_to_load_quotation": "Unable to load quotation information",
+    "error_loading_material_catalog": "Error loading material catalog",
+    "please_select_a_material": "Please select a material",
+    "quantity_must_be_greater": "Quantity must be greater than 0",
+    "please_enter_a_valid": "Please enter a valid unit price",
+    "unable_to_add_material": "Unable to add material",
+    "material_added_successfully": "Material added to quotation successfully!",
+    "unable_to_remove_material": "Unable to remove material",
+    "material_removed_successfully": "Material removed from quotation successfully!",
     "remove_this_material_from": "Remove this material from the quotation?",
-    "unable_to_submit_quotation": "Unable to submit quotation for approval.",
-    "quotation_has_been_submitted": "Quotation has been submitted for approval successfully!",
-    "the_quotation_must_contain": "The quotation must contain at least one material item before submission.",
-    "the_quotation_will_be": "The quotation will be sent to the Manager to determine who pays. Materials will be locked until a decision is made.",
+    "unable_to_submit_quotation": "Unable to submit quotation",
+    "quotation_has_been_submitted": "Quotation has been submitted to Manager successfully!",
+    "the_quotation_must_contain": "The quotation must contain at least 1 material",
+    "the_quotation_will_be": "The quotation will be submitted to Manager for approval. You will not be able to edit it after submission.",
     "sending": "Sending...",
     "custom_price": "Custom Price",
     "adding": "Adding...",
     "repair_materials_quotation": "Repair Materials & Parts Quotation",
-    "select_from_catalog": "Select from Material Catalog"
+    "select_from_catalog": "Select from Material Catalog",
+    "remove_material_title": "Remove Material",
+    "remove_material_message": "Are you sure you want to remove this material from the quotation?",
+    "submit_quotation_title": "Submit Quotation"
   },
   "utilitychecklist": {
     "utility_meter_checklist": "Utility Meter Checklist",
@@ -5140,32 +5151,38 @@
     "report_task_completion": "Report Task Completion",
     "before_photo": "Before Photo",
     "after_photo": "After Photo",
-    "drag_and_drop_an": "Drag and drop photo here or ",
-    "click_to_select": "click to browse",
-    "jpg_png_or_webp": "Supports JPG, PNG, or WEBP (Max 5MB)",
+    "drag_and_drop_an": "Drag & drop an image here or ",
+    "click_to_select": "click to select",
+    "jpg_png_or_webp": "JPG, PNG, or WEBP format (Max 5MB)",
     "no_photo_attached_yet": "No photo attached yet",
     "meter_reading_progress": "Meter Reading Progress",
     "complete_every_stall_reading": "Please record readings for every stall before confirming completion.",
     "completion_notes_optional": "Completion Notes (Optional)",
     "add_completion_details_quality": "Add completion details, quality notes, or parts used...",
     "task_pending_lock_hint": "Completion notes and submission are available only when the task is In Progress (or when utility checklist is completed).",
-    "task_locked_hint": "Task must be In Progress (or utility checklist completed) to confirm completion.",
+    "task_locked_hint": "Task must be in In Progress status (or completed utility checklist) to report completion.",
     "confirm_completion": "Confirm Completion",
     "submitting": "Submitting...",
     "uploading_image": "Uploading image...",
     "error": "Error:",
     "unable_to_complete_the": "Unable to complete the task.",
-    "only_image_files_are": "Only image files are supported.",
-    "please_provide_a_before": "Please provide a before photo.",
-    "please_provide_an_after": "Please provide an after photo.",
-    "record_readings_for_every": "Record readings for every stall before completing this task.",
-    "task_completed_successfully": "Task completed successfully.",
-    "photos_only_while_in_progress": "Evidence photos can only be attached while the task is in progress.",
-    "attach_all_required_evidence": "Please review and attach all the required evidence photos below."
+    "only_image_files_are": "Only image files are allowed.",
+    "please_provide_a_before": "Please attach a before-repair photo.",
+    "please_provide_an_after": "Please attach an after-completion photo.",
+    "record_readings_for_every": "Please record utility readings for all stalls in this area before completing.",
+    "task_completed_successfully": "Task completion reported successfully!",
+    "photos_only_while_in_progress": "Evidence photos can only be attached while task is in progress.",
+    "attach_all_required_evidence": "Please check and attach all required evidence photos below.",
+    "before_repair": "Before Repair Photo",
+    "after_repair": "After Completion Photo",
+    "completion_notes": "Completion Notes",
+    "add_notes_about_materials": "Add notes about materials used, process, or results...",
+    "complete_task": "Complete Task",
+    "file_exceeds_limit": "{{fileName}} exceeds the 5MB limit."
   },
   "staffnotifications": {
     "notifications": "Notifications",
-    "page_subtitle": "View and manage all your task, issue, and violation notifications.",
+    "page_subtitle": "View and manage all task, issue, and violation notifications.",
     "all": "All",
     "unread": "Unread",
     "unread_count": "{{count}} unread",
@@ -5192,7 +5209,9 @@
     "read": "Read",
     "new": "New",
     "notification_button": "Open notifications",
-    "notification_button_unread": "Open notifications, {{count}} unread"
+    "notification_button_unread": "Open notifications, {{count}} unread",
+    "search_placeholder": "Search notifications...",
+    "no_search_results": "No matching notifications found"
   },
   "meterdetail": {
     "loading_meter_details": "Loading meter details...",
@@ -5209,7 +5228,8 @@
     "na": "N/A",
     "active": "ACTIVE",
     "inactive_replaced": "INACTIVE / REPLACED",
-    "meter_details_label": "METER DETAILS"
+    "meter_details_label": "METER DETAILS",
+    "in_warehouse": "Not installed (in warehouse)"
   },
   "stalllist": {
     "all": "All",
@@ -5326,7 +5346,8 @@
     "assigned": "assigned",
     "showing": "Showing",
     "of": "of",
-    "page": "Page"
+    "page": "Page",
+    "all": "All"
   },
   "marketAreaList": {
     "market_floor_plan": "MARKET FLOOR PLAN",

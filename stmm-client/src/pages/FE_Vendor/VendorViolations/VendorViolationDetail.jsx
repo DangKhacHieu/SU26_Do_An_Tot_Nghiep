@@ -15,7 +15,7 @@ export default function VendorViolationDetail({ violationId, onBack, onSuccess }
         const fetchViolationDetail = async () => {
             try {
                 const token = localStorage.getItem('accessToken');
-                const response = await axios.get(`http://localhost:5056/api/vendor/violations/${violationId}`, {
+                const response = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/vendor/violations/${violationId}`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 setViolation(response.data);

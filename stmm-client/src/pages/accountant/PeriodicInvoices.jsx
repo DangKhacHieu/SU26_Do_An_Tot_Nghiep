@@ -55,7 +55,7 @@ export default function PeriodicInvoices() {
   useEffect(() => {
     // Fetch auto-generate configuration
     const headers = { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` };
-    fetch('http://localhost:5056/api/accountant/config/system-configs', { headers })
+    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/accountant/config/system-configs`, { headers })
       .then(r => { if (r.status === 401) { localStorage.removeItem('accessToken'); window.location.href = '/login'; throw new Error('401'); } if (!r.ok) throw new Error(r.statusText); return r.json(); })
       .then(configs => {
         const autoInvoiceDay = configs.find(c => c.configKey === 'auto_invoice_day')?.configValue || '5';
@@ -139,7 +139,7 @@ export default function PeriodicInvoices() {
     const headers = { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` };
     
     try {
-      const url = `http://localhost:5056/api/accountant/billing/trigger-auto-generate?month=${currentMonth}&year=${currentYear}`;
+      const url = `${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/accountant/billing/trigger-auto-generate?month=${currentMonth}&year=${currentYear}`;
       const response = await fetch(url, { method: 'POST', headers });
       
       if (!response.ok) {
@@ -174,7 +174,7 @@ export default function PeriodicInvoices() {
         }
         
         // Fetch stalls filtered by marketId
-        const url = marketId ? `http://localhost:5056/api/stalls?marketId=${marketId}` : 'http://localhost:5056/api/stalls';
+        const url = marketId ? `${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/stalls?marketId=${marketId}` : `${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/stalls`;
         fetch(url, { headers }).then(r => { if (r.status === 401) { localStorage.removeItem('accessToken'); window.location.href = '/login'; throw new Error('401'); } if (!r.ok) throw new Error(r.statusText); return r.json(); }).then(data => {
             if (Array.isArray(data)) {
               // Lọc chỉ lấy những sạp đang có người thuê (Rented) - tức là có hợp đồng
@@ -184,7 +184,7 @@ export default function PeriodicInvoices() {
         }).catch(() => {});
       }
       if (availableFeeTypes.length === 0) {
-        fetch('http://localhost:5056/api/accountant/config/fee-types', { headers }).then(r => { if (r.status === 401) { localStorage.removeItem('accessToken'); window.location.href = '/login'; throw new Error('401'); } if (!r.ok) throw new Error(r.statusText); return r.json(); }).then(data => {
+        fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/accountant/config/fee-types`, { headers }).then(r => { if (r.status === 401) { localStorage.removeItem('accessToken'); window.location.href = '/login'; throw new Error('401'); } if (!r.ok) throw new Error(r.statusText); return r.json(); }).then(data => {
             if (Array.isArray(data)) setAvailableFeeTypes(data);
         }).catch(() => {});
       }
@@ -210,7 +210,7 @@ export default function PeriodicInvoices() {
     if (month && month !== 'all') queryObj.month = month;
     if (year && year !== 'all') queryObj.year = year;
     const q = new URLSearchParams(queryObj).toString();
-    fetch(`http://localhost:5056/api/accountant/billing/invoices?${q}`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` } })
+    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/accountant/billing/invoices?${q}`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` } })
       .then(res => { if (res.status === 401) { localStorage.removeItem('accessToken'); window.location.href = '/login'; throw new Error('401'); } if (!res.ok) throw new Error(); return res.json(); })
       .then(data => { setInvoices(data); setIsMock(false); setLoading(false); })
       .catch(() => {
@@ -270,7 +270,7 @@ export default function PeriodicInvoices() {
 
   const openDetails = (invoice) => {
     if (isMock) { setSelectedInvoice(invoice); setActiveModal('details'); }
-    else fetch(`http://localhost:5056/api/accountant/billing/invoices/${invoice.invoiceId}`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` } })
+    else fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/accountant/billing/invoices/${invoice.invoiceId}`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` } })
       .then(r => { if (r.status === 401) { localStorage.removeItem('accessToken'); window.location.href = '/login'; throw new Error('401'); } if (!r.ok) throw new Error(r.statusText); return r.json(); }).then(d => { setSelectedInvoice(d); setActiveModal('details'); })
       .catch(() => { setSelectedInvoice(invoice); setActiveModal('details'); });
   };
@@ -315,7 +315,7 @@ export default function PeriodicInvoices() {
       showNotification('success', t('periodicinvoices.updated_indexes_and_recalculated'));
       setActiveModal(null);
     } else {
-      fetch(`http://localhost:5056/api/accountant/billing/meter-readings/adjust?userId=1`, {
+      fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/accountant/billing/meter-readings/adjust?userId=1`, {
         method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` },
         body: JSON.stringify({ stallId: selectedInvoice.stallId, meterType: adjustForm.meterType, month: selectedInvoice.month, year: selectedInvoice.year, oldValue: adjustForm.oldValue, newValue: adjustForm.newValue, reason: 'Điều chỉnh chỉ số', imageUrl: 'https://dummyimage.com/600x400/000/fff&text=Proof' })
       }).then(async r => { 
@@ -357,7 +357,7 @@ export default function PeriodicInvoices() {
       showNotification('success', t('periodicinvoices.successfully_created_unexpected_invoices'));
       setActiveModal(null);
     } else {
-      fetch('http://localhost:5056/api/accountant/billing/invoices/ad-hoc', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` }, body: JSON.stringify(adhocForm) })
+      fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/accountant/billing/invoices/ad-hoc`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` }, body: JSON.stringify(adhocForm) })
         .then(async r => { 
           if (!r.ok) {
             const errData = await r.json().catch(() => ({}));
@@ -378,7 +378,7 @@ export default function PeriodicInvoices() {
       setSelectedIds([]); setActiveModal(null);
       showNotification('success', t('periodicinvoices.selectedidslength_invoice_issued_successfully', { count }));
     } else {
-      fetch('http://localhost:5056/api/accountant/billing/invoices/bulk-approve', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` }, body: JSON.stringify({ invoiceIds: selectedIds }) })
+      fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/accountant/billing/invoices/bulk-approve`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` }, body: JSON.stringify({ invoiceIds: selectedIds }) })
         .then(async r => { 
           if (!r.ok) {
             const errData = await r.json().catch(() => ({}));
@@ -407,7 +407,7 @@ export default function PeriodicInvoices() {
       showNotification('success', t('periodicinvoices.invoice_canceled_successfully_mock'));
       setActiveModal(null);
     } else {
-      fetch(`http://localhost:5056/api/accountant/billing/invoices/${selectedInvoice.invoiceId}/cancel`, {
+      fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/accountant/billing/invoices/${selectedInvoice.invoiceId}/cancel`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` },
         body: JSON.stringify({ reason: cancelReason })

@@ -208,7 +208,7 @@ export default function RecordMeterReadingModal({
     setSubmitError(null);
 
     if (!validateForm()) {
-      setSubmitError('Please check and fix the invalid fields below.');
+      setSubmitError(t('recordmeterreadingmodal.please_check_and_fix', 'Vui lòng kiểm tra và sửa các trường chưa hợp lệ bên dưới.'));
       return;
     }
 

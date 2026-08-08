@@ -18,7 +18,7 @@ export default function VendorRequestDetail({ requestId, onBack, onSuccess }) {
         const fetchRequestDetail = async () => {
             try {
                 const token = localStorage.getItem('accessToken');
-                const response = await axios.get(`http://localhost:5056/api/vendor/requests/${requestId}`, {
+                const response = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/vendor/requests/${requestId}`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 setRequest(response.data);
@@ -45,7 +45,7 @@ export default function VendorRequestDetail({ requestId, onBack, onSuccess }) {
         setIsCancelling(true);
         try {
             const token = localStorage.getItem('accessToken');
-            await axios.post(`http://localhost:5056/api/vendor/requests/${requestId}/cancel`, {}, {
+            await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/vendor/requests/${requestId}/cancel`, {}, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             await showSuccess(t('vendorrequestdetail.success'), t('vendorrequestdetail.request_canceled_successfully'));
@@ -94,7 +94,7 @@ export default function VendorRequestDetail({ requestId, onBack, onSuccess }) {
         setIsResolvingQuote(true);
         try {
             const token = localStorage.getItem('accessToken');
-            await axios.post(`http://localhost:5056/api/vendor/requests/${requestId}/resolve-quote`, 
+            await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/vendor/requests/${requestId}/resolve-quote`, 
             {
                 isApproved: approve,
                 reason: reason

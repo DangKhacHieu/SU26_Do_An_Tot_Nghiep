@@ -73,9 +73,9 @@ export default function PaymentVerification() {
       } catch (e) {}
     }
     Promise.all([
-      fetch(`http://localhost:5056/api/accountant/payments/pending?userId=${userIdStr}`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` } }).then(r => { if (r.status === 401) { localStorage.removeItem('accessToken'); window.location.href = '/login'; throw new Error('401'); } if (!r.ok) throw new Error(); return r.json(); }),
-      fetch(`http://localhost:5056/api/accountant/payments/debts?userId=${userIdStr}`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` } }).then(r => { if (r.status === 401) { localStorage.removeItem('accessToken'); window.location.href = '/login'; throw new Error('401'); } if (!r.ok) throw new Error(); return r.json(); }),
-      fetch(`http://localhost:5056/api/accountant/payments/disputes?userId=${userIdStr}`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` } }).then(r => { if (r.status === 401) { localStorage.removeItem('accessToken'); window.location.href = '/login'; throw new Error('401'); } if (!r.ok) throw new Error(); return r.json(); })
+      fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/accountant/payments/pending?userId=${userIdStr}`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` } }).then(r => { if (r.status === 401) { localStorage.removeItem('accessToken'); window.location.href = '/login'; throw new Error('401'); } if (!r.ok) throw new Error(); return r.json(); }),
+      fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/accountant/payments/debts?userId=${userIdStr}`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` } }).then(r => { if (r.status === 401) { localStorage.removeItem('accessToken'); window.location.href = '/login'; throw new Error('401'); } if (!r.ok) throw new Error(); return r.json(); }),
+      fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/accountant/payments/disputes?userId=${userIdStr}`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` } }).then(r => { if (r.status === 401) { localStorage.removeItem('accessToken'); window.location.href = '/login'; throw new Error('401'); } if (!r.ok) throw new Error(); return r.json(); })
     ])
       .then(([pay, debt, disp]) => { setPayments(pay); setDebts(debt); setDisputes(disp); setLoading(false); })
       .catch(() => { setTimeout(() => { setPayments(getMockPayments()); setDebts(getMockDebts()); setDisputes(getMockDisputes()); setIsMock(true); setLoading(false); }, 500); });
@@ -126,7 +126,7 @@ export default function PaymentVerification() {
   const handleApprovePayment = (pay) => {
     if (!window.confirm(t('paymentverification.confirm_transaction_approval_paytransactioncode', { transactionCode: pay.transactionCode, amount: formatCurrency(pay.amount) }))) return;
     if (isMock) { setPayments(p => p.map(x => x.paymentId === pay.paymentId ? { ...x, status: 'Approved' } : x)); showNotification('success', t('paymentverification.successful_transaction_confirmed')); }
-    else fetch(`http://localhost:5056/api/accountant/payments/${pay.paymentId}/verify?userId=1`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` }, body: JSON.stringify({ approve: true }) })
+    else fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/accountant/payments/${pay.paymentId}/verify?userId=1`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` }, body: JSON.stringify({ approve: true }) })
       .then(r => { if (r.status === 401) { localStorage.removeItem('accessToken'); window.location.href = '/login'; throw new Error('401'); } if (!r.ok) throw new Error(); showNotification('success', t('paymentverification.successful_payment_confirmation')); loadAllData(); })
       .catch(() => showNotification('danger', t('paymentverification.unable_to_approve_payment')));
   };
@@ -142,7 +142,7 @@ export default function PaymentVerification() {
     }
     
     if (isMock) { setPayments(p => p.filter(x => x.paymentId !== selectedItem.paymentId)); showNotification('success', t('paymentverification.selecteditemtransactioncode_transaction_declined')); setActiveModal(null); }
-    else fetch(`http://localhost:5056/api/accountant/payments/${selectedItem.paymentId}/verify?userId=1`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` }, body: JSON.stringify({ approve: false, rejectionNote }) })
+    else fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/accountant/payments/${selectedItem.paymentId}/verify?userId=1`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` }, body: JSON.stringify({ approve: false, rejectionNote }) })
       .then(r => { if (r.status === 401) { localStorage.removeItem('accessToken'); window.location.href = '/login'; throw new Error('401'); } if (!r.ok) throw new Error(); showNotification('success', t('paymentverification.payment_refused')); setActiveModal(null); loadAllData(); })
       .catch(() => showNotification('danger', t('paymentverification.payment_cannot_be_refused')));
   };
@@ -150,13 +150,13 @@ export default function PaymentVerification() {
   const handleViewOriginalInvoice = (invoiceId, stallCode) => {
     setLoadingPopup(true); setSelectedItem({ invoiceId, stallCode }); setActiveModal('invoice_detail');
     if (isMock) { setSelectedInvoiceDetail(getMockInvoiceDetail(invoiceId)); setLoadingPopup(false); }
-    else fetch(`http://localhost:5056/api/accountant/billing/invoices/${invoiceId}`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` } }).then(r => { if (r.status === 401) { localStorage.removeItem('accessToken'); window.location.href = '/login'; throw new Error('401'); } if (!r.ok) throw new Error(r.statusText); return r.json(); }).then(d => { setSelectedInvoiceDetail(d); setLoadingPopup(false); }).catch(() => { setSelectedInvoiceDetail(getMockInvoiceDetail(invoiceId)); setLoadingPopup(false); });
+    else fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/accountant/billing/invoices/${invoiceId}`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` } }).then(r => { if (r.status === 401) { localStorage.removeItem('accessToken'); window.location.href = '/login'; throw new Error('401'); } if (!r.ok) throw new Error(r.statusText); return r.json(); }).then(d => { setSelectedInvoiceDetail(d); setLoadingPopup(false); }).catch(() => { setSelectedInvoiceDetail(getMockInvoiceDetail(invoiceId)); setLoadingPopup(false); });
   };
 
   const handleViewDebtDetail = (debt) => {
     setLoadingPopup(true); setSelectedItem(debt); setActiveModal('debt_detail');
     if (isMock) { setSelectedInvoiceDetail(getMockStallDebtDetail(debt.stallId)); setLoadingPopup(false); }
-    else fetch(`http://localhost:5056/api/accountant/payments/debts/${debt.stallId}`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` } }).then(r => { if (r.status === 401) { localStorage.removeItem('accessToken'); window.location.href = '/login'; throw new Error('401'); } if (!r.ok) throw new Error(r.statusText); return r.json(); }).then(d => { setSelectedInvoiceDetail(d); setLoadingPopup(false); }).catch(() => { setSelectedInvoiceDetail(getMockStallDebtDetail(debt.stallId)); setLoadingPopup(false); });
+    else fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/accountant/payments/debts/${debt.stallId}`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` } }).then(r => { if (r.status === 401) { localStorage.removeItem('accessToken'); window.location.href = '/login'; throw new Error('401'); } if (!r.ok) throw new Error(r.statusText); return r.json(); }).then(d => { setSelectedInvoiceDetail(d); setLoadingPopup(false); }).catch(() => { setSelectedInvoiceDetail(getMockStallDebtDetail(debt.stallId)); setLoadingPopup(false); });
   };
 
   const handlePrintStatement = () => {
@@ -222,7 +222,7 @@ export default function PaymentVerification() {
   const submitSendReminder = (e) => {
     e.preventDefault();
     if (isMock) { showNotification('success', t('paymentverification.debt_reminder_sent_to')); setActiveModal(null); }
-    else fetch('http://localhost:5056/api/accountant/payments/debts/notify?userId=1', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` }, body: JSON.stringify({ stallId: selectedItem.stallId, customMessage: reminderMessage }) })
+    else fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/accountant/payments/debts/notify?userId=1`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` }, body: JSON.stringify({ stallId: selectedItem.stallId, customMessage: reminderMessage }) })
       .then(r => { if (r.status === 401) { localStorage.removeItem('accessToken'); window.location.href = '/login'; throw new Error('401'); } if (!r.ok) throw new Error(); showNotification('success', t('paymentverification.debt_reminder_sent_successfully')); setActiveModal(null); })
       .catch(() => showNotification('danger', t('paymentverification.sending_debt_reminder_failed')));
   };
@@ -241,7 +241,7 @@ export default function PaymentVerification() {
       if (isMock) {
         setSelectedInvoiceDetail(getMockInvoiceDetail(dispute.invoiceId));
       } else {
-        fetch(`http://localhost:5056/api/accountant/billing/invoices/${dispute.invoiceId}`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` } })
+        fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/accountant/billing/invoices/${dispute.invoiceId}`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` } })
           .then(r => r.json())
           .then(d => setSelectedInvoiceDetail(d))
           .catch(() => setSelectedInvoiceDetail(null));
@@ -282,7 +282,7 @@ export default function PaymentVerification() {
     }
     
     if (isMock) { setDisputes(d => d.map(x => x.requestId === selectedItem.requestId ? { ...x, status: disputeApprove ? 'Approved' : 'Rejected' } : x)); showNotification('success', t('paymentverification.dispute_resolved_success', { action: disputeApprove ? t('paymentverification.accept') : t('paymentverification.refuse') })); setActiveModal(null); }
-    else fetch(`http://localhost:5056/api/accountant/payments/disputes/${selectedItem.requestId}/resolve?userId=1`, { 
+    else fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/accountant/payments/disputes/${selectedItem.requestId}/resolve?userId=1`, { 
       method: 'POST', 
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` }, 
       body: JSON.stringify({ 

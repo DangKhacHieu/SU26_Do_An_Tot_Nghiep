@@ -2,9 +2,9 @@ import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from "react";
 import "./ContractFormManager.css";
 
-const API_STALLS = "http://localhost:5056/api/manager/contracts/available-stalls";
-const API_VENDORS = "http://localhost:5056/api/manager/contracts/vendors";
-const API_CONTRACTS = "http://localhost:5056/api/manager/contracts";
+const API_STALLS = `${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/manager/contracts/available-stalls`;
+const API_VENDORS = `${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/manager/contracts/vendors`;
+const API_CONTRACTS = `${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/manager/contracts`;
 
 const getAuthHeaders = () => ({
   "Authorization": `Bearer ${localStorage.getItem('accessToken') || localStorage.getItem('token')}`

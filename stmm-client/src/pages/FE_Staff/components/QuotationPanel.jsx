@@ -156,8 +156,8 @@ export default function QuotationPanel({ taskId, baseUrl, taskStatus, initialMat
     setConfirmModal({
       isOpen: true,
       type: 'danger',
-      title: 'Remove material',
-      message: 'Remove this material from the quotation?',
+      title: t('quotationpanel.remove_material_title', 'Xóa vật tư'),
+      message: t('quotationpanel.remove_material_message', 'Bạn có chắc muốn xóa vật tư này khỏi báo giá?'),
       onConfirm: () => executeRemoveMaterial(materialId)
     });
   };
@@ -192,7 +192,7 @@ export default function QuotationPanel({ taskId, baseUrl, taskStatus, initialMat
     setConfirmModal({
       isOpen: true,
       type: 'primary',
-      title: 'Submit quotation',
+      title: t('quotationpanel.submit_quotation_title', 'Gửi báo giá'),
       message: t('quotationpanel.the_quotation_will_be'),
       onConfirm: executeSubmitQuotation
     });

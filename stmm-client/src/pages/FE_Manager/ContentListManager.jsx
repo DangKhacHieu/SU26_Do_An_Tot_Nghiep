@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { getAuthHeaders } from '../../utils/authHeaders';
 import './ContentListManager.css';
 
-const API_BASE = "http://localhost:5056/api/manager/contents";
+const API_BASE = `${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/manager/contents`;
 
 const TARGET_ROLE_LABELS = {
   Public: 'Trang chủ (Guest & Customer)',
