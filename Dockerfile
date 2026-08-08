@@ -8,8 +8,9 @@ COPY STMM.API/STMM.API.csproj STMM.API/
 COPY STMM.Business/STMM.Business.csproj STMM.Business/
 COPY STMM.DataAccess/STMM.DataAccess.csproj STMM.DataAccess/
 
-# Restore NuGet packages
-RUN dotnet restore STMM.sln
+# Restore NuGet packages for the API and its dependencies
+RUN dotnet restore STMM.API/STMM.API.csproj
+
 
 # Copy the rest of the source code
 COPY STMM.API/ STMM.API/
