@@ -67,7 +67,7 @@ export default function DashboardManager({ addToast, navigate, baseUrl, user }) 
       });
     } catch (e) {
       console.error(e);
-      addToast('Không thể tải đầy đủ thông tin thống kê. Kiểm tra kết nối API backend.', 'error');
+      addToast(t('dashboardmanager.unable_to_download_full'), 'error');
     } finally {
       setLoading(false);
     }
@@ -130,7 +130,7 @@ export default function DashboardManager({ addToast, navigate, baseUrl, user }) 
   // Excel Export Logic
   const handleExportExcel = () => {
     if (loading) {
-      addToast("Đang tải dữ liệu, vui lòng đợi...", "warning");
+      addToast(t('dashboardmanager.loading_data_please_wait'), "warning");
       return;
     }
 
@@ -342,7 +342,7 @@ export default function DashboardManager({ addToast, navigate, baseUrl, user }) 
     link.click();
     document.body.removeChild(link);
 
-    addToast("Xuất báo cáo Excel thành công!", "success");
+    addToast(t('dashboardmanager.export_excel_success'), "success");
   };
 
   // Render circular progress ring

@@ -66,7 +66,7 @@ export default function FaqListManager({ navigate, addToast }) {
         throw new Error();
       }
     } catch {
-      addToast('Không thể tải danh sách câu hỏi thường gặp (FAQs).', 'error');
+      addToast(t('faqlistmanager.the_list_of_frequently'), 'error');
     } finally {
       setLoading(false);
     }
@@ -78,15 +78,15 @@ export default function FaqListManager({ navigate, addToast }) {
     try {
       const res = await fetch(`${API_BASE}/${targetFaq.faqId}`, { method: 'DELETE' });
       if (res.ok) {
-        addToast('Xóa câu hỏi thường gặp thành công!', 'success');
+        addToast(t('faqlistmanager.delete_faq_success'), 'success');
         setDeleteModalOpen(false);
         setTargetFaq(null);
         fetchFaqs();
       } else {
-        addToast('Lỗi máy chủ khi xóa FAQ.', 'error');
+        addToast(t('faqlistmanager.server_error_delete_faq'), 'error');
       }
     } catch {
-      addToast('Lỗi kết nối. Vui lòng thử lại.', 'error');
+      addToast(t('businesscategorylistmanager.connection_error_please_try'), 'error');
     } finally {
       setActionLoading(false);
     }

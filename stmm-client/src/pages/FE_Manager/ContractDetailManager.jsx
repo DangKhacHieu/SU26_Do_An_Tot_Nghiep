@@ -88,7 +88,7 @@ export default function ContractDetailManager({ contractId, navigate, addToast }
         throw new Error();
       }
     } catch {
-      addToast("Không thể tải thông tin chi tiết hợp đồng.", "error");
+      addToast(t('contractdetailmanager.unable_to_load_contract_details'), "error");
     } finally {
       setLoading(false);
     }
@@ -109,7 +109,7 @@ export default function ContractDetailManager({ contractId, navigate, addToast }
       });
 
       if (res.ok) {
-        addToast("Hợp đồng đã chấm dứt thành công và giải phóng mặt bằng.", "success");
+        addToast(t('contractdetailmanager.terminate_contract_success'), "success");
         setShowTerminateModal(false);
         fetchContractDetails();
       } else {
@@ -117,7 +117,7 @@ export default function ContractDetailManager({ contractId, navigate, addToast }
         addToast(error.message || t('contractdetailmanager.error_when_terminating_the'), "error");
       }
     } catch {
-      addToast("Lỗi kết nối máy chủ.", "error");
+      addToast(t('contractdetailmanager.server_connection_error'), "error");
     } finally {
       setActionLoading(false);
     }
@@ -177,7 +177,7 @@ export default function ContractDetailManager({ contractId, navigate, addToast }
       const data = await res.json();
 
       if (res.ok) {
-        addToast("Gia hạn hợp đồng thành công! Hợp đồng mới đã được khởi tạo.", "success");
+        addToast(t('contractdetailmanager.renew_contract_success'), "success");
         setShowRenewModal(false);
         // Navigate to the newly created renewed contract
         navigate("contract-detail", data.contractId);
@@ -185,7 +185,7 @@ export default function ContractDetailManager({ contractId, navigate, addToast }
         addToast(data.message || t('contractdetailmanager.contract_renewal_error'), "error");
       }
     } catch {
-      addToast("Lỗi kết nối máy chủ.", "error");
+      addToast(t('contractdetailmanager.server_connection_error'), "error");
     } finally {
       setActionLoading(false);
     }
@@ -203,7 +203,7 @@ export default function ContractDetailManager({ contractId, navigate, addToast }
     // Check file sizes
     for (const file of selectedFiles) {
       if (file.size > 5 * 1024 * 1024) {
-        addToast(`File "${file.name}" vượt quá dung lượng tối đa 5MB.`, "error");
+        addToast(t('contractdetailmanager.file_exceeds_size', { name: file.name }), "error");
         return;
       }
     }
@@ -224,7 +224,7 @@ export default function ContractDetailManager({ contractId, navigate, addToast }
       });
 
       if (saveRes.ok) {
-        addToast("Tải bản quét đã ký lên thành công!", "success");
+        addToast(t('contractdetailmanager.upload_scan_success'), "success");
         fetchContractDetails();
       } else {
         throw new Error(t('contractdetailmanager.upload_failed'));
@@ -257,15 +257,15 @@ export default function ContractDetailManager({ contractId, navigate, addToast }
       });
 
       if (res.ok) {
-        addToast("Cập nhật thông tin Bên B thành công!", "success");
+        addToast(t('contractdetailmanager.update_party_b_success'), "success");
         setShowEditVendorModal(false);
         fetchContractDetails();
       } else {
         const error = await res.json();
-        addToast(error.message || "Không thể cập nhật thông tin Bên B.", "error");
+        addToast(error.message || t('contractdetailmanager.unable_to_update_party_b'), "error");
       }
     } catch {
-      addToast("Lỗi kết nối máy chủ.", "error");
+      addToast(t('contractdetailmanager.server_connection_error'), "error");
     } finally {
       setActionLoading(false);
     }
@@ -319,7 +319,10 @@ export default function ContractDetailManager({ contractId, navigate, addToast }
             <>
               <button 
                 className="btn-action-terminate" 
-                onClick={() => setShowTerminateModal(true)}
+                onClick={() => {
+                  setTerminationDate(new Date().toISOString().split("T")[0]);
+                  setShowTerminateModal(true);
+                }}
                 disabled={actionLoading}
               >
                 {t('contractdetailmanager.chm_dt_trc_hn')}</button>
@@ -615,25 +618,15 @@ export default function ContractDetailManager({ contractId, navigate, addToast }
             </div>
             
             <form onSubmit={handleTerminateSubmit} className="modal-form-custom">
-              <div className="modal-form-grid" style={{ gridTemplateColumns: "1fr" }}>
+              <div className="modal-form-grid" style={{ gridTemplateColumns: "1fr", padding: "10px 0" }}>
                 
-                <div className="form-group-custom">
-                  <label>{t('contractdetailmanager.termination_date_label')}</label>
-                  <input
-                    type="date"
-                    value={terminationDate}
-                    onChange={(e) => setTerminationDate(e.target.value)}
-                    required
-                  />
-                </div>
-
                 {contract.endDate && terminationDate && (
                   new Date(terminationDate) < new Date(contract.endDate) ? (
-                    <div className="terminate-alert-custom warning">
+                    <div className="terminate-alert-custom warning" style={{ margin: 0 }}>
                       {t('contractdetailmanager.early_termination_warning')}
                     </div>
                   ) : (
-                    <div className="terminate-alert-custom info">
+                    <div className="terminate-alert-custom info" style={{ margin: 0 }}>
                       {t('contractdetailmanager.normal_termination_info')}
                     </div>
                   )

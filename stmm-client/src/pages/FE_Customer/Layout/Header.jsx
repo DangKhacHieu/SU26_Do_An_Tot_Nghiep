@@ -194,6 +194,18 @@ export default function Header({
             >
               {t('header.market_map')}
             </button>
+            <button
+              type="button"
+              className={`nav-link ${
+                window.location.pathname.startsWith("/news-faq") ? "active" : ""
+              }`}
+              onClick={() => {
+                window.history.pushState({}, "", "/news-faq");
+                window.dispatchEvent(new PopStateEvent("popstate"));
+              }}
+            >
+              {t('header.news_faq')}
+            </button>
           </nav>
 
           <div className="header-actions">

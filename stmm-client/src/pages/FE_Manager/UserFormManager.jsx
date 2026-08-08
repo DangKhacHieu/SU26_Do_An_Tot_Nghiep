@@ -42,7 +42,7 @@ const IconEyeOff = () => (
 /* ── Validation rules ── */
 const RULES = {
   name: (v) => {
-    if (!v || !v.trim())        return 'Họ và tên không được để trống.';
+    if (!v || !v.trim())        return t('profilemanager.name_required');
     if (v.trim().length < 2)    return 'Tên quá ngắn, tối thiểu 2 ký tự.';
     if (v.trim().length > 100)  return 'Tên quá dài, tối đa 100 ký tự.';
     if (/\d/.test(v))           return 'Tên không được chứa số.';
@@ -54,7 +54,7 @@ const RULES = {
     return '';
   },
   phone: (v) => {
-    if (!v || !v.trim())       return 'Số điện thoại không được để trống.';
+    if (!v || !v.trim())       return t('profilemanager.phone_required');
     if (/\D/.test(v))          return 'Số điện thoại chỉ được chứa chữ số.';
     if (!/^\d{10,11}$/.test(v)) return 'Số điện thoại phải có 10 hoặc 11 chữ số.';
     if (!/^(0[35789]\d{8}|0[1-9]\d{9})$/.test(v)) return 'Đầu số điện thoại không hợp lệ tại Việt Nam.';
@@ -126,11 +126,11 @@ export default function UserFormManager({ userId, navigate, addToast }) {
           const u = await userRes.json();
           setForm({ name: u.name, email: u.email, phone: u.phone, cccd: u.cccd || '',
                     roleId: u.roleId.toString(), status: u.status, password: '' });
-        } else { addToast('Không thể tải thông tin tài khoản.', 'error'); navigate('users'); }
+        } else { addToast(t('userformmanager.unable_to_load_account'), 'error'); navigate('users'); }
       } else if (rolesList.length > 0) {
         setForm(prev => ({ ...prev, roleId: rolesList[0].roleId.toString() }));
       }
-    } catch { addToast('Lỗi kết nối khi tải form.', 'error'); }
+    } catch { addToast(t('userformmanager.connection_error_when_loading'), 'error'); }
     finally { setLoading(false); }
   };
 
@@ -163,7 +163,7 @@ export default function UserFormManager({ userId, navigate, addToast }) {
     setSubmitted(true);
     const errs = getErrors();
     if (Object.values(errs).some(Boolean)) {
-      addToast('Vui lòng kiểm tra lại các trường bị lỗi.', 'error');
+      addToast(t('userformmanager.please_check_the_error'), 'error');
       return;
     }
 
@@ -190,7 +190,7 @@ export default function UserFormManager({ userId, navigate, addToast }) {
         const err = await res.json().catch(() => ({}));
         addToast(err.detail || err.title || t('userformmanager.error_when_saving_account'), 'error');
       }
-    } catch { addToast('Không thể kết nối đến máy chủ.', 'error'); }
+    } catch { addToast(t('userformmanager.unable_to_connect_to'), 'error'); }
     finally { setSubmitting(false); }
   };
 

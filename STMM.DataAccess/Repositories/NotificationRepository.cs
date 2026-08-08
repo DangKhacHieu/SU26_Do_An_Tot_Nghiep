@@ -18,7 +18,9 @@ namespace STMM.DataAccess.Repositories
         public async Task<IEnumerable<Notification>> GetNotificationsAsync(string? type, string? targetRole, CancellationToken ct = default)
         {
             IQueryable<Notification> query = _dbSet.AsQueryable()
+                .AsNoTracking()
                 .Include(n => n.TargetUser)
+                    .ThenInclude(u => u.Role)
                 .Include(n => n.CreatedByUser);
 
             if (!string.IsNullOrEmpty(type))
@@ -28,7 +30,14 @@ namespace STMM.DataAccess.Repositories
 
             if (!string.IsNullOrEmpty(targetRole))
             {
-                query = query.Where(n => n.TargetRole == targetRole);
+                if (targetRole.Equals("Public", System.StringComparison.OrdinalIgnoreCase))
+                {
+                    query = query.Where(n => n.TargetRole == "Public" || n.NotiType == "Article");
+                }
+                else
+                {
+                    query = query.Where(n => n.TargetRole == targetRole || (n.TargetRole == null && n.TargetUser != null && n.TargetUser.Role != null && n.TargetUser.Role.Name == targetRole));
+                }
             }
 
             return await query.OrderByDescending(n => n.CreatedAt).ToListAsync(ct);

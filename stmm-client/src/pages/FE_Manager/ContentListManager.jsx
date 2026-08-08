@@ -61,7 +61,7 @@ export default function ContentListManager({ navigate, addToast }) {
         throw new Error();
       }
     } catch {
-      addToast('Không thể tải danh sách tin tức & thông báo.', 'error');
+      addToast(t('contentlistmanager.unable_to_load_news'), 'error');
     } finally {
       setLoading(false);
     }
@@ -76,15 +76,15 @@ export default function ContentListManager({ navigate, addToast }) {
         headers: getAuthHeaders(),
       });
       if (res.ok) {
-        addToast('Xóa bài viết/thông báo thành công!', 'success');
+        addToast(t('contentlistmanager.postnotification_deleted_successfully'), 'success');
         setDeleteModalOpen(false);
         setTargetContent(null);
         fetchContents();
       } else {
-        addToast('Lỗi máy chủ khi xóa bài viết.', 'error');
+        addToast(t('contentlistmanager.server_error_while_deleting'), 'error');
       }
     } catch {
-      addToast('Lỗi kết nối. Vui lòng thử lại.', 'error');
+      addToast(t('businesscategorylistmanager.connection_error_please_try'), 'error');
     } finally {
       setActionLoading(false);
     }

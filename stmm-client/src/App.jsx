@@ -19,6 +19,7 @@ import EditProfileForm from "./pages/FE_Customer/Profile/EditProfileForm.jsx";
 import NotificationListPage from "./pages/FE_Customer/Profile/NotificationListPage.jsx";
 import MarketMapPage from "./pages/FE_Customer/Market/MarketMapPage.jsx";
 import StallDetailPage from "./pages/FE_Customer/Market/StallDetailPage.jsx";
+import NewsFaqPage from "./pages/FE_Customer/NewsFaqPage.jsx";
 
 import authService from "./services/authService";
 import VendorDashboard from "./pages/FE_Vendor/VendorDashboard.jsx";
@@ -1318,6 +1319,14 @@ function AppContent() {
             setUser(updatedUser);
             navigatePath("/profile");
           }}
+        />
+      } />
+
+      <Route path="/news-faq" element={
+        <NewsFaqPage
+          user={user}
+          onLogout={handleLogout}
+          navigatePath={navigatePath}
         />
       } />
 

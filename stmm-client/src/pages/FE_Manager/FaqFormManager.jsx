@@ -33,11 +33,11 @@ export default function FaqFormManager({ faqId, navigate, addToast }) {
         setAnswer(data.answer);
         setIsActive(data.isActive ?? true);
       } else {
-        addToast('Không thể tải thông tin FAQ.', 'error');
+        addToast(t('faqformmanager.unable_to_load_faq'), 'error');
         navigate('faqs');
       }
     } catch {
-      addToast('Lỗi kết nối khi tải FAQ.', 'error');
+      addToast(t('faqformmanager.connection_error_when_downloading'), 'error');
       navigate('faqs');
     } finally {
       setLoading(false);
@@ -48,11 +48,11 @@ export default function FaqFormManager({ faqId, navigate, addToast }) {
     e.preventDefault();
 
     if (!question.trim()) {
-      addToast('Câu hỏi không được để trống.', 'error');
+      addToast(t('faqformmanager.questions_cannot_be_left'), 'error');
       return;
     }
     if (!answer.trim()) {
-      addToast('Câu trả lời không được để trống.', 'error');
+      addToast(t('faqformmanager.the_answer_cannot_be'), 'error');
       return;
     }
 
@@ -82,7 +82,7 @@ export default function FaqFormManager({ faqId, navigate, addToast }) {
         addToast(err.detail || t('faqformmanager.error_saving_faq_information'), 'error');
       }
     } catch {
-      addToast('Lỗi kết nối. Vui lòng kiểm tra mạng.', 'error');
+      addToast(t('faqformmanager.connection_error_please_check'), 'error');
     } finally {
       setSubmitting(false);
     }
