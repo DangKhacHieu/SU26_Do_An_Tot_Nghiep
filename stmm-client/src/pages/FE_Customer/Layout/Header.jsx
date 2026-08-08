@@ -15,6 +15,7 @@ export default function Header({
 }) {
   const { t, i18n } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedNoti, setSelectedNoti] = useState(null);
@@ -356,9 +357,125 @@ export default function Header({
                 {t('header.login')}
               </button>
             )}
+
+            {/* Hamburger Button */}
+            <button
+              type="button"
+              className={`hamburger-btn ${isMobileMenuOpen ? "open" : ""}`}
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              aria-label="Toggle menu"
+            >
+              <span className="hamburger-line"></span>
+              <span className="hamburger-line"></span>
+              <span className="hamburger-line"></span>
+            </button>
           </div>
         </div>
       </header>
+
+      {/* Mobile Menu Drawer */}
+      <div className={`mobile-menu-drawer ${isMobileMenuOpen ? "open" : ""}`}>
+        <div className="mobile-menu-header">
+          <div className="header-brand" onClick={() => { setIsMobileMenuOpen(false); handleLogoClick(); }}>
+            MHMS
+          </div>
+          <button className="close-drawer-btn" onClick={() => setIsMobileMenuOpen(false)}>&times;</button>
+        </div>
+        <div className="mobile-menu-body">
+          <nav className="mobile-nav">
+            <button
+              type="button"
+              className={`mobile-nav-link ${
+                window.location.pathname === "/" || window.location.pathname === "" ? "active" : ""
+              }`}
+              onClick={() => {
+                setIsMobileMenuOpen(false);
+                handleOverviewClick();
+              }}
+            >
+              {t('header.overview')}
+            </button>
+            <button
+              type="button"
+              className={`mobile-nav-link ${
+                window.location.pathname.startsWith("/stalls-map") ? "active" : ""
+              }`}
+              onClick={() => {
+                setIsMobileMenuOpen(false);
+                handleStallsMapClick();
+              }}
+            >
+              {t('header.market_map')}
+            </button>
+            <button
+              type="button"
+              className={`mobile-nav-link ${
+                window.location.pathname.startsWith("/news-faq") ? "active" : ""
+              }`}
+              onClick={() => {
+                setIsMobileMenuOpen(false);
+                window.history.pushState({}, "", "/news-faq");
+                window.dispatchEvent(new PopStateEvent("popstate"));
+              }}
+            >
+              {t('header.news_faq')}
+            </button>
+          </nav>
+
+          <div className="mobile-search-box-container">
+            <input
+              type="text"
+              placeholder={t('header.search_markets')}
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setShowSearchSuggestions(true);
+              }}
+            />
+            {showSearchSuggestions && filteredMarkets.length > 0 && (
+              <ul className="search-suggestions-list mobile-suggestions">
+                {filteredMarkets.map((market) => (
+                  <li
+                    key={market.marketId}
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      handleSearchSuggestionClick(market.marketId);
+                    }}
+                  >
+                    <strong>{market.marketName}</strong>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          <div className="mobile-actions-row">
+            <LanguageSwitcher />
+          </div>
+
+          <div className="mobile-profile-section">
+            {user ? (
+              <div className="mobile-user-details">
+                <span className="mobile-username">{user.name}</span>
+                <span className="mobile-role">{user.roleName}</span>
+                <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                  <button type="button" className="btn-profile" style={{ padding: '8px 12px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '13px', cursor: 'pointer' }} onClick={() => { setIsMobileMenuOpen(false); onGoToProfile(); }}>
+                    {t('header.view_profile')}
+                  </button>
+                  <button type="button" className="btn-logout" style={{ padding: '8px 12px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '13px', cursor: 'pointer' }} onClick={(e) => { setIsMobileMenuOpen(false); handleLogoutClick(e); }}>
+                    {t('header.logout')}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button type="button" className="mobile-login-btn" style={{ width: '100%', padding: '10px', background: '#4f46e5', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }} onClick={() => { setIsMobileMenuOpen(false); onGoToLogin(); }}>
+                {t('header.login')}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+      {isMobileMenuOpen && <div className="mobile-menu-backdrop" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100 }} onClick={() => setIsMobileMenuOpen(false)} />}
 
       {selectedNoti && (
         <div

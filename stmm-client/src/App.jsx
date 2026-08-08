@@ -361,10 +361,12 @@ function AppContent() {
   const routerNavigate = useNavigate();
   const [path, setPath] = useState(window.location.pathname);
   const [user, setUser] = useState(authService.getUser());
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   const navigatePath = useCallback((to, replace = false) => {
     routerNavigate(to, { replace });
     setPath(to.split("?")[0]);
+    setIsMobileSidebarOpen(false);
   }, [routerNavigate]);
 
   useEffect(() => {
@@ -462,6 +464,7 @@ function AppContent() {
   const navigate = useCallback((page, id = null) => {
     setCurrentUserId(id);
     setCurrentPage(page);
+    setIsMobileSidebarOpen(false);
 
     const newPath = page.startsWith("admin-")
       ? `/admin/${page.substring(6)}`
@@ -810,12 +813,30 @@ function AppContent() {
   const renderManagerOrAdminConsole = () => {
     return (
       <div className="app-container">
+        {isMobileSidebarOpen && (
+          <div
+            className="sidebar-backdrop"
+            onClick={() => setIsMobileSidebarOpen(false)}
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: "rgba(0,0,0,0.4)",
+              zIndex: 15,
+            }}
+          />
+        )}
+
         {currentPage.startsWith("admin-") ? (
           <SidebarAdminSystem
             currentPage={currentPage}
             navigate={navigate}
             user={user}
             onLogout={handleLogout}
+            isMobileOpen={isMobileSidebarOpen}
+            onClose={() => setIsMobileSidebarOpen(false)}
           />
         ) : (
           <SidebarManager
@@ -823,11 +844,23 @@ function AppContent() {
             navigate={navigate}
             user={user}
             onLogout={handleLogout}
+            isMobileOpen={isMobileSidebarOpen}
+            onClose={() => setIsMobileSidebarOpen(false)}
           />
         )}
 
         <main className="app-main">
           <header className="app-header">
+            <button
+              type="button"
+              className="hamburger-btn"
+              onClick={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
+              aria-label="Toggle sidebar"
+            >
+              <span className="hamburger-line"></span>
+              <span className="hamburger-line"></span>
+              <span className="hamburger-line"></span>
+            </button>
             <div className="header-title-section">
               <h1>{t(`menu.${currentPage}`, { defaultValue: pageInfo.title })}</h1>
               <p>{t(`menu.${currentPage}_sub`, { defaultValue: pageInfo.sub })}</p>
@@ -933,17 +966,61 @@ function AppContent() {
         )}
 
         <div className="app-body">
+          {isMobileSidebarOpen && (
+            <div
+              className="sidebar-backdrop staff-sidebar-backdrop"
+              onClick={() => setIsMobileSidebarOpen(false)}
+              style={{
+                position: "fixed",
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                background: "rgba(0,0,0,0.4)",
+                zIndex: 15,
+              }}
+            />
+          )}
+
           {/* Sidebar Layout */}
           <SidebarStaff
             currentView={currentStaffView}
-            setView={setCurrentStaffView}
+            setView={(view) => {
+              setCurrentStaffView(view);
+              setIsMobileSidebarOpen(false);
+            }}
             user={user}
             onLogout={handleLogout}
             unreadNotificationsCount={staffUnreadNotifications}
+            isMobileOpen={isMobileSidebarOpen}
+            onClose={() => setIsMobileSidebarOpen(false)}
           />
 
           <main className="app-main-content">
-            <div className="main-top-navbar">
+            <div className="main-top-navbar" style={{ display: 'flex', alignItems: 'center' }}>
+              <button
+                type="button"
+                className="hamburger-btn staff-hamburger"
+                onClick={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
+                aria-label="Toggle sidebar"
+                style={{
+                  display: "none",
+                  flexDirection: "column",
+                  justifyContent: "space-between",
+                  width: "20px",
+                  height: "14px",
+                  background: "transparent",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: 0,
+                  marginRight: "12px",
+                  alignSelf: "center",
+                }}
+              >
+                <span style={{ width: "100%", height: "2px", backgroundColor: "var(--color-text-primary, #0f172a)", borderRadius: "1px" }}></span>
+                <span style={{ width: "100%", height: "2px", backgroundColor: "var(--color-text-primary, #0f172a)", borderRadius: "1px" }}></span>
+                <span style={{ width: "100%", height: "2px", backgroundColor: "var(--color-text-primary, #0f172a)", borderRadius: "1px" }}></span>
+              </button>
               <div
                 className="header-title-section"
                 style={{

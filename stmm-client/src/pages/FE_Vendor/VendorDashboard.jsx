@@ -95,6 +95,7 @@ export default function VendorDashboard({ user, onBack, onLogout }) {
   const vendorId = user?.userId;
   const [activeMenu, setActiveMenu] = useState('DASHBOARD');
   const [searchTerm, setSearchTerm] = useState('');
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [serviceTab, setServiceTab] = useState('AVAILABLE'); // 'AVAILABLE' | 'MY_SERVICES'
   const [rentedStalls, setRentedStalls] = useState([]);
   const [selectedStallId, setSelectedStallId] = useState('ALL');
@@ -319,8 +320,49 @@ export default function VendorDashboard({ user, onBack, onLogout }) {
 
   return (
     <div className="vendor-portal-container">
+      {/* Backdrop for Mobile Sidebar */}
+      {isMobileSidebarOpen && (
+        <div
+          className="vendor-sidebar-backdrop"
+          onClick={() => setIsMobileSidebarOpen(false)}
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0,0,0,0.4)",
+            zIndex: 15,
+          }}
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className="vendor-sidebar" aria-label="Main Navigation">
+      <aside className={`vendor-sidebar ${isMobileSidebarOpen ? 'mobile-open' : ''}`} aria-label="Main Navigation">
+        {/* Mobile Close Button */}
+        <button
+          type="button"
+          className="vendor-sidebar-mobile-close-btn"
+          onClick={() => setIsMobileSidebarOpen(false)}
+          aria-label={t('vendordashboard.close_menu', 'Đóng menu')}
+          style={{
+            display: "none",
+            position: "absolute",
+            top: "16px",
+            right: "16px",
+            background: "transparent",
+            border: "none",
+            color: "rgba(255, 255, 255, 0.6)",
+            cursor: "pointer",
+            fontSize: "24px",
+            padding: "4px",
+            lineHeight: 1,
+            zIndex: 100,
+          }}
+        >
+          &times;
+        </button>
+
         <div className="brand-section">
           <div className="brand-logo">
             ST
@@ -338,7 +380,7 @@ export default function VendorDashboard({ user, onBack, onLogout }) {
               key={item.id} 
               href="#"
               className={`menu-item ${activeMenu === item.id ? 'active' : ''}`}
-              onClick={(e) => { e.preventDefault(); setActiveMenu(item.id); }}
+              onClick={(e) => { e.preventDefault(); setActiveMenu(item.id); setIsMobileSidebarOpen(false); }}
               aria-current={activeMenu === item.id ? 'page' : undefined}
             >
               <div className="menu-icon">{item.icon}</div>
@@ -360,6 +402,29 @@ export default function VendorDashboard({ user, onBack, onLogout }) {
       <div className="vendor-main-area">
         {/* Top Navbar */}
         <header className="vendor-topbar">
+          <button
+            type="button"
+            className="hamburger-btn vendor-hamburger"
+            onClick={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
+            aria-label="Toggle sidebar"
+            style={{
+              display: "none",
+              flexDirection: "column",
+              justifyContent: "space-between",
+              width: "20px",
+              height: "14px",
+              background: "transparent",
+              border: "none",
+              cursor: "pointer",
+              padding: 0,
+              marginRight: "12px",
+              alignSelf: "center",
+            }}
+          >
+            <span style={{ width: "100%", height: "2px", backgroundColor: "var(--vendor-text-main, #1e293b)", borderRadius: "1px" }}></span>
+            <span style={{ width: "100%", height: "2px", backgroundColor: "var(--vendor-text-main, #1e293b)", borderRadius: "1px" }}></span>
+            <span style={{ width: "100%", height: "2px", backgroundColor: "var(--vendor-text-main, #1e293b)", borderRadius: "1px" }}></span>
+          </button>
           <div className="vendor-topbar-title">VendorPortal</div>
           
           <div className="vendor-topbar-right">
