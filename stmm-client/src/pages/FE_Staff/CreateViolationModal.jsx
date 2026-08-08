@@ -38,33 +38,33 @@ export default function CreateViolationModal({ baseUrl, onClose, onSuccess, pref
   const validateForm = () => {
     const errors = {};
     if (!violationTypeId) {
-      errors.violationTypeId = 'Vui lòng chọn loại vi phạm.';
+      errors.violationTypeId = 'Please select a violation type.';
     }
     if (!stallId) {
-      errors.stallId = 'Vui lòng chọn sạp/vị trí xảy ra vi phạm.';
+      errors.stallId = 'Please select a stall/location where the violation occurred.';
     }
     
     const trimmedTitle = title.trim();
     if (!trimmedTitle) {
-      errors.title = 'Tiêu đề vi phạm không được để trống.';
+      errors.title = 'Violation title cannot be empty.';
     } else if (trimmedTitle.length < 5 || trimmedTitle.length > 100) {
-      errors.title = `Tiêu đề vi phạm phải từ 5 đến 100 ký tự (hiện tại: ${trimmedTitle.length} ký tự).`;
+      errors.title = `Violation title must be between 5 and 100 characters (current: ${trimmedTitle.length}).`;
     }
 
     const trimmedDesc = description.trim();
     if (!trimmedDesc) {
-      errors.description = 'Mô tả vi phạm không được để trống.';
+      errors.description = 'Violation description cannot be empty.';
     } else if (trimmedDesc.length < 10 || trimmedDesc.length > 500) {
-      errors.description = `Mô tả vi phạm phải từ 10 đến 500 ký tự (hiện tại: ${trimmedDesc.length} ký tự).`;
+      errors.description = `Violation description must be between 10 and 500 characters (current: ${trimmedDesc.length}).`;
     }
 
     const fineNum = Number(fineAmount);
     if (fineAmount === '' || isNaN(fineNum) || fineNum < 0) {
-      errors.fineAmount = 'Số tiền phạt không hợp lệ.';
+      errors.fineAmount = 'Fine amount is invalid.';
     }
 
     if (!selectedFile) {
-      errors.image = 'Vui lòng đính kèm 1 ảnh minh chứng vi phạm.';
+      errors.image = 'Please attach 1 violation evidence image.';
     }
 
     setFieldErrors(errors);
@@ -162,7 +162,7 @@ export default function CreateViolationModal({ baseUrl, onClose, onSuccess, pref
     setError('');
 
     if (!validateForm()) {
-      setError('Vui lòng kiểm tra và sửa các thông tin chưa hợp lệ bên dưới.');
+      setError('Please check and fix the invalid fields below.');
       return;
     }
 
@@ -185,7 +185,7 @@ export default function CreateViolationModal({ baseUrl, onClose, onSuccess, pref
         throw new Error(await readProblemDetail(response, t('createviolationmodal.unable_to_submit_violation')));
       }
       const createdViolation = await response.json();
-      showToast(t('createviolationmodal.violation_created_success', 'Đã lưu biên bản vi phạm thành công!'), 'success');
+      showToast(t('createviolationmodal.violation_created_success', 'Violation report saved successfully!'), 'success');
       onSuccess(createdViolation);
     } catch (submitError) {
       setError(submitError.message);

@@ -163,7 +163,7 @@ export default function CompleteTaskForm({ task, baseUrl, onRefreshTask, onShowN
     if (isLocked) {
       setSubmitError(t(
         'completetaskform.task_locked_hint',
-        'Tác vụ phải ở trạng thái In Progress (hoặc hoàn thành checklist đo điện nước) mới có thể báo cáo hoàn thành.'
+        'Task must be in In Progress status (or completed utility checklist) to report completion.'
       ));
       return;
     }
@@ -171,7 +171,7 @@ export default function CompleteTaskForm({ task, baseUrl, onRefreshTask, onShowN
     if (photoEvidenceBlocked) {
       setSubmitError(t(
         'completetaskform.photos_only_while_in_progress',
-        'Ảnh bằng chứng chỉ đính kèm được khi tác vụ đang thực hiện.'
+        'Evidence photos can only be attached while task is in progress.'
       ));
       return;
     }
@@ -180,11 +180,11 @@ export default function CompleteTaskForm({ task, baseUrl, onRefreshTask, onShowN
     const errors = { before: null, after: null };
 
     if (requiresBeforeUpload && !imageBeforeFile) {
-      errors.before = t('completetaskform.please_provide_a_before', 'Vui lòng đính kèm ảnh chụp trước khi sửa chữa.');
+      errors.before = t('completetaskform.please_provide_a_before', 'Please attach a before-repair photo.');
       hasError = true;
     }
     if (requiresPhotos && canEditPhotos && !task.imageAfterUrl && !imageAfterFile) {
-      errors.after = t('completetaskform.please_provide_an_after', 'Vui lòng đính kèm ảnh chụp sau khi hoàn thành.');
+      errors.after = t('completetaskform.please_provide_an_after', 'Please attach an after-completion photo.');
       hasError = true;
     }
 
@@ -192,7 +192,7 @@ export default function CompleteTaskForm({ task, baseUrl, onRefreshTask, onShowN
       setUploadErrors(errors);
       setSubmitError(t(
         'completetaskform.attach_all_required_evidence',
-        'Vui lòng kiểm tra và đính kèm đầy đủ ảnh bằng chứng bên dưới.'
+        'Please check and attach all required evidence photos below.'
       ));
       return;
     }
@@ -247,7 +247,7 @@ export default function CompleteTaskForm({ task, baseUrl, onRefreshTask, onShowN
               <p className="helper-text photos-locked-note">
                 {t(
                   'completetaskform.photos_only_while_in_progress',
-                  'Ảnh bằng chứng chỉ đính kèm được khi tác vụ đang thực hiện.'
+                  'Evidence photos can only be attached while task is in progress.'
                 )}
               </p>
             ) : null}
@@ -299,7 +299,7 @@ export default function CompleteTaskForm({ task, baseUrl, onRefreshTask, onShowN
 
         {isLocked ? (
           <p className="helper-text photos-locked-note" style={{ color: '#d97706', marginTop: '6px', fontWeight: 600 }}>
-            🔒 {t('completetaskform.task_pending_lock_hint', 'Chỉ có thể nhập ghi chú và báo cáo hoàn thành khi tác vụ ở trạng thái In Progress (hoặc hoàn thành checklist đo điện nước).')}
+            🔒 {t('completetaskform.task_pending_lock_hint', 'Completion notes and report submission are only unlocked when task is In Progress (or utility checklist is completed).')}
           </p>
         ) : null}
 
