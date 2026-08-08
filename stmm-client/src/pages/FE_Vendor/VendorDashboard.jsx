@@ -112,7 +112,7 @@ export default function VendorDashboard({ user, onBack, onLogout }) {
     const fetchStalls = async () => {
       try {
         const token = localStorage.getItem('accessToken');
-        const res = await axios.get('http://localhost:5056/api/vendor/stalls', {
+        const res = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/vendor/stalls`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setRentedStalls(res.data || []);
@@ -146,7 +146,7 @@ export default function VendorDashboard({ user, onBack, onLogout }) {
         // 0. Active Services
         let activeServ = 0;
         try {
-          const servRes = await axios.get('http://localhost:5056/api/vendor/services/my-services', { headers });
+          const servRes = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/vendor/services/my-services`, { headers });
           if (servRes.data) {
             let myServs = servRes.data;
             if (stallParam) {
@@ -162,7 +162,7 @@ export default function VendorDashboard({ user, onBack, onLogout }) {
         } catch(e) { console.error(e); }
 
         // 1. Pending requests
-        const reqRes = await axios.get('http://localhost:5056/api/vendor/requests', {
+        const reqRes = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/vendor/requests`, {
           headers,
           params: { searchTerm: '', status: 'Pending', stallId: stallParam, pageNumber: 1, pageSize: 1 }
         });
@@ -182,7 +182,7 @@ export default function VendorDashboard({ user, onBack, onLogout }) {
         }
 
         // 3. Violations (All violations for now)
-        const vioRes = await axios.get('http://localhost:5056/api/vendor/violations', {
+        const vioRes = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/vendor/violations`, {
           headers,
           params: { status: null, stallId: stallParam, pageNumber: 1, pageSize: 1 }
         });

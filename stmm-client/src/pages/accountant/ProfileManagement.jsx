@@ -76,7 +76,7 @@ export default function ProfileManagement() {
     }
 
     // Fetch profile of accountant dynamically using logged-in user id
-    fetch(`http://localhost:5056/api/accountant/profile?userId=${currentUserId}`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` } })
+    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/accountant/profile?userId=${currentUserId}`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` } })
       .then(res => {
         if (!res.ok) throw new Error(t('profilemanagement.unable_to_load_user'));
         return res.json();
@@ -170,7 +170,7 @@ export default function ProfileManagement() {
       showNotification('success', t('profilemanagement.profile_information_saved_successfully'));
       setActiveModal(null);
     } else {
-      fetch(`http://localhost:5056/api/accountant/profile?userId=${profile.userId}`, {
+      fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/accountant/profile?userId=${profile.userId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` },
         body: JSON.stringify({
@@ -249,7 +249,7 @@ export default function ProfileManagement() {
       setPassword({ current: '', new: '', confirm: '' });
       setActiveModal(null);
     } else {
-      fetch(`http://localhost:5056/api/accountant/profile/change-password?userId=${profile.userId}`, {
+      fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/accountant/profile/change-password?userId=${profile.userId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` },
         body: JSON.stringify({

@@ -19,7 +19,7 @@ export default function VendorMyServices({ vendorId, searchTerm = '', setSearchT
     const fetchMyServices = async () => {
         try {
             const token = localStorage.getItem('accessToken');
-            const response = await axios.get('http://localhost:5056/api/vendor/services/my-services', {
+            const response = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/vendor/services/my-services`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setMyServices(response.data);
@@ -52,7 +52,7 @@ export default function VendorMyServices({ vendorId, searchTerm = '', setSearchT
         setLoadingDetailId(service.registrationId);
         try {
             const token = localStorage.getItem('accessToken');
-            const response = await axios.get(`http://localhost:5056/api/vendor/services/${service.registrationId}`, {
+            const response = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/vendor/services/${service.registrationId}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setViewMyService(response.data);
@@ -66,7 +66,7 @@ export default function VendorMyServices({ vendorId, searchTerm = '', setSearchT
     const handleConfirmCancel = async (service) => {
         try {
             const token = localStorage.getItem('accessToken');
-            const response = await axios.post(`http://localhost:5056/api/vendor/services/${service.registrationId}/cancel`, {}, {
+            const response = await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/vendor/services/${service.registrationId}/cancel`, {}, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             await showSuccess(t('vendormyservices.success'), response.data.message);
@@ -88,7 +88,7 @@ export default function VendorMyServices({ vendorId, searchTerm = '', setSearchT
     const handleConfirmReactivate = async (service) => {
         try {
             const token = localStorage.getItem('accessToken');
-            const response = await axios.post(`http://localhost:5056/api/vendor/services/${service.registrationId}/reactivate`, {}, {
+            const response = await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/vendor/services/${service.registrationId}/reactivate`, {}, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             await showSuccess('Thành công', response.data.message);

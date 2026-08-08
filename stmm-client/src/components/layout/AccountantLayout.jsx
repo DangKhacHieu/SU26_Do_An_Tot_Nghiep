@@ -89,7 +89,7 @@ export default function AccountantLayout() {
     try {
       const token = localStorage.getItem('accessToken');
       if (!token) throw new Error("No token");
-      const res = await fetch('http://localhost:5056/api/notifications', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/notifications`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
@@ -113,7 +113,7 @@ export default function AccountantLayout() {
     try {
       const token = localStorage.getItem('accessToken');
       if (!token) return;
-      await fetch('http://localhost:5056/api/notifications/read-all', {
+      await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/notifications/read-all`, {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -130,7 +130,7 @@ export default function AccountantLayout() {
       try {
         const token = localStorage.getItem('accessToken');
         if (!token) return;
-        await fetch(`http://localhost:5056/api/notifications/${noti.id}/read`, {
+        await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/notifications/${noti.id}/read`, {
           method: 'PUT',
           headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -146,7 +146,7 @@ export default function AccountantLayout() {
     try {
       const token = localStorage.getItem('accessToken');
       if (!token) return;
-      await fetch(`http://localhost:5056/api/notifications/${notiId}`, {
+      await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/notifications/${notiId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });

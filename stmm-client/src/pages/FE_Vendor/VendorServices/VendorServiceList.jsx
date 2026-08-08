@@ -22,13 +22,13 @@ export default function VendorServiceList({ vendorId, searchTerm = '', setSearch
             try {
                 const token = localStorage.getItem('accessToken');
                 const [servicesRes, stallsRes, myServicesRes] = await Promise.all([
-                    axios.get('http://localhost:5056/api/vendor/services/available', {
+                    axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/vendor/services/available`, {
                         headers: { Authorization: `Bearer ${token}` }
                     }),
-                    axios.get('http://localhost:5056/api/vendor/services/my-stalls', {
+                    axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/vendor/services/my-stalls`, {
                         headers: { Authorization: `Bearer ${token}` }
                     }),
-                    axios.get('http://localhost:5056/api/vendor/services/my-services', {
+                    axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/vendor/services/my-services`, {
                         headers: { Authorization: `Bearer ${token}` }
                     })
                 ]);
@@ -64,7 +64,7 @@ export default function VendorServiceList({ vendorId, searchTerm = '', setSearch
         try {
             const token = localStorage.getItem('accessToken');
             const promises = selectedStalls.map(sId => 
-                axios.post('http://localhost:5056/api/vendor/services/register', {
+                axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/vendor/services/register`, {
                     serviceId: confirmService.serviceId,
                     stallId: parseInt(sId)
                 }, {
@@ -78,7 +78,7 @@ export default function VendorServiceList({ vendorId, searchTerm = '', setSearch
             setConfirmService(null);
             
             // Refetch myServices to update the UI status immediately
-            const myServicesRes = await axios.get('http://localhost:5056/api/vendor/services/my-services', {
+            const myServicesRes = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/vendor/services/my-services`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setMyServices(myServicesRes.data || []);

@@ -56,8 +56,8 @@ export default function RepairPrice() {
   const loadData = () => {
     setLoading(true); 
     Promise.all([
-      fetch('http://localhost:5056/api/accountant/repair-prices', { headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` } }).then(r => { if (r.status === 401) { localStorage.removeItem('accessToken'); window.location.href = '/login'; throw new Error('401'); } if (!r.ok) throw new Error(); return r.json(); }),
-      fetch('http://localhost:5056/api/accountant/repair-prices/used-tools', { headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` } }).then(r => { if (r.status === 401) { localStorage.removeItem('accessToken'); window.location.href = '/login'; throw new Error('401'); } if (!r.ok) throw new Error(); return r.json(); })
+      fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/accountant/repair-prices`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` } }).then(r => { if (r.status === 401) { localStorage.removeItem('accessToken'); window.location.href = '/login'; throw new Error('401'); } if (!r.ok) throw new Error(); return r.json(); }),
+      fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/accountant/repair-prices/used-tools`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` } }).then(r => { if (r.status === 401) { localStorage.removeItem('accessToken'); window.location.href = '/login'; throw new Error('401'); } if (!r.ok) throw new Error(); return r.json(); })
     ])
       .then(([prices, used]) => { setRepairItems(prices); setUsedTools(used); setLoading(false); })
       .catch(() => {
@@ -106,7 +106,7 @@ export default function RepairPrice() {
     }
     
     const isEdit = activeModal === 'edit';
-    const url = isEdit ? `http://localhost:5056/api/accountant/repair-prices/${selectedItem.repairPriceId}` : 'http://localhost:5056/api/accountant/repair-prices';
+    const url = isEdit ? `${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/accountant/repair-prices/${selectedItem.repairPriceId}` : `${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/accountant/repair-prices`;
     if (isMock) {
       if (isEdit) setRepairItems(p => p.map(i => i.repairPriceId === selectedItem.repairPriceId ? { ...i, ...formState } : i));
       else setRepairItems(p => [...p, { repairPriceId: Math.floor(Math.random() * 1000) + 10, ...formState, usageCount: 0 }]);
@@ -139,7 +139,7 @@ export default function RepairPrice() {
       }
     } else {
       setModalError(null);
-      fetch(`http://localhost:5056/api/accountant/repair-prices/${selectedItem.repairPriceId}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` } })
+      fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/accountant/repair-prices/${selectedItem.repairPriceId}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` } })
         .then(async r => { 
           if (!r.ok) {
             const errData = await r.json().catch(() => ({}));

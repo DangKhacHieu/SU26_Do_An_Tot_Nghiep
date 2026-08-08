@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:5056/api/areas';
+const API_BASE_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/areas`;
 
 export const getAllAreas = async (marketId) => {
     try {

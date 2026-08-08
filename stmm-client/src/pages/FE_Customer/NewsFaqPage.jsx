@@ -34,7 +34,7 @@ export default function NewsFaqPage({ user, onLogout, navigatePath }) {
   const fetchArticles = async () => {
     setLoadingNews(true);
     try {
-      const res = await fetch('http://localhost:5056/api/manager/contents?type=Article');
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/manager/contents?type=Article`);
       if (res.ok) {
         const data = await res.json();
         // Sort descending by date
@@ -51,7 +51,7 @@ export default function NewsFaqPage({ user, onLogout, navigatePath }) {
   const fetchFaqs = async () => {
     setLoadingFaqs(true);
     try {
-      const res = await fetch('http://localhost:5056/api/manager/faqs?isActive=true');
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/manager/faqs?isActive=true`);
       if (res.ok) {
         const data = await res.json();
         setFaqs(data || []);

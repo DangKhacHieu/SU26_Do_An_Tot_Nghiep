@@ -39,7 +39,7 @@ export default function Dashboard() {
     const token = localStorage.getItem('accessToken');
     const headers = { 'Authorization': `Bearer ${token}` };
 
-    fetch(`http://localhost:5056/api/accountant/dashboard?userId=${userIdStr}`, { headers })
+    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/accountant/dashboard?userId=${userIdStr}`, { headers })
       .then(res => {
         if (!res.ok) throw new Error(t('dashboard.response_from_error_api'));
         return res.json();

@@ -117,12 +117,12 @@ export default function FinancialConfig() {
     };
 
     Promise.all([
-      fetch('http://localhost:5056/api/accountant/config/fee-types', { headers }).then(handleResponse),
-      fetch('http://localhost:5056/api/accountant/config/services', { headers }).then(handleResponse),
-      fetch('http://localhost:5056/api/accountant/config/system-configs', { headers }).then(handleResponse),
-      fetch('http://localhost:5056/api/accountant/config/tiers/electricity_tiers', { headers }).then(handleResponse),
-      fetch('http://localhost:5056/api/accountant/config/tiers/water_tiers', { headers }).then(handleResponse),
-      fetch('http://localhost:5056/api/accountant/billing/vendors', { headers }).then(handleResponse)
+      fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/accountant/config/fee-types`, { headers }).then(handleResponse),
+      fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/accountant/config/services`, { headers }).then(handleResponse),
+      fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/accountant/config/system-configs`, { headers }).then(handleResponse),
+      fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/accountant/config/tiers/electricity_tiers`, { headers }).then(handleResponse),
+      fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/accountant/config/tiers/water_tiers`, { headers }).then(handleResponse),
+      fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/accountant/billing/vendors`, { headers }).then(handleResponse)
     ])
     .then(([fees, srvs, sys, elec, water, vends]) => {
       setFeeTypes(fees);
@@ -218,7 +218,7 @@ export default function FinancialConfig() {
       if (!isMock) {
         const keys = Object.keys(configForm);
         for (const key of keys) {
-          const res = await fetch('http://localhost:5056/api/accountant/config/system-configs', {
+          const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/accountant/config/system-configs`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
             body: JSON.stringify({ configKey: key, configValue: configForm[key].toString(), updatedByUserId: 1 })
@@ -258,8 +258,8 @@ export default function FinancialConfig() {
       closeModal();
     } else {
       const url = selectedItem 
-        ? `http://localhost:5056/api/accountant/config/fee-types/${selectedItem.feeTypeId}` 
-        : 'http://localhost:5056/api/accountant/config/fee-types';
+        ? `${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/accountant/config/fee-types/${selectedItem.feeTypeId}` 
+        : `${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/accountant/config/fee-types`;
       const method = selectedItem ? 'PUT' : 'POST';
       const token = localStorage.getItem('accessToken');
       
@@ -288,7 +288,7 @@ export default function FinancialConfig() {
       closeModal();
     } else {
       const token = localStorage.getItem('accessToken');
-      fetch(`http://localhost:5056/api/accountant/config/fee-types/${selectedItem.feeTypeId}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } })
+      fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/accountant/config/fee-types/${selectedItem.feeTypeId}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } })
         .then(async res => {
           if (res.status === 401) { localStorage.removeItem('accessToken'); window.location.href = '/login'; throw new Error('401'); } if (!res.ok) {
             const errData = await res.json().catch(() => ({}));
@@ -337,7 +337,7 @@ export default function FinancialConfig() {
       ? { name: nameTrimmed, description: descTrimmed, price: priceVal, billingCycle: serviceForm.billingCycle, feeTypeId: feeIdVal, isActive: isServiceActive }
       : { name: nameTrimmed, description: descTrimmed, price: priceVal, billingCycle: serviceForm.billingCycle, feeTypeId: feeIdVal, createdByUserId: 1 };
 
-    const url = isEdit ? `http://localhost:5056/api/accountant/config/services/${selectedItem.serviceId}` : 'http://localhost:5056/api/accountant/config/services';
+    const url = isEdit ? `${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/accountant/config/services/${selectedItem.serviceId}` : `${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/accountant/config/services`;
     const method = isEdit ? 'PUT' : 'POST';
 
     if (isMock) {
@@ -376,7 +376,7 @@ export default function FinancialConfig() {
       closeModal();
     } else {
       const token = localStorage.getItem('accessToken');
-      fetch(`http://localhost:5056/api/accountant/config/services/${selectedItem.serviceId}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } })
+      fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/accountant/config/services/${selectedItem.serviceId}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } })
         .then(async res => {
           if (res.status === 401) { localStorage.removeItem('accessToken'); window.location.href = '/login'; throw new Error('401'); } if (!res.ok) {
             const errData = await res.json().catch(() => ({}));
@@ -405,7 +405,7 @@ export default function FinancialConfig() {
       closeModal();
     } else {
       const token = localStorage.getItem('accessToken');
-      fetch('http://localhost:5056/api/accountant/config/system-configs', {
+      fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/accountant/config/system-configs`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({
@@ -490,7 +490,7 @@ export default function FinancialConfig() {
       closeModal();
     } else {
       const token = localStorage.getItem('accessToken');
-      fetch('http://localhost:5056/api/accountant/config/tiers', {
+      fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5056/api'}/accountant/config/tiers`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({
