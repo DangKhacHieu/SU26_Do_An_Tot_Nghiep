@@ -144,7 +144,7 @@ export default function CompleteTaskForm({ task, baseUrl, onRefreshTask, onShowN
   const handleFileSelect = (file, target) => {
     if (!file) return;
     if (file.size > 5 * 1024 * 1024) {
-      setUploadErrors((current) => ({ ...current, [target]: `${file.name} exceeds the 5MB limit.` }));
+      setUploadErrors((current) => ({ ...current, [target]: t('completetaskform.file_exceeds_limit', '{{fileName}} vượt quá dung lượng tối đa 5MB.', { fileName: file.name }) }));
       return;
     }
     if (!file.type.startsWith('image/')) {

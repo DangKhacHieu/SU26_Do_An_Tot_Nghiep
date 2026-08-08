@@ -162,7 +162,7 @@ export default function CreateViolationModal({ baseUrl, onClose, onSuccess, pref
     setError('');
 
     if (!validateForm()) {
-      setError('Please check and fix the invalid fields below.');
+      setError(t('createviolationmodal.please_check_and_fix', 'Vui lòng kiểm tra và sửa các trường chưa hợp lệ bên dưới.'));
       return;
     }
 
