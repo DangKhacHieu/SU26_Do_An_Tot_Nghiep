@@ -28,5 +28,7 @@ COPY --from=build-env /app/out .
 # Expose port 8080 (ASP.NET Core default port in Docker containers)
 EXPOSE 8080
 ENV ASPNETCORE_URLS=http://+:8080
+ENV DOTNET_HOSTBUILDER__RELOADCONFIGONCHANGE=false
+ENV DOTNET_USE_POLLING_FILE_WATCHER=true
 
 ENTRYPOINT ["dotnet", "STMM.API.dll"]
