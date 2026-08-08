@@ -59,7 +59,7 @@ export default function ViolationDetailsManager({ violationId, baseUrl, navigate
       const data = await res.json();
       setViolation(data);
     } catch {
-      addToast('Không thể tải chi tiết biên bản vi phạm.', 'error');
+      addToast(t('violationdetailsmanager.unable_to_download_details'), 'error');
     } finally {
       setLoading(false);
     }
@@ -77,7 +77,7 @@ export default function ViolationDetailsManager({ violationId, baseUrl, navigate
       addToast(approve ? t('violationdetailsmanager.approved_to_accept_the') : t('violationdetailsmanager.the_appeal_was_dismissed'), 'success');
       await fetchViolationDetails(); // Refresh details to show updated status
     } catch {
-      addToast('Thao tác thất bại. Vui lòng thử lại.', 'error');
+      addToast(t('violationdetailsmanager.operation_failed_please_try'), 'error');
     } finally {
       setSubmitting(false);
     }

@@ -12,7 +12,7 @@ const getAuthHeaders = () => ({
 const IconSearch = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>;
 const IconPlus = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>;
 const IconEmpty = () => <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>;
-const IconChevron = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>;
+const IconEye = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>;
 
 export default function ContractListManager({ navigate, addToast }) {
   const { t } = useTranslation();
@@ -42,7 +42,7 @@ export default function ContractListManager({ navigate, addToast }) {
         throw new Error();
       }
     } catch {
-      addToast("Không thể tải danh sách hợp đồng.", "error");
+      addToast(t('contractlistmanager.unable_to_load_contract'), "error");
     } finally {
       setLoading(false);
     }
@@ -124,54 +124,56 @@ export default function ContractListManager({ navigate, addToast }) {
             <p>{t('contractlistmanager.no_suitable_contracts_were')}</p>
           </div>
         ) : (
-          <table className="glass-table">
-            <thead>
-              <tr>
-                <th>{t('contractlistmanager.hd_code')}</th>
-                <th>{t('contractlistmanager.shop')}</th>
-                <th>{t('contractlistmanager.area')}</th>
-                <th>{t('contractlistmanager.small_business')}</th>
-                <th>{t('contractlistmanager.rental_term')}</th>
-                <th>{t('contractlistmanager.rental_pricemonth')}</th>
-                <th>{t('contractlistmanager.deposit')}</th>
-                <th>{t('contractlistmanager.status')}</th>
-                <th className="actions-header">{t('contractlistmanager.operation')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {contracts.map((c) => (
-                <tr key={c.contractId} className="table-row-hover">
-                  <td><strong>{c.contractId}</strong></td>
-                  <td><span className="stall-code-pill">{c.stallCode}</span></td>
-                  <td>{c.areaName}</td>
-                  <td>
-                    <div className="vendor-cell">
-                      <span className="vendor-name-txt">{c.vendorBusinessName || c.vendorName}</span>
-                      <span className="vendor-sub-txt">{c.vendorPhone}</span>
-                    </div>
-                  </td>
-                  <td>
-                    <div className="date-cell">
-                      <span>{c.startDate}</span>
-                      <span className="date-separator">{t('contractlistmanager.arrive')}</span>
-                      <span>{c.endDate}</span>
-                    </div>
-                  </td>
-                  <td><strong>{formatCurrency(c.rentFee)}</strong></td>
-                  <td>{formatCurrency(c.deposit)}</td>
-                  <td>{renderStatusBadge(c.status)}</td>
-                  <td className="actions-cell">
-                    <button
-                      className="btn-view-detail"
-                      onClick={() => navigate("contract-detail", c.contractId)}
-                    >
-                      {t('contractlistmanager.detail')}<IconChevron />
-                    </button>
-                  </td>
+          <div className="table-responsive">
+            <table className="glass-table">
+              <thead>
+                <tr>
+                  <th>{t('contractlistmanager.hd_code')}</th>
+                  <th>{t('contractlistmanager.shop')}</th>
+                  <th>{t('contractlistmanager.area')}</th>
+                  <th>{t('contractlistmanager.small_business')}</th>
+                  <th>{t('contractlistmanager.rental_term')}</th>
+                  <th>{t('contractlistmanager.rental_pricemonth')}</th>
+                  <th>{t('contractlistmanager.deposit')}</th>
+                  <th>{t('contractlistmanager.status')}</th>
+                  <th className="actions-header">{t('contractlistmanager.operation')}</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {contracts.map((c) => (
+                  <tr key={c.contractId} className="table-row-hover">
+                    <td><strong>{c.contractId}</strong></td>
+                    <td><span className="stall-code-pill">{c.stallCode}</span></td>
+                    <td>{c.areaName}</td>
+                    <td>
+                      <div className="vendor-cell">
+                        <span className="vendor-name-txt">{c.vendorBusinessName || c.vendorName}</span>
+                        <span className="vendor-sub-txt">{c.vendorPhone}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="date-cell">
+                        <span>{c.startDate}</span>
+                        <span className="date-separator">{t('contractlistmanager.arrive')}</span>
+                        <span>{c.endDate}</span>
+                      </div>
+                    </td>
+                    <td><strong>{formatCurrency(c.rentFee)}</strong></td>
+                    <td>{formatCurrency(c.deposit)}</td>
+                    <td>{renderStatusBadge(c.status)}</td>
+                    <td className="actions-cell">
+                      <button
+                        className="btn-view-detail"
+                        onClick={() => navigate("contract-detail", c.contractId)}
+                      >
+                        {t('contractlistmanager.detail')}<IconEye />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </div>

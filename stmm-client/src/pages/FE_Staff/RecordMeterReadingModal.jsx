@@ -167,35 +167,35 @@ export default function RecordMeterReadingModal({
   const validateForm = () => {
     const errors = {};
     if (!meterId) {
-      errors.meterId = 'Vui lòng chọn đồng hồ đo.';
+      errors.meterId = 'Please select a meter.';
     }
 
     const numVal = Number(newValue);
     if (newValue === '' || isNaN(numVal) || numVal < 0) {
-      errors.newValue = 'Chỉ số mới không được âm và phải là số hợp lệ.';
+      errors.newValue = 'New reading value cannot be negative and must be a valid number.';
     } else if (!Number.isInteger(numVal)) {
-      errors.newValue = 'Chỉ số mới phải là số nguyên (không chứa số thập phân).';
+      errors.newValue = 'New reading value must be an integer (no decimals).';
     } else if (numVal > 999999) {
-      errors.newValue = 'Chỉ số mới không được vượt quá 999,999.';
+      errors.newValue = 'New reading value cannot exceed 999,999.';
     } else if (selectedMeter && selectedMeter.lastReadingValue !== null && numVal < selectedMeter.lastReadingValue) {
-      errors.newValue = `Chỉ số mới phải lớn hơn hoặc bằng chỉ số cũ (${selectedMeter.lastReadingValue}).`;
+      errors.newValue = `New reading value must be greater than or equal to previous reading (${selectedMeter.lastReadingValue}).`;
     }
 
     if (!recordedAt) {
-      errors.recordedAt = 'Vui lòng chọn ngày ghi nhận hợp lệ.';
+      errors.recordedAt = 'Please select a valid reading date.';
     } else {
       const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
       if (!dateRegex.test(recordedAt)) {
-        errors.recordedAt = 'Ngày ghi nhận phải đúng định dạng YYYY-MM-DD.';
+        errors.recordedAt = 'Reading date must be in YYYY-MM-DD format.';
       } else if (recordedAt > maxDateStr) {
-        errors.recordedAt = t('recordmeterreadingmodal.future_date_not_allowed', { defaultValue: 'Ngày ghi nhận không được vượt quá ngày hiện tại.' });
+        errors.recordedAt = t('recordmeterreadingmodal.future_date_not_allowed', { defaultValue: 'Reading date cannot exceed current date.' });
       } else if (minDateStr && recordedAt < minDateStr) {
-        errors.recordedAt = t('recordmeterreadingmodal.date_before_created_not_allowed', { min: minDateStr, defaultValue: `Ngày ghi nhận không được trước ngày tạo (${minDateStr}).` });
+        errors.recordedAt = t('recordmeterreadingmodal.date_before_created_not_allowed', { min: minDateStr, defaultValue: `Reading date cannot be before creation date (${minDateStr}).` });
       }
     }
 
     if (!selectedFile) {
-      errors.imageUrl = 'Vui lòng chụp ảnh mặt đồng hồ làm bằng chứng.';
+      errors.imageUrl = 'Please capture/upload an image of the meter face.';
     }
 
     setFormErrors(errors);
@@ -208,7 +208,7 @@ export default function RecordMeterReadingModal({
     setSubmitError(null);
 
     if (!validateForm()) {
-      setSubmitError('Vui lòng kiểm tra và sửa các thông tin chưa hợp lệ bên dưới.');
+      setSubmitError('Please check and fix the invalid fields below.');
       return;
     }
 
@@ -232,7 +232,7 @@ export default function RecordMeterReadingModal({
       }
 
       const result = await response.json();
-      showToast(t('recordmeterreadingmodal.save_reading_success', 'Ghi nhận chỉ số thành công!'), 'success');
+      showToast(t('recordmeterreadingmodal.save_reading_success', 'Meter reading saved successfully!'), 'success');
       onSuccess(result);
     } catch (err) {
       setSubmitError(err.message);

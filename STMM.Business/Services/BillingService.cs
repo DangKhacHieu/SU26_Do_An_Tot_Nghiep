@@ -1022,12 +1022,26 @@ namespace STMM.Business.Services
                 throw new NotFoundException($"ERR_KHONG_TIM_THAY_SAP_HOAT_DONG_ID_REQUEST_STALLID_DE|{request.StallId}");
             }
 
+            var accountantUser = await _userRepository.GetByIdAsync(senderUserId, ct);
+            if (accountantUser != null && accountantUser.MarketId.HasValue)
+            {
+                if (activeContract?.Stall?.Area?.MarketId != accountantUser.MarketId)
+                {
+                    throw new ForbiddenException("Bạn không có quyền gửi nhắc nợ cho sạp thuộc chợ khác.");
+                }
+            }
+
             var unpaidInvoicesSum = await _invoiceRepository.GetTotalUnpaidAmountByStallIdAsync(request.StallId, ct);
 
             var violations = await _violationRepository.GetUnpaidViolationsByStallIdAsync(request.StallId, ct);
             var unpaidViolationsSum = violations.Sum(v => v.FineAmount ?? v.ViolationType?.DefaultFine ?? 0);
 
             var totalDebt = unpaidInvoicesSum + unpaidViolationsSum;
+
+            if (totalDebt <= 0)
+            {
+                throw new BadRequestException($"Sạp {stall.Code} hiện không có công nợ quá hạn để gửi thông báo nhắc nợ.");
+            }
 
             var message = request.CustomMessage;
             if (string.IsNullOrWhiteSpace(message))
@@ -1051,8 +1065,8 @@ namespace STMM.Business.Services
                 var emailBody = $@"
 <div style=""font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;"">
     <div style=""text-align: center; margin-bottom: 20px;"">
-        <h2 style=""color: #d32f2f; margin: 0;"">Smart Market (STMM)</h2>
-        <p style=""color: #666; font-size: 14px; margin: 5px 0 0 0;"">Hệ thống quản lý chợ thông minh</p>
+        <h2 style=""color: #d32f2f; margin: 0;"">Market Hall Management System (MHMS)</h2>
+        <p style=""color: #666; font-size: 14px; margin: 5px 0 0 0;"">Market Hall Management System (MHMS)</p>
     </div>
     <div style=""background-color: #fff9c4; padding: 20px; border-radius: 6px; border-left: 4px solid #fbc02d; margin-bottom: 20px;"">
         <p style=""margin-top: 0; font-size: 16px;"">Kính gửi Ông/Bà: <strong>{stall.Name}</strong> (Tiểu thương sạp <strong>{stall.Code}</strong>),</p>
@@ -1109,6 +1123,15 @@ namespace STMM.Business.Services
             if (dispute == null)
             {
                 throw new NotFoundException($"ERR_KHONG_TIM_THAY_YEU_CAU_KHANG_NGHI_ID_REQUESTID|{requestId}");
+            }
+
+            var accountantUser = await _userRepository.GetByIdAsync(accountantUserId, ct);
+            if (accountantUser != null && accountantUser.MarketId.HasValue)
+            {
+                if (dispute.Stall?.Area?.MarketId != accountantUser.MarketId)
+                {
+                    throw new ForbiddenException("Bạn không có quyền giải quyết kháng nghị của sạp thuộc chợ khác.");
+                }
             }
 
             using var transaction = await _requestRepository.BeginTransactionAsync(ct);
@@ -1245,16 +1268,50 @@ namespace STMM.Business.Services
                 vatRate = parsedVat;
             }
 
+            // --- TIER PRICING FOR UTILITIES ---
+            var eleConfig = await _systemConfigRepository.GetSystemConfigByKeyAsync("electricity_tiers", marketId, ct);
+            var waterConfig = await _systemConfigRepository.GetSystemConfigByKeyAsync("water_tiers", marketId, ct);
+            
+            List<UtilityTierStep>? eleTiers = null;
+            List<UtilityTierStep>? waterTiers = null;
+            if (eleConfig != null && !string.IsNullOrEmpty(eleConfig.ConfigValue))
+                try { eleTiers = System.Text.Json.JsonSerializer.Deserialize<List<UtilityTierStep>>(eleConfig.ConfigValue); } catch { }
+            if (waterConfig != null && !string.IsNullOrEmpty(waterConfig.ConfigValue))
+                try { waterTiers = System.Text.Json.JsonSerializer.Deserialize<List<UtilityTierStep>>(waterConfig.ConfigValue); } catch { }
+            
+            if (eleTiers == null || !eleTiers.Any()) 
+                eleTiers = new List<UtilityTierStep> { new UtilityTierStep { Step = 1, From = 0, To = null, Price = 3500 } };
+            if (waterTiers == null || !waterTiers.Any()) 
+                waterTiers = new List<UtilityTierStep> { new UtilityTierStep { Step = 1, From = 0, To = null, Price = 18000 } };
+
+            var eleFeeType = await _feeTypeRepository.GetFeeTypeByNameContainsAsync("Điện", null, ct);
+            var waterFeeType = await _feeTypeRepository.GetFeeTypeByNameContainsAsync("Nước", null, ct);
+            int eleFeeTypeId = eleFeeType?.FeeTypeId ?? 2;
+            int waterFeeTypeId = waterFeeType?.FeeTypeId ?? 3;
+
+            // --- FETCH UNSYNCED METER READINGS FOR THIS MONTH ---
+            var meterReadingsQuery = _meterReadingRepository.Query()
+                .Include(mr => mr.Meter)
+                .Where(mr => mr.RecordedAt.Month == month && mr.RecordedAt.Year == year && mr.IsSynced != true && mr.Meter.StallId.HasValue);
+            
+            if (marketId.HasValue)
+                meterReadingsQuery = meterReadingsQuery.Where(mr => mr.Meter.Stall != null && mr.Meter.Stall.Area != null && mr.Meter.Stall.Area.MarketId == marketId.Value);
+
+            var unsyncedReadings = await meterReadingsQuery.ToListAsync(ct);
+            var readingsByStall = unsyncedReadings
+                .GroupBy(mr => mr.Meter.StallId!.Value)
+                .ToDictionary(g => g.Key, g => g.ToList());
+            
+            var readingsToUpdate = new List<MeterReading>();
+
             int count = 0;
             var newInvoices = new List<Invoice>();
 
             var existingInvoicesQuery = _invoiceRepository.Query()
-                .Where(i => i.Month == month && i.Year == year && i.IsDeleted != true && i.Status != "Canceled")
-                .SelectMany(i => i.InvoiceDetails)
-                .Where(d => d.FeeTypeId == rentFeeTypeId);
+                .Where(i => i.Month == month && i.Year == year && i.IsDeleted != true && i.Status != "Canceled" && i.InvoiceType == "Periodic");
             if (marketId.HasValue)
-                existingInvoicesQuery = existingInvoicesQuery.Where(d => d.Invoice.Contract.Stall.Area.MarketId == marketId.Value);
-            var existingInvoices = await existingInvoicesQuery.Select(d => d.Invoice.ContractId).ToListAsync(ct);
+                existingInvoicesQuery = existingInvoicesQuery.Where(i => i.Contract.Stall.Area.MarketId == marketId.Value);
+            var existingInvoices = await existingInvoicesQuery.Select(i => i.ContractId).ToListAsync(ct);
             var existingContractIds = new HashSet<int>(existingInvoices);
 
             foreach (var contract in activeContracts)
@@ -1262,15 +1319,25 @@ namespace STMM.Business.Services
                 if (existingContractIds.Contains(contract.ContractId)) continue;
 
                 decimal rentAmount = CalculateProratedAmount(contract.RentFee, contract.StartDate.ToDateTime(TimeOnly.MinValue), contract.EndDate.ToDateTime(TimeOnly.MinValue), month, year);
-                if (rentAmount <= 0) continue;
 
                 decimal totalAmount = rentAmount;
-                var activeServices = contract.Stall?.ServiceRegistrations?.Where(sr => sr.Status == "Active").ToList() ?? new List<ServiceRegistration>();
+                // Fetch both Active and PendingCancellation services so we can process cancellations properly
+                var servicesToProcess = contract.Stall?.ServiceRegistrations?.Where(sr => sr.Status == "Active" || sr.Status == "PendingCancellation").ToList() ?? new List<ServiceRegistration>();
                 var validServices = new List<(ServiceRegistration Reg, decimal Amount)>();
 
-                foreach (var reg in activeServices)
+                foreach (var reg in servicesToProcess)
                 {
                     if (reg.Service == null) continue;
+
+                    if (reg.Status == "PendingCancellation")
+                    {
+                        // Hết chu kỳ cũ, đến chu kỳ mới nhưng user đã hủy gia hạn
+                        // Cập nhật trạng thái thành Cancelled và không tính phí tháng này
+                        reg.Status = "Cancelled";
+                        reg.CancelledAt = DateTime.UtcNow;
+                        _serviceRegistrationRepository.Update(reg);
+                        continue; // Skip adding to invoice
+                    }
 
                     bool shouldBill = false;
                     decimal serviceAmount = 0;
@@ -1297,6 +1364,41 @@ namespace STMM.Business.Services
                     }
                 }
 
+                var utilityDetails = new List<InvoiceDetail>();
+                if (readingsByStall.TryGetValue(contract.StallId, out var stallReadings))
+                {
+                    foreach (var reading in stallReadings)
+                    {
+                        double consumption = reading.NewValue - reading.OldValue;
+                        if (consumption < 0) consumption = 0;
+
+                        var tiers = reading.Meter.Type == "Electricity" ? eleTiers : waterTiers;
+                        int feeTypeId = reading.Meter.Type == "Electricity" ? eleFeeTypeId : waterFeeTypeId;
+                        string typeName = reading.Meter.Type == "Electricity" ? "điện" : "nước";
+
+                        decimal amount = UtilityPricingCalculator.CalculatePrice(consumption, tiers);
+                        
+                        if (amount > 0 || consumption > 0)
+                        {
+                            totalAmount += amount;
+                            utilityDetails.Add(new InvoiceDetail
+                            {
+                                FeeTypeId = feeTypeId,
+                                Description = $"Tiêu thụ {typeName} {month}/{year} ({reading.OldValue} -> {reading.NewValue})",
+                                Quantity = consumption,
+                                UnitPrice = amount > 0 && consumption > 0 ? amount / (decimal)consumption : 0,
+                                Amount = amount
+                            });
+                            
+                            reading.IsSynced = true;
+                            readingsToUpdate.Add(reading);
+                        }
+                    }
+                }
+
+                // If both rent, services, and utilities amount to 0, no need to issue an invoice
+                if (totalAmount <= 0) continue;
+
                 var invoice = new Invoice
                 {
                     ContractId = contract.ContractId,
@@ -1310,28 +1412,21 @@ namespace STMM.Business.Services
                     IsDeleted = false
                 };
 
-                var rentDetail = new InvoiceDetail
+                if (rentAmount > 0)
                 {
-                    FeeTypeId = rentFeeTypeId,
-                    Description = $"Tiền thuê sạp {contract.Stall?.Code} tháng {month}/{year}",
-                    Quantity = 1,
-                    UnitPrice = contract.RentFee,
-                    Amount = rentAmount
-                };
-                invoice.InvoiceDetails.Add(rentDetail);
+                    var rentDetail = new InvoiceDetail
+                    {
+                        FeeTypeId = rentFeeTypeId,
+                        Description = $"Tiền thuê sạp {contract.Stall?.Code} tháng {month}/{year}",
+                        Quantity = 1,
+                        UnitPrice = contract.RentFee,
+                        Amount = rentAmount
+                    };
+                    invoice.InvoiceDetails.Add(rentDetail);
+                }
 
                 foreach (var srv in validServices)
                 {
-                    if (srv.Reg.Status == "PendingCancellation")
-                    {
-                        // Hết chu kỳ cũ, đến chu kỳ mới nhưng user đã hủy gia hạn
-                        // Cập nhật trạng thái thành Cancelled và không tính phí tháng này
-                        srv.Reg.Status = "Cancelled";
-                        srv.Reg.CancelledAt = DateTime.UtcNow;
-                        _serviceRegistrationRepository.Update(srv.Reg);
-                        continue;
-                    }
-
                     var srvDetail = new InvoiceDetail
                     {
                         FeeTypeId = srv.Reg.Service.FeeTypeId,
@@ -1341,6 +1436,11 @@ namespace STMM.Business.Services
                         Amount = srv.Amount
                     };
                     invoice.InvoiceDetails.Add(srvDetail);
+                }
+
+                foreach (var utilDetail in utilityDetails)
+                {
+                    invoice.InvoiceDetails.Add(utilDetail);
                 }
 
                 // Add VAT if applicable
@@ -1368,6 +1468,12 @@ namespace STMM.Business.Services
             if (newInvoices.Any())
             {
                 await _invoiceRepository.AddRangeAsync(newInvoices, ct);
+                
+                foreach (var reading in readingsToUpdate)
+                {
+                    _meterReadingRepository.Update(reading);
+                }
+                
                 await _invoiceRepository.SaveChangesAsync(ct);
                 count = newInvoices.Count;
             }

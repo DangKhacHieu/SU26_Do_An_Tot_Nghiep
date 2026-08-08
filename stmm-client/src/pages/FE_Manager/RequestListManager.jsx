@@ -55,6 +55,7 @@ const IconFilter = () => (
   </svg>
 );
 
+
 export default function RequestListManager({ baseUrl, navigate, addToast }) {
   const { t, i18n } = useTranslation();
 
@@ -83,7 +84,7 @@ export default function RequestListManager({ baseUrl, navigate, addToast }) {
       setRequests(data.items || []);
       setTotalCount(data.totalCount || 0);
     } catch {
-      addToast('Không thể tải danh sách yêu cầu.', 'error');
+      addToast(t('requestlistmanager.unable_to_load_request'), 'error');
     } finally {
       setLoading(false);
     }
@@ -166,70 +167,71 @@ export default function RequestListManager({ baseUrl, navigate, addToast }) {
       ) : (
         <>
           <div className="rl-table-wrap">
-            <table className="rl-table">
-              <thead>
-                <tr>
-                  <th>{t('requestlistmanager.code_yc')}</th>
-                  <th>{t('requestlistmanager.stall')}</th>
-                  <th>{t('requestlistmanager.small_business')}</th>
-                  <th>{t('requestlistmanager.request_type')}</th>
-                  <th>{t('requestlistmanager.title')}</th>
-                  <th>{t('requestlistmanager.creation_date')}</th>
-                  <th>{t('requestlistmanager.status')}</th>
-                  <th style={{textAlign:'center'}}>{t('requestlistmanager.view')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {requests.map(item => {
-                  const tm = TYPE_META[item.requestType] || { labelKey: '', labelFallback: item.requestType, color: 'type-other' };
-                  const sm = STATUS_META[item.status]    || { labelKey: '', labelFallback: item.status,       cls: 'status-pending' };
-                  return (
-                    <tr
-                      key={item.requestId}
-                      className={`rl-row ${item.status === 'PendingManagerReview' ? 'rl-row-needs-review' : ''}`}
-                      onClick={() => navigate('request-detail', item.requestId)}
-                    >
-                      <td>
-                        <span className="rl-id-badge">REQ-{item.requestId}</span>
-                      </td>
-                      <td>
-                        <span className="rl-stall-badge">{item.stallCode || '—'}</span>
-                      </td>
-                      <td>
-                        <div className="rl-vendor-cell">
-                          <span className="rl-vendor-biz">{item.businessName || '—'}</span>
-                          <span className="rl-vendor-name">{item.vendorName || '—'}</span>
-                        </div>
-                      </td>
-                      <td>
-                        <span className={`rl-type-badge ${tm.color}`}>{tm.labelKey ? t('requestlistmanager.' + tm.labelKey) : tm.labelFallback}</span>
-                      </td>
-                      <td>
-                        <div className="rl-title-cell">
-                          <span className="rl-title-text">{item.title}</span>
-                          <span className="rl-desc-snip">{item.description}</span>
-                        </div>
-                      </td>
-                      <td>
-                        <span className="rl-date">{formatDate(item.createdAt)}</span>
-                      </td>
-                      <td>
-                        <span className={`rl-status-badge ${sm.cls}`}>{sm.labelKey ? t('requestlistmanager.' + sm.labelKey) : sm.labelFallback}</span>
-                      </td>
-                      <td style={{textAlign:'center'}}>
-                        <button
-                          className="rl-view-btn"
-                          onClick={e => { e.stopPropagation(); navigate('request-detail', item.requestId); }}
-                          title={t('requestlistmanager.see_details')}
-                        >
-                          <IconEye />
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+            <div className="table-responsive">
+              <table className="rl-table">
+                <thead>
+                  <tr>
+                    <th>{t('requestlistmanager.code_yc')}</th>
+                    <th>{t('requestlistmanager.stall')}</th>
+                    <th>{t('requestlistmanager.small_business')}</th>
+                    <th>{t('requestlistmanager.request_type')}</th>
+                    <th>{t('requestlistmanager.title')}</th>
+                    <th>{t('requestlistmanager.creation_date')}</th>
+                    <th>{t('requestlistmanager.status')}</th>
+                    <th className="actions-header">{t('requestlistmanager.view')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {requests.map(item => {
+                    const tm = TYPE_META[item.requestType] || { labelKey: '', labelFallback: item.requestType, color: 'type-other' };
+                    const sm = STATUS_META[item.status]    || { labelKey: '', labelFallback: item.status,       cls: 'status-pending' };
+                    return (
+                      <tr
+                        key={item.requestId}
+                        className={`rl-row ${item.status === 'PendingManagerReview' ? 'rl-row-needs-review' : ''}`}
+                        onClick={() => navigate('request-detail', item.requestId)}
+                      >
+                        <td>
+                          <span className="rl-id-badge">REQ-{item.requestId}</span>
+                        </td>
+                        <td>
+                          <span className="rl-stall-badge">{item.stallCode || '—'}</span>
+                        </td>
+                        <td>
+                          <div className="rl-vendor-cell">
+                            <span className="rl-vendor-biz">{item.businessName || '—'}</span>
+                            <span className="rl-vendor-name">{item.vendorName || '—'}</span>
+                          </div>
+                        </td>
+                        <td>
+                          <span className={`rl-type-badge ${tm.color}`}>{tm.labelKey ? t('requestlistmanager.' + tm.labelKey) : tm.labelFallback}</span>
+                        </td>
+                        <td>
+                          <div className="rl-title-cell">
+                            <span className="rl-title-text">{item.title}</span>
+                            <span className="rl-desc-snip">{item.description}</span>
+                          </div>
+                        </td>
+                        <td>
+                          <span className="rl-date">{formatDate(item.createdAt)}</span>
+                        </td>
+                        <td>
+                          <span className={`rl-status-badge ${sm.cls}`}>{sm.labelKey ? t('requestlistmanager.' + sm.labelKey) : sm.labelFallback}</span>
+                        </td>
+                        <td className="actions-cell" onClick={e => e.stopPropagation()}>
+                          <button
+                            className="btn-view-detail"
+                            onClick={e => { e.stopPropagation(); navigate('request-detail', item.requestId); }}
+                          >
+                            {t('requestlistmanager.see_details')}<IconEye />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
 
           {/* ── Pagination ── */}

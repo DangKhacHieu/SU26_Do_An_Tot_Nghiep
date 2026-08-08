@@ -60,7 +60,7 @@ export default function ContractPrintPreview({ contract, onClose, onSaveSuccess,
       if (res.ok) {
         const updatedContract = await res.json();
         if (addToast) {
-          addToast("Lưu thông tin Bên B thành công!", "success");
+          addToast(t('contractprintpreview.saved_party_bs_information'), "success");
         }
         if (onSaveSuccess) {
           onSaveSuccess(updatedContract);
@@ -73,7 +73,7 @@ export default function ContractPrintPreview({ contract, onClose, onSaveSuccess,
       }
     } catch (err) {
       if (addToast) {
-        addToast("Lỗi kết nối máy chủ.", "error");
+        addToast(t('contractdetailmanager.server_connection_error'), "error");
       }
     } finally {
       setSaving(false);
@@ -163,207 +163,16 @@ export default function ContractPrintPreview({ contract, onClose, onSaveSuccess,
 
   return createPortal(
     <div className="print-preview-modal animate-fade-in">
-      <div className="print-controls no-print">
-        <div className="controls-header">
-          <h3>{t('contractprintpreview.configure_export_pdf_files')}</h3>
+      <div className="print-header-bar no-print">
+        <h3 className="print-header-title">Hợp đồng thuê kiot số: {contract?.contractId ? String(contract.contractId).padStart(4, "0") : "....."}/HĐ-MHMS</h3>
+        <div className="print-header-actions">
+          <button className="btn-print-action" onClick={handlePrint}>
+            {t('contractprintpreview.export_pdf_files')}
+          </button>
           <button className="btn-close-preview" onClick={onClose}>
-            {t('contractprintpreview.close')}</button>
-        </div>
-
-        <div className="control-group">
-          <h4>{t('contractprintpreview.information_of_party_a')}</h4>
-          <div className="control-row">
-            <label>{t('contractprintpreview.companyindividual_name')}</label>
-            <input 
-              type="text" 
-              value={lessor.name} 
-              onChange={(e) => setLessor({ ...lessor, name: e.target.value })} 
-            />
-          </div>
-          <div className="control-row">
-            <label>{t('contractprintpreview.head_office_address')}</label>
-            <input 
-              type="text" 
-              value={lessor.address} 
-              onChange={(e) => setLessor({ ...lessor, address: e.target.value })} 
-            />
-          </div>
-          <div className="control-row">
-            <label>{t('contractprintpreview.tax_code')}</label>
-            <input 
-              type="text" 
-              value={lessor.taxCode} 
-              onChange={(e) => setLessor({ ...lessor, taxCode: e.target.value })} 
-            />
-          </div>
-          <div className="control-row">
-            <label>{t('contractprintpreview.cccdid_card_number')}</label>
-            <input 
-              type="text" 
-              value={lessor.cccd} 
-              onChange={(e) => setLessor({ ...lessor, cccd: e.target.value })} 
-            />
-          </div>
-          <div className="control-row">
-            <label>{t('contractprintpreview.business_registration_number_license')}</label>
-            <input 
-              type="text" 
-              value={lessor.licenseNum} 
-              onChange={(e) => setLessor({ ...lessor, licenseNum: e.target.value })} 
-            />
-          </div>
-          <div className="control-row">
-            <label>{t('contractprintpreview.issued_by_which_agency')}</label>
-            <input 
-              type="text" 
-              value={lessor.licenseIssuer} 
-              onChange={(e) => setLessor({ ...lessor, licenseIssuer: e.target.value })} 
-            />
-          </div>
-          <div className="control-row">
-            <label>{t('contractprintpreview.date_level')}</label>
-            <input 
-              type="text" 
-              value={lessor.licenseDate} 
-              onChange={(e) => setLessor({ ...lessor, licenseDate: e.target.value })} 
-            />
-          </div>
-          <div className="control-row">
-            <label>{t('contractprintpreview.phone')}</label>
-            <input 
-              type="text" 
-              value={lessor.phone} 
-              onChange={(e) => setLessor({ ...lessor, phone: e.target.value })} 
-            />
-          </div>
-          <div className="control-row">
-            <label>Email</label>
-            <input 
-              type="text" 
-              value={lessor.email} 
-              onChange={(e) => setLessor({ ...lessor, email: e.target.value })} 
-            />
-          </div>
-          <div className="control-row">
-            <label>{t('contractprintpreview.representative')}</label>
-            <input 
-              type="text" 
-              value={lessor.representative} 
-              onChange={(e) => setLessor({ ...lessor, representative: e.target.value })} 
-            />
-          </div>
-          <div className="control-row">
-            <label>{t('contractprintpreview.position')}</label>
-            <input 
-              type="text" 
-              value={lessor.position} 
-              onChange={(e) => setLessor({ ...lessor, position: e.target.value })} 
-            />
-          </div>
-          <div className="control-row">
-            <label>{t('contractprintpreview.bank_account_number')}</label>
-            <input 
-              type="text" 
-              value={lessor.bankAccount} 
-              onChange={(e) => setLessor({ ...lessor, bankAccount: e.target.value })} 
-            />
-          </div>
-          <div className="control-row">
-            <label>{t('contractprintpreview.at_the_bank')}</label>
-            <input 
-              type="text" 
-              value={lessor.bankName} 
-              onChange={(e) => setLessor({ ...lessor, bankName: e.target.value })} 
-            />
-          </div>
-        </div>
-
-        <div className="control-group">
-          <h4>{t('contractprintpreview.information_of_party_b')}</h4>
-          <div className="control-row">
-            <label>{t('contractprintpreview.name_of_organizationcompanyindividual')}</label>
-            <input 
-              type="text" 
-              placeholder={t('contractprintpreview.party_bs_name')} 
-              value={lessee.businessName} 
-              onChange={(e) => setLessee({ ...lessee, businessName: e.target.value })} 
-            />
-          </div>
-          <div className="control-row">
-            <label>{t('contractprintpreview.head_office_address')}</label>
-            <input 
-              type="text" 
-              placeholder={t('contractprintpreview.address')} 
-              value={lessee.address} 
-              onChange={(e) => setLessee({ ...lessee, address: e.target.value })} 
-            />
-          </div>
-          <div className="control-row">
-            <label>{t('contractprintpreview.tax_code')}</label>
-            <input 
-              type="text" 
-              placeholder={t('contractprintpreview.tax_code')} 
-              value={lessee.taxCode} 
-              onChange={(e) => setLessee({ ...lessee, taxCode: e.target.value })} 
-            />
-          </div>
-          <div className="control-row">
-            <label>{t('contractprintpreview.party_bs_bank_account')}</label>
-            <input 
-              type="text" 
-              placeholder={t('contractprintpreview.account_number')} 
-              value={lessee.bankAccount} 
-              onChange={(e) => setLessee({ ...lessee, bankAccount: e.target.value })} 
-            />
-          </div>
-          <div className="control-row">
-            <label>{t('contractprintpreview.at_party_b_bank')}</label>
-            <input 
-              type="text" 
-              placeholder={t('contractprintpreview.bank_name')} 
-              value={lessee.bankName} 
-              onChange={(e) => setLessee({ ...lessee, bankName: e.target.value })} 
-            />
-          </div>
-          <button 
-            type="button" 
-            className="btn-save-vendor-info"
-            style={{
-              marginTop: "0.5rem",
-              padding: "0.5rem",
-              backgroundColor: "#10b981",
-              color: "#ffffff",
-              border: "none",
-              borderRadius: "6px",
-              fontWeight: "600",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "6px",
-              transition: "background-color 0.2s"
-            }}
-            onClick={handleSaveVendorInfo}
-            disabled={saving}
-          >
-            {saving ? t('contractprintpreview.saving') : t('contractprintpreview.save_party_b_information')}
+            {t('contractprintpreview.close')}
           </button>
         </div>
-
-        <div className="control-group tip-box">
-          <h4>{t('contractprintpreview.pdf_download_instructions')}</h4>
-          <p style={{ fontSize: "12px", color: "#64748b", margin: 0, lineHeight: "1.5" }}>
-            {t('contractprintpreview.1_choose')}<strong>{t('contractprintpreview.save_as_pdf')}</strong> {t('contractprintpreview.as_destination_printer')}<br />
-            {t('contractprintpreview.2_in_section')}<strong>{t('contractprintpreview.other_settings')}</strong>{t('contractprintpreview.lets')}<strong>{t('contractprintpreview.uncheck_headers_and_footers')}</strong> {t('contractprintpreview.to_delete_the_web')}<br />
-            {t('contractprintpreview.3_set_the_scale')}<strong>100%</strong> {t('contractprintpreview.or')}<strong>{t('contractprintpreview.fits_perfectly_to_the')}</strong>.
-          </p>
-        </div>
-
-        <div className="actions-panel">
-          <button className="btn-print-action" onClick={handlePrint}>
-            {t('contractprintpreview.export_pdf_files')}</button>
-        </div>
-
       </div>
 
       {(() => {

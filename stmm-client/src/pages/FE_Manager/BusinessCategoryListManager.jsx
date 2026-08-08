@@ -70,7 +70,7 @@ export default function BusinessCategoryListManager({ navigate, addToast }) {
         throw new Error();
       }
     } catch {
-      addToast('Không thể tải danh sách danh mục kinh doanh.', 'error');
+      addToast(t('businesscategorylistmanager.unable_to_load_business'), 'error');
     } finally {
       setLoading(false);
     }
@@ -174,7 +174,7 @@ export default function BusinessCategoryListManager({ navigate, addToast }) {
         addToast(err.message || t('businesscategorylistmanager.error_while_saving_directory'), 'error');
       }
     } catch {
-      addToast('Lỗi kết nối. Vui lòng thử lại.', 'error');
+      addToast(t('businesscategorylistmanager.connection_error_please_try'), 'error');
     } finally {
       setActionLoading(false);
     }
@@ -195,7 +195,7 @@ export default function BusinessCategoryListManager({ navigate, addToast }) {
 
     // Safety rule checked on frontend as well
     if (targetCat.stallsCount > 0 || targetCat.areasCount > 0) {
-      addToast('Không thể xóa danh mục đang có quầy sạp hoặc khu vực sử dụng.', 'error');
+      addToast(t('businesscategorylistmanager.it_is_not_possible'), 'error');
       return;
     }
 
@@ -209,7 +209,7 @@ export default function BusinessCategoryListManager({ navigate, addToast }) {
         }
       });
       if (res.ok) {
-        addToast('Xóa danh mục thành công!', 'success');
+        addToast(t('businesscategorylistmanager.directory_deletion_successful'), 'success');
         handleCloseDelete();
         fetchCategories();
       } else {
@@ -217,7 +217,7 @@ export default function BusinessCategoryListManager({ navigate, addToast }) {
         addToast(err.message || t('businesscategorylistmanager.server_error_while_deleting'), 'error');
       }
     } catch {
-      addToast('Lỗi kết nối. Vui lòng thử lại.', 'error');
+      addToast(t('businesscategorylistmanager.connection_error_please_try'), 'error');
     } finally {
       setActionLoading(false);
     }

@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { showSuccess, showError } from '../../utils/alert';
+import { translateError } from '../../utils/translateError';
 import './VendorProfile.css';
 
 const IconShield = () => (
@@ -78,7 +79,7 @@ export default function VendorProfile() {
         } catch (err) {
             console.error("Error updating profile:", err);
             const msg = err.response?.data?.message || err.response?.data || "Có lỗi xảy ra khi cập nhật.";
-            showError(t('vendorprofile.failure'), msg);
+            showError(t('vendorprofile.failure'), translateError(msg, t));
         } finally {
             setSaving(false);
         }
@@ -119,7 +120,7 @@ export default function VendorProfile() {
         } catch (err) {
             console.error("Error changing password:", err);
             const msg = err.response?.data?.message || err.response?.data || t('vendorprofile.an_error_occurred_while');
-            setPasswordError(msg);
+            setPasswordError(translateError(msg, t));
         }
     };
 

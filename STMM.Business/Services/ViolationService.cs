@@ -413,12 +413,21 @@ namespace STMM.Business.Services
             return _mapper.Map<ViolationTypeDto>(vt);
         }
 
-        public async Task<ViolationTypeDto> UpdateViolationTypeAsync(int id, UpdateViolationTypeRequest request, CancellationToken ct = default)
+        public async Task<ViolationTypeDto> UpdateViolationTypeAsync(int userId, int id, UpdateViolationTypeRequest request, CancellationToken ct = default)
         {
             var vt = await _violationTypeRepository.GetByIdAsync(id, ct);
             if (vt == null)
             {
                 throw new NotFoundException($"ERR_KHONG_TIM_THAY_LOAI_VI_PHAM_ID_ID|{id}");
+            }
+
+            var user = await _userRepository.GetByIdAsync(userId, ct);
+            if (user?.MarketId != null && vt.MarketId != user.MarketId)
+            {
+                if (vt.MarketId == null)
+                    throw new ForbiddenException("ERR_BAN_KHONG_CO_QUYEN_SUA_LOAI_VI_PHAM_CHUNG_CUA_HE_THONG");
+                else
+                    throw new ForbiddenException("ERR_BAN_KHONG_CO_QUYEN_SUA_LOAI_VI_PHAM_CUA_CHO_KHAC");
             }
 
             var duplicate = await _violationTypeRepository.IsNameExistsAsync(request.Name, id, vt.MarketId, ct);
@@ -438,10 +447,19 @@ namespace STMM.Business.Services
             return _mapper.Map<ViolationTypeDto>(vt);
         }
 
-        public async Task<bool> DeleteViolationTypeAsync(int id, CancellationToken ct = default)
+        public async Task<bool> DeleteViolationTypeAsync(int userId, int id, CancellationToken ct = default)
         {
             var vt = await _violationTypeRepository.GetByIdAsync(id, ct);
             if (vt == null) return false;
+
+            var user = await _userRepository.GetByIdAsync(userId, ct);
+            if (user?.MarketId != null && vt.MarketId != user.MarketId)
+            {
+                if (vt.MarketId == null)
+                    throw new ForbiddenException("ERR_BAN_KHONG_CO_QUYEN_XOA_LOAI_VI_PHAM_CHUNG_CUA_HE_THONG");
+                else
+                    throw new ForbiddenException("ERR_BAN_KHONG_CO_QUYEN_XOA_LOAI_VI_PHAM_CUA_CHO_KHAC");
+            }
 
             var inUse = await _violationRepository.IsViolationTypeInUseAsync(id, ct);
 

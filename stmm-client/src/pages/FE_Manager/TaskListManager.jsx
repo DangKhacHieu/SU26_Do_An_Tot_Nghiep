@@ -271,7 +271,7 @@ export default function TaskListManager({ baseUrl, navigate, addToast }) {
                     <th>{t('tasklistmanager.created_at')}</th>
                     <th>{t('tasklistmanager.status')}</th>
                     <th>{t('tasklistmanager.assigned_staff')}</th>
-                    <th className="task-th-actions">{t('tasklistmanager.actions')}</th>
+                    <th className="task-th-actions actions-header">{t('tasklistmanager.actions')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -314,14 +314,13 @@ export default function TaskListManager({ baseUrl, navigate, addToast }) {
                             <span className="task-staff-name-text">{task.assignedToName}</span>
                           </div>
                         </td>
-                        <td className="task-actions-cell" onClick={(e) => e.stopPropagation()}>
+                        <td className="task-actions-cell actions-cell" onClick={(e) => e.stopPropagation()}>
                           <button 
                             id={`btn-manager-view-details-${task.taskId}`}
-                            className="task-action-btn" 
-                            title={t('tasklistmanager.view_details')}
+                            className="btn-view-detail" 
                             onClick={() => navigate('task-details', task.taskId)}
                           >
-                            <IconEye />
+                            {t('tasklistmanager.view_details')}<IconEye />
                           </button>
                         </td>
                       </tr>

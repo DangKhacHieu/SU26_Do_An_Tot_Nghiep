@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import authService from "../../../services/authService";
+import { translateError } from "../../../utils/translateError";
 import "./RegisterForm.css";
 
 export default function RegisterForm({ onBack, onGoToLogin, onRegistered }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -34,16 +35,18 @@ export default function RegisterForm({ onBack, onGoToLogin, onRegistered }) {
     if (needsVerification) return; // Don't init google if on verification screen
 
     const initGoogle = () => {
+      const btnEl = document.getElementById("google-register-btn");
+      if (btnEl) btnEl.innerHTML = "";
       window.google?.accounts.id.initialize({
         client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID || "733979401918-egmrcldjnt2o2o30t7u3v1rskep1lhre.apps.googleusercontent.com",
         callback: handleGoogleLogin,
       });
-      const btnEl = document.getElementById("google-register-btn");
       if (btnEl) {
         window.google?.accounts.id.renderButton(btnEl, {
           theme: "outline",
           size: "large",
           width: "100%",
+          locale: i18n.language || "en",
         });
       }
     };
@@ -58,7 +61,7 @@ export default function RegisterForm({ onBack, onGoToLogin, onRegistered }) {
       script.onload = initGoogle;
       document.body.appendChild(script);
     }
-  }, [needsVerification]);
+  }, [needsVerification, i18n.language]);
 
   const handleGoogleLogin = async (response) => {
     setError("");
@@ -149,8 +152,8 @@ export default function RegisterForm({ onBack, onGoToLogin, onRegistered }) {
         <section className="register-modern-card">
           <div className="register-modern-left">
             <button type="button" className="register-logo" onClick={onBack}>
-              <span className="register-logo-icon">S</span>
-              <span>STMM</span>
+              <span className="register-logo-icon">M</span>
+              <span>MHMS</span>
             </button>
 
             <div className="register-left-content">
@@ -179,7 +182,7 @@ export default function RegisterForm({ onBack, onGoToLogin, onRegistered }) {
 
                 <div>
                   <strong>03</strong>
-                  <span>Experience Smart Market system</span>
+                  <span>Experience Market Hall Management System (MHMS)</span>
                 </div>
               </div>
             </div>
@@ -190,67 +193,60 @@ export default function RegisterForm({ onBack, onGoToLogin, onRegistered }) {
               <button
                 type="button"
                 className="register-back-btn"
-                onClick={() => {
-                  setNeedsVerification(false);
-                  setError("");
-                  setSuccess("");
-                }}
+                onClick={onBack}
               >
-                ← Back to register
+                ← Back to home
               </button>
-
-              <div>
-                <h2>Confirm OTP</h2>
-                <p>Enter your verification code to continue</p>
-              </div>
+              <h2>Verify Email</h2>
+              <p>Enter 6-digit OTP code sent to email</p>
             </div>
 
             <form className="register-modern-form" onSubmit={handleVerifySubmit}>
-              <div className="register-input-group">
-                <label>OTP Code (6 digits)</label>
-                <div className="otp-input-container">
-                  <input
-                    value={otpCode}
-                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                    placeholder="------"
-                    className="otp-code-input"
-                    maxLength={6}
-                    required
-                    autoFocus
-                  />
-                </div>
+              <div className="modern-input-group">
+                <label>Email address</label>
+                <input
+                  type="email"
+                  value={verificationEmail}
+                  readOnly
+                  className="modern-input-readonly"
+                />
               </div>
 
-              {error && <div className="register-message error">{t(error)}</div>}
-              {success && (
-                <div className="register-message success">{t(success)}</div>
-              )}
+              <div className="modern-input-group">
+                <label>OTP Verification Code</label>
+                <input
+                  type="text"
+                  placeholder="123456"
+                  value={otpCode}
+                  onChange={(e) => setOtpCode(e.target.value)}
+                  maxLength={6}
+                  required
+                />
+              </div>
+
+              {error && <div className="modern-message error">{translateError(error, t)}</div>}
+              {success && <div className="modern-message success">{success}</div>}
 
               <button
                 type="submit"
-                className="register-submit-btn"
+                className="auth-submit-btn"
                 disabled={loading}
               >
-                {loading ? "Verifying..." : "Activate account"}
+                {loading ? "Verifying..." : "Confirm OTP"}
                 <span>→</span>
               </button>
-            </form>
 
-            <div className="otp-resend-container">
-              <p>Didn't receive verification code?</p>
-              <button
-                type="button"
-                className="otp-resend-btn"
-                disabled={resendLoading || resendCooldown > 0}
-                onClick={handleResendCode}
-              >
-                {resendLoading
-                  ? "Sending..."
-                  : resendCooldown > 0
-                    ? `Resend in (${resendCooldown}s)`
-                    : "Resend new OTP code"}
-              </button>
-            </div>
+              <div className="register-resend-box">
+                <button
+                  type="button"
+                  className="btn-resend-code"
+                  onClick={handleResendCode}
+                  disabled={loading}
+                >
+                  Resend OTP code
+                </button>
+              </div>
+            </form>
           </div>
         </section>
       </main>
@@ -262,21 +258,21 @@ export default function RegisterForm({ onBack, onGoToLogin, onRegistered }) {
       <section className="register-modern-card">
         <div className="register-modern-left">
           <button type="button" className="register-logo" onClick={onBack}>
-            <span className="register-logo-icon">S</span>
-            <span>STMM</span>
+            <span className="register-logo-icon">M</span>
+            <span>MHMS</span>
           </button>
 
           <div className="register-left-content">
             <span className="register-badge">CREATE ACCOUNT</span>
 
             <h1>
-              Join Smart <br />
-              Market System
+              Join Market Hall <br />
+              Management System
             </h1>
 
             <p>
-              Create a new account to use the smart market management system, manage
-              your profile, and experience the functions of STMM.
+              Create a new account to use Market Hall Management System (MHMS), manage
+              your profile, and experience the functions of MHMS.
             </p>
 
             <div className="register-mini-list">
@@ -292,7 +288,7 @@ export default function RegisterForm({ onBack, onGoToLogin, onRegistered }) {
 
               <div>
                 <strong>03</strong>
-                <span>Start using STMM</span>
+                <span>Start using MHMS</span>
               </div>
             </div>
           </div>
@@ -392,7 +388,7 @@ export default function RegisterForm({ onBack, onGoToLogin, onRegistered }) {
               </div>
             </div>
 
-            {error && <div className="register-message error">{t(error)}</div>}
+            {error && <div className="register-message error">{translateError(error, t)}</div>}
             {success && (
               <div className="register-message success">{t(success)}</div>
             )}

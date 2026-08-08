@@ -124,8 +124,8 @@ export default function UserDetailManager({ userId, navigate, addToast }) {
     try {
       const res = await fetch(`${API_BASE}/${userId}`);
       if (res.ok) setUser(await res.json());
-      else { addToast('Không tìm thấy tài khoản.', 'error'); navigate('users'); }
-    } catch { addToast('Lỗi kết nối khi tải hồ sơ.', 'error'); navigate('users'); }
+      else { addToast(t('userdetailmanager.account_not_found'), 'error'); navigate('users'); }
+    } catch { addToast(t('userdetailmanager.connection_error_when_downloading'), 'error'); navigate('users'); }
     finally { setLoading(false); }
   };
 

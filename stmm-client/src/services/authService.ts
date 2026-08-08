@@ -23,6 +23,13 @@ const API_BASE_URL = _rawUrl.endsWith('/api') ? _rawUrl : `${_rawUrl}/api`;
 const translateVietnameseErrorToEnglish = (msg: string): string => {
   if (!msg) return msg;
   const lower = msg.toLowerCase();
+  if (
+    lower.includes("email hoặc mật khẩu không chính xác") ||
+    lower.includes("incorrect email or password") ||
+    lower.includes("email/mật khẩu không chính xác")
+  ) {
+    return "Email hoặc mật khẩu không chính xác.";
+  }
   if (lower.includes("mật khẩu không chính xác") || lower.includes("incorrect password")) return "Incorrect password.";
   if (lower.includes("tài khoản không tồn tại")) return "Account does not exist.";
   if (lower.includes("tài khoản đã bị khóa")) return "Account has been locked.";
@@ -56,7 +63,7 @@ const getApiErrorMessage = (error: any, fallback: string): string => {
     rawMessage = 'Không kết nối được API. Hãy kiểm tra API đã chạy đúng cổng trong file .env chưa.';
   }
 
-  return translateVietnameseErrorToEnglish(rawMessage);
+  return rawMessage;
 };
 
 class AuthService {

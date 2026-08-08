@@ -14,7 +14,7 @@ export default function LanguageSwitcher() {
   };
 
   // Hỗ trợ kiểm tra cả định dạng "vi-VN", "vi", "en-US", "en"
-  const currentLang = i18n.language || 'vi';
+  const currentLang = i18n.language || 'en';
   const isVi = currentLang.startsWith('vi');
   const isEn = currentLang.startsWith('en');
 

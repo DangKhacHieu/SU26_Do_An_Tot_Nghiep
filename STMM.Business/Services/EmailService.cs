@@ -60,7 +60,7 @@ namespace STMM.Business.Services
                 }
 
                 var senderEmail = emailSettings["SenderEmail"] ?? "";
-                var senderName = emailSettings["SenderName"] ?? "Smart Market";
+                var senderName = emailSettings["SenderName"] ?? "Market Hall Management System (MHMS)";
                 var username = emailSettings["Username"] ?? "";
                 var password = emailSettings["Password"] ?? "";
                 

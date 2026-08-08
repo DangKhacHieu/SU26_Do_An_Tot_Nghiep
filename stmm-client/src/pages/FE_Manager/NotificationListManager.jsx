@@ -130,7 +130,7 @@ export default function NotificationListManager({ navigate, addToast }) {
       if (selectedNoti && !selectedNoti.isRead) {
         setSelectedNoti({ ...selectedNoti, isRead: true });
       }
-      addToast(`Đã đánh dấu ${unreadCount} thông báo là đã đọc.`, "success");
+      addToast(t('notificationlistmanager.marked_unreadcount_notifications_as', { count: unreadCount }), "success");
     } catch (err) {
       console.error("Error marking all as read:", err);
       addToast(err instanceof Error ? err.message : t('notificationlistmanager.failed_to_mark_all'), "error");
@@ -157,7 +157,7 @@ export default function NotificationListManager({ navigate, addToast }) {
         setSelectedNoti(null);
       }
       
-      addToast("Xóa thông báo thành công.", "success");
+      addToast(t('notificationlistmanager.delete_notification_success'), "success");
     } catch (err) {
       console.error("Error deleting notification:", err);
       addToast(err instanceof Error ? err.message : t('notificationlistmanager.delete_failure_message'), "error");

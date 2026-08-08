@@ -9,27 +9,27 @@ namespace STMM.Business.Validators
         {
             RuleFor(x => x.StallId)
                 .GreaterThan(0)
-                .WithMessage("StallId phải lớn hơn 0.");
+                .WithMessage("StallId must be greater than 0.");
 
             RuleFor(x => x.ViolationTypeId)
                 .GreaterThan(0)
-                .WithMessage("ViolationTypeId phải lớn hơn 0.");
+                .WithMessage("ViolationTypeId must be greater than 0.");
 
             RuleFor(x => x.Title)
                 .NotEmpty()
-                .WithMessage("Tiêu đề vi phạm không được để trống.")
+                .WithMessage("Violation title is required.")
                 .MinimumLength(5)
-                .WithMessage("Tiêu đề vi phạm phải từ 5 đến 100 ký tự.")
+                .WithMessage("Violation title must be between 5 and 100 characters.")
                 .MaximumLength(100)
-                .WithMessage("Tiêu đề vi phạm không được vượt quá 100 ký tự.");
+                .WithMessage("Violation title must not exceed 100 characters.");
 
             RuleFor(x => x.Description)
                 .NotEmpty()
-                .WithMessage("Mô tả vi phạm không được để trống.")
+                .WithMessage("Violation description is required.")
                 .MinimumLength(10)
-                .WithMessage("Mô tả vi phạm phải từ 10 đến 500 ký tự.")
+                .WithMessage("Violation description must be between 10 and 500 characters.")
                 .MaximumLength(500)
-                .WithMessage("Mô tả vi phạm không được vượt quá 500 ký tự.");
+                .WithMessage("Violation description must not exceed 500 characters.");
 
             RuleFor(x => x.Image)
                 .NotNull()
@@ -37,8 +37,8 @@ namespace STMM.Business.Validators
 
             RuleFor(x => x.FineAmount)
                 .GreaterThanOrEqualTo(0)
-                .WithMessage("Số tiền phạt không được âm.")
-                .LessThan(1000000000).WithMessage("Số tiền phạt quá lớn (vượt quá 1 tỷ).");
+                .WithMessage("Fine amount cannot be negative.")
+                .LessThan(1000000000).WithMessage("Fine amount is too large (exceeds 1 billion).");
         }
     }
 }

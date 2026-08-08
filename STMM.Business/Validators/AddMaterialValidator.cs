@@ -14,15 +14,15 @@ namespace STMM.Business.Validators
         {
             RuleFor(x => x.RepairPriceId)
                 .GreaterThan(0)
-                .WithMessage("RepairPriceId phải lớn hơn 0.");
+                .WithMessage("RepairPriceId must be greater than 0.");
 
             RuleFor(x => x.Quantity)
                 .GreaterThan(0)
-                .WithMessage("Số lượng vật tư phải lớn hơn 0.");
+                .WithMessage("Quantity must be greater than 0.");
 
             RuleFor(x => x.CustomUnitPrice)
                 .GreaterThan(0)
-                .WithMessage("Đơn giá tự nhập phải lớn hơn 0.")
+                .WithMessage("Custom unit price must be greater than 0.")
                 .When(x => x.CustomUnitPrice.HasValue);
         }
     }

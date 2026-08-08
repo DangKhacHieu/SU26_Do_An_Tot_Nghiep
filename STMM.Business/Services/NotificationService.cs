@@ -69,7 +69,7 @@ namespace STMM.Business.Services
                     NotiType = request.NotiType,
                     CreatedByUserId = request.CreatedByUserId,
                     TargetUserId = targetUserId,
-                    TargetRole = null,
+                    TargetRole = !request.TargetUserId.HasValue ? request.TargetRole : null,
                     IsRead = false,
                     CreatedAt = DateTime.UtcNow
                 }, ct);
@@ -95,6 +95,7 @@ namespace STMM.Business.Services
             var notifications = await _notificationRepository.FindAsync(n =>
                 (n.CreatedAt >= limitDate) &&
                 (n.CreatedByUserId != userId) &&
+                (n.NotiType != "Article") &&
                 ((n.TargetUserId == userId) ||
                 (!isManagerWithoutMarket && !string.IsNullOrWhiteSpace(n.TargetRole) && n.TargetRole.ToLower() == targetRoleLower && (n.CreatedByUser == null || n.CreatedByUser!.MarketId == user.MarketId)) ||
                 (!isManagerWithoutMarket && !string.IsNullOrWhiteSpace(n.TargetRole) && n.TargetRole.ToLower() == "public")),

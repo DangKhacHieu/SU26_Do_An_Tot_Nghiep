@@ -77,21 +77,21 @@ export default function CreateIssueModal({ baseUrl, onClose, onSuccess, prefille
   const validateForm = () => {
     const errors = {};
     if (!stallId) {
-      errors.stallId = 'Vui lòng chọn sạp/vị trí xảy ra sự cố.';
+      errors.stallId = 'Please select a stall/location where the issue occurred.';
     }
 
     const trimmedTitle = title.trim();
     if (!trimmedTitle) {
-      errors.title = 'Tiêu đề sự cố không được để trống.';
+      errors.title = 'Issue title cannot be empty.';
     } else if (trimmedTitle.length < 5 || trimmedTitle.length > 100) {
-      errors.title = `Tiêu đề sự cố phải từ 5 đến 100 ký tự (hiện tại: ${trimmedTitle.length} ký tự).`;
+      errors.title = `Issue title must be between 5 and 100 characters (current: ${trimmedTitle.length}).`;
     }
 
     const trimmedDesc = description.trim();
     if (!trimmedDesc) {
-      errors.description = 'Mô tả sự cố không được để trống.';
+      errors.description = 'Issue description cannot be empty.';
     } else if (trimmedDesc.length < 10 || trimmedDesc.length > 500) {
-      errors.description = `Mô tả sự cố phải từ 10 đến 500 ký tự (hiện tại: ${trimmedDesc.length} ký tự).`;
+      errors.description = `Issue description must be between 10 and 500 characters (current: ${trimmedDesc.length}).`;
     }
 
     setFieldErrors(errors);
@@ -119,7 +119,7 @@ export default function CreateIssueModal({ baseUrl, onClose, onSuccess, prefille
     setError('');
 
     if (!validateForm()) {
-      setError('Vui lòng kiểm tra và sửa các thông tin chưa hợp lệ bên dưới.');
+      setError('Please check and fix the invalid fields below.');
       return;
     }
 
@@ -142,7 +142,7 @@ export default function CreateIssueModal({ baseUrl, onClose, onSuccess, prefille
         throw new Error(await readProblemDetail(response, t('createissuemodal.unable_to_submit_issue')));
       }
       const createdIssue = await response.json();
-      showToast(t('createissuemodal.issue_created_success', 'Báo cáo sự cố đã được gửi thành công!'), 'success');
+      showToast(t('createissuemodal.issue_created_success', 'Issue report submitted successfully!'), 'success');
       onSuccess(createdIssue);
     } catch (submitError) {
       setError(submitError.message);

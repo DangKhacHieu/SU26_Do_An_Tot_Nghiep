@@ -169,7 +169,7 @@ export default function Header({
             onClick={handleLogoClick}
             style={{ cursor: "pointer" }}
           >
-            Smart Market
+            MHMS
           </div>
 
           <nav className="header-nav">
@@ -193,6 +193,18 @@ export default function Header({
               onClick={handleStallsMapClick}
             >
               {t('header.market_map')}
+            </button>
+            <button
+              type="button"
+              className={`nav-link ${
+                window.location.pathname.startsWith("/news-faq") ? "active" : ""
+              }`}
+              onClick={() => {
+                window.history.pushState({}, "", "/news-faq");
+                window.dispatchEvent(new PopStateEvent("popstate"));
+              }}
+            >
+              {t('header.news_faq')}
             </button>
           </nav>
 

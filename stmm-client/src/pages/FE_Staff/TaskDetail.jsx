@@ -16,8 +16,18 @@ export default function TaskDetail({ taskId, baseUrl, onBack, onShowNotification
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [utilityProgress, setUtilityProgress] = useState({ completed: 0, total: 0 });
-  const handleUtilityProgress = useCallback((completed, total) => {
-    setUtilityProgress({ completed, total });
+  const handleUtilityProgress = useCallback((progress, maybeTotal) => {
+    if (typeof progress === 'object' && progress !== null) {
+      setUtilityProgress({
+        completed: Number(progress.completed) || 0,
+        total: Number(progress.total) || 0
+      });
+    } else {
+      setUtilityProgress({
+        completed: Number(progress) || 0,
+        total: Number(maybeTotal) || 0
+      });
+    }
   }, []);
 
   const fetchTaskDetails = useCallback(async () => {
