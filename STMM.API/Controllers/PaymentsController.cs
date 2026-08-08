@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using STMM.Business.DTOs.Payment;
@@ -17,17 +18,20 @@ namespace STMM.API.Controllers
         private readonly IVnpayService _vnpayService;
         private readonly VnpayConfig _vnpayConfig;
         private readonly ILogger<PaymentsController> _logger;
+        private readonly string _clientUrl;
 
         public PaymentsController(
             IMomoService momoService,
             IVnpayService vnpayService,
             IOptions<VnpayConfig> vnpayConfig,
+            IConfiguration configuration,
             ILogger<PaymentsController> logger)
         {
             _momoService = momoService;
             _vnpayService = vnpayService;
             _vnpayConfig = vnpayConfig.Value;
             _logger = logger;
+            _clientUrl = configuration["ClientUrl"] ?? "http://localhost:5173";
         }
 
         [HttpPost("momo/create")]
@@ -75,14 +79,14 @@ namespace STMM.API.Controllers
                 
                 if (success)
                 {
-                    return Redirect("http://localhost:5173/vendor/dashboard?menu=BILLS&payment=success");
+                    return Redirect($"{_clientUrl}/vendor/dashboard?menu=BILLS&payment=success");
                 }
-                return Redirect("http://localhost:5173/vendor/dashboard?menu=BILLS&payment=error");
+                return Redirect($"{_clientUrl}/vendor/dashboard?menu=BILLS&payment=error");
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Lỗi xử lý ReturnUrl MoMo.");
-                return Redirect("http://localhost:5173/vendor/dashboard?menu=BILLS&payment=error");
+                return Redirect($"{_clientUrl}/vendor/dashboard?menu=BILLS&payment=error");
             }
         }
 
@@ -158,14 +162,14 @@ namespace STMM.API.Controllers
                 var success = await _vnpayService.ProcessIpnAsync(queryParams);
                 if (success)
                 {
-                    return Redirect("http://localhost:5173/vendor/dashboard?menu=BILLS&payment=success");
+                    return Redirect($"{_clientUrl}/vendor/dashboard?menu=BILLS&payment=success");
                 }
-                return Redirect("http://localhost:5173/vendor/dashboard?menu=BILLS&payment=error");
+                return Redirect($"{_clientUrl}/vendor/dashboard?menu=BILLS&payment=error");
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Lỗi xử lý ReturnUrl VNPay.");
-                return Redirect("http://localhost:5173/vendor/dashboard?menu=BILLS&payment=error");
+                return Redirect($"{_clientUrl}/vendor/dashboard?menu=BILLS&payment=error");
             }
         }
     }
