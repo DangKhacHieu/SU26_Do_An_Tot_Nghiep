@@ -166,4 +166,54 @@ describe('CreateTaskModal - UtilityReading Restriction', () => {
     const requestSource = screen.getByText('createtaskmodal.customer_request');
     fireEvent.click(requestSource);
   });
+
+  it('should filter out pending requests that already have an active staff task', async () => {
+    const staffData = [{ userId: 1, name: 'Staff A', status: 'Active' }];
+    const requestData = [
+      { requestId: 10, title: 'Yêu cầu sửa quạt sạp A', status: 'Pending', stallCode: 'A-01' },
+      { requestId: 11, title: 'Yêu cầu sửa điện sạp B', status: 'Pending', stallCode: 'B-02' }
+    ];
+    const existingTasks = [
+      {
+        taskId: 99,
+        taskType: 'Repair',
+        requestId: 10,
+        assignedToName: 'Staff A',
+        status: 'In_Progress'
+      }
+    ];
+
+    const fetchMock = vi.fn().mockImplementation((url) => {
+      if (url.includes('/api/manager/users')) {
+        return Promise.resolve({ ok: true, json: async () => staffData });
+      }
+      if (url.includes('/api/Areas') || url.includes('/api/Stalls')) {
+        return Promise.resolve({ ok: true, json: async () => [] });
+      }
+      if (url.includes('/api/manager/tasks')) {
+        return Promise.resolve({ ok: true, json: async () => existingTasks });
+      }
+      if (url.includes('/api/manager/requests')) {
+        return Promise.resolve({ ok: true, json: async () => ({ items: requestData }) });
+      }
+      return Promise.resolve({ ok: false });
+    });
+
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(
+      <CreateTaskModal
+        baseUrl="http://localhost:5056"
+        onClose={mockOnClose}
+        onSuccess={mockOnSuccess}
+        addToast={mockAddToast}
+      />
+    );
+
+    // Request #10 has an active task (#99, In_Progress), so only Request #11 should be shown
+    await waitFor(() => {
+      expect(screen.getByText(/Yêu cầu sửa điện sạp B/)).toBeInTheDocument();
+      expect(screen.queryByText(/Yêu cầu sửa quạt sạp A/)).not.toBeInTheDocument();
+    });
+  });
 });

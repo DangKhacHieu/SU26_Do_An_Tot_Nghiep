@@ -92,6 +92,7 @@ export default function CreateTaskModal({
   const [areas, setAreas] = useState([]);
   const [stalls, setStalls] = useState([]);
   const [utilityReadingTasks, setUtilityReadingTasks] = useState([]);
+  const [allManagerTasks, setAllManagerTasks] = useState([]);
   const [loadingStaffs, setLoadingStaffs] = useState(false);
   const [loadingAreas, setLoadingAreas] = useState(false);
   const [loadingStalls, setLoadingStalls] = useState(false);
@@ -170,6 +171,7 @@ export default function CreateTaskModal({
         if (res.ok) {
           const data = await res.json();
           const tasks = Array.isArray(data) ? data : [];
+          setAllManagerTasks(tasks);
           setUtilityReadingTasks(tasks.filter((task) => (task.taskType || task.TaskType) === 'UtilityReading'));
         } else {
           addToastRef.current(t('createtaskmodal.cannot_load_utility_assignments'), 'error');
@@ -186,6 +188,27 @@ export default function CreateTaskModal({
     fetchStalls();
     fetchUtilityReadingTasks();
   }, [baseUrl, t]);
+
+  const activeRequestIdsSet = useMemo(() => {
+    const set = new Set();
+    allManagerTasks.forEach((task) => {
+      const reqId = task.requestId || task.RequestId;
+      const status = task.status || task.Status;
+      if (reqId && status !== 'Completed' && status !== 'Cancelled') {
+        set.add(String(reqId));
+      }
+    });
+    return set;
+  }, [allManagerTasks]);
+
+  const availableRequests = useMemo(() => {
+    return requests.filter((item) => {
+      const id = item.requestId || item.RequestId;
+      const activeTaskId = item.activeTaskId || item.ActiveTaskId;
+      if (activeTaskId) return false;
+      return !activeRequestIdsSet.has(String(id));
+    });
+  }, [requests, activeRequestIdsSet]);
 
   const currentPeriodLabel = useMemo(() => {
     const now = new Date();
@@ -366,7 +389,7 @@ export default function CreateTaskModal({
       return;
     }
 
-    const selectedRequest = requests.find(item => String(item.requestId || item.RequestId) === nextRequestId);
+    const selectedRequest = availableRequests.find(item => String(item.requestId || item.RequestId) === nextRequestId);
     if (!selectedRequest) return;
 
     const selectedTitle = selectedRequest.title || selectedRequest.Title || '';
@@ -731,16 +754,16 @@ export default function CreateTaskModal({
                       <div className="ctm-source-panel">
                         <div className="ctm-source-panel-head">
                           <label className="ctm-label required-field">{t('createtaskmodal.select_request')}</label>
-                          <span className="ctm-source-count">{t('createtaskmodal.records_shown', { count: requests.length })}</span>
+                          <span className="ctm-source-count">{t('createtaskmodal.records_shown', { count: availableRequests.length })}</span>
                         </div>
                         {loadingRequests && <span className="ctm-helper">{t('createtaskmodal.loading_requests')}</span>}
                         {requestLoadError && <span className="ctm-error">{requestLoadError}</span>}
-                        {!loadingRequests && !requestLoadError && requests.length === 0 && (
+                        {!loadingRequests && !requestLoadError && availableRequests.length === 0 && (
                           <span className="ctm-helper">{t('createtaskmodal.no_requests')}</span>
                         )}
-                        {!loadingRequests && !requestLoadError && requests.length > 0 && (
+                        {!loadingRequests && !requestLoadError && availableRequests.length > 0 && (
                           <div className="ctm-source-list" role="listbox" aria-label="Pending requests">
-                            {requests.map(item => {
+                            {availableRequests.map(item => {
                               const id = item.requestId || item.RequestId;
                               const itemTitle = item.title || item.Title || 'Untitled request';
                               const stallCode = item.stallCode || item.StallCode;
