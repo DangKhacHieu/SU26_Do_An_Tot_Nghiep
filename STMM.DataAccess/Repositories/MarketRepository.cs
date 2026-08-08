@@ -37,6 +37,61 @@ namespace STMM.DataAccess.Repositories
             market.Areas = areas;
             return market;
         }
+
+        public async Task<Market?> GetMarketWithStallContractsAsync(int marketId, CancellationToken ct = default)
+        {
+            return await _dbSet
+                .Include(m => m.Areas)
+                    .ThenInclude(a => a.Stalls)
+                        .ThenInclude(s => s.Contracts)
+                .FirstOrDefaultAsync(m => m.MarketId == marketId && m.IsDeleted != true, ct);
+        }
+
+        public async Task<int> CountUnpaidInvoicesAsync(int marketId, CancellationToken ct = default)
+        {
+            return await _context.Invoices
+                .CountAsync(inv =>
+                    inv.Contract.Stall.Area.MarketId == marketId &&
+                    (inv.Status == "Unpaid" || inv.Status == "Overdue") &&
+                    inv.IsDeleted != true, ct);
+        }
+
+        public async Task<int> CountActiveServiceRegistrationsAsync(int marketId, CancellationToken ct = default)
+        {
+            return await _context.ServiceRegistrations
+                .CountAsync(sr =>
+                    sr.Stall.Area.MarketId == marketId &&
+                    sr.Status == "Active", ct);
+        }
+
+        public async Task<System.Collections.Generic.List<int>> DetachAllUsersFromMarketAsync(int marketId, CancellationToken ct = default)
+        {
+            var users = await _context.Users
+                .Where(u => u.MarketId == marketId)
+                .ToListAsync(ct);
+
+            var userIds = new System.Collections.Generic.List<int>();
+            foreach (var u in users)
+            {
+                userIds.Add(u.UserId);
+                u.MarketId = null;
+                _context.Users.Update(u);
+            }
+            return userIds;
+        }
+
+        public async Task DeactivateAllMetersAsync(int marketId, CancellationToken ct = default)
+        {
+            var meters = await _context.Meters
+                .Where(m => m.MarketId == marketId && m.IsActive == true)
+                .ToListAsync(ct);
+
+            foreach (var m in meters)
+            {
+                m.IsActive = false;
+                _context.Meters.Update(m);
+            }
+        }
     }
 }
 

@@ -95,7 +95,7 @@ export default function Dashboard() {
           </tr>
           <tr>
             <td colspan="2">${t('dashboard.recurring_invoices')}</td>
-            <td colspan="3" class="number">${data.invoicesPaidCount} / ${data.invoicesTotalCount} (Đã thu / Tổng số)</td>
+            <td colspan="3" class="number">${data.invoicesPaidCount} / ${data.invoicesTotalCount}</td>
           </tr>
           <tr>
             <td colspan="2">${t('dashboard.incident_repair_costs')}</td>
@@ -107,7 +107,7 @@ export default function Dashboard() {
           </tr>
           <tr><td colspan="5" style="border: none;"></td></tr>
           
-          <tr><td colspan="5" class="header">GIAO DỊCH GẦN ĐÂY</td></tr>
+          <tr><td colspan="5" class="header">${t('dashboard.recent_transactions')}</td></tr>
           <tr>
             <td class="header">${t('dashboard.transaction_code')}</td>
             <td class="header">${t('dashboard.booth')}</td>

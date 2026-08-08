@@ -80,25 +80,25 @@ namespace STMM.Business.Services
         {
             if (id <= 0)
             {
-                throw new BadRequestException("ID người dùng không hợp lệ.");
+                throw new BadRequestException("ERR_ID_NGUOI_DUNG_KHONG_HOP_LE");
             }
 
             var (caller, callerMarketId, isManager) = await GetCallerInfoAsync(currentUserId, ct);
             if (isManager && !callerMarketId.HasValue)
             {
-                throw new NotFoundException($"Không tìm thấy người dùng có ID {id}.");
+                throw new NotFoundException($"ERR_KHONG_TIM_THAY_NGUOI_DUNG_CO_ID_ID|{id}");
             }
 
             var user = await _userRepository.GetUserByIdWithRoleAsync(id, ct);
 
             if (user == null)
             {
-                throw new NotFoundException($"Không tìm thấy người dùng có ID {id}.");
+                throw new NotFoundException($"ERR_KHONG_TIM_THAY_NGUOI_DUNG_CO_ID_ID|{id}");
             }
 
             if (callerMarketId.HasValue && user.MarketId != callerMarketId.Value)
             {
-                throw new NotFoundException($"Không tìm thấy người dùng có ID {id}.");
+                throw new NotFoundException($"ERR_KHONG_TIM_THAY_NGUOI_DUNG_CO_ID_ID|{id}");
             }
 
             return _mapper.Map<UserDetailDto>(user);
@@ -109,7 +109,7 @@ namespace STMM.Business.Services
             var (creator, callerMarketId, isManager) = await GetCallerInfoAsync(creatorUserId, ct);
             if (isManager && !callerMarketId.HasValue)
             {
-                throw new BadRequestException("Tài khoản Quản lý chưa sở hữu chợ nào được phê duyệt. Bạn chỉ có thể tạo tài khoản mới sau khi chợ của bạn được phê duyệt.");
+                throw new BadRequestException("ERR_TAI_KHOAN_QUAN_LY_CHUA_SO_HUU_CHO_NAO_DUOC_PHE_DUY");
             }
 
             var validationResult = await _createUserValidator.ValidateAsync(request, ct);
@@ -124,7 +124,7 @@ namespace STMM.Business.Services
 
             if (role == null)
             {
-                throw new BadRequestException("Vai trò được chọn không tồn tại.");
+                throw new BadRequestException("ERR_VAI_TRO_DUOC_CHON_KHONG_TON_TAI");
             }
 
             var existingEmails = await _userRepository.FindAsync(
@@ -134,7 +134,7 @@ namespace STMM.Business.Services
 
             if (existingEmails.Any())
             {
-                throw new BadRequestException("Email này đã được sử dụng.");
+                throw new BadRequestException("ERR_EMAIL_NAY_DA_DUOC_SU_DUNG");
             }
 
             var existingPhones = await _userRepository.FindAsync(
@@ -144,7 +144,7 @@ namespace STMM.Business.Services
 
             if (existingPhones.Any())
             {
-                throw new BadRequestException("Số điện thoại này đã được sử dụng.");
+                throw new BadRequestException("ERR_SO_DIEN_THOAI_NAY_DA_DUOC_SU_DUNG");
             }
 
             var existingCccds = await _userRepository.FindAsync(
@@ -154,7 +154,7 @@ namespace STMM.Business.Services
 
             if (existingCccds.Any())
             {
-                throw new BadRequestException("Số CCCD này đã được sử dụng.");
+                throw new BadRequestException("ERR_SO_CCCD_NAY_DA_DUOC_SU_DUNG");
             }
 
             int? assignedMarketId = request.MarketId ?? callerMarketId;
@@ -208,7 +208,7 @@ namespace STMM.Business.Services
             var (caller, callerMarketId, isManager) = await GetCallerInfoAsync(currentUserId, ct);
             if (isManager && !callerMarketId.HasValue)
             {
-                throw new BadRequestException("Tài khoản Quản lý chưa sở hữu chợ nào được phê duyệt.");
+                throw new BadRequestException("ERR_TAI_KHOAN_QUAN_LY_CHUA_SO_HUU_CHO_NAO_DUOC_PHE_DUY");
             }
 
             var validationResult = await _updateUserValidator.ValidateAsync(request, ct);
@@ -223,19 +223,19 @@ namespace STMM.Business.Services
 
             if (user == null)
             {
-                throw new NotFoundException($"Không tìm thấy người dùng có ID {id}.");
+                throw new NotFoundException($"ERR_KHONG_TIM_THAY_NGUOI_DUNG_CO_ID_ID|{id}");
             }
 
             if (callerMarketId.HasValue && user.MarketId != callerMarketId.Value)
             {
-                throw new NotFoundException($"Không tìm thấy người dùng có ID {id}.");
+                throw new NotFoundException($"ERR_KHONG_TIM_THAY_NGUOI_DUNG_CO_ID_ID|{id}");
             }
 
             var role = await _roleRepository.GetByIdAsync(request.RoleId, ct);
 
             if (role == null)
             {
-                throw new BadRequestException("Vai trò được chọn không tồn tại.");
+                throw new BadRequestException("ERR_VAI_TRO_DUOC_CHON_KHONG_TON_TAI");
             }
 
             var existingEmails = await _userRepository.FindAsync(
@@ -246,7 +246,7 @@ namespace STMM.Business.Services
 
             if (existingEmails.Any())
             {
-                throw new BadRequestException("Email này đã được sử dụng bởi người dùng khác.");
+                throw new BadRequestException("ERR_EMAIL_NAY_DA_DUOC_SU_DUNG_BOI_NGUOI_DUNG_KHAC");
             }
 
             var existingPhones = await _userRepository.FindAsync(
@@ -257,7 +257,7 @@ namespace STMM.Business.Services
 
             if (existingPhones.Any())
             {
-                throw new BadRequestException("Số điện thoại này đã được sử dụng bởi người dùng khác.");
+                throw new BadRequestException("ERR_SO_DIEN_THOAI_NAY_DA_DUOC_SU_DUNG_BOI_NGUOI_DUNG_K");
             }
 
             var existingCccds = await _userRepository.FindAsync(
@@ -268,7 +268,7 @@ namespace STMM.Business.Services
 
             if (existingCccds.Any())
             {
-                throw new BadRequestException("Số CCCD này đã được sử dụng bởi người dùng khác.");
+                throw new BadRequestException("ERR_SO_CCCD_NAY_DA_DUOC_SU_DUNG_BOI_NGUOI_DUNG_KHAC");
             }
 
             user.RoleId = request.RoleId;
@@ -304,12 +304,12 @@ namespace STMM.Business.Services
         {
             if (userId <= 0)
             {
-                throw new BadRequestException("ID người dùng không hợp lệ.");
+                throw new BadRequestException("ERR_ID_NGUOI_DUNG_KHONG_HOP_LE");
             }
 
             if (request == null)
             {
-                throw new BadRequestException("Dữ liệu không hợp lệ.");
+                throw new BadRequestException("ERR_DU_LIEU_KHONG_HOP_LE");
             }
 
             var validationResult = await _editProfileValidator.ValidateAsync(request, ct);
@@ -327,7 +327,7 @@ namespace STMM.Business.Services
 
             if (user == null)
             {
-                throw new NotFoundException("Không tìm thấy người dùng");
+                throw new NotFoundException("ERR_KHONG_TIM_THAY_NGUOI_DUNG");
             }
 
             request.Name = request.Name.Trim();
@@ -344,7 +344,7 @@ namespace STMM.Business.Services
 
                 if (isPhoneDuplicate)
                 {
-                    throw new BadRequestException("Số điện thoại đã được sử dụng bởi tài khoản khác");
+                    throw new BadRequestException("ERR_SO_DIEN_THOAI_DA_DUOC_SU_DUNG_BOI_TAI_KHOAN_KHAC");
                 }
             }
 
@@ -367,20 +367,20 @@ namespace STMM.Business.Services
         {
             if (status != "Active" && status != "Locked" && status != "Suspended")
             {
-                throw new BadRequestException("Trạng thái không hợp lệ. Phải là Active, Locked hoặc Suspended.");
+                throw new BadRequestException("ERR_TRANG_THAI_KHONG_HOP_LE_PHAI_LA_ACTIVE_LOCKED_HOAC");
             }
 
             var user = await _userRepository.GetUserByIdWithRoleAsync(id, ct);
 
             if (user == null)
             {
-                throw new NotFoundException($"Không tìm thấy người dùng có ID {id}.");
+                throw new NotFoundException($"ERR_KHONG_TIM_THAY_NGUOI_DUNG_CO_ID_ID|{id}");
             }
 
             var callerMarketId = await GetCallerMarketIdAsync(currentUserId, ct);
             if (callerMarketId.HasValue && user.MarketId != callerMarketId.Value)
             {
-                throw new NotFoundException($"Không tìm thấy người dùng có ID {id}.");
+                throw new NotFoundException($"ERR_KHONG_TIM_THAY_NGUOI_DUNG_CO_ID_ID|{id}");
             }
 
             user.Status = status;
@@ -398,13 +398,13 @@ namespace STMM.Business.Services
 
             if (user == null || user.IsDeleted == true)
             {
-                throw new NotFoundException($"Không tìm thấy người dùng có ID {id}.");
+                throw new NotFoundException($"ERR_KHONG_TIM_THAY_NGUOI_DUNG_CO_ID_ID|{id}");
             }
 
             var callerMarketId = await GetCallerMarketIdAsync(currentUserId, ct);
             if (callerMarketId.HasValue && user.MarketId != callerMarketId.Value)
             {
-                throw new NotFoundException($"Không tìm thấy người dùng có ID {id}.");
+                throw new NotFoundException($"ERR_KHONG_TIM_THAY_NGUOI_DUNG_CO_ID_ID|{id}");
             }
 
             user.IsDeleted = true;
@@ -456,20 +456,20 @@ namespace STMM.Business.Services
         {
             if (string.IsNullOrEmpty(newPassword) || newPassword.Length < 6)
             {
-                throw new BadRequestException("Mật khẩu mới phải có ít nhất 6 ký tự.");
+                throw new BadRequestException("ERR_MAT_KHAU_MOI_PHAI_CO_IT_NHAT_6_KY_TU");
             }
 
             var user = await _userRepository.GetUserByIdWithRoleAsync(id, ct);
 
             if (user == null)
             {
-                throw new NotFoundException($"Không tìm thấy người dùng có ID {id}.");
+                throw new NotFoundException($"ERR_KHONG_TIM_THAY_NGUOI_DUNG_CO_ID_ID|{id}");
             }
 
             var callerMarketId = await GetCallerMarketIdAsync(currentUserId, ct);
             if (callerMarketId.HasValue && user.MarketId != callerMarketId.Value)
             {
-                throw new NotFoundException($"Không tìm thấy người dùng có ID {id}.");
+                throw new NotFoundException($"ERR_KHONG_TIM_THAY_NGUOI_DUNG_CO_ID_ID|{id}");
             }
 
             user.Password = BCrypt.Net.BCrypt.HashPassword(newPassword);
@@ -485,28 +485,28 @@ namespace STMM.Business.Services
         {
             if (request.NewPassword != request.ConfirmPassword)
             {
-                throw new BadRequestException("Mật khẩu xác nhận không khớp.");
+                throw new BadRequestException("ERR_MAT_KHAU_XAC_NHAN_KHONG_KHOP");
             }
 
             if (request.NewPassword.Length < 6)
             {
-                throw new BadRequestException("Mật khẩu mới phải có ít nhất 6 ký tự.");
+                throw new BadRequestException("ERR_MAT_KHAU_MOI_PHAI_CO_IT_NHAT_6_KY_TU");
             }
 
             var user = await _userRepository.GetByIdAsync(userId, ct);
             if (user == null || user.IsDeleted == true)
             {
-                throw new NotFoundException("Không tìm thấy người dùng.");
+                throw new NotFoundException("ERR_KHONG_TIM_THAY_NGUOI_DUNG");
             }
 
             if (!BCrypt.Net.BCrypt.Verify(request.CurrentPassword, user.Password))
             {
-                throw new BadRequestException("Mật khẩu hiện tại không chính xác.");
+                throw new BadRequestException("ERR_MAT_KHAU_HIEN_TAI_KHONG_CHINH_XAC");
             }
 
             if (BCrypt.Net.BCrypt.Verify(request.NewPassword, user.Password))
             {
-                throw new BadRequestException("Mật khẩu mới không được trùng với mật khẩu hiện tại.");
+                throw new BadRequestException("ERR_MAT_KHAU_MOI_KHONG_DUOC_TRUNG_VOI_MAT_KHAU_HIEN_TA");
             }
 
             user.Password = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);

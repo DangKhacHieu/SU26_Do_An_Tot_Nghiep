@@ -18,6 +18,11 @@ namespace STMM.Business.Validators
                 .NotEmpty().WithMessage("Tên chợ không được để trống.")
                 .MaximumLength(255).WithMessage("Tên chợ không được vượt quá 255 ký tự.");
 
+            RuleFor(x => x.Size)
+                .GreaterThan(0).WithMessage("Diện tích chợ phải lớn hơn 0.")
+                .LessThanOrEqualTo(500000).WithMessage("Diện tích chợ vượt quá giới hạn thực tế (tối đa 500,000 m²).")
+                .When(x => x.Size.HasValue);
+
             RuleFor(x => x)
                 .Must(HaveValidMarketCanvas).WithMessage("Kích thước Canvas bản đồ (Tọa độ Pixel MaxX-MinX, MaxY-MinY) không hợp lệ hoặc quá nhỏ.");
 
@@ -84,10 +89,10 @@ namespace STMM.Business.Validators
                     var a2 = validAreas[j];
 
                     bool isNotOverlapping = 
-                        a1.MaxX.Value <= a2.MinX.Value ||
-                        a1.MinX.Value >= a2.MaxX.Value ||
-                        a1.MaxY.Value <= a2.MinY.Value ||
-                        a1.MinY.Value >= a2.MaxY.Value;
+                        a1.MaxX!.Value <= a2.MinX!.Value ||
+                        a1.MinX!.Value >= a2.MaxX!.Value ||
+                        a1.MaxY!.Value <= a2.MinY!.Value ||
+                        a1.MinY!.Value >= a2.MaxY!.Value;
 
                     if (!isNotOverlapping) return false;
                 }
@@ -160,15 +165,15 @@ namespace STMM.Business.Validators
                         var s1 = validStalls[i];
                         var s2 = validStalls[j];
 
-                        var s1MinX = s1.MapX.Value;
-                        var s1MaxX = s1.MapX.Value + s1.Width.Value;
-                        var s1MinY = s1.MapY.Value;
-                        var s1MaxY = s1.MapY.Value + s1.Height.Value;
+                        var s1MinX = s1.MapX!.Value;
+                        var s1MaxX = s1.MapX!.Value + s1.Width!.Value;
+                        var s1MinY = s1.MapY!.Value;
+                        var s1MaxY = s1.MapY!.Value + s1.Height!.Value;
 
-                        var s2MinX = s2.MapX.Value;
-                        var s2MaxX = s2.MapX.Value + s2.Width.Value;
-                        var s2MinY = s2.MapY.Value;
-                        var s2MaxY = s2.MapY.Value + s2.Height.Value;
+                        var s2MinX = s2.MapX!.Value;
+                        var s2MaxX = s2.MapX!.Value + s2.Width!.Value;
+                        var s2MinY = s2.MapY!.Value;
+                        var s2MaxY = s2.MapY!.Value + s2.Height!.Value;
 
                         bool isNotOverlapping = 
                             s1MaxX <= s2MinX ||

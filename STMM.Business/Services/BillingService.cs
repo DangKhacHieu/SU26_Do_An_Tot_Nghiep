@@ -93,7 +93,7 @@ namespace STMM.Business.Services
             var invoice = await _invoiceRepository.GetInvoiceDetailsWithRelationsAsync(invoiceId, ct);
             if (invoice == null)
             {
-                throw new NotFoundException($"Invoice with ID {invoiceId} not found.");
+                throw new NotFoundException($"ERR_INVOICE_WITH_ID_INVOICEID_NOT_FOUND|{invoiceId}");
             }
 
             return MapInvoiceToDto(invoice);
@@ -107,7 +107,7 @@ namespace STMM.Business.Services
             var invoice = await _invoiceRepository.GetInvoiceDetailsWithRelationsAsync(invoiceId, ct);
             if (invoice == null)
             {
-                throw new NotFoundException($"Invoice with ID {invoiceId} not found.");
+                throw new NotFoundException($"ERR_INVOICE_WITH_ID_INVOICEID_NOT_FOUND|{invoiceId}");
             }
 
             var accountantUser = await _userRepository.GetByIdAsync(accountantUserId, ct);
@@ -115,7 +115,7 @@ namespace STMM.Business.Services
             {
                 if (invoice.Contract?.Stall?.Area?.MarketId != accountantUser.MarketId)
                 {
-                    throw new ForbiddenException("Bạn không có quyền xem chi tiết hóa đơn của chợ khác.");
+                    throw new ForbiddenException("ERR_BAN_KHONG_CO_QUYEN_XEM_CHI_TIET_HOA_DON_CUA_CHO_KH");
                 }
             }
 
@@ -130,7 +130,7 @@ namespace STMM.Business.Services
 
             if (invoice == null)
             {
-                throw new NotFoundException($"Invoice with ID {invoiceId} not found.");
+                throw new NotFoundException($"ERR_INVOICE_WITH_ID_INVOICEID_NOT_FOUND|{invoiceId}");
             }
 
             return MapInvoiceToDto(invoice);
@@ -156,15 +156,14 @@ namespace STMM.Business.Services
                 try
                 {
                     if (!await _invoiceRepository.LockInvoiceForPaymentAsync(request.InvoiceId, marketId, ct))
-                        throw new NotFoundException($"Invoice with ID {request.InvoiceId} not found.");
+                        throw new NotFoundException($"ERR_INVOICE_WITH_ID_REQUEST_INVOICEID_NOT_FOUND|{request.InvoiceId}");
 
                     invoice = await _invoiceRepository.GetInvoiceWithRelationsForPaymentAsync(request.InvoiceId, marketId, ct)
-                        ?? throw new NotFoundException($"Invoice with ID {request.InvoiceId} not found.");
+                        ?? throw new NotFoundException($"ERR_INVOICE_WITH_ID_REQUEST_INVOICEID_NOT_FOUND|{request.InvoiceId}");
 
                     if (invoice.Status != "Unpaid")
                     {
-                        throw new BadRequestException(
-                            $"Invoice is in status '{invoice.Status}'. Payment can only be collected for 'Unpaid' invoices.");
+                        throw new BadRequestException($"ERR_INVOICE_IS_IN_STATUS_INVOICE_STATUS_PAYMENT_CAN_ON|{invoice.Status}");
                     }
 
                     payment = new Payment
@@ -185,7 +184,7 @@ namespace STMM.Business.Services
                 catch (DbUpdateConcurrencyException)
                 {
                     await transaction.RollbackAsync(ct);
-                    throw new ConflictException("Hóa đơn này đã được cập nhật bởi một người khác. Vui lòng tải lại trang.");
+                    throw new ConflictException("ERR_HOA_DON_NAY_DA_DUOC_CAP_NHAT_BOI_MOT_NGUOI_KHAC_VU");
                 }
                 catch
                 {
@@ -246,7 +245,7 @@ namespace STMM.Business.Services
                 var stall = await _stallRepository.GetStallForMarketAsync(stallId, marketId, ct);
                 if (stall == null)
                 {
-                    throw new NotFoundException($"Stall with ID {stallId} not found.");
+                    throw new NotFoundException($"ERR_STALL_WITH_ID_STALLID_NOT_FOUND|{stallId}");
                 }
             }
 
@@ -269,7 +268,7 @@ namespace STMM.Business.Services
             var user = await _userRepository.GetUserByIdWithRoleAsync(userId, ct);
             if (user?.MarketId == null)
             {
-                throw new ForbiddenException("The staff account is not assigned to a market.");
+                throw new ForbiddenException("ERR_THE_STAFF_ACCOUNT_IS_NOT_ASSIGNED_TO_A_MARKET");
             }
 
             return user.MarketId.Value;
@@ -312,7 +311,7 @@ namespace STMM.Business.Services
             var invoices = await _invoiceRepository.GetDraftInvoicesByIdsAsync(requestedIds, marketId, ct);
 
             if (invoices.Count != requestedIds.Count)
-                throw new BadRequestException("Only draft invoices in the accountant's market can be issued.");
+                throw new BadRequestException("ERR_ONLY_DRAFT_INVOICES_IN_THE_ACCOUNTANT_S_MARKET_CAN");
 
             foreach (var invoice in invoices)
             {
@@ -353,14 +352,14 @@ namespace STMM.Business.Services
             var feeType = await _feeTypeRepository.GetByIdAsync(request.FeeTypeId, ct);
             if (feeType == null)
             {
-                throw new NotFoundException($"Không tìm thấy loại phí ID {request.FeeTypeId}.");
+                throw new NotFoundException($"ERR_KHONG_TIM_THAY_LOAI_PHI_ID_REQUEST_FEETYPEID|{request.FeeTypeId}");
             }
 
             var contract = await _contractRepository.GetActiveContractByStallIdAsync(request.StallId, ct);
 
             if (contract == null)
             {
-                throw new NotFoundException($"Không tìm thấy hợp đồng hoạt động cho gian hàng ID {request.StallId}.");
+                throw new NotFoundException($"ERR_KHONG_TIM_THAY_HOP_DONG_HOAT_DONG_CHO_GIAN_HANG_ID|{request.StallId}");
             }
 
             // Cross-tenant check: Accountant can only create invoice for stalls in their market
@@ -369,7 +368,7 @@ namespace STMM.Business.Services
             {
                 if (contract.Stall?.Area?.MarketId != accountantUser.MarketId)
                 {
-                    throw new ForbiddenException("Bạn không có quyền tạo hóa đơn cho sạp thuộc khu vực/chợ khác.");
+                    throw new ForbiddenException("ERR_BAN_KHONG_CO_QUYEN_TAO_HOA_DON_CHO_SAP_THUOC_KHU_V");
                 }
             }
 
@@ -460,7 +459,7 @@ namespace STMM.Business.Services
                 var stallContract = await _contractRepository.GetActiveContractByStallIdAsync(request.StallId, ct);
                 if (stallContract != null && stallContract.Stall?.Area?.MarketId != accountantUser.MarketId)
                 {
-                    throw new ForbiddenException("Bạn không có quyền chỉnh sửa chỉ số điện/nước của sạp thuộc chợ khác.");
+                    throw new ForbiddenException("ERR_BAN_KHONG_CO_QUYEN_CHINH_SUA_CHI_SO_DIEN_NUOC_CUA");
                 }
             }
 
@@ -469,7 +468,7 @@ namespace STMM.Business.Services
 
             if (meter == null)
             {
-                throw new BadRequestException($"Đồng hồ {request.MeterType} chưa được cài đặt cho sạp này. Yêu cầu tạo đồng hồ trước.");
+                throw new BadRequestException($"ERR_DONG_HO_REQUEST_METERTYPE_CHUA_DUOC_CAI_DAT_CHO_SA|{request.MeterType}");
             }
 
             // 2. Find or Create MeterReading for this period
@@ -556,7 +555,7 @@ namespace STMM.Business.Services
 
                     if (existingInvoice.Status == "Paid")
                     {
-                        throw new BadRequestException("Không thể điều chỉnh chỉ số cho hóa đơn đã thanh toán. Vui lòng hoàn tiền hoặc hủy thanh toán trước.");
+                        throw new BadRequestException("ERR_KHONG_THE_DIEU_CHINH_CHI_SO_CHO_HOA_DON_DA_THANH_T");
                     }
 
                     if (existingInvoice.Status == "Draft" || (existingInvoice.InvoiceType == "Adjustment" && existingInvoice.Status == "Unpaid"))
@@ -733,13 +732,13 @@ namespace STMM.Business.Services
 
             if (payment == null)
             {
-                throw new NotFoundException($"Không tìm thấy giao dịch ID {paymentId}");
+                throw new NotFoundException($"ERR_KHONG_TIM_THAY_GIAO_DICH_ID_PAYMENTID|{paymentId}");
             }
 
             var invoice = payment.Invoice;
             if (invoice == null)
             {
-                throw new NotFoundException($"Không tìm thấy hóa đơn liên kết với giao dịch ID {paymentId}");
+                throw new NotFoundException($"ERR_KHONG_TIM_THAY_HOA_DON_LIEN_KET_VOI_GIAO_DICH_ID_P|{paymentId}");
             }
 
             var vendor = invoice.Contract?.Vendor;
@@ -747,7 +746,7 @@ namespace STMM.Business.Services
 
             if (payment.Status != "Pending" || invoice.Status != "Pending Confirmation")
             {
-                throw new BadRequestException("Payment is no longer pending verification.");
+                throw new BadRequestException("ERR_PAYMENT_IS_NO_LONGER_PENDING_VERIFICATION");
             }
 
             // Check if the accountant belongs to the same market as the invoice
@@ -756,7 +755,7 @@ namespace STMM.Business.Services
             {
                 if (invoice.Contract?.Stall?.Area?.MarketId != accountantUser.MarketId)
                 {
-                    throw new ForbiddenException("Bạn không có quyền duyệt thanh toán cho giao dịch của chợ khác.");
+                    throw new ForbiddenException("ERR_BAN_KHONG_CO_QUYEN_DUYET_THANH_TOAN_CHO_GIAO_DICH");
                 }
             }
 
@@ -832,7 +831,7 @@ namespace STMM.Business.Services
             catch (DbUpdateConcurrencyException)
             {
                 await transaction.RollbackAsync(ct);
-                throw new ConflictException("Dữ liệu này đã được cập nhật bởi một người khác. Vui lòng tải lại trang.");
+                throw new ConflictException("ERR_DU_LIEU_NAY_DA_DUOC_CAP_NHAT_BOI_MOT_NGUOI_KHAC_VU");
             }
             catch (Exception)
             {
@@ -968,7 +967,7 @@ namespace STMM.Business.Services
 
             if (stall == null)
             {
-                throw new NotFoundException($"Không tìm thấy sạp ID {stallId}");
+                throw new NotFoundException($"ERR_KHONG_TIM_THAY_SAP_ID_STALLID|{stallId}");
             }
 
             var accountantUser = await _userRepository.GetByIdAsync(accountantUserId, ct);
@@ -976,7 +975,7 @@ namespace STMM.Business.Services
             {
                 if (stall.Area?.MarketId != accountantUser.MarketId)
                 {
-                    throw new ForbiddenException("Bạn không có quyền xem chi tiết công nợ của sạp thuộc chợ khác.");
+                    throw new ForbiddenException("ERR_BAN_KHONG_CO_QUYEN_XEM_CHI_TIET_CONG_NO_CUA_SAP_TH");
                 }
             }
 
@@ -1020,7 +1019,16 @@ namespace STMM.Business.Services
 
             if (stall == null)
             {
-                throw new NotFoundException($"Không tìm thấy sạp hoạt động ID {request.StallId} để gửi nhắc nợ.");
+                throw new NotFoundException($"ERR_KHONG_TIM_THAY_SAP_HOAT_DONG_ID_REQUEST_STALLID_DE|{request.StallId}");
+            }
+
+            var accountantUser = await _userRepository.GetByIdAsync(senderUserId, ct);
+            if (accountantUser != null && accountantUser.MarketId.HasValue)
+            {
+                if (activeContract?.Stall?.Area?.MarketId != accountantUser.MarketId)
+                {
+                    throw new ForbiddenException("Bạn không có quyền gửi nhắc nợ cho sạp thuộc chợ khác.");
+                }
             }
 
             var unpaidInvoicesSum = await _invoiceRepository.GetTotalUnpaidAmountByStallIdAsync(request.StallId, ct);
@@ -1029,6 +1037,11 @@ namespace STMM.Business.Services
             var unpaidViolationsSum = violations.Sum(v => v.FineAmount ?? v.ViolationType?.DefaultFine ?? 0);
 
             var totalDebt = unpaidInvoicesSum + unpaidViolationsSum;
+
+            if (totalDebt <= 0)
+            {
+                throw new BadRequestException($"Sạp {stall.Code} hiện không có công nợ quá hạn để gửi thông báo nhắc nợ.");
+            }
 
             var message = request.CustomMessage;
             if (string.IsNullOrWhiteSpace(message))
@@ -1109,7 +1122,16 @@ namespace STMM.Business.Services
 
             if (dispute == null)
             {
-                throw new NotFoundException($"Không tìm thấy yêu cầu kháng nghị ID {requestId}");
+                throw new NotFoundException($"ERR_KHONG_TIM_THAY_YEU_CAU_KHANG_NGHI_ID_REQUESTID|{requestId}");
+            }
+
+            var accountantUser = await _userRepository.GetByIdAsync(accountantUserId, ct);
+            if (accountantUser != null && accountantUser.MarketId.HasValue)
+            {
+                if (dispute.Stall?.Area?.MarketId != accountantUser.MarketId)
+                {
+                    throw new ForbiddenException("Bạn không có quyền giải quyết kháng nghị của sạp thuộc chợ khác.");
+                }
             }
 
             using var transaction = await _requestRepository.BeginTransactionAsync(ct);
@@ -1140,7 +1162,7 @@ namespace STMM.Business.Services
                     {
                         if (request.RefundAmount > invoice.TotalAmount)
                         {
-                            throw new BadRequestException("Số tiền hoàn/giảm trừ không được vượt quá tổng tiền của hóa đơn.");
+                            throw new BadRequestException("ERR_SO_TIEN_HOAN_GIAM_TRU_KHONG_DUOC_VUOT_QUA_TONG_TIE");
                         }
 
                         var feeTypeId = invoice.InvoiceDetails.FirstOrDefault()?.FeeTypeId ?? 1;
@@ -1213,7 +1235,7 @@ namespace STMM.Business.Services
             catch (DbUpdateConcurrencyException)
             {
                 await transaction.RollbackAsync(ct);
-                throw new ConflictException("Kháng nghị này đã được cập nhật bởi một người khác. Vui lòng tải lại trang.");
+                throw new ConflictException("ERR_KHANG_NGHI_NAY_DA_DUOC_CAP_NHAT_BOI_MOT_NGUOI_KHAC");
             }
             catch (Exception)
             {
@@ -1246,16 +1268,50 @@ namespace STMM.Business.Services
                 vatRate = parsedVat;
             }
 
+            // --- TIER PRICING FOR UTILITIES ---
+            var eleConfig = await _systemConfigRepository.GetSystemConfigByKeyAsync("electricity_tiers", marketId, ct);
+            var waterConfig = await _systemConfigRepository.GetSystemConfigByKeyAsync("water_tiers", marketId, ct);
+            
+            List<UtilityTierStep>? eleTiers = null;
+            List<UtilityTierStep>? waterTiers = null;
+            if (eleConfig != null && !string.IsNullOrEmpty(eleConfig.ConfigValue))
+                try { eleTiers = System.Text.Json.JsonSerializer.Deserialize<List<UtilityTierStep>>(eleConfig.ConfigValue); } catch { }
+            if (waterConfig != null && !string.IsNullOrEmpty(waterConfig.ConfigValue))
+                try { waterTiers = System.Text.Json.JsonSerializer.Deserialize<List<UtilityTierStep>>(waterConfig.ConfigValue); } catch { }
+            
+            if (eleTiers == null || !eleTiers.Any()) 
+                eleTiers = new List<UtilityTierStep> { new UtilityTierStep { Step = 1, From = 0, To = null, Price = 3500 } };
+            if (waterTiers == null || !waterTiers.Any()) 
+                waterTiers = new List<UtilityTierStep> { new UtilityTierStep { Step = 1, From = 0, To = null, Price = 18000 } };
+
+            var eleFeeType = await _feeTypeRepository.GetFeeTypeByNameContainsAsync("Điện", null, ct);
+            var waterFeeType = await _feeTypeRepository.GetFeeTypeByNameContainsAsync("Nước", null, ct);
+            int eleFeeTypeId = eleFeeType?.FeeTypeId ?? 2;
+            int waterFeeTypeId = waterFeeType?.FeeTypeId ?? 3;
+
+            // --- FETCH UNSYNCED METER READINGS FOR THIS MONTH ---
+            var meterReadingsQuery = _meterReadingRepository.Query()
+                .Include(mr => mr.Meter)
+                .Where(mr => mr.RecordedAt.Month == month && mr.RecordedAt.Year == year && mr.IsSynced != true && mr.Meter.StallId.HasValue);
+            
+            if (marketId.HasValue)
+                meterReadingsQuery = meterReadingsQuery.Where(mr => mr.Meter.Stall != null && mr.Meter.Stall.Area != null && mr.Meter.Stall.Area.MarketId == marketId.Value);
+
+            var unsyncedReadings = await meterReadingsQuery.ToListAsync(ct);
+            var readingsByStall = unsyncedReadings
+                .GroupBy(mr => mr.Meter.StallId!.Value)
+                .ToDictionary(g => g.Key, g => g.ToList());
+            
+            var readingsToUpdate = new List<MeterReading>();
+
             int count = 0;
             var newInvoices = new List<Invoice>();
 
             var existingInvoicesQuery = _invoiceRepository.Query()
-                .Where(i => i.Month == month && i.Year == year && i.IsDeleted != true && i.Status != "Canceled")
-                .SelectMany(i => i.InvoiceDetails)
-                .Where(d => d.FeeTypeId == rentFeeTypeId);
+                .Where(i => i.Month == month && i.Year == year && i.IsDeleted != true && i.Status != "Canceled" && i.InvoiceType == "Periodic");
             if (marketId.HasValue)
-                existingInvoicesQuery = existingInvoicesQuery.Where(d => d.Invoice.Contract.Stall.Area.MarketId == marketId.Value);
-            var existingInvoices = await existingInvoicesQuery.Select(d => d.Invoice.ContractId).ToListAsync(ct);
+                existingInvoicesQuery = existingInvoicesQuery.Where(i => i.Contract.Stall.Area.MarketId == marketId.Value);
+            var existingInvoices = await existingInvoicesQuery.Select(i => i.ContractId).ToListAsync(ct);
             var existingContractIds = new HashSet<int>(existingInvoices);
 
             foreach (var contract in activeContracts)
@@ -1263,15 +1319,25 @@ namespace STMM.Business.Services
                 if (existingContractIds.Contains(contract.ContractId)) continue;
 
                 decimal rentAmount = CalculateProratedAmount(contract.RentFee, contract.StartDate.ToDateTime(TimeOnly.MinValue), contract.EndDate.ToDateTime(TimeOnly.MinValue), month, year);
-                if (rentAmount <= 0) continue;
 
                 decimal totalAmount = rentAmount;
-                var activeServices = contract.Stall?.ServiceRegistrations?.Where(sr => sr.Status == "Active").ToList() ?? new List<ServiceRegistration>();
+                // Fetch both Active and PendingCancellation services so we can process cancellations properly
+                var servicesToProcess = contract.Stall?.ServiceRegistrations?.Where(sr => sr.Status == "Active" || sr.Status == "PendingCancellation").ToList() ?? new List<ServiceRegistration>();
                 var validServices = new List<(ServiceRegistration Reg, decimal Amount)>();
 
-                foreach (var reg in activeServices)
+                foreach (var reg in servicesToProcess)
                 {
                     if (reg.Service == null) continue;
+
+                    if (reg.Status == "PendingCancellation")
+                    {
+                        // Hết chu kỳ cũ, đến chu kỳ mới nhưng user đã hủy gia hạn
+                        // Cập nhật trạng thái thành Cancelled và không tính phí tháng này
+                        reg.Status = "Cancelled";
+                        reg.CancelledAt = DateTime.UtcNow;
+                        _serviceRegistrationRepository.Update(reg);
+                        continue; // Skip adding to invoice
+                    }
 
                     bool shouldBill = false;
                     decimal serviceAmount = 0;
@@ -1298,6 +1364,41 @@ namespace STMM.Business.Services
                     }
                 }
 
+                var utilityDetails = new List<InvoiceDetail>();
+                if (readingsByStall.TryGetValue(contract.StallId, out var stallReadings))
+                {
+                    foreach (var reading in stallReadings)
+                    {
+                        double consumption = reading.NewValue - reading.OldValue;
+                        if (consumption < 0) consumption = 0;
+
+                        var tiers = reading.Meter.Type == "Electricity" ? eleTiers : waterTiers;
+                        int feeTypeId = reading.Meter.Type == "Electricity" ? eleFeeTypeId : waterFeeTypeId;
+                        string typeName = reading.Meter.Type == "Electricity" ? "điện" : "nước";
+
+                        decimal amount = UtilityPricingCalculator.CalculatePrice(consumption, tiers);
+                        
+                        if (amount > 0 || consumption > 0)
+                        {
+                            totalAmount += amount;
+                            utilityDetails.Add(new InvoiceDetail
+                            {
+                                FeeTypeId = feeTypeId,
+                                Description = $"Tiêu thụ {typeName} {month}/{year} ({reading.OldValue} -> {reading.NewValue})",
+                                Quantity = consumption,
+                                UnitPrice = amount > 0 && consumption > 0 ? amount / (decimal)consumption : 0,
+                                Amount = amount
+                            });
+                            
+                            reading.IsSynced = true;
+                            readingsToUpdate.Add(reading);
+                        }
+                    }
+                }
+
+                // If both rent, services, and utilities amount to 0, no need to issue an invoice
+                if (totalAmount <= 0) continue;
+
                 var invoice = new Invoice
                 {
                     ContractId = contract.ContractId,
@@ -1311,28 +1412,21 @@ namespace STMM.Business.Services
                     IsDeleted = false
                 };
 
-                var rentDetail = new InvoiceDetail
+                if (rentAmount > 0)
                 {
-                    FeeTypeId = rentFeeTypeId,
-                    Description = $"Tiền thuê sạp {contract.Stall?.Code} tháng {month}/{year}",
-                    Quantity = 1,
-                    UnitPrice = contract.RentFee,
-                    Amount = rentAmount
-                };
-                invoice.InvoiceDetails.Add(rentDetail);
+                    var rentDetail = new InvoiceDetail
+                    {
+                        FeeTypeId = rentFeeTypeId,
+                        Description = $"Tiền thuê sạp {contract.Stall?.Code} tháng {month}/{year}",
+                        Quantity = 1,
+                        UnitPrice = contract.RentFee,
+                        Amount = rentAmount
+                    };
+                    invoice.InvoiceDetails.Add(rentDetail);
+                }
 
                 foreach (var srv in validServices)
                 {
-                    if (srv.Reg.Status == "PendingCancellation")
-                    {
-                        // Hết chu kỳ cũ, đến chu kỳ mới nhưng user đã hủy gia hạn
-                        // Cập nhật trạng thái thành Cancelled và không tính phí tháng này
-                        srv.Reg.Status = "Cancelled";
-                        srv.Reg.CancelledAt = DateTime.UtcNow;
-                        _serviceRegistrationRepository.Update(srv.Reg);
-                        continue;
-                    }
-
                     var srvDetail = new InvoiceDetail
                     {
                         FeeTypeId = srv.Reg.Service.FeeTypeId,
@@ -1342,6 +1436,11 @@ namespace STMM.Business.Services
                         Amount = srv.Amount
                     };
                     invoice.InvoiceDetails.Add(srvDetail);
+                }
+
+                foreach (var utilDetail in utilityDetails)
+                {
+                    invoice.InvoiceDetails.Add(utilDetail);
                 }
 
                 // Add VAT if applicable
@@ -1369,6 +1468,12 @@ namespace STMM.Business.Services
             if (newInvoices.Any())
             {
                 await _invoiceRepository.AddRangeAsync(newInvoices, ct);
+                
+                foreach (var reading in readingsToUpdate)
+                {
+                    _meterReadingRepository.Update(reading);
+                }
+                
                 await _invoiceRepository.SaveChangesAsync(ct);
                 count = newInvoices.Count;
             }
@@ -1422,11 +1527,11 @@ namespace STMM.Business.Services
         public async Task<int> TriggerAutoGenerateAsync(int month, int year, int triggerUserId, CancellationToken ct = default)
         {
             if (month is < 1 or > 12 || year is < 2000 or > 2100)
-                throw new BadRequestException("Invalid billing period.");
+                throw new BadRequestException("ERR_INVALID_BILLING_PERIOD");
 
             var triggerUser = await _userRepository.GetByIdAsync(triggerUserId, ct);
             if (triggerUser == null)
-                throw new ForbiddenException("Accountant account was not found.");
+                throw new ForbiddenException("ERR_ACCOUNTANT_ACCOUNT_WAS_NOT_FOUND");
 
             int count = await AutoGenerateMonthlyInvoicesAsync(month, year, triggerUser.MarketId, ct);
 

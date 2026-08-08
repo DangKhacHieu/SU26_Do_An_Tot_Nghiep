@@ -25,7 +25,7 @@ namespace STMM.Business.Interfaces
         // CRUD for Violation Types
         Task<IEnumerable<ViolationTypeDto>> GetAllViolationTypesWithInactiveAsync(int userId, CancellationToken ct = default);
         Task<ViolationTypeDto> CreateViolationTypeAsync(int userId, CreateViolationTypeRequest request, CancellationToken ct = default);
-        Task<ViolationTypeDto> UpdateViolationTypeAsync(int id, UpdateViolationTypeRequest request, CancellationToken ct = default);
-        Task<bool> DeleteViolationTypeAsync(int id, CancellationToken ct = default);
+        Task<ViolationTypeDto> UpdateViolationTypeAsync(int userId, int id, UpdateViolationTypeRequest request, CancellationToken ct = default);
+        Task<bool> DeleteViolationTypeAsync(int userId, int id, CancellationToken ct = default);
     }
 }

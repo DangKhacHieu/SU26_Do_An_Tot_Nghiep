@@ -18,6 +18,7 @@ namespace STMM.Business.Services
         private readonly IMarketRepository _marketRepository;
         private readonly IUserRepository _userRepository;
         private readonly IBusinessCategoryRepository _categoryRepository;
+        private readonly INotificationService _notificationService;
         private readonly IMapper _mapper;
         private readonly AppDbContext _context;
 
@@ -25,12 +26,14 @@ namespace STMM.Business.Services
             IMarketRepository marketRepository, 
             IUserRepository userRepository,
             IBusinessCategoryRepository categoryRepository,
+            INotificationService notificationService,
             IMapper mapper, 
             AppDbContext context)
         {
             _marketRepository = marketRepository;
             _userRepository = userRepository;
             _categoryRepository = categoryRepository;
+            _notificationService = notificationService;
             _mapper = mapper;
             _context = context;
         }
@@ -49,7 +52,7 @@ namespace STMM.Business.Services
 
             if (currentUserRole == "Manager")
             {
-                var user = await _context.Users.FindAsync(currentUserId);
+                var user = await _userRepository.GetByIdAsync(currentUserId);
                 if (user != null)
                 {
                     query = query.Where(m => m.CreatorId == currentUserId || (user.MarketId.HasValue && m.MarketId == user.MarketId.Value));
@@ -98,11 +101,11 @@ namespace STMM.Business.Services
 
             if (user == null || !user.MarketId.HasValue)
             {
-                throw new ForbiddenException("The staff account is not assigned to a market.");
+                throw new ForbiddenException("ERR_THE_STAFF_ACCOUNT_IS_NOT_ASSIGNED_TO_A_MARKET");
             }
 
             return await GetMarketMapAsync(user.MarketId.Value)
-                ?? throw new NotFoundException("Market map not found.");
+                ?? throw new NotFoundException("ERR_MARKET_MAP_NOT_FOUND");
         }
 
         public async Task<MarketDto> CreateMarketBulkAsync(CreateMarketBulkRequest request, int currentUserId)
@@ -239,21 +242,41 @@ namespace STMM.Business.Services
                 .ThenInclude(a => a.Stalls)
                 .FirstOrDefaultAsync(m => m.MarketId == marketId);
             
-            if (market == null) return false;
+            if (market == null || market.IsDeleted == true) return false;
 
-            // Hard delete for cleanup purposes
+            // Check if any stall in this market has an active contract
+            var hasActiveContracts = await _context.Stalls
+                .Include(s => s.Contracts)
+                .AnyAsync(s => s.Area.MarketId == marketId && s.IsDeleted != true && s.Contracts.Any(c => c.Status == "Active"));
+
+            if (hasActiveContracts)
+            {
+                throw new STMM.Business.Exceptions.BadRequestException("ERR_KHONG_THE_XOA_CHO_VI_CO_SAP_DANG_CO_HOP_DONG_H");
+            }
+
+            // Soft delete market, areas, and stalls
+            market.IsDeleted = true;
+            _context.Markets.Update(market);
+
             foreach (var area in market.Areas)
             {
-                _context.Stalls.RemoveRange(area.Stalls);
+                area.IsDeleted = true;
+                _context.Areas.Update(area);
+                foreach (var stall in area.Stalls)
+                {
+                    stall.IsDeleted = true;
+                    _context.Stalls.Update(stall);
+                }
             }
-            _context.Areas.RemoveRange(market.Areas);
-            _context.Markets.Remove(market);
 
-            // Detach any user assigned to this market
+            // Detach any user assigned to this market and mark them as deleted/locked
             var usersInMarket = await _context.Users.Where(u => u.MarketId == marketId).ToListAsync();
             foreach (var u in usersInMarket)
             {
                 u.MarketId = null;
+                u.IsDeleted = true;
+                u.DeletedAt = DateTime.UtcNow;
+                u.Status = "Locked"; // Prevent login
                 _context.Users.Update(u);
             }
 
@@ -278,66 +301,115 @@ namespace STMM.Business.Services
             var market = await _marketRepository.GetByIdAsync(marketId);
             if (market == null) return false;
 
+            if (status.Equals("Inactive", StringComparison.OrdinalIgnoreCase))
+            {
+                var adminUser = await _userRepository.Query()
+                    .Include(u => u.Role)
+                    .FirstOrDefaultAsync(u => u.Role.Name == "Admin");
+                int requestingUserId = adminUser?.UserId ?? market.CreatorId ?? 0;
+                await DeactivateMarketAsync(marketId, requestingUserId);
+                return true;
+            }
+
             market.Status = status;
-            _context.Markets.Update(market);
+            _marketRepository.Update(market);
 
             if (status.Equals("Active", StringComparison.OrdinalIgnoreCase) || status.Equals("Approved", StringComparison.OrdinalIgnoreCase))
             {
-                var creator = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.UserId == market.CreatorId);
+                var creator = await _userRepository.Query().Include(u => u.Role).FirstOrDefaultAsync(u => u.UserId == market.CreatorId);
                 if (creator != null && creator.Role?.Name == "Manager")
                 {
                     creator.MarketId = market.MarketId;
-                    _context.Users.Update(creator);
+                    _userRepository.Update(creator);
                 }
             }
-            else if (status.Equals("Rejected", StringComparison.OrdinalIgnoreCase) || status.Equals("Inactive", StringComparison.OrdinalIgnoreCase))
+            else if (status.Equals("Rejected", StringComparison.OrdinalIgnoreCase))
             {
-                var creator = await _context.Users.FirstOrDefaultAsync(u => u.MarketId == marketId);
+                var creator = await _userRepository.Query().FirstOrDefaultAsync(u => u.MarketId == marketId);
                 if (creator != null)
                 {
                     creator.MarketId = null;
-                    _context.Users.Update(creator);
+                    _userRepository.Update(creator);
                 }
             }
 
-            await _context.SaveChangesAsync();
+            await _marketRepository.SaveChangesAsync();
             return true;
         }
 
-        public async Task<bool> DeactivateMarketAsync(int marketId, int managerId)
+        public async Task<DeactivateMarketResult> DeactivateMarketAsync(int marketId, int requestingUserId, CancellationToken ct = default)
         {
-            var market = await _context.Markets
-                .Include(m => m.Areas)
-                    .ThenInclude(a => a.Stalls)
-                        .ThenInclude(s => s.Contracts)
-                .FirstOrDefaultAsync(m => m.MarketId == marketId);
-                
-            if (market == null) throw new Exception("Market not found.");
+            var market = await _marketRepository.GetMarketWithStallContractsAsync(marketId, ct);
+            if (market == null)
+                throw new NotFoundException("ERR_KHONG_TIM_THAY_CHO");
 
-            // Check if there are any active contracts
-            bool hasActiveContracts = market.Areas
+            if (market.Status == "Inactive")
+                throw new BadRequestException("ERR_CHO_NAY_DA_O_TRANG_THAI_NGUNG_HOAT_DONG_ROI");
+            if (market.Status == "Pending")
+                throw new BadRequestException("ERR_CHO_DANG_CHO_DUYET_VUI_LONG_HUY_DANG_KY_THAY_VI_NG");
+
+            var requestingUser = await _userRepository.Query()
+                .Include(u => u.Role)
+                .FirstOrDefaultAsync(u => u.UserId == requestingUserId, ct);
+
+            bool isOwner = market.CreatorId == requestingUserId || (requestingUser != null && requestingUser.MarketId == marketId);
+            bool isAdmin = requestingUser?.Role?.Name == "Admin";
+
+            if (!isOwner && !isAdmin)
+                throw new ForbiddenException("ERR_BAN_KHONG_CO_QUYEN_NGUNG_HOAT_DONG_CHO_NAY");
+
+            int activeContractCount = market.Areas
                 .SelectMany(a => a.Stalls)
                 .SelectMany(s => s.Contracts)
-                .Any(c => c.Status == "Active" && c.IsDeleted != true);
+                .Count(c => c.Status == "Active" && c.IsDeleted != true);
 
-            if (hasActiveContracts)
+            if (activeContractCount > 0)
+                throw new BadRequestException($"ERR_MARKET_DEACTIVATE_ACTIVE_CONTRACTS_ACTIVECONTRACTC|{activeContractCount}");
+
+            int unpaidInvoiceCount = await _marketRepository.CountUnpaidInvoicesAsync(marketId, ct);
+            if (unpaidInvoiceCount > 0)
+                throw new BadRequestException($"ERR_MARKET_DEACTIVATE_UNPAID_INVOICES_UNPAIDINVOICECOU|{unpaidInvoiceCount}");
+
+            int activeServiceCount = await _marketRepository.CountActiveServiceRegistrationsAsync(marketId, ct);
+            if (activeServiceCount > 0)
+                throw new BadRequestException($"ERR_MARKET_DEACTIVATE_ACTIVE_SERVICES_ACTIVESERVICECOU|{activeServiceCount}");
+
+            using var transaction = await _marketRepository.BeginTransactionAsync(ct);
+            try
             {
-                throw new Exception("Không thể ngưng hoạt động chợ vì vẫn còn hợp đồng đang hoạt động.");
+                market.Status = "Inactive";
+                _marketRepository.Update(market);
+
+                var affectedUserIds = await _marketRepository.DetachAllUsersFromMarketAsync(marketId, ct);
+
+                await _marketRepository.DeactivateAllMetersAsync(marketId, ct);
+
+                await _marketRepository.SaveChangesAsync(ct);
+                await transaction.CommitAsync(ct);
+
+                foreach (var userId in affectedUserIds)
+                {
+                    await _notificationService.CreateAsync(new STMM.Business.DTOs.Notification.CreateNotificationRequest
+                    {
+                        TargetUserId = userId,
+                        Title = "Chợ đã ngưng hoạt động",
+                        Content = $"Chợ '{market.MarketName}' đã ngưng hoạt động. Tài khoản của bạn đã được gỡ liên kết khỏi chợ này.",
+                        NotiType = "System"
+                    }, ct);
+                }
+
+                return new DeactivateMarketResult
+                {
+                    MarketId = marketId,
+                    MarketName = market.MarketName,
+                    AffectedUserCount = affectedUserIds.Count
+                };
             }
-
-            market.Status = "Inactive";
-            _context.Markets.Update(market);
-
-            // Detach manager from this market
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == managerId);
-            if (user != null && user.MarketId == marketId)
+            catch (Exception)
             {
-                user.MarketId = null;
-                _context.Users.Update(user);
+                await transaction.RollbackAsync(ct);
+                throw;
             }
-
-            await _context.SaveChangesAsync();
-            return true;
         }
     }
 }

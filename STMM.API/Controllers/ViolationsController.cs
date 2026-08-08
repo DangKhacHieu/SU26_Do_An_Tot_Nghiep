@@ -194,12 +194,15 @@ namespace STMM.API.Controllers
         /// </summary>
         [HttpPut("types/{id}")]
         [Authorize(Roles = "Accountant,Admin")]
-        public async Task<IActionResult> UpdateViolationType(int id, [FromBody] UpdateViolationTypeRequest request, CancellationToken ct)
+        public async Task<IActionResult> UpdateViolationType(
+            [FromRoute] int id,
+            [FromBody] UpdateViolationTypeRequest request,
+            CancellationToken ct)
         {
-            var result = await _violationService.UpdateViolationTypeAsync(id, request, ct);
+            var userId = User.GetUserId() ?? throw new System.UnauthorizedAccessException("User ID not found.");
+            var result = await _violationService.UpdateViolationTypeAsync(userId, id, request, ct);
 
             // Ghi nhật ký hoạt động
-            var userId = GetUserId();
             var ipAddress = Request.HttpContext.Connection.RemoteIpAddress?.ToString();
             await _auditLogService.LogAsync(userId, $"Cập nhật loại vi phạm (ID: {id}) - Tên: {result.Name}", ipAddress, ct);
 
@@ -211,12 +214,12 @@ namespace STMM.API.Controllers
         /// </summary>
         [HttpDelete("types/{id}")]
         [Authorize(Roles = "Accountant,Admin")]
-        public async Task<IActionResult> DeleteViolationType(int id, CancellationToken ct)
+        public async Task<IActionResult> DeleteViolationType([FromRoute] int id, CancellationToken ct)
         {
-            var result = await _violationService.DeleteViolationTypeAsync(id, ct);
+            var userId = User.GetUserId() ?? throw new System.UnauthorizedAccessException("User ID not found.");
+            var result = await _violationService.DeleteViolationTypeAsync(userId, id, ct);
 
             // Ghi nhật ký hoạt động
-            var userId = GetUserId();
             var ipAddress = Request.HttpContext.Connection.RemoteIpAddress?.ToString();
             await _auditLogService.LogAsync(userId, $"Xóa/Ẩn loại vi phạm (ID: {id})", ipAddress, ct);
 

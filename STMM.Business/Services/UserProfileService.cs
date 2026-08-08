@@ -32,7 +32,7 @@ namespace STMM.Business.Services
 
             if (user == null)
             {
-                throw new NotFoundException($"Không tìm thấy tài khoản người dùng ID {userId}.");
+                throw new NotFoundException($"ERR_KHONG_TIM_THAY_TAI_KHOAN_NGUOI_DUNG_ID_USERID|{userId}");
             }
 
             return MapToProfileDto(user);
@@ -49,14 +49,14 @@ namespace STMM.Business.Services
 
             if (user == null)
             {
-                throw new NotFoundException($"Không tìm thấy tài khoản người dùng ID {userId}.");
+                throw new NotFoundException($"ERR_KHONG_TIM_THAY_TAI_KHOAN_NGUOI_DUNG_ID_USERID|{userId}");
             }
 
             // Check duplicate email
             var duplicateEmail = await _userRepository.IsEmailExistsAsync(request.Email, user.UserId, ct);
             if (duplicateEmail)
             {
-                throw new BadRequestException($"Email '{request.Email}' đã được sử dụng bởi tài khoản khác.");
+                throw new BadRequestException($"ERR_EMAIL_REQUEST_EMAIL_DA_DUOC_SU_DUNG_BOI_TAI_KHOAN|{request.Email}");
             }
 
             user.Name = request.Name.Trim();
@@ -81,7 +81,7 @@ namespace STMM.Business.Services
 
             if (user == null)
             {
-                throw new NotFoundException($"Không tìm thấy tài khoản người dùng ID {userId}.");
+                throw new NotFoundException($"ERR_KHONG_TIM_THAY_TAI_KHOAN_NGUOI_DUNG_ID_USERID|{userId}");
             }
 
             // Verify password with BCrypt and plain-text fallback
@@ -104,7 +104,7 @@ namespace STMM.Business.Services
 
             if (!isPasswordCorrect)
             {
-                throw new BadRequestException("Mật khẩu hiện tại không chính xác.");
+                throw new BadRequestException("ERR_MAT_KHAU_HIEN_TAI_KHONG_CHINH_XAC");
             }
 
             // Hash new password using BCrypt

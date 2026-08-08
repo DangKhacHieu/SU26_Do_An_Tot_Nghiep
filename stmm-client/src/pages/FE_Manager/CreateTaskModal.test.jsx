@@ -166,4 +166,117 @@ describe('CreateTaskModal - UtilityReading Restriction', () => {
     const requestSource = screen.getByText('createtaskmodal.customer_request');
     fireEvent.click(requestSource);
   });
+
+  it('should filter out pending requests that already have an active staff task', async () => {
+    const staffData = [{ userId: 1, name: 'Staff A', status: 'Active' }];
+    const requestData = [
+      { requestId: 10, title: 'Yêu cầu sửa quạt sạp A', status: 'Pending', stallCode: 'A-01' },
+      { requestId: 11, title: 'Yêu cầu sửa điện sạp B', status: 'Pending', stallCode: 'B-02' }
+    ];
+    const existingTasks = [
+      {
+        taskId: 99,
+        taskType: 'Repair',
+        requestId: 10,
+        assignedToName: 'Staff A',
+        status: 'In_Progress'
+      }
+    ];
+
+    const fetchMock = vi.fn().mockImplementation((url) => {
+      if (url.includes('/api/manager/users')) {
+        return Promise.resolve({ ok: true, json: async () => staffData });
+      }
+      if (url.includes('/api/Areas') || url.includes('/api/Stalls')) {
+        return Promise.resolve({ ok: true, json: async () => [] });
+      }
+      if (url.includes('/api/manager/tasks')) {
+        return Promise.resolve({ ok: true, json: async () => existingTasks });
+      }
+      if (url.includes('/api/manager/requests')) {
+        return Promise.resolve({ ok: true, json: async () => ({ items: requestData }) });
+      }
+      return Promise.resolve({ ok: false });
+    });
+
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(
+      <CreateTaskModal
+        baseUrl="http://localhost:5056"
+        onClose={mockOnClose}
+        onSuccess={mockOnSuccess}
+        addToast={mockAddToast}
+      />
+    );
+
+    // Request #10 has an active task (#99, In_Progress), so only Request #11 should be shown
+    await waitFor(() => {
+      expect(screen.getByText(/Yêu cầu sửa điện sạp B/)).toBeInTheDocument();
+      expect(screen.queryByText(/Yêu cầu sửa quạt sạp A/)).not.toBeInTheDocument();
+    });
+  });
+
+  it('should disable area option if an uncompleted utility reading task exists from a previous month', async () => {
+    const staffData = [{ userId: 1, name: 'Staff A', status: 'Active' }];
+    const areaData = [{ areaId: 201, name: 'Khu C', description: 'Khu thời trang' }];
+    const previousMonthDate = new Date();
+    previousMonthDate.setMonth(previousMonthDate.getMonth() - 1);
+
+    const existingTasks = [
+      {
+        taskId: 50,
+        taskType: 'UtilityReading',
+        areaId: 201,
+        assignedToName: 'Staff A',
+        status: 'In_Progress',
+        createdAt: previousMonthDate.toISOString()
+      }
+    ];
+
+    const fetchMock = vi.fn().mockImplementation((url) => {
+      if (url.includes('/api/manager/users')) {
+        return Promise.resolve({ ok: true, json: async () => staffData });
+      }
+      if (url.includes('/api/Areas')) {
+        return Promise.resolve({ ok: true, json: async () => areaData });
+      }
+      if (url.includes('/api/Stalls')) {
+        return Promise.resolve({ ok: true, json: async () => [{ stallId: 10, areaId: 201, status: 'Rented' }] });
+      }
+      if (url.includes('/api/manager/tasks')) {
+        return Promise.resolve({ ok: true, json: async () => existingTasks });
+      }
+      if (url.includes('/api/manager/requests')) {
+        return Promise.resolve({ ok: true, json: async () => ({ items: [] }) });
+      }
+      return Promise.resolve({ ok: false });
+    });
+
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(
+      <CreateTaskModal
+        baseUrl="http://localhost:5056"
+        onClose={mockOnClose}
+        onSuccess={mockOnSuccess}
+        addToast={mockAddToast}
+      />
+    );
+
+    // Switch task type to UtilityReading
+    const utilityRadio = await screen.findByRole('radio', { name: /createtaskmodal.utility_reading/i });
+    fireEvent.click(utilityRadio);
+
+    // Check that Area 201 option is disabled because of the uncompleted task from previous month
+    await waitFor(() => {
+      const areaSelect = document.querySelector('#select-create-task-area');
+      expect(areaSelect).toBeInTheDocument();
+    });
+
+    const options = screen.getAllByRole('option');
+    const disabledOption = options.find((opt) => opt.value === '201');
+    expect(disabledOption).toBeDisabled();
+    expect(disabledOption.textContent).toContain('🔒 Khu C');
+  });
 });

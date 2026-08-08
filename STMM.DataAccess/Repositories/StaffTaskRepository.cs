@@ -66,7 +66,8 @@ namespace STMM.DataAccess.Repositories
                 t.AreaId == areaId &&
                 t.TaskType == "UtilityReading" &&
                 t.Status != "Cancelled" &&
-                ((t.CreatedAt.HasValue && t.CreatedAt.Value >= periodStartUtc && t.CreatedAt.Value < periodEndUtc) ||
+                (t.Status != "Completed" ||
+                 (t.CreatedAt.HasValue && t.CreatedAt.Value >= periodStartUtc && t.CreatedAt.Value < periodEndUtc) ||
                  (t.CompletedAt.HasValue && t.CompletedAt.Value >= periodStartUtc && t.CompletedAt.Value < periodEndUtc)),
                 ct);
         }

@@ -36,14 +36,12 @@ namespace STMM.Business.Services
 
             if (hasUser && hasRole)
             {
-                throw new BadRequestException(
-                    "Notification cannot be sent to both a specific user and a role simultaneously. Choose one of them.");
+                throw new BadRequestException("ERR_NOTIFICATION_CANNOT_BE_SENT_TO_BOTH_A_SPECIFIC_USE");
             }
 
             if (!hasUser && !hasRole)
             {
-                throw new BadRequestException(
-                    "Notification must have at least TargetUserId or TargetRole.");
+                throw new BadRequestException("ERR_NOTIFICATION_MUST_HAVE_AT_LEAST_TARGETUSERID_OR_TA");
             }
 
             var targetUserIds = new List<int>();
@@ -59,7 +57,7 @@ namespace STMM.Business.Services
 
             if (targetUserIds.Count == 0)
             {
-                throw new BadRequestException("No active notification recipient was found.");
+                throw new BadRequestException("ERR_NO_ACTIVE_NOTIFICATION_RECIPIENT_WAS_FOUND");
             }
 
             foreach (var targetUserId in targetUserIds.Distinct())
@@ -85,7 +83,7 @@ namespace STMM.Business.Services
         {
             if (userId <= 0)
             {
-                throw new BadRequestException("ID người dùng không hợp lệ.");
+                throw new BadRequestException("ERR_ID_NGUOI_DUNG_KHONG_HOP_LE");
             }
 
             var limitDate = DateTime.UtcNow.AddDays(-60);
@@ -115,7 +113,7 @@ namespace STMM.Business.Services
                 .FirstOrDefaultAsync(n => n.NotiId == notiId && n.TargetUserId == userId, ct);
             if (notification == null)
             {
-                throw new NotFoundException($"Notification with ID {notiId} not found.");
+                throw new NotFoundException($"ERR_NOTIFICATION_WITH_ID_NOTIID_NOT_FOUND|{notiId}");
             }
 
             notification.IsRead = true;
@@ -127,7 +125,7 @@ namespace STMM.Business.Services
         {
             if (userId <= 0)
             {
-                throw new BadRequestException("ID người dùng không hợp lệ.");
+                throw new BadRequestException("ERR_ID_NGUOI_DUNG_KHONG_HOP_LE");
             }
 
             var limitDate = DateTime.UtcNow.AddDays(-60);
@@ -160,7 +158,7 @@ namespace STMM.Business.Services
         {
             if (notiId <= 0 || userId <= 0)
             {
-                throw new BadRequestException("Dữ liệu đầu vào không hợp lệ.");
+                throw new BadRequestException("ERR_DU_LIEU_DAU_VAO_KHONG_HOP_LE");
             }
 
             var notification = (await _notificationRepository.FindAsync(
@@ -168,7 +166,7 @@ namespace STMM.Business.Services
                 ct)).FirstOrDefault();
             if (notification == null)
             {
-                throw new NotFoundException($"Notification with ID {notiId} not found.");
+                throw new NotFoundException($"ERR_NOTIFICATION_WITH_ID_NOTIID_NOT_FOUND|{notiId}");
             }
 
             _notificationRepository.Delete(notification);

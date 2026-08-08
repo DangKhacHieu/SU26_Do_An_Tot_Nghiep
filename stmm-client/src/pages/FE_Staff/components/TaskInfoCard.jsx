@@ -32,7 +32,7 @@ export default function TaskInfoCard({ task, onViewIssueDetails }) {
   };
 
   const formatReadingPeriod = () => {
-    const referenceDate = task.completedAt || new Date().toISOString();
+    const referenceDate = task.completedAt || task.CompletedAt || task.createdAt || task.CreatedAt || new Date().toISOString();
     return new Date(referenceDate).toLocaleDateString(locale, {
       month: '2-digit',
       year: 'numeric'
