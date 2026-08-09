@@ -237,6 +237,22 @@ builder.Services.AddAuthentication(options =>
         ValidAudience = jwtSettings["Audience"],
         IssuerSigningKey = new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(key)
     };
+    options.Events = new JwtBearerEvents
+    {
+        OnTokenValidated = async context =>
+        {
+            var userIdStr = context.Principal?.Claims.FirstOrDefault(c => c.Type == System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (int.TryParse(userIdStr, out int userId))
+            {
+                var dbContext = context.HttpContext.RequestServices.GetRequiredService<STMM.DataAccess.Data.AppDbContext>();
+                var user = await dbContext.Users.FindAsync(new object[] { userId }, context.HttpContext.RequestAborted);
+                if (user == null || user.IsDeleted == true || user.Status == "Locked")
+                {
+                    context.Fail("Tài khoản của bạn đã bị khóa hoặc bị xóa.");
+                }
+            }
+        }
+    };
 });
 
 builder.Services.AddAuthorization();

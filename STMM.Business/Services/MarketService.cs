@@ -139,10 +139,20 @@ namespace STMM.Business.Services
             }
 
             var reqNameLower = request.MarketName.Trim().ToLower();
-            var isMarketNameExist = await _marketRepository.Query().AnyAsync(m => m.MarketName.ToLower() == reqNameLower && m.IsDeleted != true && m.Status != "Rejected" && m.Status != "Inactive");
-            if (isMarketNameExist)
+            var reqAddressLower = request.Address?.Trim().ToLower() ?? "";
+            
+            var existingMarkets = await _marketRepository.Query()
+                .Where(m => m.IsDeleted != true && m.Status != "Rejected" && m.Status != "Inactive")
+                .Select(m => new { m.MarketName, m.Address })
+                .ToListAsync();
+
+            var isDuplicateMarket = existingMarkets.Any(m => 
+                m.MarketName.Trim().ToLower() == reqNameLower && 
+                (m.Address?.Trim().ToLower() ?? "") == reqAddressLower);
+                
+            if (isDuplicateMarket)
             {
-                throw new STMM.Business.Exceptions.BadRequestException("Tên chợ đã tồn tại trên hệ thống (chợ đang hoạt động hoặc chờ duyệt).");
+                throw new STMM.Business.Exceptions.BadRequestException("Một chợ với cùng Tên và Địa chỉ này đã tồn tại trên hệ thống.");
             }
 
             // Check duplicate stall names within the new market
@@ -380,23 +390,64 @@ namespace STMM.Business.Services
                 market.Status = "Inactive";
                 _marketRepository.Update(market);
 
-                var affectedUserIds = await _marketRepository.DetachAllUsersFromMarketAsync(marketId, ct);
+                // Khóa tất cả người dùng (Manager, Staff)
+                var usersInMarket = await _context.Users
+                    .Include(u => u.Role)
+                    .Where(u => u.MarketId == marketId || (u.UserId == market.CreatorId && u.Role.Name == "Manager"))
+                    .ToListAsync(ct);
+
+                // Khóa tất cả Vendors đang có hợp đồng tại chợ
+                var vendorsInMarket = await _context.Users
+                    .Include(u => u.Role)
+                    .Where(u => u.Vendor != null && u.Vendor.Contracts.Any(c => c.Stall.Area.MarketId == marketId))
+                    .ToListAsync(ct);
+
+                var allUsersToLock = usersInMarket.Concat(vendorsInMarket).DistinctBy(u => u.UserId).ToList();
+                var affectedUserIds = new List<int>();
+
+                foreach (var u in allUsersToLock)
+                {
+                    affectedUserIds.Add(u.UserId);
+                    u.MarketId = null;
+                    u.IsDeleted = true;
+                    u.DeletedAt = DateTime.UtcNow;
+                    u.Status = "Locked"; // Prevent login
+                    u.OtpCode = null; // Clear any pending OTPs
+                    u.OtpExpiredAt = null;
+                    
+                    _context.Users.Update(u);
+                }
 
                 await _marketRepository.DeactivateAllMetersAsync(marketId, ct);
 
-                await _marketRepository.SaveChangesAsync(ct);
-                await transaction.CommitAsync(ct);
+                int senderUserId = requestingUserId;
+                if (senderUserId <= 0)
+                {
+                    var admin = await _userRepository.Query().FirstOrDefaultAsync(u => u.Role.Name == "Admin", ct);
+                    senderUserId = admin?.UserId ?? market.CreatorId ?? 1;
+                }
 
                 foreach (var userId in affectedUserIds)
                 {
-                    await _notificationService.CreateAsync(new STMM.Business.DTOs.Notification.CreateNotificationRequest
+                    try
                     {
-                        TargetUserId = userId,
-                        Title = "Chợ đã ngưng hoạt động",
-                        Content = $"Chợ '{market.MarketName}' đã ngưng hoạt động. Tài khoản của bạn đã được gỡ liên kết khỏi chợ này.",
-                        NotiType = "System"
-                    }, ct);
+                        await _notificationService.CreateAsync(new STMM.Business.DTOs.Notification.CreateNotificationRequest
+                        {
+                            TargetUserId = userId,
+                            Title = "Chợ đã ngưng hoạt động",
+                            Content = $"Chợ '{market.MarketName}' đã ngưng hoạt động. Tài khoản của bạn đã được gỡ liên kết khỏi chợ này.",
+                            NotiType = "System",
+                            CreatedByUserId = senderUserId
+                        }, ct);
+                    }
+                    catch
+                    {
+                        // Best effort for notifications
+                    }
                 }
+
+                await _marketRepository.SaveChangesAsync(ct);
+                await transaction.CommitAsync(ct);
 
                 return new DeactivateMarketResult
                 {

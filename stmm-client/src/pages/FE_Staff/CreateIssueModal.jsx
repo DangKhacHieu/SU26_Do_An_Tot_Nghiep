@@ -119,7 +119,7 @@ export default function CreateIssueModal({ baseUrl, onClose, onSuccess, prefille
     setError('');
 
     if (!validateForm()) {
-      setError('Please check and fix the invalid fields below.');
+      setError(t('createissuemodal.please_check_and_fix', 'Vui lòng kiểm tra và sửa các trường chưa hợp lệ bên dưới.'));
       return;
     }
 

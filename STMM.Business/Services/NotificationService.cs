@@ -60,6 +60,13 @@ namespace STMM.Business.Services
                 throw new BadRequestException("ERR_NO_ACTIVE_NOTIFICATION_RECIPIENT_WAS_FOUND");
             }
 
+            var senderId = request.CreatedByUserId;
+            if (senderId <= 0)
+            {
+                var admin = await _userRepository.Query().FirstOrDefaultAsync(u => u.Role.Name == "Admin", ct);
+                senderId = admin?.UserId ?? (await _userRepository.Query().Select(u => u.UserId).FirstOrDefaultAsync(ct));
+            }
+
             foreach (var targetUserId in targetUserIds.Distinct())
             {
                 await _notificationRepository.AddAsync(new Notification
@@ -67,7 +74,7 @@ namespace STMM.Business.Services
                     Title = request.Title,
                     Content = request.Content,
                     NotiType = request.NotiType,
-                    CreatedByUserId = request.CreatedByUserId,
+                    CreatedByUserId = senderId,
                     TargetUserId = targetUserId,
                     TargetRole = !request.TargetUserId.HasValue ? request.TargetRole : null,
                     IsRead = false,

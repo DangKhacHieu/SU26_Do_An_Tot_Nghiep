@@ -208,7 +208,7 @@ export default function RecordMeterReadingModal({
     setSubmitError(null);
 
     if (!validateForm()) {
-      setSubmitError('Please check and fix the invalid fields below.');
+      setSubmitError(t('recordmeterreadingmodal.please_check_and_fix', 'Please check and correct the invalid fields below.'));
       return;
     }
 
@@ -324,7 +324,7 @@ export default function RecordMeterReadingModal({
             />
             {minDateStr && maxDateStr ? (
               <span className="helper-text" style={{ color: '#475569', fontSize: '12px', marginTop: '4px', display: 'block' }}>
-                📅 {t('recordmeterreadingmodal.date_range_hint', { min: minDateStr, max: maxDateStr, defaultValue: `Chỉ cho phép chọn từ ngày ${minDateStr} đến ${maxDateStr} (Hôm nay).` })}
+                📅 {t('recordmeterreadingmodal.date_range_hint', { min: minDateStr, max: maxDateStr, defaultValue: `Only selection between ${minDateStr} and ${maxDateStr} (Today) is allowed.` })}
               </span>
             ) : null}
             {formErrors.recordedAt && <span className="error-text">{formErrors.recordedAt}</span>}
@@ -352,11 +352,11 @@ export default function RecordMeterReadingModal({
               <div className="drag-drop-content">
                 <span className="upload-icon">📸</span>
                 {selectedFile ? (
-                  <p>{t('recordmeterreadingmodal.image_uploaded_remove_the', 'Đã đính kèm ảnh minh chứng. Bấm để chọn lại ảnh khác.')}</p>
+                  <p>{t('recordmeterreadingmodal.image_uploaded_remove_the', 'Proof image attached. Click to select another image.')}</p>
                 ) : (
-                  <p>{t('recordmeterreadingmodal.drag_and_drop_image', 'Kéo thả ảnh vào đây hoặc ')}<strong style={{ color: '#4f46e5' }}>{t('recordmeterreadingmodal.click_to_select', 'bấm để chọn ảnh')}</strong></p>
+                  <p>{t('recordmeterreadingmodal.drag_and_drop_image', 'Drag and drop image here or ')}<strong style={{ color: '#4f46e5' }}>{t('recordmeterreadingmodal.click_to_select', 'click to select image')}</strong></p>
                 )}
-                <span className="helper-text">{t('recordmeterreadingmodal.supports_jpg_png_webp', 'Hỗ trợ định dạng JPG, PNG hoặc WEBP (Tối đa 5MB)')}</span>
+                <span className="helper-text">{t('recordmeterreadingmodal.supports_jpg_png_webp', 'Supports JPG, PNG or WEBP format (Max 5MB)')}</span>
               </div>
             </div>
 

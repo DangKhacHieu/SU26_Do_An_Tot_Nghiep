@@ -4724,7 +4724,7 @@
     "active": "tích cực",
     "profile": "hồ sơ",
     "account": "Tài khoản",
-    "personal_profile": "Thông tin cá nhân"
+    "personal_profile": "Hồ sơ cá nhân"
   },
   "recordmeterreadingmodal": {
     "record_meter_reading": "Ghi nhận chỉ số đồng hồ",
@@ -4765,7 +4765,8 @@
     "an_evidence_photo_of": "Cần có ảnh chụp mặt đồng hồ làm bằng chứng.",
     "unable_to_save_meter": "Không thể lưu chỉ số đồng hồ.",
     "upload_error": "Lỗi tải ảnh",
-    "save_reading_success": "Ghi chỉ số công tơ thành công!"
+    "save_reading_success": "Ghi chỉ số công tơ thành công!",
+    "please_check_and_fix": "Vui lòng kiểm tra và sửa các trường chưa hợp lệ bên dưới."
   },
   "stallinvoicedetail": {
     "fees": "Phí:",
@@ -4823,7 +4824,8 @@
     "evidence_must_be_an": "Ảnh minh chứng phải là file ảnh nhỏ hơn 5MB.",
     "uploading_image": "Đang tải hình ảnh lên...",
     "unable_to_upload_image": "Không thể tải lên hình ảnh.",
-    "complete_all_required_fields": "Hoàn thành tất cả các trường bắt buộc và đính kèm hình ảnh bằng chứng."
+    "complete_all_required_fields": "Hoàn thành tất cả các trường bắt buộc và đính kèm hình ảnh bằng chứng.",
+    "please_check_and_fix": "Vui lòng kiểm tra và sửa các trường chưa hợp lệ bên dưới."
   },
   "violationdetails": {
     "loading_violation_details": "Đang tải chi tiết vi phạm...",
@@ -4897,6 +4899,7 @@
     "submitting": "Đang gửi...",
     "submit_report": "Gửi báo cáo",
     "issue_created_success": "Báo cáo sự cố thành công!",
+    "please_check_and_fix": "Vui lòng kiểm tra và sửa các trường chưa hợp lệ bên dưới.",
     "under_maintenance": "Đang bảo trì"
   },
   "meterreadinghistory": {
@@ -5039,8 +5042,8 @@
     "cash_collection_stall": "Thu tiền mặt - Sạp {{stallCode}}",
     "invoice_month": "Hóa đơn tháng {{month}}/{{year}}",
     "due_date": "Hạn thanh toán",
-    "confirm_cash_title": "Xác nhận Thanh toán Tiền mặt",
-    "confirm_cash_text": "Bạn có chắc chắn đã nhận đầy đủ tiền mặt cho hóa đơn này?"
+    "confirm_cash_title": "Xác nhận thu tiền mặt",
+    "confirm_cash_text": "Bạn có chắc chắn đã nhận đủ số tiền mặt này từ tiểu thương không?"
   },
   "quotationpanel": {
     "submit_for_approval": "Gửi phê duyệt",
@@ -5059,25 +5062,28 @@
     "confirm": "XÁC NHẬN",
     "enter_price": "Nhập giá...",
     "delete_line_item": "Xóa vật liệu",
-    "unable_to_load_quotation": "Không thể tải chi tiết báo giá.",
-    "error_loading_material_catalog": "Lỗi khi tải danh mục vật liệu:",
-    "please_select_a_material": "Vui lòng chọn vật liệu từ danh mục.",
-    "quantity_must_be_greater": "Số lượng phải lớn hơn 0.",
-    "please_enter_a_valid": "Vui lòng nhập đơn giá hợp lệ cho mặt hàng tùy chỉnh.",
-    "unable_to_add_material": "Không thể thêm vật liệu.",
-    "material_added_successfully": "Đã thêm vật liệu thành công.",
-    "unable_to_remove_material": "Không thể xóa vật liệu.",
-    "material_removed_successfully": "Đã xóa vật liệu thành công.",
+    "unable_to_load_quotation": "Không thể tải thông tin báo giá",
+    "error_loading_material_catalog": "Lỗi khi tải danh mục vật tư",
+    "please_select_a_material": "Vui lòng chọn vật tư",
+    "quantity_must_be_greater": "Số lượng phải lớn hơn 0",
+    "please_enter_a_valid": "Vui lòng nhập đơn giá hợp lệ",
+    "unable_to_add_material": "Không thể thêm vật tư",
+    "material_added_successfully": "Thêm vật tư vào báo giá thành công!",
+    "unable_to_remove_material": "Không thể xóa vật tư",
+    "material_removed_successfully": "Đã xóa vật tư khỏi báo giá!",
     "remove_this_material_from": "Xóa vật liệu này khỏi báo giá?",
-    "unable_to_submit_quotation": "Không thể gửi báo giá để phê duyệt.",
-    "quotation_has_been_submitted": "Báo giá đã được gửi để phê duyệt thành công!",
-    "the_quotation_must_contain": "Báo giá phải chứa ít nhất một hạng mục quan trọng trước khi gửi.",
-    "the_quotation_will_be": "Báo giá sẽ được gửi cho quản lý để xác định bên thanh toán. Danh sách vật liệu sẽ bị khóa cho đến khi có quyết định.",
+    "unable_to_submit_quotation": "Không thể gửi báo giá",
+    "quotation_has_been_submitted": "Đã gửi báo giá tới Manager thành công!",
+    "the_quotation_must_contain": "Báo giá phải có ít nhất 1 vật tư",
+    "the_quotation_will_be": "Báo giá sẽ được gửi tới Manager phê duyệt. Bạn sẽ không thể sửa báo giá sau khi gửi.",
     "sending": "Đang gửi...",
     "custom_price": "Giá tùy chỉnh",
     "adding": "Đang thêm...",
     "repair_materials_quotation": "Báo giá vật liệu và linh kiện sửa chữa",
-    "select_from_catalog": "Chọn từ danh mục vật liệu"
+    "select_from_catalog": "Chọn từ danh mục vật liệu",
+    "remove_material_title": "Xóa vật tư",
+    "remove_material_message": "Bạn có chắc chắn muốn xóa vật tư này khỏi báo giá?",
+    "submit_quotation_title": "Gửi báo giá"
   },
   "utilitychecklist": {
     "utility_meter_checklist": "Danh sách ghi chỉ số điện/nước",
@@ -5174,28 +5180,34 @@
     "report_task_completion": "Báo cáo hoàn thành công việc",
     "before_photo": "Ảnh trước khi xử lý",
     "after_photo": "Ảnh sau khi xử lý",
-    "drag_and_drop_an": "Kéo thả ảnh vào đây hoặc ",
+    "drag_and_drop_an": "Kéo thả hình ảnh vào đây hoặc ",
     "click_to_select": "bấm để chọn ảnh",
-    "jpg_png_or_webp": "Hỗ trợ định dạng JPG, PNG hoặc WEBP (Tối đa 5MB)",
-    "no_photo_attached_yet": "Chưa đính kèm ảnh",
+    "jpg_png_or_webp": "Định dạng JPG, PNG hoặc WEBP (Tối đa 5MB)",
+    "no_photo_attached_yet": "Chưa có ảnh bằng chứng",
     "meter_reading_progress": "Tiến độ đo điện nước",
     "complete_every_stall_reading": "Vui lòng nhập chỉ số cho tất cả các sạp trước khi báo cáo hoàn thành.",
     "completion_notes_optional": "Ghi chú hoàn thành (Không bắt buộc)",
     "add_completion_details_quality": "Nhập chi tiết công việc đã thực hiện, lưu ý chất lượng hoặc linh kiện thay thế...",
     "task_pending_lock_hint": "Chỉ có thể nhập ghi chú và báo cáo hoàn thành khi tác vụ ở trạng thái In Progress (hoặc hoàn thành checklist đo điện nước).",
-    "task_locked_hint": "Tác vụ phải ở trạng thái In Progress (hoặc hoàn thành checklist đo điện nước) mới có thể báo cáo hoàn thành.",
+    "task_locked_hint": "Công việc phải ở trạng thái Đang thực hiện (hoặc hoàn thành checklist đo điện nước) mới có thể báo cáo hoàn thành.",
     "confirm_completion": "Xác nhận hoàn thành",
-    "submitting": "Đang gửi...",
+    "submitting": "Đang gửi báo cáo...",
     "uploading_image": "Đang tải hình ảnh lên...",
     "error": "Lỗi:",
     "unable_to_complete_the": "Không thể hoàn thành công việc.",
-    "only_image_files_are": "Chỉ hỗ trợ tệp hình ảnh.",
-    "please_provide_a_before": "Vui lòng cung cấp ảnh trước khi thực hiện.",
-    "please_provide_an_after": "Vui lòng cung cấp ảnh sau khi thực hiện.",
-    "record_readings_for_every": "Ghi chỉ số cho từng sạp trước khi hoàn thành công việc này.",
-    "task_completed_successfully": "Công việc đã được hoàn thành.",
-    "photos_only_while_in_progress": "Ảnh bằng chứng chỉ đính kèm được khi tác vụ đang thực hiện.",
-    "attach_all_required_evidence": "Vui lòng kiểm tra và đính kèm đầy đủ ảnh bằng chứng bên dưới."
+    "only_image_files_are": "Chỉ chấp nhận các tệp hình ảnh.",
+    "please_provide_a_before": "Vui lòng đính kèm ảnh trước khi sửa chữa.",
+    "please_provide_an_after": "Vui lòng đính kèm ảnh sau khi hoàn thành.",
+    "record_readings_for_every": "Vui lòng ghi đầy đủ chỉ số điện nước cho tất cả sạp trong khu vực trước khi hoàn thành công việc.",
+    "task_completed_successfully": "Báo cáo hoàn thành công việc thành công!",
+    "photos_only_while_in_progress": "Ảnh bằng chứng chỉ có thể đính kèm khi công việc đang ở trạng thái Đang thực hiện.",
+    "attach_all_required_evidence": "Vui lòng kiểm tra và đính kèm đầy đủ các ảnh bằng chứng bắt buộc bên dưới.",
+    "before_repair": "Ảnh trước khi sửa chữa",
+    "after_repair": "Ảnh sau khi hoàn thành",
+    "completion_notes": "Ghi chú hoàn thành",
+    "add_notes_about_materials": "Thêm ghi chú về vật tư, quá trình xử lý hoặc kết quả...",
+    "complete_task": "Hoàn thành công việc",
+    "file_exceeds_limit": "{{fileName}} vượt quá dung lượng tối đa 5MB."
   },
   "staffnotifications": {
     "notifications": "Thông báo",
@@ -5226,9 +5238,9 @@
     "new": "Mới",
     "notification_button": "Mở thông báo",
     "notification_button_unread": "Mở thông báo, {{count}} thông báo chưa đọc",
-    "page_subtitle": "Danh sách thông báo nội bộ cho nhân viên.",
-    "search_placeholder": "Tìm kiếm theo tiêu đề hoặc nội dung...",
-    "no_search_results": "Không tìm thấy thông báo nào phù hợp."
+    "page_subtitle": "Xem và quản lý tất cả các thông báo công việc, sự cố và vi phạm.",
+    "search_placeholder": "Tìm kiếm thông báo...",
+    "no_search_results": "Không tìm thấy thông báo phù hợp"
   },
   "meterdetail": {
     "loading_meter_details": "Đang tải chi tiết đồng hồ...",
@@ -5266,6 +5278,7 @@
     "clear": "Xóa",
     "report_violation_for_this": "Lập biên bản vi phạm cho sạp này",
     "view_meter_reading_history": "Xem lịch sử ghi chỉ số",
+    "no_utility_reading_task_for_stall": "Sạp này hiện không có nhiệm vụ đo điện nước",
     "view_unpaid_invoices": "Xem hóa đơn chưa thanh toán",
     "unable_to_load_stalls": "Không thể tải danh sách sạp.",
     "error_fetching_stalls_checklist": "Lỗi khi tải danh sách công việc theo sạp:",
@@ -5364,7 +5377,7 @@
     "showing": "Hiển thị",
     "of": "trên",
     "page": "Trang",
-    "all": "Tất cả nhiệm vụ"
+    "all": "Tất cả"
   },
   "marketAreaList": {
     "market_floor_plan": "SƠ ĐỒ MẶT BẰNG CHỢ",

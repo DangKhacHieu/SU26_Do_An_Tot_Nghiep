@@ -46,7 +46,7 @@ export default function MeterManagement({ addToast }) {
       const res = await meterService.getMeters();
       setMeters(Array.isArray(res) ? res : []);
     } catch (error) {
-      addToast(error.message || t('metermanagement.unable_to_load_meter', 'Không thể tải danh sách công tơ'), 'error');
+      addToast(error.message || t('metermanagement.unable_to_load_meter', 'Unable to load meter list'), 'error');
     } finally {
       setLoading(false);
     }
@@ -94,18 +94,18 @@ export default function MeterManagement({ addToast }) {
   const hasFilters = search || typeFilter || isActiveFilter || isAssignedFilter !== DEFAULT_ASSIGNED_FILTER;
   // tableTitle dùng t() theo ngôn ngữ — không hardcode VI
   const tableTitle = isAssignedFilter === DEFAULT_ASSIGNED_FILTER
-    ? t('metermanagement.available_meter_inventory', 'Kho Công tơ Khả dụng')
+    ? t('metermanagement.available_meter_inventory', 'Available Meter Inventory')
     : isAssignedFilter === 'true'
-      ? t('metermanagement.the_meter_has_been', 'Công tơ Đã gán Sạp')
-      : t('metermanagement.all_meters_are_in', 'Tất cả công tơ trong chợ');
+      ? t('metermanagement.the_meter_has_been', 'Meters Assigned to Stalls')
+      : t('metermanagement.all_meters_are_in', 'All meters in market');
 
   // Form validation
   const validateForm = () => {
     const errors = {};
     if (!formValues.serialNumber.trim()) {
-      errors.serialNumber = t('metermanagement.the_serial_number_cannot', 'Số Seri không được để trống');
+      errors.serialNumber = t('metermanagement.the_serial_number_cannot', 'Serial number is required');
     } else if (formValues.serialNumber.trim().length < 3) {
-      errors.serialNumber = t('metermanagement.the_serial_number_must', 'Số Seri phải từ 3 ký tự trở lên');
+      errors.serialNumber = t('metermanagement.the_serial_number_must', 'Serial number must be at least 3 characters');
     }
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
@@ -130,7 +130,7 @@ export default function MeterManagement({ addToast }) {
 
   const handleOpenStatusModal = (meter) => {
     if (meter.isActive && Boolean(meter.stallId)) {
-      addToast(t('metermanagement.deactivate_error_unassign_first', 'Cần gỡ sạp hoặc thay thế công tơ này trước khi ngưng hoạt động.'), 'error');
+      addToast(t('metermanagement.deactivate_error_unassign_first', 'Must unassign stall or replace this meter before deactivating.'), 'error');
       return;
     }
     setSelectedMeter(meter);
@@ -155,12 +155,12 @@ export default function MeterManagement({ addToast }) {
         serialNumber: formValues.serialNumber.trim(),
         type: formValues.type
       });
-      addToast(t('metermanagement.added_meter_to_availability', 'Đã thêm công tơ vào kho'), 'success');
+      addToast(t('metermanagement.added_meter_to_availability', 'Meter added to inventory'), 'success');
       handleCloseModal();
       setPageNumber(1);
       fetchMeters();
     } catch (error) {
-      addToast(error.message || t('metermanagement.error_creating_meter', 'Lỗi khi tạo mới công tơ'), 'error');
+      addToast(error.message || t('metermanagement.error_creating_meter', 'Error creating meter'), 'error');
     } finally {
       setActionLoading(false);
     }
@@ -177,11 +177,11 @@ export default function MeterManagement({ addToast }) {
         type: formValues.type,
         isActive: formValues.isActive
       });
-      addToast(t('metermanagement.updated_meter_selectedmetermeterid_successfully', { meterId: selectedMeter.meterId, defaultValue: `Đã cập nhật công tơ thành công` }), 'success');
+      addToast(t('metermanagement.updated_meter_selectedmetermeterid_successfully', { meterId: selectedMeter.meterId, defaultValue: 'Meter updated successfully' }), 'success');
       handleCloseModal();
       fetchMeters();
     } catch (error) {
-      addToast(error.message || t('metermanagement.error_updating_meter', 'Lỗi khi cập nhật công tơ'), 'error');
+      addToast(error.message || t('metermanagement.error_updating_meter', 'Error updating meter'), 'error');
     } finally {
       setActionLoading(false);
     }
@@ -199,13 +199,13 @@ export default function MeterManagement({ addToast }) {
         isActive: nextIsActive
       });
       addToast(
-        t('metermanagement.meter_status_changed', { meterId: selectedMeter.meterId, action: nextIsActive ? t('metermanagement.reactivated', 'kích hoạt lại') : t('metermanagement.deactivated', 'ngưng hoạt động'), defaultValue: `Đã thay đổi trạng thái công tơ thành công` }),
+        t('metermanagement.meter_status_changed', { meterId: selectedMeter.meterId, action: nextIsActive ? t('metermanagement.reactivated', 'reactivated') : t('metermanagement.deactivated', 'deactivated'), defaultValue: 'Meter status updated successfully' }),
         'success'
       );
       handleCloseModal();
       fetchMeters();
     } catch (error) {
-      addToast(error.message || t('metermanagement.unable_to_change_meter_status', 'Không thể thay đổi trạng thái công tơ'), 'error');
+      addToast(error.message || t('metermanagement.unable_to_change_meter_status', 'Unable to update meter status'), 'error');
     } finally {
       setActionLoading(false);
     }
