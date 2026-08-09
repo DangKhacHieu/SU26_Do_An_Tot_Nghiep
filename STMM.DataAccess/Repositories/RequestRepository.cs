@@ -181,6 +181,7 @@ namespace STMM.DataAccess.Repositories
         {
             return await _context.Requests
                 .Include(r => r.Stall)
+                    .ThenInclude(s => s.Area)
                 .Include(r => r.Vendor)
                 .FirstOrDefaultAsync(r => r.RequestId == requestId, ct);
         }

@@ -294,8 +294,18 @@ export default function PaymentVerification() {
         transactionCode: (isRefund && selectedItem.invoiceStatus === 'Paid') ? transactionCode : null
       }) 
     })
-      .then(r => { if (r.status === 401) { localStorage.removeItem('accessToken'); window.location.href = '/login'; throw new Error('401'); } if (!r.ok) throw new Error(); showNotification('success', t('paymentverification.appeal_responded_successfully')); setActiveModal(null); loadAllData(); })
-      .catch(() => showNotification('danger', t('paymentverification.appeal_processing_failed')));
+      .then(async r => { 
+        if (r.status === 401) { localStorage.removeItem('accessToken'); window.location.href = '/login'; throw new Error('401'); } 
+        if (!r.ok) {
+          const errData = await r.json().catch(() => ({}));
+          const errMsg = errData.message || errData.detail || errData.Title || t('paymentverification.appeal_processing_failed');
+          throw new Error(errMsg);
+        }
+        showNotification('success', t('paymentverification.appeal_responded_successfully')); 
+        setActiveModal(null); 
+        loadAllData(); 
+      })
+      .catch((e) => showNotification('danger', e.message === '401' ? 'Unauthorized' : (e.message || t('paymentverification.appeal_processing_failed'))));
   };
 
   const filteredPayments = payments
