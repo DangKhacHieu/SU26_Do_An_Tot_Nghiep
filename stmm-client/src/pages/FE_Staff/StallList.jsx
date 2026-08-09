@@ -258,9 +258,7 @@ export default function StallList({ baseUrl, onShowNotification, onViewMeterHist
                         disabled={!hasUtilityTask}
                         title={hasUtilityTask 
                           ? t('stalllist.view_meter_reading_history') 
-                          : (i18n.language?.startsWith('vi') 
-                              ? 'Sạp này hiện không có nhiệm vụ đo điện nước' 
-                              : 'No utility reading task assigned for this stall')}
+                          : t('stalllist.no_utility_reading_task_for_stall', 'No utility reading task assigned for this stall')}
                       >
                         ⚡ {t('stalllist.meter_history')}
                       </button>

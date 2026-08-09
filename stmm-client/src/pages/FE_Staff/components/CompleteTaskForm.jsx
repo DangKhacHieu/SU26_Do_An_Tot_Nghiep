@@ -82,7 +82,7 @@ function EvidencePhotoPreview({ label, storedUrl, t }) {
         ) : (
           <div className="drag-drop-content">
             <UploadCloud className="upload-icon" size={30} aria-hidden="true" />
-            <span className="helper-text">{t('completetaskform.no_photo_attached_yet', 'Chưa có ảnh')}</span>
+            <span className="helper-text">{t('completetaskform.no_photo_attached_yet', 'No photo attached')}</span>
           </div>
         )}
       </div>
@@ -144,7 +144,7 @@ export default function CompleteTaskForm({ task, baseUrl, onRefreshTask, onShowN
   const handleFileSelect = (file, target) => {
     if (!file) return;
     if (file.size > 5 * 1024 * 1024) {
-      setUploadErrors((current) => ({ ...current, [target]: t('completetaskform.file_exceeds_limit', '{{fileName}} vượt quá dung lượng tối đa 5MB.', { fileName: file.name }) }));
+      setUploadErrors((current) => ({ ...current, [target]: t('completetaskform.file_exceeds_limit', '{{fileName}} exceeds maximum size of 5MB.', { fileName: file.name }) }));
       return;
     }
     if (!file.type.startsWith('image/')) {

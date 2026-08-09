@@ -444,9 +444,9 @@ export default function CreateTaskModal({
 
     if (taskType === 'UtilityReading') {
       if (!areaId) {
-        errors.areaId = t('createtaskmodal.area_required', { defaultValue: 'Vui lòng chọn khu vực cần đo chỉ số.' });
+        errors.areaId = t('createtaskmodal.area_required', { defaultValue: 'Please select an area for meter reading.' });
       } else if (!areasWithStallsSet.has(String(areaId)) && !loadingStalls) {
-        errors.areaId = t('createtaskmodal.no_active_stalls', { defaultValue: 'Chưa có sạp kinh doanh' });
+        errors.areaId = t('createtaskmodal.no_active_stalls', { defaultValue: 'No active stalls' });
       } else if (assignedUtilityAreas.has(String(areaId))) {
         const assignment = assignedUtilityAreas.get(String(areaId));
         errors.areaId = t('createtaskmodal.area_already_assigned', { staffName: assignment.assignedToName });
@@ -544,7 +544,7 @@ export default function CreateTaskModal({
                 <AlertCircle size={20} style={{ color: '#ef4444', flexShrink: 0, marginTop: '2px' }} />
                 <div>
                   <strong style={{ color: '#991b1b', fontSize: '13.5px', display: 'block', marginBottom: '4px' }}>
-                    ⚠️ {t('createtaskmodal.review_fields', 'Vui lòng kiểm tra lại các trường dữ liệu bị lỗi bên dưới.')}
+                    ⚠️ {t('createtaskmodal.review_fields', 'Please check and correct the invalid fields below.')}
                   </strong>
                   <ul style={{ margin: 0, paddingLeft: '18px', color: '#b91c1c', fontSize: '12.5px', lineHeight: 1.5 }}>
                     {Object.values(formErrors).map((errMessage, index) => (
@@ -658,12 +658,12 @@ export default function CreateTaskModal({
                       <strong>
                         {t('createtaskmodal.utility_period_title', {
                           period: currentPeriodLabel,
-                          defaultValue: `Kỳ ghi chỉ số: Tháng ${currentPeriodLabel}`
+                          defaultValue: `Reading Period: Month ${currentPeriodLabel}`
                         })}
                       </strong>
                       <p>
                         {t('createtaskmodal.utility_period_desc', {
-                          defaultValue: 'Mỗi khu vực chỉ được giao 1 task đo điện nước trong vòng 1 tháng lịch.'
+                          defaultValue: 'Each area can only be assigned 1 meter reading task per calendar month.'
                         })}
                       </p>
                     </div>
@@ -692,15 +692,15 @@ export default function CreateTaskModal({
 
                       if (!hasStalls && !loadingStalls) {
                         isDisabled = true;
-                        label = `🔒 ${name} (${desc}) - ${t('createtaskmodal.no_active_stalls', { defaultValue: 'Chưa có sạp kinh doanh' })}`;
+                        label = `🔒 ${name} (${desc}) - ${t('createtaskmodal.no_active_stalls', { defaultValue: 'No active stalls' })}`;
                       } else if (assignment) {
                         isDisabled = true;
                         const periodLabel = assignment.period || currentPeriodLabel;
                         label = `🔒 ${name} (${desc}) - ${assignment.status === 'Completed'
-                            ? t('createtaskmodal.already_completed', { period: periodLabel, defaultValue: `Đã hoàn thành đo chỉ số tháng ${periodLabel}` })
-                            : t('createtaskmodal.already_assigned_to', { staffName: assignment.assignedToName, period: periodLabel, defaultValue: `Đã giao task tháng ${periodLabel} (${assignment.assignedToName})` })}`;
+                            ? t('createtaskmodal.already_completed', { period: periodLabel, defaultValue: `Completed meter reading for month ${periodLabel}` })
+                            : t('createtaskmodal.already_assigned_to', { staffName: assignment.assignedToName, period: periodLabel, defaultValue: `Assigned task for month ${periodLabel} (${assignment.assignedToName})` })}`;
                       } else {
-                        label = `🟢 ${name} (${desc}) - ${t('createtaskmodal.ready_to_assign', { defaultValue: 'Sẵn sàng giao task' })}`;
+                        label = `🟢 ${name} (${desc}) - ${t('createtaskmodal.ready_to_assign', { defaultValue: 'Ready to assign task' })}`;
                       }
 
                       return (
@@ -714,7 +714,7 @@ export default function CreateTaskModal({
                   {loadingUtilityTasks && <span className="ctm-helper">{t('createtaskmodal.checking_assignments')}</span>}
                   {!loadingAreas && !loadingUtilityTasks && areas.length > 0 && assignedUtilityAreas.size >= areas.length && (
                     <span className="ctm-helper ctm-helper-warning">
-                      ⚠️ {t('createtaskmodal.all_areas_assigned', { defaultValue: 'Tất cả khu vực đã được giao task ghi chỉ số điện nước trong tháng này.' })}
+                      ⚠️ {t('createtaskmodal.all_areas_assigned', { defaultValue: 'All areas have been assigned meter reading tasks for this month.' })}
                     </span>
                   )}
                   {formErrors.areaId && <span className="ctm-error">{formErrors.areaId}</span>}

@@ -5320,6 +5320,7 @@
     "clear": "Clear",
     "report_violation_for_this": "Report violation for this stall",
     "view_meter_reading_history": "View meter reading history",
+    "no_utility_reading_task_for_stall": "No utility reading task assigned for this stall",
     "view_unpaid_invoices": "View unpaid invoices",
     "unable_to_load_stalls": "Unable to load stalls.",
     "error_fetching_stalls_checklist": "Error fetching stalls checklist:",

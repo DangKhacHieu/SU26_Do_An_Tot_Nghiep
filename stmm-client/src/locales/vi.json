@@ -5277,6 +5277,7 @@
     "clear": "Xóa",
     "report_violation_for_this": "Lập biên bản vi phạm cho sạp này",
     "view_meter_reading_history": "Xem lịch sử ghi chỉ số",
+    "no_utility_reading_task_for_stall": "Sạp này hiện không có nhiệm vụ đo điện nước",
     "view_unpaid_invoices": "Xem hóa đơn chưa thanh toán",
     "unable_to_load_stalls": "Không thể tải danh sách sạp.",
     "error_fetching_stalls_checklist": "Lỗi khi tải danh sách công việc theo sạp:",
