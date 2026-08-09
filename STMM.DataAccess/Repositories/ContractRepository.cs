@@ -140,6 +140,9 @@ namespace STMM.DataAccess.Repositories
 
         public async Task<List<Contract>> GetActiveContractsForBillingAsync(int targetMonth, int targetYear, CancellationToken ct = default)
         {
+            var targetStart = new DateOnly(targetYear, targetMonth, 1);
+            var targetEnd = new DateOnly(targetYear, targetMonth, System.DateTime.DaysInMonth(targetYear, targetMonth));
+
             // Includes all necessary relations to avoid N+1 during billing
             return await _dbSet
                 .Include(c => c.Stall)
@@ -147,7 +150,10 @@ namespace STMM.DataAccess.Repositories
                 .Include(c => c.Stall)
                     .ThenInclude(s => s.ServiceRegistrations)
                         .ThenInclude(sr => sr.Service)
-                .Where(c => c.Status == "Active" && c.IsDeleted != true)
+                .Where(c => c.IsDeleted != true
+                            && c.StartDate <= targetEnd
+                            && c.EndDate >= targetStart
+                            && (c.Status == "Active" || c.Status == "Expired" || c.Status == "Terminated" || c.Status == "TerminatedEarly"))
                 .ToListAsync(ct);
         }
     }
