@@ -296,6 +296,17 @@ namespace STMM.Business.Services
                 throw new NotFoundException($"Không tìm thấy hợp đồng có ID {contractId}.");
             }
 
+            // Check if there are any unpaid, overdue, or pending confirmation invoices associated with this contract
+            var hasUnpaidInvoices = await _contractRepository.Query()
+                .Where(c => c.ContractId == contractId)
+                .SelectMany(c => c.Invoices)
+                .AnyAsync(i => (i.Status == "Unpaid" || i.Status == "Overdue" || i.Status == "Pending Confirmation") && i.IsDeleted != true, ct);
+
+            if (hasUnpaidInvoices)
+            {
+                throw new BadRequestException("Không thể chấm dứt/thanh lý hợp đồng này vì vẫn còn hóa đơn chưa thanh toán hoặc đang chờ xác nhận thanh toán.");
+            }
+
             var targetTerminationDate = terminationDate ?? DateOnly.FromDateTime(DateTime.Today);
             var isEarly = targetTerminationDate < contract.EndDate;
 

@@ -2210,6 +2210,7 @@
     "back_to_the_list": "Back to the list",
     "back_to_list": "← Back to list",
     "chm_dt_trc_hn": "🚫 Terminate Early",
+    "thanh_ly_hop_dong": "🚫 Liquidate Contract",
     "contract_title": "CONTRACT {{id}}",
     "contract_renewal": "🔄 Contract Renewal",
     "export_pdf_file_a4": "📄 Export PDF file (A4)",

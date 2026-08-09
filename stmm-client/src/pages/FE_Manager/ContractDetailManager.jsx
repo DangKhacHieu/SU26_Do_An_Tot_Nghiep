@@ -315,7 +315,7 @@ export default function ContractDetailManager({ contractId, navigate, addToast }
           {t('contractdetailmanager.back_to_list')}</button>
 
         <div className="actions-group">
-          {contract.status === "Active" && (
+          {(contract.status === "Active" || contract.status === "Expired") && (
             <>
               <button 
                 className="btn-action-terminate" 
@@ -325,7 +325,7 @@ export default function ContractDetailManager({ contractId, navigate, addToast }
                 }}
                 disabled={actionLoading}
               >
-                {t('contractdetailmanager.chm_dt_trc_hn')}</button>
+                {contract.status === "Active" ? t('contractdetailmanager.chm_dt_trc_hn') : t('contractdetailmanager.thanh_ly_hop_dong')}</button>
               <button 
                 className="btn-action-renew" 
                 onClick={() => setShowRenewModal(true)}
